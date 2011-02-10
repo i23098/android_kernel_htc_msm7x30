@@ -1124,7 +1124,7 @@ static int msm_pm_power_collapse
 
 #ifdef CONFIG_VFP
 	if (from_idle)
-		vfp_flush_context();
+		vfp_pm_suspend();
 #endif
 
 #ifdef CONFIG_CACHE_L2X0
@@ -1144,7 +1144,7 @@ static int msm_pm_power_collapse
 	if (collapsed) {
 #ifdef CONFIG_VFP
 		if (from_idle)
-			vfp_reinit();
+			vfp_pm_resume();
 #endif
 		cpu_init();
 		local_fiq_enable();
@@ -1335,7 +1335,7 @@ static int msm_pm_power_collapse_standalone(bool from_idle)
 			virt_to_phys(msm_pm_collapse_exit));
 
 #ifdef CONFIG_VFP
-	vfp_flush_context();
+	vfp_pm_suspend();
 #endif
 
 #ifdef CONFIG_CACHE_L2X0
@@ -1356,7 +1356,7 @@ static int msm_pm_power_collapse_standalone(bool from_idle)
 
 	if (collapsed) {
 #ifdef CONFIG_VFP
-		vfp_reinit();
+		vfp_pm_resume();
 #endif
 		cpu_init();
 		local_fiq_enable();

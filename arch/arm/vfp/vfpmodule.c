@@ -11,6 +11,7 @@
 #include <linux/types.h>
 #include <linux/cpu.h>
 #include <linux/hardirq.h>
+#include <linux/cpu_pm.h>
 #include <linux/kernel.h>
 #include <linux/notifier.h>
 #include <linux/signal.h>
@@ -442,7 +443,8 @@ static void vfp_enable(void *unused)
 	set_copro_access(access | CPACC_FULL(10) | CPACC_FULL(11));
 }
 
-int vfp_flush_context(void)
+#ifdef CONFIG_CPU_PM
+int vfp_pm_suspend(void)
 {
 	unsigned long flags;
 	struct thread_info *ti;
@@ -481,7 +483,7 @@ int vfp_flush_context(void)
 	return saved;
 }
 
-void vfp_reinit(void)
+void vfp_pm_resume(void)
 {
 	/* ensure we have access to the vfp */
 	vfp_enable(NULL);
@@ -490,34 +492,33 @@ void vfp_reinit(void)
 	fmxr(FPEXC, fmrx(FPEXC) & ~FPEXC_EN);
 }
 
-#ifdef CONFIG_PM
-#include <linux/syscore_ops.h>
-
-static int vfp_pm_suspend(void)
+static int vfp_cpu_pm_notifier(struct notifier_block *self, unsigned long cmd,
+	void *v)
 {
-	vfp_flush_context();
-
-	return 0;
+	switch (cmd) {
+	case CPU_PM_ENTER:
+		vfp_pm_suspend();
+		break;
+	case CPU_PM_ENTER_FAILED:
+	case CPU_PM_EXIT:
+		vfp_pm_resume();
+		break;
+	}
+	return NOTIFY_OK;
 }
 
-static void vfp_pm_resume(void)
-{
-	vfp_reinit();
-}
-
-static struct syscore_ops vfp_pm_syscore_ops = {
-	.suspend	= vfp_pm_suspend,
-	.resume		= vfp_pm_resume,
+static struct notifier_block vfp_cpu_pm_notifier_block = {
+	.notifier_call = vfp_cpu_pm_notifier,
 };
 
 static void vfp_pm_init(void)
 {
-	register_syscore_ops(&vfp_pm_syscore_ops);
+	cpu_pm_register_notifier(&vfp_cpu_pm_notifier_block);
 }
 
 #else
 static inline void vfp_pm_init(void) { }
-#endif /* CONFIG_PM */
+#endif /* CONFIG_CPU_PM */
 
 /*
  * Ensure that the VFP state stored in 'thread->vfpstate' is up to date
