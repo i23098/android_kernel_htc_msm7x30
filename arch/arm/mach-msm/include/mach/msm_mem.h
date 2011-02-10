@@ -75,7 +75,6 @@ extern unsigned int ebi0_size;
 #endif
 
 #ifndef __ASSEMBLY__
-void *alloc_bootmem_aligned(unsigned long size, unsigned long alignment);
 void *allocate_contiguous_ebi(unsigned long, unsigned long, int);
 unsigned long allocate_contiguous_ebi_nomap(unsigned long, unsigned long);
 void clean_and_invalidate_caches(unsigned long, unsigned long, unsigned long);
@@ -149,8 +148,6 @@ extern char *__compat_exports_end[];
 #define MEMORY_DEEP_POWERDOWN	0
 #define MEMORY_SELF_REFRESH	1
 #define MEMORY_ACTIVE		2
-
-#define NPA_MEMORY_NODE_NAME	"/mem/apps/ddr_dpd"
 
 #ifndef CONFIG_ARCH_MSM7X27
 #define CONSISTENT_DMA_SIZE	(SZ_1M * 14)
