@@ -33,6 +33,9 @@
 
 #define MSM_GPIO1_REG(off) (MSM_GPIO1_BASE + (off))
 #define MSM_GPIO2_REG(off) (MSM_GPIO2_BASE + 0x400 + (off))
+#define MSM_GPIO1_SHADOW_REG(off) (MSM_GPIO1_BASE + 0x800 + (off))
+#define MSM_GPIO2_SHADOW_REG(off) (MSM_GPIO2_BASE + 0xC00 + (off))
+
 #elif defined(CONFIG_ARCH_FSM9XXX)
 #define MSM_GPIO1_REG(off) (MSM_TLMM_BASE + (off))
 #else

@@ -21,6 +21,7 @@
 #include <linux/irq.h>
 #include <linux/module.h>
 #include <mach/gpiomux.h>
+#include <mach/cpu.h>
 #include "gpio_hw.h"
 #include "proc_comm.h"
 #include "smd_private.h"
@@ -207,15 +208,19 @@ static void msm_gpio_free(struct gpio_chip *chip, unsigned offset)
 #define msm_gpio_free NULL
 #endif
 
-struct msm_gpio_chip msm_gpio_chips[] = {
-#if defined(CONFIG_ARCH_MSM7X00A)
+static struct msm_gpio_chip *msm_gpio_chips;
+static int msm_gpio_count;
+
+static struct msm_gpio_chip msm_gpio_chips_msm7x01[] = {
 	MSM_GPIO_BANK(MSM7X00, 0,   0,  15),
 	MSM_GPIO_BANK(MSM7X00, 1,  16,  42),
 	MSM_GPIO_BANK(MSM7X00, 2,  43,  67),
 	MSM_GPIO_BANK(MSM7X00, 3,  68,  94),
 	MSM_GPIO_BANK(MSM7X00, 4,  95, 106),
 	MSM_GPIO_BANK(MSM7X00, 5, 107, 121),
-#elif defined(CONFIG_ARCH_MSM7X30)
+};
+
+static struct msm_gpio_chip msm_gpio_chips_msm7x30[] = {
 	MSM_GPIO_BANK(MSM7X30, 0,   0,  15),
 	MSM_GPIO_BANK(MSM7X30, 1,  16,  43),
 	MSM_GPIO_BANK(MSM7X30, 2,  44,  67),
@@ -224,7 +229,9 @@ struct msm_gpio_chip msm_gpio_chips[] = {
 	MSM_GPIO_BANK(MSM7X30, 5, 107, 133),
 	MSM_GPIO_BANK(MSM7X30, 6, 134, 150),
 	MSM_GPIO_BANK(MSM7X30, 7, 151, 181),
-#elif defined(CONFIG_ARCH_QSD8X50)
+};
+
+static struct msm_gpio_chip msm_gpio_chips_qsd8x50[] = {
 	MSM_GPIO_BANK(QSD8X50, 0,   0,  15),
 	MSM_GPIO_BANK(QSD8X50, 1,  16,  42),
 	MSM_GPIO_BANK(QSD8X50, 2,  43,  67),
@@ -233,7 +240,6 @@ struct msm_gpio_chip msm_gpio_chips[] = {
 	MSM_GPIO_BANK(QSD8X50, 5, 104, 121),
 	MSM_GPIO_BANK(QSD8X50, 6, 122, 152),
 	MSM_GPIO_BANK(QSD8X50, 7, 153, 164),
-#endif
 };
 
 static void msm_gpio_irq_ack(struct irq_data *d)
@@ -332,7 +338,7 @@ static void msm_gpio_irq_handler(unsigned int irq, struct irq_desc *desc)
 	int i, j, mask;
 	unsigned val;
 
-	for (i = 0; i < ARRAY_SIZE(msm_gpio_chips); i++) {
+	for (i = 0; i < msm_gpio_count; i++) {
 		struct msm_gpio_chip *msm_chip = &msm_gpio_chips[i];
 		val = __raw_readl(msm_chip->regs.int_status);
 		val &= msm_chip->int_enable[0];
@@ -410,7 +416,7 @@ void msm_gpio_enter_sleep(int from_idle)
 		}
 	}
 
-	for (i = 0; i < ARRAY_SIZE(msm_gpio_chips); i++) {
+	for (i = 0; i < msm_gpio_count; i++) {
 		unsigned int int_en = msm_gpio_chips[i].int_enable[!from_idle] & ~msm_gpio_chips[i].int_enable_mask[!from_idle];
 		__raw_writel(int_en, msm_gpio_chips[i].regs.int_en);
 		if ((msm_gpio_debug_mask & GPIO_DEBUG_SLEEP) && !from_idle)
@@ -469,7 +475,7 @@ void msm_gpio_exit_sleep(void)
 
 	smem_gpio = smem_alloc(SMEM_GPIO_INT, sizeof(*smem_gpio));
 
-	for (i = 0; i < ARRAY_SIZE(msm_gpio_chips); i++) {
+	for (i = 0; i < msm_gpio_count; i++) {
 		__raw_writel(msm_gpio_chips[i].int_enable[0],
 		       msm_gpio_chips[i].regs.int_en);
 	}
@@ -487,6 +493,19 @@ static int __init msm_init_gpio(void)
 {
 	int i, j = 0;
 
+	if (cpu_is_msm7x01()) {
+		msm_gpio_chips = msm_gpio_chips_msm7x01;
+		msm_gpio_count = ARRAY_SIZE(msm_gpio_chips_msm7x01);
+	} else if (cpu_is_msm7x30()) {
+		msm_gpio_chips = msm_gpio_chips_msm7x30;
+		msm_gpio_count = ARRAY_SIZE(msm_gpio_chips_msm7x30);
+	} else if (cpu_is_qsd8x50()) {
+		msm_gpio_chips = msm_gpio_chips_qsd8x50;
+		msm_gpio_count = ARRAY_SIZE(msm_gpio_chips_qsd8x50);
+	} else {
+		return 0;
+	}
+
 	for (i = FIRST_GPIO_IRQ; i < FIRST_GPIO_IRQ + NR_GPIO_IRQS; i++) {
 		if (i - FIRST_GPIO_IRQ >=
 			msm_gpio_chips[j].chip.base +
@@ -501,7 +520,7 @@ static int __init msm_init_gpio(void)
 	irq_set_chained_handler(INT_GPIO_GROUP1, msm_gpio_irq_handler);
 	irq_set_chained_handler(INT_GPIO_GROUP2, msm_gpio_irq_handler);
 
-	for (i = 0; i < ARRAY_SIZE(msm_gpio_chips); i++) {
+	for (i = 0; i < msm_gpio_count; i++) {
 		spin_lock_init(&msm_gpio_chips[i].lock);
 		__raw_writel(0, msm_gpio_chips[i].regs.int_en);
 		gpiochip_add(&msm_gpio_chips[i].chip);
@@ -519,7 +538,7 @@ void register_gpio_int_mask(unsigned int gpio, unsigned int idle)
 {
 	unsigned int i;
 	unsigned long irq_flags;
-	for (i = 0; i < ARRAY_SIZE(msm_gpio_chips); i++)
+	for (i = 0; i < msm_gpio_count; i++)
 		if (gpio >= msm_gpio_chips[i].chip.base && gpio < (msm_gpio_chips[i].chip.base + msm_gpio_chips[i].chip.ngpio)) {
 			spin_lock_irqsave(&msm_gpio_chips[i].lock, irq_flags);
 			msm_gpio_chips[i].int_enable_mask[!idle] |= 1U << (gpio - msm_gpio_chips[i].chip.base);
@@ -533,7 +552,7 @@ void unregister_gpio_int_mask(unsigned int gpio, unsigned int idle)
 {
 	unsigned int i;
 	unsigned long irq_flags;
-	for (i = 0; i < ARRAY_SIZE(msm_gpio_chips); i++)
+	for (i = 0; i < msm_gpio_count; i++)
 		if (gpio >= msm_gpio_chips[i].chip.base && gpio < (msm_gpio_chips[i].chip.base + msm_gpio_chips[i].chip.ngpio)) {
 			spin_lock_irqsave(&msm_gpio_chips[i].lock, irq_flags);
 			msm_gpio_chips[i].int_enable_mask[!idle] &= ~(1U << (gpio - msm_gpio_chips[i].chip.base));
