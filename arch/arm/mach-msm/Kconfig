@@ -9,6 +9,7 @@ config ARCH_MSM7X00A
 	select ARCH_MSM_ARM11
 	select MSM_SMD
 	select CPU_V6
+	select GPIO_MSM_V1
 	select MSM_PROC_COMM
 	select MSM_VIC
 	select MSM_REMOTE_SPINLOCK_SWP
@@ -45,6 +46,7 @@ config ARCH_MSM7X30
 	select MSM_REMOTE_SPINLOCK_DEKKERS
 	select ARCH_HAS_HOLES_MEMORYMODEL
 	select MSM_GPIOMUX
+	select GPIO_MSM_V1
 	select MSM_PROC_COMM
 	select RESERVE_FIRST_PAGE
 	select MSM_DALRPC
@@ -63,6 +65,7 @@ config ARCH_QSD8X50
 	select CPU_USE_DOMAINS
 	select EMULATE_DOMAIN_MANAGER_V7
 	select MSM_GPIOMUX
+	select GPIO_MSM_V1
 	select MSM_PROC_COMM
 	select MSM_DALRPC
 	select HAS_MSM_DEBUG_UART_PHYS
