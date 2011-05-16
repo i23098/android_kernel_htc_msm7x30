@@ -89,6 +89,7 @@ config ARCH_MSM8X60
 	select MSM_DIRECT_SCLK_ACCESS
 	select MSM_RPM
 	select MSM_XO
+	select GPIO_MSM_V2
 	select MSM_GPIOMUX
 	select MSM_BUS_SCALING
 	select MSM_SECURE_IO
