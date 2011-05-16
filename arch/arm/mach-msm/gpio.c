@@ -22,6 +22,7 @@
 #include <linux/module.h>
 #include <mach/gpiomux.h>
 #include <mach/cpu.h>
+#include <mach/msm_gpiomux.h>
 #include "gpio_hw.h"
 #include "proc_comm.h"
 #include "smd_private.h"
