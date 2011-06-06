@@ -31,7 +31,6 @@
 #include <asm/clkdev.h>
 
 #include "devices.h"
-#include "gpio_hw.h"
 #include "footswitch.h"
 
 #include <asm/mach/flash.h>
