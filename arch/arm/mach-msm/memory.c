@@ -112,6 +112,10 @@ void invalidate_caches(unsigned long vstart,
 	outer_inv_range(pstart, pstart + length);
 }
 
+/* these correspond to values known by the modem */
+#define MEMORY_DEEP_POWERDOWN	0
+#define MEMORY_SELF_REFRESH	1
+#define MEMORY_ACTIVE		2
 int (*change_memory_power)(u64, u64, int);
 
 int platform_physical_remove_pages(u64 start, u64 size)
