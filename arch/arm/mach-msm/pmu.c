@@ -28,7 +28,7 @@ static struct resource l2_pmu_resource = {
 };
 
 static struct platform_device l2_pmu_device = {
-	.name		= "l2-arm-pmu",
+	.name		= "l2-pmu",
 	.id		= ARM_PMU_DEVICE_L2,
 	.resource	= &l2_pmu_resource,
 	.num_resources	= 1,
@@ -37,7 +37,7 @@ static struct platform_device l2_pmu_device = {
 #endif
 
 static struct platform_device cpu_pmu_device = {
-	.name		= "cpu-arm-pmu",
+	.name		= "arm-pmu",
 	.id		= ARM_PMU_DEVICE_CPU,
 	.resource	= &cpu_pmu_resource,
 	.num_resources	= 1,
