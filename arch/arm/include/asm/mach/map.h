@@ -33,11 +33,12 @@ struct map_desc {
 #define MT_MEMORY_NONCACHED	11
 #define MT_MEMORY_DTCM		12
 #define MT_MEMORY_ITCM		13
-#define MT_DEVICE_STRONGLY_ORDERED 14
-#define MT_MEMORY_R		15
-#define MT_MEMORY_RW		16
-#define MT_MEMORY_RX		17
-#define MT_MEMORY_DMA_READY	18
+#define MT_MEMORY_SO		14
+#define MT_DEVICE_STRONGLY_ORDERED 15
+#define MT_MEMORY_R		16
+#define MT_MEMORY_RW		17
+#define MT_MEMORY_RX		18
+#define MT_MEMORY_DMA_READY	19
 
 #ifdef CONFIG_MMU
 extern void iotable_init(struct map_desc *, int);
