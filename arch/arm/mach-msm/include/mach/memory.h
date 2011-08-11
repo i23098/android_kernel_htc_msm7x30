@@ -18,9 +18,23 @@
 #include <linux/types.h>
 
 /* physical offset of RAM */
-
+#if defined(CONFIG_MACH_SPADE)
 #define PLAT_PHYS_OFFSET UL(CONFIG_PHYS_OFFSET)
-
+#else
+#if defined(CONFIG_ARCH_QSD8X50) && defined(CONFIG_MSM_SOC_REV_A)
+#define PLAT_PHYS_OFFSET		UL(0x00000000)
+#elif defined(CONFIG_ARCH_QSD8X50)
+#define PLAT_PHYS_OFFSET		UL(0x20000000)
+#elif defined(CONFIG_ARCH_MSM7X30)
+#define PLAT_PHYS_OFFSET		UL(0x00000000)
+#elif defined(CONFIG_ARCH_MSM8X60)
+#define PLAT_PHYS_OFFSET		UL(0x40000000)
+#elif defined(CONFIG_ARCH_MSM8960)
+#define PLAT_PHYS_OFFSET		UL(0x40000000)
+#else
+#define PLAT_PHYS_OFFSET		UL(0x10000000)
+#endif
+#endif
 
 #define MAX_PHYSMEM_BITS 32
 #define SECTION_SIZE_BITS 28
