@@ -784,6 +784,13 @@ void mmc_set_clock(struct mmc_host *host, unsigned int hz)
 	mmc_host_clk_release(host);
 }
 
+void mmc_set_clock(struct mmc_host *host, unsigned int hz)
+{
+	mmc_host_clk_hold(host);
+	__mmc_set_clock(host, hz);
+	mmc_host_clk_release(host);
+}
+
 #ifdef CONFIG_MMC_CLKGATE
 /*
  * This gates the clock by setting it to 0 Hz.
