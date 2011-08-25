@@ -29,7 +29,7 @@
 
 /*#define DEBUG*/
 
-#include <linux/pm_qos_params.h>
+#include <linux/pm_qos.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
 #include <linux/slab.h>
@@ -471,11 +471,9 @@ static int __init pm_qos_power_init(void)
 		return ret;
 	}
 	ret = register_pm_qos_misc(&network_throughput_pm_qos);
-	if (ret < 0) {
+	if (ret < 0)
 		printk(KERN_ERR
 			"pm_qos_param: network_throughput setup failed\n");
-		return 0;
-	}
 
 	return ret;
 }
