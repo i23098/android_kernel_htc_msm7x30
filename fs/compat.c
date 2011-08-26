@@ -37,7 +37,6 @@
 #include <linux/dirent.h>
 #include <linux/fsnotify.h>
 #include <linux/highuid.h>
-#include <linux/nfsd/syscall.h>
 #include <linux/personality.h>
 #include <linux/rwsem.h>
 #include <linux/tsacct_kern.h>
@@ -221,7 +220,7 @@ asmlinkage long compat_sys_newfstat(unsigned int fd,
 
 static int put_compat_statfs(struct compat_statfs __user *ubuf, struct kstatfs *kbuf)
 {
-
+	
 	if (sizeof ubuf->f_blocks == 4) {
 		if ((kbuf->f_blocks | kbuf->f_bfree | kbuf->f_bavail |
 		     kbuf->f_bsize | kbuf->f_frsize) & 0xffffffff00000000ULL)
@@ -247,11 +246,8 @@ static int put_compat_statfs(struct compat_statfs __user *ubuf, struct kstatfs *
 	    __put_user(kbuf->f_fsid.val[0], &ubuf->f_fsid.val[0]) ||
 	    __put_user(kbuf->f_fsid.val[1], &ubuf->f_fsid.val[1]) ||
 	    __put_user(kbuf->f_frsize, &ubuf->f_frsize) ||
-	    __put_user(0, &ubuf->f_spare[0]) ||
-	    __put_user(0, &ubuf->f_spare[1]) ||
-	    __put_user(0, &ubuf->f_spare[2]) ||
-	    __put_user(0, &ubuf->f_spare[3]) ||
-	    __put_user(0, &ubuf->f_spare[4]))
+	    __put_user(kbuf->f_flags, &ubuf->f_flags) ||
+	    __clear_user(ubuf->f_spare, sizeof(ubuf->f_spare)))
 		return -EFAULT;
 	return 0;
 }
@@ -528,7 +524,7 @@ compat_sys_io_getevents(aio_context_t ctx_id,
 	struct timespec __user *ut = NULL;
 
 	ret = -EFAULT;
-	if (unlikely(!access_ok(VERIFY_WRITE, events,
+	if (unlikely(!access_ok(VERIFY_WRITE, events, 
 				nr * sizeof(struct io_event))))
 		goto out;
 	if (timeout) {
@@ -538,7 +534,7 @@ compat_sys_io_getevents(aio_context_t ctx_id,
 		ut = compat_alloc_user_space(sizeof(*ut));
 		if (copy_to_user(ut, &t, sizeof(t)) )
 			goto out;
-	}
+	} 
 	ret = sys_io_getevents(ctx_id, min_nr, nr, events, ut);
 out:
 	return ret;
@@ -575,10 +571,6 @@ ssize_t compat_rw_copy_check_uvector(int type,
 			goto out;
 	}
 	*ret_pointer = iov;
-
-	ret = -EFAULT;
-	if (!access_ok(VERIFY_READ, uvector, nr_segs*sizeof(*uvector)))
-		goto out;
 
 	/*
 	 * Single unix specification:
@@ -640,7 +632,7 @@ copy_iocb(long nr, u32 __user *ptr32, struct iocb __user * __user *ptr64)
 asmlinkage long
 compat_sys_io_submit(aio_context_t ctx_id, int nr, u32 __user *iocb)
 {
-	struct iocb __user * __user *iocb64;
+	struct iocb __user * __user *iocb64; 
 	long ret;
 
 	if (unlikely(nr < 0))
@@ -648,7 +640,7 @@ compat_sys_io_submit(aio_context_t ctx_id, int nr, u32 __user *iocb)
 
 	if (nr > MAX_AIO_SUBMITS)
 		nr = MAX_AIO_SUBMITS;
-
+	
 	iocb64 = compat_alloc_user_space(nr * sizeof(*iocb64));
 	ret = copy_iocb(nr, iocb, iocb64);
 	if (!ret)
@@ -1111,12 +1103,17 @@ static ssize_t compat_do_readv_writev(int type, struct file *file,
 	if (!file->f_op)
 		goto out;
 
-	ret = compat_rw_copy_check_uvector(type, uvector, nr_segs,
-					       UIO_FASTIOV, iovstack, &iov, 1);
-	if (ret <= 0)
+	ret = -EFAULT;
+	if (!access_ok(VERIFY_READ, uvector, nr_segs*sizeof(*uvector)))
 		goto out;
 
-	tot_len = ret;
+	tot_len = compat_rw_copy_check_uvector(type, uvector, nr_segs,
+					       UIO_FASTIOV, iovstack, &iov, 1);
+	if (tot_len == 0) {
+		ret = 0;
+		goto out;
+	}
+
 	ret = rw_verify_area(type, file, pos, tot_len);
 	if (ret < 0)
 		goto out;
@@ -1177,14 +1174,11 @@ compat_sys_readv(unsigned long fd, const struct compat_iovec __user *vec,
 	struct file *file;
 	int fput_needed;
 	ssize_t ret;
-	loff_t pos;
 
 	file = fget_light(fd, &fput_needed);
 	if (!file)
 		return -EBADF;
-	pos = file->f_pos;
-	ret = compat_readv(file, vec, vlen, &pos);
-	file->f_pos = pos;
+	ret = compat_readv(file, vec, vlen, &file->f_pos);
 	fput_light(file, fput_needed);
 	return ret;
 }
@@ -1239,14 +1233,11 @@ compat_sys_writev(unsigned long fd, const struct compat_iovec __user *vec,
 	struct file *file;
 	int fput_needed;
 	ssize_t ret;
-	loff_t pos;
 
 	file = fget_light(fd, &fput_needed);
 	if (!file)
 		return -EBADF;
-	pos = file->f_pos;
-	ret = compat_writev(file, vec, vlen, &pos);
-	file->f_pos = pos;
+	ret = compat_writev(file, vec, vlen, &file->f_pos);
 	fput_light(file, fput_needed);
 	return ret;
 }
@@ -1680,257 +1671,6 @@ asmlinkage long compat_sys_ppoll(struct pollfd __user *ufds,
 	return ret;
 }
 #endif /* HAVE_SET_RESTORE_SIGMASK */
-
-#if (defined(CONFIG_NFSD) || defined(CONFIG_NFSD_MODULE)) && !defined(CONFIG_NFSD_DEPRECATED)
-/* Stuff for NFS server syscalls... */
-struct compat_nfsctl_svc {
-	u16			svc32_port;
-	s32			svc32_nthreads;
-};
-
-struct compat_nfsctl_client {
-	s8			cl32_ident[NFSCLNT_IDMAX+1];
-	s32			cl32_naddr;
-	struct in_addr		cl32_addrlist[NFSCLNT_ADDRMAX];
-	s32			cl32_fhkeytype;
-	s32			cl32_fhkeylen;
-	u8			cl32_fhkey[NFSCLNT_KEYMAX];
-};
-
-struct compat_nfsctl_export {
-	char		ex32_client[NFSCLNT_IDMAX+1];
-	char		ex32_path[NFS_MAXPATHLEN+1];
-	compat_dev_t	ex32_dev;
-	compat_ino_t	ex32_ino;
-	compat_int_t	ex32_flags;
-	__compat_uid_t	ex32_anon_uid;
-	__compat_gid_t	ex32_anon_gid;
-};
-
-struct compat_nfsctl_fdparm {
-	struct sockaddr		gd32_addr;
-	s8			gd32_path[NFS_MAXPATHLEN+1];
-	compat_int_t		gd32_version;
-};
-
-struct compat_nfsctl_fsparm {
-	struct sockaddr		gd32_addr;
-	s8			gd32_path[NFS_MAXPATHLEN+1];
-	compat_int_t		gd32_maxlen;
-};
-
-struct compat_nfsctl_arg {
-	compat_int_t		ca32_version;	/* safeguard */
-	union {
-		struct compat_nfsctl_svc	u32_svc;
-		struct compat_nfsctl_client	u32_client;
-		struct compat_nfsctl_export	u32_export;
-		struct compat_nfsctl_fdparm	u32_getfd;
-		struct compat_nfsctl_fsparm	u32_getfs;
-	} u;
-#define ca32_svc	u.u32_svc
-#define ca32_client	u.u32_client
-#define ca32_export	u.u32_export
-#define ca32_getfd	u.u32_getfd
-#define ca32_getfs	u.u32_getfs
-};
-
-union compat_nfsctl_res {
-	__u8			cr32_getfh[NFS_FHSIZE];
-	struct knfsd_fh		cr32_getfs;
-};
-
-static int compat_nfs_svc_trans(struct nfsctl_arg *karg,
-				struct compat_nfsctl_arg __user *arg)
-{
-	if (!access_ok(VERIFY_READ, &arg->ca32_svc, sizeof(arg->ca32_svc)) ||
-		get_user(karg->ca_version, &arg->ca32_version) ||
-		__get_user(karg->ca_svc.svc_port, &arg->ca32_svc.svc32_port) ||
-		__get_user(karg->ca_svc.svc_nthreads,
-				&arg->ca32_svc.svc32_nthreads))
-		return -EFAULT;
-	return 0;
-}
-
-static int compat_nfs_clnt_trans(struct nfsctl_arg *karg,
-				struct compat_nfsctl_arg __user *arg)
-{
-	if (!access_ok(VERIFY_READ, &arg->ca32_client,
-			sizeof(arg->ca32_client)) ||
-		get_user(karg->ca_version, &arg->ca32_version) ||
-		__copy_from_user(&karg->ca_client.cl_ident[0],
-				&arg->ca32_client.cl32_ident[0],
-				NFSCLNT_IDMAX) ||
-		__get_user(karg->ca_client.cl_naddr,
-				&arg->ca32_client.cl32_naddr) ||
-		__copy_from_user(&karg->ca_client.cl_addrlist[0],
-				&arg->ca32_client.cl32_addrlist[0],
-				(sizeof(struct in_addr) * NFSCLNT_ADDRMAX)) ||
-		__get_user(karg->ca_client.cl_fhkeytype,
-				&arg->ca32_client.cl32_fhkeytype) ||
-		__get_user(karg->ca_client.cl_fhkeylen,
-				&arg->ca32_client.cl32_fhkeylen) ||
-		__copy_from_user(&karg->ca_client.cl_fhkey[0],
-				&arg->ca32_client.cl32_fhkey[0],
-				NFSCLNT_KEYMAX))
-		return -EFAULT;
-
-	return 0;
-}
-
-static int compat_nfs_exp_trans(struct nfsctl_arg *karg,
-				struct compat_nfsctl_arg __user *arg)
-{
-	if (!access_ok(VERIFY_READ, &arg->ca32_export,
-				sizeof(arg->ca32_export)) ||
-		get_user(karg->ca_version, &arg->ca32_version) ||
-		__copy_from_user(&karg->ca_export.ex_client[0],
-				&arg->ca32_export.ex32_client[0],
-				NFSCLNT_IDMAX) ||
-		__copy_from_user(&karg->ca_export.ex_path[0],
-				&arg->ca32_export.ex32_path[0],
-				NFS_MAXPATHLEN) ||
-		__get_user(karg->ca_export.ex_dev,
-				&arg->ca32_export.ex32_dev) ||
-		__get_user(karg->ca_export.ex_ino,
-				&arg->ca32_export.ex32_ino) ||
-		__get_user(karg->ca_export.ex_flags,
-				&arg->ca32_export.ex32_flags) ||
-		__get_user(karg->ca_export.ex_anon_uid,
-				&arg->ca32_export.ex32_anon_uid) ||
-		__get_user(karg->ca_export.ex_anon_gid,
-				&arg->ca32_export.ex32_anon_gid))
-		return -EFAULT;
-	SET_UID(karg->ca_export.ex_anon_uid, karg->ca_export.ex_anon_uid);
-	SET_GID(karg->ca_export.ex_anon_gid, karg->ca_export.ex_anon_gid);
-
-	return 0;
-}
-
-static int compat_nfs_getfd_trans(struct nfsctl_arg *karg,
-				struct compat_nfsctl_arg __user *arg)
-{
-	if (!access_ok(VERIFY_READ, &arg->ca32_getfd,
-			sizeof(arg->ca32_getfd)) ||
-		get_user(karg->ca_version, &arg->ca32_version) ||
-		__copy_from_user(&karg->ca_getfd.gd_addr,
-				&arg->ca32_getfd.gd32_addr,
-				(sizeof(struct sockaddr))) ||
-		__copy_from_user(&karg->ca_getfd.gd_path,
-				&arg->ca32_getfd.gd32_path,
-				(NFS_MAXPATHLEN+1)) ||
-		__get_user(karg->ca_getfd.gd_version,
-				&arg->ca32_getfd.gd32_version))
-		return -EFAULT;
-
-	return 0;
-}
-
-static int compat_nfs_getfs_trans(struct nfsctl_arg *karg,
-				struct compat_nfsctl_arg __user *arg)
-{
-	if (!access_ok(VERIFY_READ,&arg->ca32_getfs,sizeof(arg->ca32_getfs)) ||
-		get_user(karg->ca_version, &arg->ca32_version) ||
-		__copy_from_user(&karg->ca_getfs.gd_addr,
-				&arg->ca32_getfs.gd32_addr,
-				(sizeof(struct sockaddr))) ||
-		__copy_from_user(&karg->ca_getfs.gd_path,
-				&arg->ca32_getfs.gd32_path,
-				(NFS_MAXPATHLEN+1)) ||
-		__get_user(karg->ca_getfs.gd_maxlen,
-				&arg->ca32_getfs.gd32_maxlen))
-		return -EFAULT;
-
-	return 0;
-}
-
-/* This really doesn't need translations, we are only passing
- * back a union which contains opaque nfs file handle data.
- */
-static int compat_nfs_getfh_res_trans(union nfsctl_res *kres,
-				union compat_nfsctl_res __user *res)
-{
-	int err;
-
-	err = copy_to_user(res, kres, sizeof(*res));
-
-	return (err) ? -EFAULT : 0;
-}
-
-asmlinkage long compat_sys_nfsservctl(int cmd,
-				struct compat_nfsctl_arg __user *arg,
-				union compat_nfsctl_res __user *res)
-{
-	struct nfsctl_arg *karg;
-	union nfsctl_res *kres;
-	mm_segment_t oldfs;
-	int err;
-
-	karg = kmalloc(sizeof(*karg), GFP_USER);
-	kres = kmalloc(sizeof(*kres), GFP_USER);
-	if(!karg || !kres) {
-		err = -ENOMEM;
-		goto done;
-	}
-
-	switch(cmd) {
-	case NFSCTL_SVC:
-		err = compat_nfs_svc_trans(karg, arg);
-		break;
-
-	case NFSCTL_ADDCLIENT:
-		err = compat_nfs_clnt_trans(karg, arg);
-		break;
-
-	case NFSCTL_DELCLIENT:
-		err = compat_nfs_clnt_trans(karg, arg);
-		break;
-
-	case NFSCTL_EXPORT:
-	case NFSCTL_UNEXPORT:
-		err = compat_nfs_exp_trans(karg, arg);
-		break;
-
-	case NFSCTL_GETFD:
-		err = compat_nfs_getfd_trans(karg, arg);
-		break;
-
-	case NFSCTL_GETFS:
-		err = compat_nfs_getfs_trans(karg, arg);
-		break;
-
-	default:
-		err = -EINVAL;
-		break;
-	}
-
-	if (err)
-		goto done;
-
-	oldfs = get_fs();
-	set_fs(KERNEL_DS);
-	/* The __user pointer casts are valid because of the set_fs() */
-	err = sys_nfsservctl(cmd, (void __user *) karg, (void __user *) kres);
-	set_fs(oldfs);
-
-	if (err)
-		goto done;
-
-	if((cmd == NFSCTL_GETFD) ||
-	   (cmd == NFSCTL_GETFS))
-		err = compat_nfs_getfh_res_trans(kres, res);
-
-done:
-	kfree(karg);
-	kfree(kres);
-	return err;
-}
-#else /* !NFSD */
-long asmlinkage compat_sys_nfsservctl(int cmd, void *notused, void *notused2)
-{
-	return sys_ni_syscall();
-}
-#endif
 
 #ifdef CONFIG_EPOLL
 
