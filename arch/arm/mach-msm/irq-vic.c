@@ -30,7 +30,6 @@
 #include <mach/msm_iomap.h>
 #include <mach/fiq.h>
 
-#include "fiq.h"
 #include "smd_private.h"
 
 enum {
