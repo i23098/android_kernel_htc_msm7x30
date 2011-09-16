@@ -1185,10 +1185,9 @@ void __init vmalloc_init(void)
 	/* Import existing vmlist entries. */
 	for (tmp = vmlist; tmp; tmp = tmp->next) {
 		va = kzalloc(sizeof(struct vmap_area), GFP_NOWAIT);
-		va->flags = VM_VM_AREA;
+		va->flags = tmp->flags | VM_VM_AREA;
 		va->va_start = (unsigned long)tmp->addr;
 		va->va_end = va->va_start + tmp->size;
-		va->vm = tmp;
 		__insert_vmap_area(va);
 	}
 
@@ -1768,10 +1767,6 @@ void *vmalloc_user(unsigned long size)
 			     PAGE_KERNEL, -1, __builtin_return_address(0));
 	if (ret) {
 		area = find_vm_area(ret);
-		if (!area) {
-			vfree(ret);
-			return NULL;
-		}
 		area->flags |= VM_USERMAP;
 	}
 	return ret;
@@ -1875,10 +1870,6 @@ void *vmalloc_32_user(unsigned long size)
 			     -1, __builtin_return_address(0));
 	if (ret) {
 		area = find_vm_area(ret);
-		if (!area) {
-			vfree(ret);
-			return NULL;
-		}
 		area->flags |= VM_USERMAP;
 	}
 	return ret;
@@ -2314,12 +2305,6 @@ static unsigned long pvm_determine_end(struct vmap_area **pnext,
 	}
 
 	return addr;
-
-fail:
-	warn_alloc_failed(gfp_mask, 0,
-			  "vmalloc: allocation failure: %lu bytes\n",
-			  real_size);
-	return NULL;
 }
 
 /**
@@ -2393,7 +2378,7 @@ struct vm_struct **pcpu_get_vm_areas(const unsigned long *offsets,
 	vms = kzalloc(sizeof(vms[0]) * nr_vms, GFP_KERNEL);
 	vas = kzalloc(sizeof(vas[0]) * nr_vms, GFP_KERNEL);
 	if (!vas || !vms)
-		goto err_free;
+		goto err_free2;
 
 	for (area = 0; area < nr_vms; area++) {
 		vas[area] = kzalloc(sizeof(struct vmap_area), GFP_KERNEL);
@@ -2494,6 +2479,7 @@ err_free:
 		kfree(vas[area]);
 		kfree(vms[area]);
 	}
+err_free2:
 	kfree(vas);
 	kfree(vms);
 	return NULL;
