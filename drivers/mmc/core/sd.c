@@ -1083,7 +1083,7 @@ static void mmc_sd_detect(struct mmc_host *host)
 	 */
 #ifdef CONFIG_MMC_PARANOID_SD_INIT
 	while(retries) {
-		err = _mmc_detect_card_removed(host);
+		err = _mmc_detect_card_removed(host);		
 		if (err) {
 			retries--;
 			udelay(5);
@@ -1098,6 +1098,7 @@ static void mmc_sd_detect(struct mmc_host *host)
 #else
 	err = _mmc_detect_card_removed(host);
 #endif
+
 	mmc_release_host(host);
 
 	if (err) {
