@@ -126,6 +126,7 @@ enum mmc_blk_status {
 	MMC_BLK_NOMEDIUM,
 	MMC_BLK_DATA_ERR,
 	MMC_BLK_ECC_ERR,
+	MMC_BLK_NOMEDIUM,
 };
 
 module_param(perdev_minors, int, 0444);
@@ -1363,6 +1364,8 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 			if (!ret)
 				goto start_new_req;
 			break;
+		case MMC_BLK_NOMEDIUM:
+			goto cmd_abort;
 		}
 
 		if (ret) {
