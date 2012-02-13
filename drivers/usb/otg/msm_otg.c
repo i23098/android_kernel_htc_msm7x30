@@ -455,7 +455,7 @@ put_analog_switch:
 	regulator_put(mhl_analog_switch);
 }
 
-static int ulpi_read(struct otg_transceiver *otg, u32 reg)
+static int ulpi_read(struct usb_phy *otg, u32 reg)
 {
 	struct msm_otg *motg = container_of(otg, struct msm_otg, otg);
 	int cnt = 0;
@@ -483,7 +483,7 @@ static int ulpi_read(struct otg_transceiver *otg, u32 reg)
 	return ULPI_DATA_READ(readl(USB_ULPI_VIEWPORT));
 }
 
-static int ulpi_write(struct otg_transceiver *otg, u32 val, u32 reg)
+static int ulpi_write(struct usb_phy *otg, u32 val, u32 reg)
 {
 	struct msm_otg *motg = container_of(otg, struct msm_otg, otg);
 	int cnt = 0;
@@ -693,7 +693,7 @@ static int msm_otg_link_reset(struct msm_otg *motg)
 	return 0;
 }
 
-static int msm_otg_reset(struct otg_transceiver *otg)
+static int msm_otg_reset(struct usb_phy *otg)
 {
 	struct msm_otg *motg = container_of(otg, struct msm_otg, otg);
 	struct msm_otg_platform_data *pdata = motg->pdata;
@@ -746,7 +746,7 @@ static int msm_otg_reset(struct otg_transceiver *otg)
 	return 0;
 }
 
-static int msm_otg_set_suspend(struct otg_transceiver *otg, int suspend)
+static int msm_otg_set_suspend(struct usb_phy *otg, int suspend)
 {
 	struct msm_otg *motg = container_of(otg, struct msm_otg, otg);
 
@@ -774,7 +774,7 @@ static int msm_otg_set_suspend(struct otg_transceiver *otg, int suspend)
 #ifdef CONFIG_PM_SLEEP
 static int msm_otg_suspend(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	struct usb_bus *bus = otg->host;
 	struct msm_otg_platform_data *pdata = motg->pdata;
 	int cnt = 0, ret = 0;
@@ -903,7 +903,7 @@ static int msm_otg_suspend(struct msm_otg *motg)
 
 static int msm_otg_resume(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	struct usb_bus *bus = otg->host;
 	int cnt = 0, ret = 0;
 	unsigned temp;
@@ -1034,7 +1034,7 @@ static void msm_otg_notify_usb_attached(int connect_type)
 	del_timer(&motg->ac_detect_timer);
 }
 
-static int msm_otg_set_power(struct otg_transceiver *otg, unsigned mA)
+static int msm_otg_set_power(struct usb_phy *otg, unsigned mA)
 {
 	struct msm_otg *motg = container_of(otg, struct msm_otg, otg);
 
@@ -1051,7 +1051,7 @@ static int msm_otg_set_power(struct otg_transceiver *otg, unsigned mA)
 	return 0;
 }
 
-static void msm_otg_start_host(struct otg_transceiver *otg, int on)
+static void msm_otg_start_host(struct usb_phy *otg, int on)
 {
 	struct msm_otg *motg = container_of(otg, struct msm_otg, otg);
 	struct msm_otg_platform_data *pdata = motg->pdata;
@@ -1131,7 +1131,7 @@ out:
 	return NOTIFY_OK;
 }
 
-static int msm_otg_set_host(struct otg_transceiver *otg, struct usb_bus *host)
+static int msm_otg_set_host(struct usb_phy *otg, struct usb_bus *host)
 {
 	struct msm_otg *motg = container_of(otg, struct msm_otg, otg);
 	struct usb_hcd *hcd;
@@ -1182,7 +1182,7 @@ static int msm_otg_set_host(struct otg_transceiver *otg, struct usb_bus *host)
 	return 0;
 }
 
-static void msm_otg_start_peripheral(struct otg_transceiver *otg, int on)
+static void msm_otg_start_peripheral(struct usb_phy *otg, int on)
 {
 	struct msm_otg *motg = container_of(otg, struct msm_otg, otg);
 	struct msm_otg_platform_data *pdata = motg->pdata;
@@ -1219,7 +1219,7 @@ static void msm_otg_start_peripheral(struct otg_transceiver *otg, int on)
 
 }
 
-static int msm_otg_set_peripheral(struct otg_transceiver *otg,
+static int msm_otg_set_peripheral(struct usb_phy *otg,
 			struct usb_gadget *gadget)
 {
 	struct msm_otg *motg = container_of(otg, struct msm_otg, otg);
@@ -1263,8 +1263,8 @@ static int msm_otg_set_peripheral(struct otg_transceiver *otg,
 
 static bool msm_chg_aca_detect(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
-	u32 int_sts;
+	struct usb_phy *otg = &motg->otg;
+	u32 int_sts, chg_det;
 	bool ret = false;
 
 	if (!aca_enabled())
@@ -1336,7 +1336,7 @@ out:
 
 static void msm_chg_enable_aca_det(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 
 	if (!aca_enabled())
 		return;
@@ -1359,7 +1359,7 @@ static void msm_chg_enable_aca_det(struct msm_otg *motg)
 
 static void msm_chg_enable_aca_intr(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 
 	if (!aca_enabled())
 		return;
@@ -1376,7 +1376,7 @@ static void msm_chg_enable_aca_intr(struct msm_otg *motg)
 
 static void msm_chg_disable_aca_intr(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 
 	if (!aca_enabled())
 		return;
@@ -1392,7 +1392,7 @@ static void msm_chg_disable_aca_intr(struct msm_otg *motg)
 
 static bool msm_chg_check_aca_intr(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	bool ret = false;
 
 	if (!aca_enabled())
@@ -1434,7 +1434,7 @@ static void msm_otg_id_timer_func(unsigned long data)
 
 static bool msm_chg_check_secondary_det(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	u32 chg_det;
 	bool ret = false;
 
@@ -1455,7 +1455,7 @@ static bool msm_chg_check_secondary_det(struct msm_otg *motg)
 
 static void msm_chg_enable_secondary_det(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	u32 chg_det;
 
 	switch (motg->pdata->phy_type) {
@@ -1495,7 +1495,7 @@ static void msm_chg_enable_secondary_det(struct msm_otg *motg)
 
 static bool msm_chg_check_primary_det(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	u32 chg_det;
 	bool ret = false;
 
@@ -1516,7 +1516,7 @@ static bool msm_chg_check_primary_det(struct msm_otg *motg)
 
 static void msm_chg_enable_primary_det(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	u32 chg_det;
 
 	switch (motg->pdata->phy_type) {
@@ -1541,7 +1541,7 @@ static void msm_chg_enable_primary_det(struct msm_otg *motg)
 
 static bool msm_chg_check_dcd(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	u32 line_state;
 	bool ret = false;
 
@@ -1562,7 +1562,7 @@ static bool msm_chg_check_dcd(struct msm_otg *motg)
 
 static void msm_chg_disable_dcd(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	u32 chg_det;
 
 	switch (motg->pdata->phy_type) {
@@ -1581,7 +1581,7 @@ static void msm_chg_disable_dcd(struct msm_otg *motg)
 
 static void msm_chg_enable_dcd(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	u32 chg_det;
 
 	switch (motg->pdata->phy_type) {
@@ -1602,7 +1602,7 @@ static void msm_chg_enable_dcd(struct msm_otg *motg)
 
 static void msm_chg_block_on(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	u32 func_ctrl, chg_det;
 
 	/* put the controller in non-driving mode */
@@ -1637,7 +1637,7 @@ static void msm_chg_block_on(struct msm_otg *motg)
 
 static void msm_chg_block_off(struct msm_otg *motg)
 {
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	u32 func_ctrl, chg_det;
 
 	switch (motg->pdata->phy_type) {
@@ -1686,6 +1686,7 @@ static const char *chg_to_string(enum usb_chg_type chg_type)
 static void msm_chg_detect_work(struct work_struct *w)
 {
 	struct msm_otg *motg = container_of(w, struct msm_otg, chg_work.work);
+	struct usb_phy *otg = &motg->otg;
 	bool is_dcd, tmout, vout, is_aca;
 	unsigned long delay;
 
@@ -1855,7 +1856,7 @@ static void msm_otg_init_sm(struct msm_otg *motg)
 static void msm_otg_sm_work(struct work_struct *w)
 {
 	struct msm_otg *motg = container_of(w, struct msm_otg, sm_work);
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 
 	pr_info("%s: state:%s bit:0x%08x\n", __func__,
 		state_string(otg->state), (unsigned) motg->inputs);
@@ -2075,7 +2076,7 @@ void msm_hsusb_vbus_notif_register(void (*vbus_notif)(int))
 static irqreturn_t msm_otg_irq(int irq, void *data)
 {
 	struct msm_otg *motg = data;
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	u32 otgsc = 0, usbsts;
 
 	if (atomic_read(&motg->in_lpm)) {
@@ -2145,7 +2146,7 @@ static void ac_detect_expired(unsigned long _data)
 {
 	u32 delay = 0;
 	struct msm_otg *motg = the_msm_otg;
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 
 	pr_info("%s: count = %d, connect_type = %d\n", __func__,
 			motg->ac_detect_count, motg->connect_type);
@@ -2201,7 +2202,7 @@ static void ac_detect_expired(unsigned long _data)
 void msm_otg_set_id_state(int id)
 {
 	struct msm_otg *motg = the_msm_otg;
-	struct otg_transceiver *otg;
+	struct usb_phy *otg;
 	pr_info("%s: %d\n", __func__, id);
 
 	htc_otg_id = id;
@@ -2248,7 +2249,7 @@ static void usb_host_cable_detect(bool cable_in)
 void msm_otg_set_vbus_state(int online)
 {
 	struct msm_otg *motg = the_msm_otg;
-	struct otg_transceiver *otg;
+	struct usb_phy *otg;
 	pr_info("%s: %d\n", __func__, online);
 
 	htc_otg_vbus = online;
@@ -2301,7 +2302,7 @@ static irqreturn_t msm_pmic_id_irq(int irq, void *data)
 static int msm_otg_mode_show(struct seq_file *s, void *unused)
 {
 	struct msm_otg *motg = s->private;
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 
 	switch (otg->state) {
 	case OTG_STATE_A_HOST:
@@ -2329,7 +2330,7 @@ static ssize_t msm_otg_mode_write(struct file *file, const char __user *ubuf,
 	struct seq_file *s = file->private_data;
 	struct msm_otg *motg = s->private;
 	char buf[16];
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	int status = count;
 	enum usb_mode_type req_mode;
 
@@ -2640,7 +2641,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	int ret = 0;
 	struct resource *res;
 	struct msm_otg *motg;
-	struct otg_transceiver *otg;
+	struct usb_phy *otg;
 	struct msm_otg_platform_data *pdata;
 
 	dev_info(&pdev->dev, "msm_otg probe\n");
@@ -2932,7 +2933,7 @@ free_motg:
 static int __devexit msm_otg_remove(struct platform_device *pdev)
 {
 	struct msm_otg *motg = platform_get_drvdata(pdev);
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 	int cnt = 0;
 
 	if (otg->host || otg->gadget)
@@ -3009,7 +3010,7 @@ static int __devexit msm_otg_remove(struct platform_device *pdev)
 static int msm_otg_runtime_idle(struct device *dev)
 {
 	struct msm_otg *motg = dev_get_drvdata(dev);
-	struct otg_transceiver *otg = &motg->otg;
+	struct usb_phy *otg = &motg->otg;
 
 	dev_dbg(dev, "OTG runtime idle\n");
 

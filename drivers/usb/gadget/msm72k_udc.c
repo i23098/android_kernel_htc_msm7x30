@@ -217,7 +217,7 @@ struct usb_info {
 	atomic_t self_powered;
 	struct delayed_work rw_work;
 
-	struct otg_transceiver *xceiv;
+	struct usb_phy *xceiv;
 	enum usb_device_state usb_state;
 	struct wake_lock	wlock;
 };

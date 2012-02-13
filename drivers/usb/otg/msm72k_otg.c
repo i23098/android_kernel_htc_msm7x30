@@ -37,7 +37,7 @@
 #define MSM_USB_BASE	(dev->regs)
 #define USB_LINK_RESET_TIMEOUT	(msecs_to_jiffies(10))
 #define DRIVER_NAME	"msm_otg"
-static void otg_reset(struct otg_transceiver *xceiv, int phy_reset);
+static void otg_reset(struct usb_phy *xceiv, int phy_reset);
 void msm_otg_set_id_state(int id);
 void msm_otg_set_vbus_state(int online);
 static int htc_otg_vbus, force_host_mode;
@@ -203,14 +203,14 @@ static int ulpi_write(struct msm_otg *dev, unsigned val, unsigned reg)
 	return 0;
 }
 
-static int usb_ulpi_write(struct otg_transceiver *xceiv, u32 val, u32 reg)
+static int usb_ulpi_write(struct usb_phy *xceiv, u32 val, u32 reg)
 {
 	struct msm_otg *dev = container_of(xceiv, struct msm_otg, otg);
 
 	return ulpi_write(dev, val, reg);
 }
 
-static int usb_ulpi_read(struct otg_transceiver *xceiv, u32 reg)
+static int usb_ulpi_read(struct usb_phy *xceiv, u32 reg)
 {
 	struct msm_otg *dev = container_of(xceiv, struct msm_otg, otg);
 
@@ -592,7 +592,7 @@ static const char *event_string(enum usb_otg_event event)
 	}
 }
 
-static int msm_otg_send_event(struct otg_transceiver *xceiv,
+static int msm_otg_send_event(struct usb_phy *xceiv,
 				enum usb_otg_event event)
 {
 	char module_name[16];
@@ -612,7 +612,7 @@ static int msm_otg_send_event(struct otg_transceiver *xceiv,
 	return ret;
 }
 
-static int msm_otg_start_hnp(struct otg_transceiver *xceiv)
+static int msm_otg_start_hnp(struct usb_phy *xceiv)
 {
 	struct msm_otg *dev = container_of(xceiv, struct msm_otg, otg);
 	enum usb_otg_state state;
@@ -635,7 +635,7 @@ static int msm_otg_start_hnp(struct otg_transceiver *xceiv)
 	return 0;
 }
 
-static int msm_otg_start_srp(struct otg_transceiver *xceiv)
+static int msm_otg_start_srp(struct usb_phy *xceiv)
 {
 	struct msm_otg *dev = container_of(xceiv, struct msm_otg, otg);
 	u32	val;
@@ -672,7 +672,7 @@ out:
 	return ret;
 }
 
-static int msm_otg_set_power(struct otg_transceiver *xceiv, unsigned mA)
+static int msm_otg_set_power(struct usb_phy *xceiv, unsigned mA)
 {
 	static enum chg_type 	curr_chg = USB_CHG_TYPE__INVALID;
 	struct msm_otg		*dev = container_of(xceiv, struct msm_otg, otg);
@@ -800,7 +800,7 @@ static void msm_otg_notify_charger_attached(int connect_type)
 }
 
 
-static int msm_otg_set_clk(struct otg_transceiver *xceiv, int on)
+static int msm_otg_set_clk(struct usb_phy *xceiv, int on)
 {
 	struct msm_otg *dev = container_of(xceiv, struct msm_otg, otg);
 
@@ -815,7 +815,7 @@ static int msm_otg_set_clk(struct otg_transceiver *xceiv, int on)
 
 	return 0;
 }
-static void msm_otg_start_peripheral(struct otg_transceiver *xceiv, int on)
+static void msm_otg_start_peripheral(struct usb_phy *xceiv, int on)
 {
 	struct msm_otg *dev = container_of(xceiv, struct msm_otg, otg);
 	struct msm_otg_platform_data *pdata = dev->pdata;
@@ -856,7 +856,7 @@ static void msm_otg_start_peripheral(struct otg_transceiver *xceiv, int on)
 	}
 }
 
-static void msm_otg_start_host(struct otg_transceiver *xceiv, int on)
+static void msm_otg_start_host(struct usb_phy *xceiv, int on)
 {
 	struct msm_otg *dev = container_of(xceiv, struct msm_otg, otg);
 	struct msm_otg_platform_data *pdata = dev->pdata;
@@ -1205,7 +1205,7 @@ phy_resumed:
 	enable_irq(dev->irq);
 }
 
-static int msm_otg_set_suspend(struct otg_transceiver *xceiv, int suspend)
+static int msm_otg_set_suspend(struct usb_phy *xceiv, int suspend)
 {
 	struct msm_otg *dev = container_of(xceiv, struct msm_otg, otg);
 	enum usb_otg_state state;
@@ -1319,7 +1319,7 @@ out:
 	return 0;
 }
 
-static int msm_otg_set_peripheral(struct otg_transceiver *xceiv,
+static int msm_otg_set_peripheral(struct usb_phy *xceiv,
 			struct usb_gadget *gadget)
 {
 	struct msm_otg *dev = container_of(xceiv, struct msm_otg, otg);
@@ -1399,7 +1399,7 @@ out:
 	return NOTIFY_OK;
 }
 
-static int msm_otg_set_host(struct otg_transceiver *xceiv, struct usb_bus *host)
+static int msm_otg_set_host(struct usb_phy *xceiv, struct usb_bus *host)
 {
 	struct msm_otg *dev = container_of(xceiv, struct msm_otg, otg);
 
@@ -1837,7 +1837,7 @@ static int msm_otg_phy_reset(struct msm_otg *dev)
 	return 0;
 }
 
-static void otg_reset(struct otg_transceiver *xceiv, int phy_reset)
+static void otg_reset(struct usb_phy *xceiv, int phy_reset)
 {
 	struct msm_otg *dev = container_of(xceiv, struct msm_otg, otg);
 	unsigned long timeout;

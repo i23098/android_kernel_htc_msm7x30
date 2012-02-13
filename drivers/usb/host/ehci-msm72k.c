@@ -52,7 +52,7 @@ struct msmusb_hcd {
 	unsigned int clk_enabled;
 	struct msm_usb_host_platform_data *pdata;
 	unsigned running;
-	struct otg_transceiver *xceiv;
+	struct usb_phy *xceiv;
 	struct work_struct otg_work;
 	unsigned flags;
 	struct msm_otg_ops otg_ops;
