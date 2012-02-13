@@ -63,7 +63,7 @@ enum usb_otg_event {
 	OTG_EVENT_NO_RESP_FOR_SRP,
 };
 
-enum usb_xceiv_events {
+enum usb_phy_events {
 	USB_EVENT_NONE,         /* no events or cable disconnected */
 	USB_EVENT_VBUS,         /* vbus valid event */
 	USB_EVENT_ID,           /* id was grounded */
@@ -94,7 +94,7 @@ struct usb_phy {
 
 	u8			default_a;
 	enum usb_otg_state	state;
-	enum usb_xceiv_events	last_event;
+	enum usb_phy_events	last_event;
 
 	struct usb_bus		*host;
 	struct usb_gadget	*gadget;
@@ -102,7 +102,7 @@ struct usb_phy {
 	struct otg_io_access_ops	*io_ops;
 	void __iomem			*io_priv;
 
-	/* for notification of usb_xceiv_events */
+	/* for notification of usb_phy_events */
 	struct atomic_notifier_head	notifier;
 
 	/* to pass extra port status to the root hub */
