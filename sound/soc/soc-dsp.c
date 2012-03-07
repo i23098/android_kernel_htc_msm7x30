@@ -805,7 +805,7 @@ int soc_dsp_runtime_update(struct snd_soc_dapm_widget *widget)
 	else
 		return -EINVAL;
 
-	mutex_lock_nested(&widget->dapm->card->dsp_mutex, 1);
+	mutex_lock_nested(&widget->dapm->card->dapm_mutex, 1);
 
 	for (i = 0; i < card->num_rtd; i++) {
 		struct snd_soc_pcm_runtime *fe = &card->rtd[i];
@@ -862,7 +862,7 @@ capture:
 		}
 	}
 
-	mutex_unlock(&widget->dapm->card->dsp_mutex);
+	mutex_unlock(&widget->dapm->card->dapm_mutex);
 	return ret;
 }
 
