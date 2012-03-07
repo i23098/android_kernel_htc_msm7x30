@@ -1232,6 +1232,7 @@ static int soc_probe_platform(struct snd_soc_card *card,
 {
 	int ret = 0;
 	const struct snd_soc_platform_driver *driver = platform->driver;
+	struct snd_soc_dai *dai;
 
 	platform->card = card;
 	platform->dapm.card = card;
@@ -1244,6 +1245,14 @@ static int soc_probe_platform(struct snd_soc_card *card,
 	if (driver->dapm_widgets)
 		snd_soc_dapm_new_controls(&platform->dapm,
 			driver->dapm_widgets, driver->num_dapm_widgets);
+
+	/* Create DAPM widgets for each DAI stream */
+	list_for_each_entry(dai, &dai_list, list) {
+		if (dai->dev != platform->dev)
+			continue;
+
+		snd_soc_dapm_new_dai_widgets(&platform->dapm, dai);
+	}
 
 	platform->dapm.idle_bias_off = 1;
 
@@ -1398,8 +1407,11 @@ static int soc_probe_dai_link(struct snd_soc_card *card, int num, int order)
 	/* probe the cpu_dai */
 	if (!cpu_dai->probed &&
 			cpu_dai->driver->probe_order == order) {
+		cpu_dai->dapm.card = card;
 		if (!try_module_get(cpu_dai->dev->driver->owner))
 			return -ENODEV;
+
+		snd_soc_dapm_new_dai_widgets(&cpu_dai->dapm, cpu_dai);
 
 		if (cpu_dai->driver->probe) {
 			ret = cpu_dai->driver->probe(cpu_dai);
@@ -3470,6 +3482,7 @@ int snd_soc_register_dai(struct device *dev,
 
 	dai->dev = dev;
 	dai->driver = dai_drv;
+	dai->dapm.dev = dev;
 	if (!dai->driver->ops)
 		dai->driver->ops = &null_dai_ops;
 
@@ -3546,6 +3559,7 @@ int snd_soc_register_dais(struct device *dev,
 			dai->id = dai->driver->id;
 		else
 			dai->id = i;
+		dai->dapm.dev = dev;
 		if (!dai->driver->ops)
 			dai->driver->ops = &null_dai_ops;
 
