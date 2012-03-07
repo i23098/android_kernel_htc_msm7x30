@@ -50,7 +50,6 @@ static inline int soc_dsp_dapm_stream_event(struct snd_soc_pcm_runtime *fe,
 	int stream, int event)
 {
 	struct snd_soc_dsp_params *dsp_params;
-	struct snd_soc_dai *codec_dai = fe->codec_dai;
 
 	/* resume for playback */
 	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
@@ -60,7 +59,7 @@ static inline int soc_dsp_dapm_stream_event(struct snd_soc_pcm_runtime *fe,
 		dev_dbg(be->dev, "pm: BE %s stream %d event %d\n",
 				be->dai_link->name, stream, event);
 
-		snd_soc_dapm_stream_event(be, stream, codec_dai, event);
+		snd_soc_dapm_stream_event(be, stream, event);
 	}
 
 	return 0;
