@@ -1768,12 +1768,10 @@ static int dapm_power_widgets(struct snd_soc_dapm_context *dapm, int event)
 	trace_snd_soc_dapm_start(card);
 
 	list_for_each_entry(d, &card->dapm_list, list) {
-		if (d->n_widgets || d->codec == NULL) {
-			if (d->idle_bias_off)
-				d->target_bias_level = SND_SOC_BIAS_OFF;
-			else
-				d->target_bias_level = SND_SOC_BIAS_STANDBY;
-		}
+		if (d->idle_bias_off)
+			d->target_bias_level = SND_SOC_BIAS_OFF;
+		else
+			d->target_bias_level = SND_SOC_BIAS_STANDBY;
 	}
 
 	dapm_reset(card);
@@ -1816,40 +1814,6 @@ static int dapm_power_widgets(struct snd_soc_dapm_context *dapm, int event)
 			}
 		}
 
-	}
-
-	/* If there are no DAPM widgets then try to figure out power from the
-	 * event type.
-	 */
-	if (!dapm->n_widgets) {
-		switch (event) {
-		case SND_SOC_DAPM_STREAM_START:
-		case SND_SOC_DAPM_STREAM_RESUME:
-			dapm->dev_power = 1;
-			break;
-		case SND_SOC_DAPM_STREAM_STOP:
-			if (dapm->codec && dapm->codec->active)
-				dapm->dev_power = !!dapm->codec->active;
-			else
-				dapm->dev_power = 0;
-			break;
-		case SND_SOC_DAPM_STREAM_SUSPEND:
-			dapm->dev_power = 0;
-			break;
-		case SND_SOC_DAPM_STREAM_NOP:
-			switch (dapm->bias_level) {
-				case SND_SOC_BIAS_STANDBY:
-				case SND_SOC_BIAS_OFF:
-					dapm->dev_power = 0;
-					break;
-				default:
-					dapm->dev_power = 1;
-					break;
-			}
-			break;
-		default:
-			break;
-		}
 	}
 
 	/* Force all contexts in the card to the same bias state if
