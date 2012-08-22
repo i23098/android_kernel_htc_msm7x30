@@ -31,7 +31,6 @@
 #include <linux/ctype.h>
 #include <mach/msm_smd.h>
 #include <mach/msm_iomap.h>
-#include <mach/system.h>
 #include <linux/remote_spinlock.h>
 
 #include <linux/sched.h>

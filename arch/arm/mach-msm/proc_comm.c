@@ -21,7 +21,6 @@
 #include <linux/spinlock.h>
 #include <linux/module.h>
 #include <mach/msm_iomap.h>
-#include <mach/system.h>
 
 #include "proc_comm.h"
 #include "smd_private.h"

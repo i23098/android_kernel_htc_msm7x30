@@ -32,7 +32,6 @@
 #include <linux/rmt_storage_client.h>
 #include <linux/rtc-msm.h>
 #include <mach/msm_iomap.h>
-#include <mach/system.h>
 #ifdef CONFIG_CPU_V7
 #include <asm/pgtable.h>
 #include <asm/pgalloc.h>
