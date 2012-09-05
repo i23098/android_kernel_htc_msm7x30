@@ -493,10 +493,9 @@ static irqreturn_t msm_datamover_irq_handler(int irq, void *dev_id)
 				cmd = list_entry(dmov_conf[adm].
 					ready_commands[ch].next, typeof(*cmd),
 					list);
-				list_del(&cmd->list);
 				if (cmd->exec_func)
 					cmd->exec_func(cmd);
-				list_add_tail(&cmd->list,
+				list_move_tail(&cmd->list,
 					&dmov_conf[adm].active_commands[ch]);
 				PRINT_FLOW("msm_datamover_irq_handler id %d, start command\n", id);
 				writel_relaxed(cmd->cmdptr,
