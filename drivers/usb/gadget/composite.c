@@ -1641,6 +1641,7 @@ composite_resume(struct usb_gadget *gadget)
 /*-------------------------------------------------------------------------*/
 
 static struct usb_gadget_driver composite_driver = {
+	.bind		= composite_bind,
 	.unbind		= composite_unbind,
 
 	.setup		= composite_setup,
@@ -1692,7 +1693,7 @@ int usb_composite_probe(struct usb_composite_driver *driver)
 	INIT_WORK(&cdusbcmdwork, ctusbcmd_do_work);
 	if (rc < 0)
 		pr_err("%s: switch_dev_register fail", __func__);
-	return usb_gadget_probe_driver(&composite_driver, composite_bind);
+	return usb_gadget_probe_driver(&composite_driver);
 }
 
 /**
