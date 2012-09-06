@@ -2101,6 +2101,7 @@ static struct usb_composite_driver android_usb_driver = {
 	.strings	= dev_strings,
 	.unbind		= android_usb_unbind,
 	.max_speed	= USB_SPEED_SUPER,
+	.bind		= android_bind
 };
 
 #ifdef CONFIG_USB_ANDROID_USBNET
@@ -2453,7 +2454,7 @@ static int __init init(void)
 				 "platform driver\n", __func__);
 		goto err_probe;
 	}
-	ret = usb_composite_probe(&android_usb_driver, android_bind);
+	ret = usb_composite_probe(&android_usb_driver);
 	if (ret) {
 		pr_err("%s(): Failed to register android"
 				 "composite driver\n", __func__);

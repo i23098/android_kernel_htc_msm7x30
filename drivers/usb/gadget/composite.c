@@ -1673,13 +1673,10 @@ static struct usb_gadget_driver composite_driver = {
  * while it was binding.  That would usually be done in order to wait for
  * some userspace participation.
  */
-int usb_composite_probe(struct usb_composite_driver *driver,
-			       int (*bind)(struct usb_composite_dev *cdev))
+int usb_composite_probe(struct usb_composite_driver *driver)
 {
 	int rc;
-	if (!driver || !driver->dev || composite)
-		return -EINVAL;
-	if (!bind && !driver->bind)
+	if (!driver || !driver->dev || composite || !driver->bind)
 		return -EINVAL;
 
 	if (!driver->name)
@@ -1690,8 +1687,6 @@ int usb_composite_probe(struct usb_composite_driver *driver,
 	composite_driver.driver.name = driver->name;
 	composite_driver.max_speed = driver->max_speed;
 	composite = driver;
-	if (!driver->bind)
-		driver->bind = bind;
 
 	rc = switch_dev_register(&compositesdev);
 	INIT_WORK(&cdusbcmdwork, ctusbcmd_do_work);
