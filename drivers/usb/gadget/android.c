@@ -2445,8 +2445,8 @@ static int __init init(void)
 #endif
 
 	/* Override composite driver functions */
-	composite_driver.setup = android_setup;
-	composite_driver.disconnect = android_disconnect;
+	composite_driver_template.setup = android_setup;
+	composite_driver_template.disconnect = android_disconnect;
 
 	ret = platform_driver_probe(&android_platform_driver, android_probe);
 	if (ret) {

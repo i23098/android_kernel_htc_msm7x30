@@ -2567,7 +2567,7 @@ static struct attribute_group otg_attr_grp = {
 #endif
 
 static int msm72k_start(struct usb_gadget_driver *driver,
-			    int (*bind)(struct usb_gadget *))
+		int (*bind)(struct usb_gadget *, struct usb_gadget_driver *))
 {
 	struct usb_info *ui = the_usb_info;
 	int			retval, n;
@@ -2608,7 +2608,7 @@ static int msm72k_start(struct usb_gadget_driver *driver,
 	if (retval)
 		goto fail;
 
-	retval = bind(&ui->gadget);
+	retval = bind(&ui->gadget, driver);
 	if (retval) {
 		dev_err(&ui->pdev->dev, "bind to driver %s --> error %d\n",
 				driver->driver.name, retval);
