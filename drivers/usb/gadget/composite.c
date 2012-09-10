@@ -32,19 +32,6 @@
  * published in the device descriptor, either numbers or strings or both.
  * String parameters are in UTF-8 (superset of ASCII's 7 bit characters).
  */
-
-static ushort idVendor;
-module_param(idVendor, ushort, 0644);
-MODULE_PARM_DESC(idVendor, "USB Vendor ID");
-
-static ushort idProduct;
-module_param(idProduct, ushort, 0644);
-MODULE_PARM_DESC(idProduct, "USB Product ID");
-
-static ushort bcdDevice;
-module_param(bcdDevice, ushort, 0644);
-MODULE_PARM_DESC(bcdDevice, "USB Device version (BCD)");
-
 static char *iManufacturer;
 module_param(iManufacturer, charp, 0644);
 MODULE_PARM_DESC(iManufacturer, "USB Manufacturer string");
@@ -1474,6 +1461,30 @@ static u8 override_id(struct usb_composite_dev *cdev, u8 *desc)
 	return *desc;
 }
 
+static void update_unchanged_dev_desc(struct usb_device_descriptor *new,
+		const struct usb_device_descriptor *old)
+{
+	__le16 idVendor;
+	__le16 idProduct;
+	__le16 bcdDevice;
+
+	/*
+	 * these variables may have been set in
+	 * usb_composite_overwrite_options()
+	 */
+	idVendor = new->idVendor;
+	idProduct = new->idProduct;
+	bcdDevice = new->bcdDevice;
+
+	*new = *old;
+	if (idVendor)
+		new->idVendor = idVendor;
+	if (idProduct)
+		new->idProduct = idProduct;
+	if (bcdDevice)
+		new->bcdDevice = bcdDevice;
+}
+
 static struct usb_composite_driver *to_cdriver(struct usb_gadget_driver *gdrv)
 {
 	return container_of(gdrv, struct usb_composite_driver, gadget_driver);
@@ -1529,21 +1540,7 @@ static int composite_bind(struct usb_gadget *gadget,
 	if (status < 0)
 		goto fail;
 
-	cdev->desc = *composite->dev;
-
-	/* standardized runtime overrides for device ID data */
-	if (idVendor)
-		cdev->desc.idVendor = cpu_to_le16(idVendor);
-	else
-		idVendor = le16_to_cpu(cdev->desc.idVendor);
-	if (idProduct)
-		cdev->desc.idProduct = cpu_to_le16(idProduct);
-	else
-		idProduct = le16_to_cpu(cdev->desc.idProduct);
-	if (bcdDevice)
-		cdev->desc.bcdDevice = cpu_to_le16(bcdDevice);
-	else
-		bcdDevice = le16_to_cpu(cdev->desc.bcdDevice);
+	update_unchanged_dev_desc(&cdev->desc, composite->dev);
 
 	/* string overrides */
 	if (iManufacturer || !cdev->desc.iManufacturer) {
@@ -1752,3 +1749,17 @@ void usb_composite_setup_continue(struct usb_composite_dev *cdev)
 	spin_unlock_irqrestore(&cdev->lock, flags);
 }
 
+void usb_composite_overwrite_options(struct usb_composite_dev *cdev,
+		struct usb_composite_overwrite *covr)
+{
+	struct usb_device_descriptor	*desc = &cdev->desc;
+
+	if (covr->idVendor)
+		desc->idVendor = cpu_to_le16(covr->idVendor);
+
+	if (covr->idProduct)
+		desc->idProduct = cpu_to_le16(covr->idProduct);
+
+	if (covr->bcdDevice)
+		desc->bcdDevice = cpu_to_le16(covr->bcdDevice);
+}

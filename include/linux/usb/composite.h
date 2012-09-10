@@ -411,13 +411,13 @@ struct usb_composite_overwrite {
 #define USB_GADGET_COMPOSITE_OPTIONS()					\
 	static struct usb_composite_overwrite coverwrite;		\
 									\
-	module_param_named(idVendor, coverwrite.idVendor, ushort, S_IRUGO); \
+	module_param_named(idVendor, coverwrite.idVendor, ushort, 0644); \
 	MODULE_PARM_DESC(idVendor, "USB Vendor ID");			\
 									\
-	module_param_named(idProduct, coverwrite.idProduct, ushort, S_IRUGO); \
+	module_param_named(idProduct, coverwrite.idProduct, ushort, 0644); \
 	MODULE_PARM_DESC(idProduct, "USB Product ID");			\
 									\
-	module_param_named(bcdDevice, coverwrite.bcdDevice, ushort, S_IRUGO); \
+	module_param_named(bcdDevice, coverwrite.bcdDevice, ushort, 0644); \
 	MODULE_PARM_DESC(bcdDevice, "USB Device version (BCD)");	\
 									\
 	module_param_named(iSerialNumber, coverwrite.serial_number, charp, \
