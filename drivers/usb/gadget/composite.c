@@ -1505,7 +1505,6 @@ static int composite_bind(struct usb_gadget *gadget,
 	cdev->req->complete = composite_setup_complete;
 	gadget->ep0->driver_data = cdev;
 
-	cdev->bufsiz = USB_COMP_EP0_BUFSIZ;
 	cdev->driver = composite;
 
 	/*

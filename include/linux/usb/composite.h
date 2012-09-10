@@ -354,7 +354,6 @@ extern void usb_composite_setup_continue(struct usb_composite_dev *cdev);
 struct usb_composite_dev {
 	struct usb_gadget		*gadget;
 	struct usb_request		*req;
-	unsigned			bufsiz;
 
 	struct usb_configuration	*config;
 
