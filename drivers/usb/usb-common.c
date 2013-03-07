@@ -14,6 +14,47 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/usb/ch9.h>
+#include <linux/usb/otg.h>
+
+const char *usb_otg_state_string(enum usb_otg_state state)
+{
+	static const char *const names[] = {
+		[OTG_STATE_A_IDLE] = "a_idle",
+		[OTG_STATE_A_WAIT_VRISE] = "a_wait_vrise",
+		[OTG_STATE_A_WAIT_BCON] = "a_wait_bcon",
+		[OTG_STATE_A_HOST] = "a_host",
+		[OTG_STATE_A_SUSPEND] = "a_suspend",
+		[OTG_STATE_A_PERIPHERAL] = "a_peripheral",
+		[OTG_STATE_A_WAIT_VFALL] = "a_wait_vfall",
+		[OTG_STATE_A_VBUS_ERR] = "a_vbus_err",
+		[OTG_STATE_B_IDLE] = "b_idle",
+		[OTG_STATE_B_SRP_INIT] = "b_srp_init",
+		[OTG_STATE_B_PERIPHERAL] = "b_peripheral",
+		[OTG_STATE_B_WAIT_ACON] = "b_wait_acon",
+		[OTG_STATE_B_HOST] = "b_host",
+	};
+
+	if (state < 0 || state >= ARRAY_SIZE(names))
+		return "UNDEFINED";
+
+	return names[state];
+}
+EXPORT_SYMBOL_GPL(usb_otg_state_string);
+
+int usb_otg_send_event(enum usb_otg_event event)
+{
+	struct usb_phy *otg = usb_get_phy(USB_PHY_TYPE_USB2);
+	int ret = -ENOTSUPP;
+
+	if (otg && otg->send_event)
+		ret = otg->send_event(otg, event);
+
+	if (otg)
+		usb_put_phy(otg);
+
+	return ret;
+}
+EXPORT_SYMBOL(usb_otg_send_event);
 
 const char *usb_speed_string(enum usb_device_speed speed)
 {

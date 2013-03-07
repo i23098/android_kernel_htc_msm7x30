@@ -203,7 +203,7 @@ usb_phy_shutdown(struct usb_phy *x)
 
 /* for USB core, host and peripheral controller drivers */
 /* Context: can sleep */
-extern int otg_send_event(enum usb_otg_event event);
+extern int usb_otg_send_event(enum usb_otg_event event);
 
 /* for usb host and peripheral controller drivers */
 #ifdef CONFIG_USB_OTG_UTILS

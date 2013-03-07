@@ -509,7 +509,7 @@ static const char *event_string(enum usb_otg_event event)
 	}
 }
 
-static int msm_otg_send_event(struct usb_phy *phy,
+static int msm_usb_otg_send_event(struct usb_phy *phy,
 				enum usb_otg_event event)
 {
 	char module_name[16];
@@ -1905,7 +1905,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 		} else if (test_bit(B_SRP_FAIL, &motg->tmouts)) {
 			pr_debug("b_srp_fail\n");
 			/* notify user space */
-			msm_otg_send_event(&motg->phy,
+			msm_usb_otg_send_event(&motg->phy,
 				OTG_EVENT_NO_RESP_FOR_SRP);
 			clear_bit(B_BUS_REQ, &motg->inputs);
 			clear_bit(B_SRP_FAIL, &motg->tmouts);
@@ -2005,7 +2005,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 			 * not handled for now.
 			 */
 			pr_debug("b_ase0_brst_tmout\n");
-			msm_otg_send_event(&motg->phy,
+			msm_usb_otg_send_event(&motg->phy,
 				OTG_EVENT_HNP_FAILED);
 			msm_otg_start_host(&motg->phy, REQUEST_STOP);
 			phy->otg->host->is_b_host = 0;
@@ -2123,7 +2123,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 			pr_debug("id_f/b/c || a_bus_drop ||"
 					"a_wait_bcon_tmout\n");
 			if (test_bit(A_WAIT_BCON, &motg->tmouts))
-				msm_otg_send_event(&motg->phy,
+				msm_usb_otg_send_event(&motg->phy,
 					OTG_EVENT_DEV_CONN_TMOUT);
 			msm_otg_del_timer(motg);
 			clear_bit(A_BUS_REQ, &motg->inputs);
@@ -2242,7 +2242,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 			pr_debug("id_f/b/c || a_bus_drop ||"
 					"a_aidl_bdis_tmout\n");
 			if (test_bit(A_AIDL_BDIS, &motg->tmouts))
-				msm_otg_send_event(&motg->phy,
+				msm_usb_otg_send_event(&motg->phy,
 					OTG_EVENT_HNP_FAILED);
 			msm_otg_del_timer(motg);
 			clear_bit(B_CONN, &motg->inputs);
@@ -2912,7 +2912,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 
 	motg->phy.set_suspend = msm_usb_phy_set_suspend;
 	motg->phy.start_hnp = msm_otg_start_hnp;
-	motg->phy.send_event = msm_otg_send_event;
+	motg->phy.send_event = msm_usb_otg_send_event;
 	motg->phy.notify_charger = msm_otg_notify_charger_attached;
 	motg->set_clk = msm_otg_set_clk;
 	motg->reset = otg_reset;
