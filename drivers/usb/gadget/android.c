@@ -56,6 +56,7 @@
 #include "u_smd.c"
 #include "u_bam.c"
 #include "u_rmnet_ctrl_smd.c"
+#define USB_FSERIAL_INCLUDED
 #include "f_serial.c"
 #include "f_adb.c"
 #ifdef CONFIG_USB_ANDROID_MTP
