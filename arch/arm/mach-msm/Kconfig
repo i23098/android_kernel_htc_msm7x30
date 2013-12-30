@@ -16,6 +16,7 @@ config ARCH_MSM7X00A
 	select MACH_TROUT if !MACH_HALIBUT
 	select MSM_PROC_COMM
 	select MSM_SMD
+	select MSM_TIMER
 	select MSM_SMD_PKG3
 
 config ARCH_MSM7X30
@@ -25,6 +26,7 @@ config ARCH_MSM7X30
 	select GPIO_MSM_V1
 	select MSM_PROC_COMM
 	select MSM_SMD
+	select MSM_TIMER
 	select MSM_VIC
 	select RESERVE_FIRST_PAGE
 	select MSM_DALRPC
@@ -50,6 +52,7 @@ config ARCH_QSD8X50
 	select MSM_GPIOMUX
 	select MSM_PROC_COMM
 	select MSM_SMD
+	select MSM_TIMER
 	select MSM_VIC
 
 endchoice
@@ -62,6 +65,7 @@ config ARCH_MSM8X60
 	select GPIO_MSM_V2
 	select HAVE_SMP
 	select MSM_SCM if SMP
+	select MSM_TIMER
 
 config ARCH_MSM8960
 	bool "MSM8960"
@@ -71,6 +75,7 @@ config ARCH_MSM8960
 	select HAVE_SMP
 	select GPIO_MSM_V2
 	select MSM_SCM if SMP
+	select MSM_TIMER
 
 config ARCH_MSM8974
 	bool "MSM8974"
@@ -1049,7 +1054,11 @@ config FORCE_FAST_CHARGE
 	help
 	  A simple sysfs interface to force adapters that
 	  are detected as USB to charge as AC.
+
 endif
+
+config MSM_TIMER
+	bool
 
 config MMC_MSM_SDC1_SUPPORT
 	boolean "Qualcomm SDC1 support"
