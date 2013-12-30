@@ -1,12 +1,50 @@
+config ARCH_MSM
+	bool
+
+config ARCH_MSM_DT
+	bool "Qualcomm MSM DT Support" if ARCH_MULTI_V7
+	select ARCH_MSM
+	select ARCH_REQUIRE_GPIOLIB
+	select CLKSRC_OF
+	select GENERIC_CLOCKEVENTS
+	help
+	  Support for Qualcomm's devicetree based MSM systems.
+
 if ARCH_MSM
 
-comment "Qualcomm MSM SoC Type"
+menu "Qualcomm MSM SoC Selection"
 	depends on ARCH_MSM_DT
+
+config ARCH_MSM8X60
+	bool "Enable support for MSM8X60"
+	select ARM_GIC
+	select CPU_V7
+	select HAVE_SMP
+	select MSM_SCM if SMP
+	select MSM_TIMER
+
+config ARCH_MSM8960
+	bool "Enable support for MSM8960"
+	select ARM_GIC
+	select CPU_V7
+	select HAVE_SMP
+	select MSM_SCM if SMP
+	select MSM_TIMER
+
+config ARCH_MSM8974
+	bool "Enable support for MSM8974"
+	select ARM_GIC
+	select CPU_V7
+	select HAVE_ARM_ARCH_TIMER
+	select HAVE_SMP
+	select MSM_SCM if SMP
+
+endmenu
 
 choice
 	prompt "Qualcomm MSM SoC Type"
 	default ARCH_MSM7X00A
-	depends on !ARCH_MSM_DT
+	depends on ARCH_MSM_NODT
 
 config ARCH_MSM7X00A
 	bool "MSM7x00A / MSM7x01A"
@@ -56,41 +94,6 @@ config ARCH_QSD8X50
 	select MSM_VIC
 
 endchoice
-
-config ARCH_MSM8X60
-	bool "MSM8X60"
-	select ARCH_MSM_DT
-	select ARM_GIC
-	select CPU_V7
-	select GPIO_MSM_V2
-	select HAVE_SMP
-	select MSM_SCM if SMP
-	select MSM_TIMER
-
-config ARCH_MSM8960
-	bool "MSM8960"
-	select ARCH_MSM_DT
-	select ARM_GIC
-	select CPU_V7
-	select HAVE_SMP
-	select GPIO_MSM_V2
-	select MSM_SCM if SMP
-	select MSM_TIMER
-
-config ARCH_MSM8974
-	bool "MSM8974"
-	select ARCH_MSM_DT
-	select ARM_GIC
-	select CPU_V7
-	select HAVE_ARM_ARCH_TIMER
-	select HAVE_SMP
-	select MSM_SCM if SMP
-	select USE_OF
-
-config ARCH_MSM_DT
-	bool
-	select SPARSE_IRQ
-	select USE_OF
 
 config MSM_HAS_DEBUG_UART_HS
 	bool
@@ -155,7 +158,7 @@ config PERFLOCK_SCREEN_OFF_MAX
 	default MSM_CPU_FREQ_ONDEMAND_MIN
 
 menu "Qualcomm MSM Board Type"
-	depends on !ARCH_MSM_DT
+	depends on ARCH_MSM_NODT
 
 config MACH_HALIBUT
 	depends on ARCH_MSM
@@ -968,7 +971,6 @@ config IOMMU_API
 
 config MSM_GPIOMUX
 	bool
-	depends on !ARCH_MSM_DT
 	help
 	  Support for MSM V1 TLMM GPIOMUX architecture.
 
