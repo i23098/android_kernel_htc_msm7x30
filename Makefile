@@ -171,7 +171,6 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ \
 				  -e s/ppc.*/powerpc/ -e s/mips.*/mips/ \
 				  -e s/sh[234].*/sh/ )
 
-SUBARCH := arm
 # Cross compiling and selecting different set of gcc/bin-utils
 # ---------------------------------------------------------------------------
 #
@@ -192,10 +191,8 @@ SUBARCH := arm
 # "make" in the configured kernel build directory always uses that.
 # Default value for CROSS_COMPILE is not to prefix executables
 # Note: Some architectures assign CROSS_COMPILE in their arch/*/Makefile
-SUBARCH := arm
 export KBUILD_BUILDHOST := $(SUBARCH)
 ARCH		?= $(SUBARCH)
-CROSS_COMPILE	?= /home/niko/arm-eabi-4.7/bin/arm-eabi-
 CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
 
 # Architecture as present in compile.h
@@ -329,16 +326,11 @@ MAKEFLAGS += --include-dir=$(srctree)
 $(srctree)/scripts/Kbuild.include: ;
 include $(srctree)/scripts/Kbuild.include
 
-ifeq ($(USE_CCACHE),1)
-# ccache
-CCACHE	= $(shell which ccache)
-endif
-
 # Make variables (CC, etc...)
 
 AS		= $(CROSS_COMPILE)as
 LD		= $(CROSS_COMPILE)ld
-REAL_CC		= $(CCACHE) $(CROSS_COMPILE)gcc
+REAL_CC		= $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
@@ -358,13 +350,13 @@ CHECK		= sparse
 CC		= $(srctree)/scripts/gcc-wrapper.py $(REAL_CC)
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
-		   -Wbitwise -Wno-return-void $(CF)
+		  -Wbitwise -Wno-return-void $(CF)
 CFLAGS_MODULE   = -munaligned-access -mcpu=cortex-a8 -mtune=cortex-a8 -mfpu=neon
 AFLAGS_MODULE   =
 LDFLAGS_MODULE  =
-CFLAGS_KERNEL   = -munaligned-access -mcpu=cortex-a8 -mtune=cortex-a8 -mfpu=neon
-AFLAGS_KERNEL   =
-CFLAGS_GCOV     = -fprofile-arcs -ftest-coverage
+CFLAGS_KERNEL	= -munaligned-access -mcpu=cortex-a8 -mtune=cortex-a8 -mfpu=neon
+AFLAGS_KERNEL	=
+CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 
 # Use LINUXINCLUDE when you must reference the include/ directory.
@@ -372,15 +364,16 @@ CFLAGS_GCOV     = -fprofile-arcs -ftest-coverage
 LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
                    -Iarch/$(hdr-arch)/include/generated -Iinclude \
                    $(if $(KBUILD_SRC), -I$(srctree)/include) \
+                   -include $(srctree)/include/linux/kconfig.h \
                    -include include/generated/autoconf.h
 
-KBUILD_CPPFLAGS	:= -D__KERNEL__
+KBUILD_CPPFLAGS := -D__KERNEL__
 
-KBUILD_CFLAGS	:= -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
-				   -fno-strict-aliasing -fno-common \
-				   -Werror-implicit-function-declaration \
-				   -Wno-format-security \
-				   -fno-delete-null-pointer-checks
+KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+		   -fno-strict-aliasing -fno-common \
+		   -Werror-implicit-function-declaration \
+		   -Wno-format-security \
+		   -fno-delete-null-pointer-checks
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
