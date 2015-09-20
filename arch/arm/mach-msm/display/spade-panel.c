@@ -26,6 +26,7 @@
 #include <linux/platform_device.h>
 #include <mach/msm_fb.h>
 #include <mach/msm_iomap.h>
+#include <mach/msm_memtypes.h>
 #include <mach/atmega_microp.h>
 #include <mach/vreg.h>
 #include <mach/panel_id.h>
@@ -44,6 +45,8 @@
 #endif
 
 #define BRIGHTNESS_DEFAULT_LEVEL        102
+
+#define LCDC_SPADE_PANEL_NAME			"lcdc_spade_wvga"
 
 enum {
 	PANEL_AUO,
@@ -127,71 +130,73 @@ static uint32_t display_off_gpio_table[] = {
 
 static void spade_sharp_panel_power(bool on_off)
 {
-  if (!!on_off) {
-    LCMDBG("(%d):\n", on_off);
-    config_gpio_table( display_on_gpio_table,
-                       ARRAY_SIZE(display_on_gpio_table));
-    gpio_set_value(SPADE_LCD_RSTz, 0);
-    vreg_enable(vreg_lcm_2v8);
-    vreg_enable(vreg_lcm_1v8);
-    udelay(10);
-    gpio_set_value(SPADE_LCD_RSTz, 1);
-    msleep(20);
-  } else {
-    LCMDBG("(%d):\n", on_off);
-    gpio_set_value(SPADE_LCD_RSTz, 0);
-    msleep(70);
-    vreg_disable(vreg_lcm_2v8);
-    vreg_disable(vreg_lcm_1v8);
-    config_gpio_table(display_off_gpio_table,
-                      ARRAY_SIZE(display_off_gpio_table));
-  }
+	if (!!on_off) {
+		LCMDBG("(%d):\n", on_off);
+		config_gpio_table( display_on_gpio_table,
+						   ARRAY_SIZE(display_on_gpio_table));
+		gpio_set_value(SPADE_LCD_RSTz, 0);
+		vreg_enable(vreg_lcm_2v8);
+		vreg_enable(vreg_lcm_1v8);
+		udelay(10);
+		gpio_set_value(SPADE_LCD_RSTz, 1);
+		msleep(20);
+	} else {
+		LCMDBG("(%d):\n", on_off);
+		gpio_set_value(SPADE_LCD_RSTz, 0);
+		msleep(70);
+		vreg_disable(vreg_lcm_2v8);
+		vreg_disable(vreg_lcm_1v8);
+		config_gpio_table(display_off_gpio_table,
+						  ARRAY_SIZE(display_off_gpio_table));
+	}
 }
 
-static void spade_auo_panel_power(bool on_off)
+static int spade_auo_panel_power(bool on_off)
 {
-  if (!!on_off) {
-    LCMDBG("(%d):\n", on_off);
-    gpio_set_value(SPADE_LCD_RSTz, 1);
-    udelay(500);
-    gpio_set_value(SPADE_LCD_RSTz, 0);
-    udelay(500);
-    gpio_set_value(SPADE_LCD_RSTz, 1);
-    msleep(20);
-    config_gpio_table( display_on_gpio_table,
-                       ARRAY_SIZE(display_on_gpio_table));
-  } else {
-    LCMDBG("%s(%d):\n", __func__, on_off);
-    gpio_set_value(SPADE_LCD_RSTz, 1);
-    msleep(70);
-    config_gpio_table( display_off_gpio_table,
-                       ARRAY_SIZE(display_off_gpio_table));
-  }
+	if (!!on_off) {
+		LCMDBG("(%d):\n", on_off);
+		gpio_set_value(SPADE_LCD_RSTz, 1);
+		udelay(500);
+		gpio_set_value(SPADE_LCD_RSTz, 0);
+		udelay(500);
+		gpio_set_value(SPADE_LCD_RSTz, 1);
+		msleep(20);
+		config_gpio_table( display_on_gpio_table,
+						   ARRAY_SIZE(display_on_gpio_table));
+	} else {
+		LCMDBG("%s(%d):\n", __func__, on_off);
+		gpio_set_value(SPADE_LCD_RSTz, 1);
+		msleep(70);
+		config_gpio_table( display_off_gpio_table,
+						   ARRAY_SIZE(display_off_gpio_table));
+	}
+	return 0;
 }
 
 static int panel_power(int on)
 {
-  switch (board_get_panel_type()) {
-  case PANEL_AUO:
-  case PANEL_ID_SPADE_AUO_N90:
-    spade_auo_panel_power(on == 1 ? true : false);
-    return 0;
-    break;
-  case PANEL_SHARP:
-  case PANEL_ID_SPADE_SHA_N90:
-    spade_sharp_panel_power(on == 1 ? true : false);
-    return 0;
-    break;
-  }
-  return -EINVAL;
+	switch (board_get_panel_type()) {
+		case PANEL_AUO:
+		case PANEL_ID_SPADE_AUO_N90:
+			return(spade_auo_panel_power(on == 1 ? true : false));
+			break;
+		case PANEL_SHARP:
+		case PANEL_ID_SPADE_SHA_N90:
+			spade_sharp_panel_power(on == 1 ? true : false);
+			return 0;
+			break;
+		default:
+			return -EINVAL;
+			break;
+	}
 }
 
 int device_fb_detect_panel(const char *name)
 {
-  if (!strcmp(name, "lcdc_spade_wvga")) {
-    return 0;
-  }
-  return 0;
+	if (!strcmp(name, LCDC_SPADE_PANEL_NAME)) {
+		return 0;
+	}
+	return 0;
 }
 
 /* a hacky interface to control the panel power */
@@ -208,7 +213,7 @@ static struct msm_panel_common_pdata lcdc_panel_data = {
 };
 
 static struct platform_device lcdc_spadewvga_panel_device = {
-	.name   = "lcdc_spade_wvga",
+	.name   = LCDC_SPADE_PANEL_NAME,
 	.id     = 0,
 	.dev    = {
 		.platform_data = &lcdc_panel_data,
@@ -220,6 +225,7 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.gpio = 30,
 	.mdp_max_clk = 192000000,
 	.mdp_rev = MDP_REV_40,
+	.mem_hid = MEMTYPE_EBI0,
 };
 
 static int lcdc_panel_power(int on)
@@ -240,36 +246,36 @@ static struct lcdc_platform_data lcdc_pdata = {
 };
 
 struct msm_list_device spade_fb_devices[] = {
-  { "mdp", &mdp_pdata },
-  { "lcdc", &lcdc_pdata }
+	{ "mdp", &mdp_pdata },
+	{ "lcdc", &lcdc_pdata }
 };
 
 static int panel_init_power(void)
 {
-  vreg_lcm_1v8 = vreg_get(0, "gp13");
-  if (IS_ERR(vreg_lcm_1v8))
-    return PTR_ERR(vreg_lcm_1v8);
-  vreg_lcm_2v8 = vreg_get(0, "wlan2");
-  if (IS_ERR(vreg_lcm_2v8))
-    return PTR_ERR(vreg_lcm_2v8);
-  return 0;
+	vreg_lcm_1v8 = vreg_get(0, "gp13");
+	if (IS_ERR(vreg_lcm_1v8))
+		return PTR_ERR(vreg_lcm_1v8);
+	vreg_lcm_2v8 = vreg_get(0, "wlan2");
+	if (IS_ERR(vreg_lcm_2v8))
+		return PTR_ERR(vreg_lcm_2v8);
+	return 0;
 }
 
 int __init spade_init_panel(void)
 {
-  int ret;
-  
-  ret = panel_init_power();
-  if (ret)
-    return ret;
-  
-  msm_fb_add_devices(
-                     spade_fb_devices, ARRAY_SIZE(spade_fb_devices));
+	int ret;
 
-  ret = platform_device_register(&lcdc_spadewvga_panel_device);
-  if (ret != 0)
-    return ret;
-  
-  return 0;
+	ret = panel_init_power();
+	if (ret)
+		return ret;
+
+	msm_fb_add_devices(
+					 spade_fb_devices, ARRAY_SIZE(spade_fb_devices));
+
+	ret = platform_device_register(&lcdc_spadewvga_panel_device);
+	if (ret != 0)
+		return ret;
+
+	return 0;
 }
 
