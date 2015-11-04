@@ -242,15 +242,6 @@ static inline bool of_have_populated_dt(void)
 	return false;
 }
 
-#define for_each_child_of_node(parent, child) \
-        while (0)
-
-static inline int of_device_is_compatible(const struct device_node *device,
-                                           const char *name)
-{
-        return 0;
-}
-
 static inline int of_property_read_u32_array(const struct device_node *np,
 					     const char *propname,
 					     u32 *out_values, size_t sz)
@@ -270,13 +261,6 @@ static inline const void *of_get_property(const struct device_node *node,
 				int *lenp)
 {
 	return NULL;
-}
-
-static inline struct device_node *of_parse_phandle(struct device_node *np,
-                                                   const char *phandle_name,
-                                                   int index)
-{
-         return NULL;
 }
 
 #endif /* CONFIG_OF */
