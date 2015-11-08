@@ -1,7 +1,7 @@
 /*
  * misc.c
- * 
- * This is a collection of several routines from gzip-1.0.3 
+ *
+ * This is a collection of several routines from gzip-1.0.3
  * adapted for Linux.
  *
  * malloc by Hannu Savolainen 1993 and Matthias Urlichs 1994
@@ -10,7 +10,7 @@
  *
  * Nicolas Pitre <nico@visuaide.com>  1999/04/14 :
  *  For this code to run directly from Flash, all constant variables must
- *  be marked with 'const' and all other variables initialized at run-time 
+ *  be marked with 'const' and all other variables initialized at run-time
  *  only.  This way all non constant variables will end up in the bss segment,
  *  which should point to addresses in RAM and cleared to 0 on start.
  *  This allows for a much quicker boot time.
@@ -24,10 +24,6 @@ unsigned int __machine_arch_type;
 #include <linux/linkage.h>
 
 #include <asm/unaligned.h>
-
-#ifdef STANDALONE_DEBUG
-#define putstr printf
-#else
 
 static void putstr(const char *ptr);
 extern void error(char *x);
@@ -113,10 +109,8 @@ static void putstr(const char *ptr)
 	flush();
 }
 
-#endif
-
 /*
- * gzip delarations
+ * gzip declarations
  */
 extern char input_data[];
 extern char input_data_end[];
@@ -147,9 +141,7 @@ asmlinkage void __div0(void)
 	error("Attempting division by 0!");
 }
 
-extern void do_decompress(u8 *input, int len, u8 *output, void (*error)(char *x));
-
-#ifndef STANDALONE_DEBUG
+extern int do_decompress(u8 *input, int len, u8 *output, void (*error)(char *x));
 
 unsigned long
 decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
@@ -157,6 +149,7 @@ decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
 		int arch_id)
 {
 	unsigned char *tmp;
+	int ret;
 
 	output_data		= (unsigned char *)output_start;
 	free_mem_ptr		= free_mem_ptr_p;
@@ -169,23 +162,11 @@ decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
 	output_ptr = get_unaligned_le32(tmp);
 
 	putstr("Uncompressing Linux...");
-	do_decompress(input_data, input_data_end - input_data,
-			output_data, error);
-	putstr(" done, booting the kernel.\n");
+	ret = do_decompress(input_data, input_data_end - input_data,
+			    output_data, error);
+	if (ret)
+		error("decompressor returned an error");
+	else
+		putstr(" done, booting the kernel.\n");
 	return output_ptr;
 }
-#else
-
-char output_buffer[1500*1024];
-
-int main()
-{
-	output_data = output_buffer;
-
-	putstr("Uncompressing Linux...");
-	decompress(input_data, input_data_end - input_data,
-			NULL, NULL, output_data, NULL, error);
-	putstr("done.\n");
-	return 0;
-}
-#endif
