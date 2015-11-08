@@ -84,7 +84,7 @@
 static int release_buf;
 
 /*************** queue helper ****************/
-inline void msm_gemini_q_init(char const *name, struct msm_gemini_q *q_p)
+static void msm_gemini_q_init(char const *name, struct msm_gemini_q *q_p)
 {
 	GMN_DBG("%s:%d] %s\n", __func__, __LINE__, name);
 	q_p->name = name;
@@ -94,7 +94,7 @@ inline void msm_gemini_q_init(char const *name, struct msm_gemini_q *q_p)
 	q_p->unblck = 0;
 }
 
-inline void *msm_gemini_q_out(struct msm_gemini_q *q_p)
+static void *msm_gemini_q_out(struct msm_gemini_q *q_p)
 {
 	unsigned long flags;
 	struct msm_gemini_q_entry *q_entry_p = NULL;
@@ -120,7 +120,7 @@ inline void *msm_gemini_q_out(struct msm_gemini_q *q_p)
 	return data;
 }
 
-inline int msm_gemini_q_in(struct msm_gemini_q *q_p, void *data)
+static int msm_gemini_q_in(struct msm_gemini_q *q_p, void *data)
 {
 	unsigned long flags;
 
@@ -142,7 +142,7 @@ inline int msm_gemini_q_in(struct msm_gemini_q *q_p, void *data)
 	return 0;
 }
 
-inline int msm_gemini_q_in_buf(struct msm_gemini_q *q_p,
+static int msm_gemini_q_in_buf(struct msm_gemini_q *q_p,
 	struct msm_gemini_core_buf *buf)
 {
 	struct msm_gemini_core_buf *buf_p;
@@ -160,7 +160,7 @@ inline int msm_gemini_q_in_buf(struct msm_gemini_q *q_p,
 	return 0;
 }
 
-inline int msm_gemini_q_wait(struct msm_gemini_q *q_p)
+static int msm_gemini_q_wait(struct msm_gemini_q *q_p)
 {
 	int tm = MAX_SCHEDULE_TIMEOUT; /* 500ms */
 	int rc;
@@ -203,7 +203,7 @@ inline int msm_gemini_q_unblock(struct msm_gemini_q *q_p)
 	return 0;
 }
 
-inline void msm_gemini_outbuf_q_cleanup(struct msm_gemini_q *q_p)
+static void msm_gemini_outbuf_q_cleanup(struct msm_gemini_q *q_p)
 {
 	struct msm_gemini_core_buf *buf_p;
 	GMN_DBG("%s:%d] %s\n", __func__, __LINE__, q_p->name);
@@ -218,7 +218,7 @@ inline void msm_gemini_outbuf_q_cleanup(struct msm_gemini_q *q_p)
 	q_p->unblck = 0;
 }
 
-inline void msm_gemini_q_cleanup(struct msm_gemini_q *q_p)
+static void msm_gemini_q_cleanup(struct msm_gemini_q *q_p)
 {
 	void *data;
 	GMN_DBG("%s:%d] %s\n", __func__, __LINE__, q_p->name);
