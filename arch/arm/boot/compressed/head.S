@@ -10,6 +10,7 @@
  */
 #include <linux/linkage.h>
 
+	.arch	armv7-a
 /*
  * Debugging stuff
  *
@@ -21,7 +22,7 @@
 
 #if defined(CONFIG_DEBUG_ICEDCC)
 
-#ifdef defined(CONFIG_CPU_V6) || defined(CONFIG_CPU_V7)
+#if defined(CONFIG_CPU_V6) || defined(CONFIG_CPU_V6K) || defined(CONFIG_CPU_V7)
 		.macro	loadsp, rb, tmp
 		.endm
 		.macro	writeb, ch, rb
@@ -125,6 +126,7 @@ wait:		mrc	p14, 0, pc, c0, c1, 0
  * sort out different calling conventions
  */
 		.align
+		.arm				@ Always enter in ARM state
 start:
 		.type	start,#function
 		.rept	8
@@ -426,7 +428,11 @@ __setup_mmu:	sub	r3, r4, #16384		@ Page directory size
 		orr	r1, r1, #3 << 10
 		add	r2, r3, #16384
 1:		cmp	r1, r9			@ if virt > start of RAM
+#ifdef CONFIG_CPU_DCACHE_WRITETHROUGH
+		orrhs	r1, r1, #0x08		@ set cacheable
+#else
 		orrhs	r1, r1, #0x0c		@ set cacheable, bufferable
+#endif
 		cmp	r1, r10			@ if virt > end of RAM
 		bichs	r1, r1, #0x0c		@ clear cacheable, bufferable
 		str	r1, [r0], #4		@ 1:1 mapping
@@ -441,7 +447,8 @@ __setup_mmu:	sub	r3, r4, #16384		@ Page directory size
  */
 		mov	r1, #0x1e
 		orr	r1, r1, #3 << 10
-		mov	r2, pc, lsr #20
+		mov	r2, pc
+		mov	r2, r2, lsr #20
 		orr	r1, r1, r2, lsl #20
 		add	r0, r3, r2, lsl #2
 		str	r1, [r0], #4
@@ -458,6 +465,12 @@ __armv6_mmu_cache_on:
 		orr	r0, r0, #1 << 22	@ U (v6 unaligned access model)
 		mcr	p15, 0, r0, c1, c0, 0	@ write SCTLR
 		b	__armv4_mmu_cache_on
+
+__arm926ejs_mmu_cache_on:
+#ifdef CONFIG_CPU_DCACHE_WRITETHROUGH
+		mov	r0, #4			@ put dcache in WT mode
+		mcr	p15, 7, r0, c15, c0, 0
+#endif
 
 __armv4_mmu_cache_on:
 		mov	r12, lr
@@ -685,6 +698,12 @@ proc_types:
 		W(b)	__armv4_mpu_cache_on
 		W(b)	__armv4_mpu_cache_off
 		W(b)	__armv4_mpu_cache_flush
+
+		.word	0x41069260		@ ARM926EJ-S (v5TEJ)
+		.word	0xff0ffff0
+		W(b)	__arm926ejs_mmu_cache_on
+		W(b)	__armv4_mmu_cache_off
+		W(b)	__armv5tej_mmu_cache_flush
 
 		.word	0x00007000		@ ARM7 IDs
 		.word	0x0000f000
