@@ -28,14 +28,6 @@
 		.macro	writeb, ch, rb
 		mcr	p14, 0, \ch, c0, c5, 0
 		.endm
-#elif defined(CONFIG_CPU_V7)
-		.macro	loadsp, rb, tmp
-		.endm
-		.macro	writeb, ch, rb
-wait:		mrc	p14, 0, pc, c0, c1, 0
-		bcs	wait
-		mcr	p14, 0, \ch, c0, c5, 0
-		.endm
 #elif defined(CONFIG_CPU_XSCALE)
 		.macro	loadsp, rb, tmp
 		.endm
@@ -129,14 +121,18 @@ wait:		mrc	p14, 0, pc, c0, c1, 0
 		.arm				@ Always enter in ARM state
 start:
 		.type	start,#function
-		.rept	8
+		.rept	7
 		mov	r0, r0
 		.endr
+   ARM(		mov	r0, r0		)
+   ARM(		b	1f		)
+ THUMB(		adr	r12, BSYM(1f)	)
+ THUMB(		bx	r12		)
 
-		b	1f
 		.word	0x016f2818		@ Magic numbers to help the loader
 		.word	start			@ absolute load/run zImage address
 		.word	_edata			@ zImage end address
+ THUMB(		.thumb			)
 1:		mov	r7, r1			@ save architecture ID
 		mov	r8, r2			@ save atags pointer
 
@@ -207,12 +203,21 @@ not_angel:
 
 		/*
 		 * Relocate all entries in the GOT table.
+		 * Bump bss entries to _edata + dtb size
 		 */
 1:		ldr	r1, [r11, #0]		@ relocate entries in the GOT
-		add	r1, r1, r0		@ table.  This fixes up the
-		str	r1, [r11], #4		@ C references.
-		cmp	r11, ip
+		add	r1, r1, r0		@ This fixes up C references
+		cmp	r1, r2			@ if entry >= bss_start &&
+		cmphs	r3, r1			@       bss_end > entry
+		addhi	r1, r1, r5		@    entry += dtb size
+		str	r1, [r11], #4		@ next entry
+		cmp	r11, r12
 		blo	1b
+
+		/* bump our bss pointers too */
+		add	r2, r2, r5
+		add	r3, r3, r5
+
 #else
 
 		/*
@@ -317,8 +322,8 @@ LC0:		.word	LC0			@ r1
 		.word	_image_size		@ r6
 		.word	_got_start		@ r11
 		.word	_got_end		@ ip
-		.word	user_stack+4096		@ sp
-LC1:		.word	reloc_end - reloc_start
+		.word	.L_user_stack+4096		@ sp
+LC1:		.word	reloc_code_end - reloc_start
 		.size	LC0, . - LC0
 
 #ifdef CONFIG_ARCH_RPC
@@ -341,11 +346,10 @@ params:		ldr	r0, =params_phys
  *  r4 = kernel execution address
  *  r7 = architecture number
  *  r8 = atags pointer
- *  r9 = run-time address of "start"  (???)
  * On exit,
- *  r1, r2, r3, r9, r10, r12 corrupted
+ *  r0, r1, r2, r3, r9, r10, r12 corrupted
  * This routine must preserve:
- *  r4, r5, r6, r7, r8
+ *  r4, r7, r8
  */
 		.align	5
 cache_on:	mov	r3, #8			@ cache_on function
@@ -457,15 +461,6 @@ __setup_mmu:	sub	r3, r4, #16384		@ Page directory size
 		mov	pc, lr
 ENDPROC(__setup_mmu)
 
-@ Enable unaligned access on v6, to allow better code generation
-@ for the decompressor C code:
-__armv6_mmu_cache_on:
-		mrc	p15, 0, r0, c1, c0, 0	@ read SCTLR
-		bic	r0, r0, #2		@ A (no unaligned access fault)
-		orr	r0, r0, #1 << 22	@ U (v6 unaligned access model)
-		mcr	p15, 0, r0, c1, c0, 0	@ write SCTLR
-		b	__armv4_mmu_cache_on
-
 __arm926ejs_mmu_cache_on:
 #ifdef CONFIG_CPU_DCACHE_WRITETHROUGH
 		mov	r0, #4			@ put dcache in WT mode
@@ -507,8 +502,6 @@ __armv7_mmu_cache_on:
 		orr	r0, r0, #0x5000		@ I-cache enable, RR cache replacement
 		orr	r0, r0, #0x003c		@ write buffer
 		bic	r0, r0, #2		@ A (no unaligned access fault)
-		orr	r0, r0, #1 << 22	@ U (v6 unaligned access model)
-						@ (needed for ARM1176)
 #ifdef CONFIG_MMU
 #ifdef CONFIG_CPU_ENDIAN_BE8
 		orr	r0, r0, #1 << 25	@ big-endian page tables
@@ -518,6 +511,7 @@ __armv7_mmu_cache_on:
 		mcrne	p15, 0, r3, c2, c0, 0	@ load page table pointer
 		mcrne	p15, 0, r1, c3, c0, 0	@ load domain access control
 #endif
+		mcr	p15, 0, r0, c7, c5, 4	@ ISB
 		mcr	p15, 0, r0, c1, c0, 0	@ load control register
 		mrc	p15, 0, r0, c1, c0, 0	@ and read it back
 		mov	r0, #0
@@ -783,12 +777,6 @@ proc_types:
 
 		.word	0x0007b000		@ ARMv6
 		.word	0x000ff000
-		W(b)	__armv6_mmu_cache_on
-		W(b)	__armv4_mmu_cache_off
-		W(b)	__armv6_mmu_cache_flush
-
-		.word	0x560f5810		@ Marvell PJ4 ARMv6
-		.word	0xff0ffff0
 		W(b)	__armv4_mmu_cache_on
 		W(b)	__armv4_mmu_cache_off
 		W(b)	__armv6_mmu_cache_flush
@@ -824,8 +812,10 @@ proc_types:
  * Turn off the Cache and MMU.  ARMv3 does not support
  * reading the control register, but ARMv4 does.
  *
- * On exit, r0, r1, r2, r3, r9, r12 corrupted
- * This routine must preserve: r4, r6, r7
+ * On exit,
+ *  r0, r1, r2, r3, r9, r12 corrupted
+ * This routine must preserve:
+ *  r4, r7, r8
  */
 		.align	5
 cache_off:	mov	r3, #12			@ cache_off function
@@ -898,9 +888,9 @@ __armv3_mmu_cache_off:
  * Clean and flush the cache to maintain consistency.
  *
  * On exit,
- *  r1, r2, r3, r9, r11, r12 corrupted
+ *  r1, r2, r3, r9, r10, r11, r12 corrupted
  * This routine must preserve:
- *  r0, r4, r5, r6, r7
+ *  r4, r6, r7, r8
  */
 		.align	5
 cache_clean_flush:
@@ -1041,7 +1031,7 @@ no_cache_id:
 __armv3_mmu_cache_flush:
 __armv3_mpu_cache_flush:
 		mov	r1, #0
-		mcr	p15, 0, r0, c7, c0, 0	@ invalidate whole cache v3
+		mcr	p15, 0, r1, c7, c0, 0	@ invalidate whole cache v3
 		mov	pc, lr
 
 /*
@@ -1122,8 +1112,9 @@ memdump:	mov	r12, r0
 #endif
 
 		.ltorg
-reloc_end:
+reloc_code_end:
 
 		.align
-		.section ".stack", "w"
-user_stack:	.space	4096
+		.section ".stack", "aw", %nobits
+.L_user_stack:	.space	4096
+.L_user_stack_end:
