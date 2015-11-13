@@ -21,7 +21,6 @@
 #include <linux/init.h>
 #include <linux/kexec.h>
 #include <linux/of_fdt.h>
-#include <linux/crash_dump.h>
 #include <linux/root_dev.h>
 #include <linux/cpu.h>
 #include <linux/interrupt.h>
@@ -29,6 +28,9 @@
 #include <linux/fs.h>
 #include <linux/proc_fs.h>
 #include <linux/memblock.h>
+#include <linux/bug.h>
+#include <linux/compiler.h>
+#include <linux/sort.h>
 
 #include <asm/unified.h>
 #include <asm/cpu.h>
@@ -47,6 +49,7 @@
 #include <asm/mach/arch.h>
 #include <asm/mach/irq.h>
 #include <asm/mach/time.h>
+#include <asm/system_info.h>
 #include <asm/traps.h>
 #include <asm/unwind.h>
 #include <asm/memblock.h>
@@ -306,17 +309,22 @@ static void __init cacheid_init(void)
 	if (arch >= CPU_ARCH_ARMv6) {
 		if ((cachetype & (7 << 29)) == 4 << 29) {
 			/* ARMv7 register format */
+			arch = CPU_ARCH_ARMv7;
 			cacheid = CACHEID_VIPT_NONALIASING;
-			if ((cachetype & (3 << 14)) == 1 << 14)
+			switch (cachetype & (3 << 14)) {
+			case (1 << 14):
 				cacheid |= CACHEID_ASID_TAGGED;
-			else if (cpu_has_aliasing_icache(CPU_ARCH_ARMv7))
-				cacheid |= CACHEID_VIPT_I_ALIASING;
-		} else if (cachetype & (1 << 23)) {
-			cacheid = CACHEID_VIPT_ALIASING;
+				break;
+			case (3 << 14):
+				cacheid |= CACHEID_PIPT;
+				break;
+			}
 		} else {
-			cacheid = CACHEID_VIPT_NONALIASING;
-			if (cpu_has_aliasing_icache(CPU_ARCH_ARMv6))
-				cacheid |= CACHEID_VIPT_I_ALIASING;
+			arch = CPU_ARCH_ARMv6;
+			if (cachetype & (1 << 23))
+				cacheid = CACHEID_VIPT_ALIASING;
+			else
+				cacheid = CACHEID_VIPT_NONALIASING;
 		}
 		if (cpu_has_aliasing_icache(arch))
 			cacheid |= CACHEID_VIPT_I_ALIASING;
@@ -926,6 +934,12 @@ static struct machine_desc * __init setup_machine_tags(unsigned int nr)
 	return mdesc;
 }
 
+static int __init meminfo_cmp(const void *_a, const void *_b)
+{
+	const struct membank *a = _a, *b = _b;
+	long cmp = bank_pfn_start(a) - bank_pfn_start(b);
+	return cmp < 0 ? -1 : cmp > 0 ? 1 : 0;
+}
 
 void __init setup_arch(char **cmdline_p)
 {
@@ -940,6 +954,12 @@ void __init setup_arch(char **cmdline_p)
 	machine_desc = mdesc;
 	machine_name = mdesc->name;
 
+#ifdef CONFIG_ZONE_DMA
+	if (mdesc->dma_zone_size) {
+		extern unsigned long arm_dma_zone_size;
+		arm_dma_zone_size = mdesc->dma_zone_size;
+	}
+#endif
 	if (mdesc->soft_reboot)
 		reboot_setup("s");
 
@@ -957,6 +977,7 @@ void __init setup_arch(char **cmdline_p)
 	if (mdesc->init_very_early)
 		mdesc->init_very_early();
 
+	sort(&meminfo.bank, meminfo.nr_banks, sizeof(meminfo.bank[0]), meminfo_cmp, NULL);
 	sanity_check_meminfo();
 	arm_memblock_init(&meminfo, mdesc);
 
