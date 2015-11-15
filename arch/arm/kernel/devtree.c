@@ -165,6 +165,7 @@ void __init setup_safe_machine_fdt(char *dt_phys)
 	dt_root = of_get_flat_dt_root();
 	for_each_machine_desc(mdesc) {
 		score = of_flat_dt_match(dt_root, mdesc->dt_compat);
+
 		if (score > 0 && score < mdesc_score) {
 			mdesc_best = mdesc;
 			mdesc_score = score;
@@ -189,7 +190,6 @@ void __init setup_safe_machine_fdt(char *dt_phys)
 			early_print("%08x\t%s\n", mdesc->nr, mdesc->name);
 		return;
 	}
-	return;
 
 	model = of_get_flat_dt_prop(dt_root, "model", NULL);
 	if (!model)
@@ -197,6 +197,8 @@ void __init setup_safe_machine_fdt(char *dt_phys)
 	if (!model)
 		model = "<unknown>";
 	pr_info("Safe machine: %s, model: %s\n", mdesc_best->name, model);
+
+	return;
 
 	/* Retrieve various information from the /chosen node */
 	of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);

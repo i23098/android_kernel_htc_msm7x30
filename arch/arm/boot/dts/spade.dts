@@ -1,8 +1,8 @@
 /dts-v1/;
 
 / {
-	model = "Dsire HD";
-	compatible = "spade";
+	model = "Desire HD";
+	compatible = "qcom,msm8255";
 
 	#address-cells = <1>;
 	#size-cells = <1>;

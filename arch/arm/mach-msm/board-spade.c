@@ -967,7 +967,7 @@ static int __init buses_init(void)
                                 GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE))
     pr_err("%s: gpio_tlmm_config (gpio=%d) failed\n",
            __func__, spade_get_PMIC_GPIO_INT());
-  
+
   return 0;
 }
 
@@ -3309,7 +3309,7 @@ struct ion_platform_heap msm7x30_heaps[] = {
 			.extra_data = (void *)&co_ion_pdata,
 		},
 #endif
-		
+
 };
 
 static struct ion_platform_data ion_pdata = {
@@ -3379,7 +3379,7 @@ static void __init reserve_pmem_memory(void)
 	msm7x30_reserve_table[MEMTYPE_EBI0].size += PMEM_KERNEL_EBI0_SIZE;
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 	reserve_memory_for(&android_pmem_pdata);
-	
+
 #endif
 #endif
 }
@@ -3474,6 +3474,11 @@ static void __init spade_fixup(struct machine_desc *desc, struct tag *tags,
 	mi->bank[1].size = MSM_LINUX_SIZE2;
 }
 
+static const char * const qcom_dt_match[] __initconst = {
+	"qcom,msm8255",
+	NULL
+};
+
 MACHINE_START(SPADE, "spade")
 	.fixup = spade_fixup,
 	.map_io = spade_map_io,
@@ -3482,5 +3487,6 @@ MACHINE_START(SPADE, "spade")
 	.init_machine = spade_init,
 	.timer = &msm_timer,
 	.init_early = spade_init_early,
+	.dt_compat = qcom_dt_match,
 MACHINE_END
 
