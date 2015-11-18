@@ -3,10 +3,20 @@
 / {
 	model = "Desire HD";
 	compatible = "qcom,msm8255";
+	#address-cells = <0x1>;
+	#size-cells = <0x1>;
 
-	#address-cells = <1>;
-	#size-cells = <1>;
-	chosen { };
-	aliases { };
-	memory { device_type = "memory"; reg = <0 0>; };
+	chosen {
+		bootargs = "board_spade.disable_uart2=0 board_spade.usb_h2w_sw=0 board_spade.disable_sdcard=0 diag.enabled=0 board_spade.debug_uart=0 smisize=0 userdata_sel=0 androidboot.emmc=true  androidboot.baseband=26.13.04.19_M androidboot.cid=HTC__001 androidboot.batt_poweron=good_battery androidboot.carrier=HTC-WWE androidboot.mid=PD9810000 androidboot.keycaps=qwerty androidboot.mode=normal androidboot.serialno=xxxxxxxxxxxx androidboot.bootloader=0.85.2007 no_console_suspend=1 androidboot.selinux=permissive androidboot.hardware=htc7x30";
+		linux,initrd-end = <0x50ac600>;
+		linux,initrd-start = <0x5000000>;
+	};
+
+	aliases {
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x0 0x0>;
+	};
 };
