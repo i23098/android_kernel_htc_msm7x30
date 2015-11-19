@@ -179,10 +179,9 @@ static int __init parse_tag_csa_calibration(const struct tag *tag)
 __tagtable(ATAG_CSA, parse_tag_csa_calibration);
 
 #define ATAG_MEMSIZE 0x5441001e
-unsigned memory_size;
 int __init parse_tag_memsize(const struct tag *tags)
 {
-	int mem_size = 0, find = 0;
+	unsigned memory_size = 0, find = 0;
 	struct tag *t = (struct tag *)tags;
 
 	for (; t->hdr.size; t = tag_next(t)) {
@@ -195,10 +194,9 @@ int __init parse_tag_memsize(const struct tag *tags)
 
 	if (find) {
 		memory_size = t->u.revision.rev;
-		mem_size = t->u.revision.rev;
 	}
 	printk(KERN_DEBUG "parse_tag_memsize: %d\n", memory_size);
-	return mem_size;
+	return memory_size;
 }
 __tagtable(ATAG_MEMSIZE, parse_tag_memsize);
 

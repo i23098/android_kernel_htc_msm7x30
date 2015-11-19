@@ -936,7 +936,7 @@ static struct machine_desc * __init setup_machine_tags(unsigned int nr)
 	strlcpy(boot_command_line, from, COMMAND_LINE_SIZE);
 
 #ifdef CONFIG_ARM_INSERT_DTB
-	setup_safe_machine_fdt(arch_arm_boot_dts_spade_dtb);
+	setup_machine_fdt(virt_to_phys(arch_arm_boot_dts_spade_dtb));
 #endif
 	return mdesc;
 }
