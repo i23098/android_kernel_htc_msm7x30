@@ -100,6 +100,9 @@ extern void early_init_dt_add_memory_arch(u64 base, u64 size);
 extern void * early_init_dt_alloc_memory_arch(u64 size, u64 align);
 extern u64 dt_mem_next_cell(int s, __be32 **cellp);
 
+/* htc board specific staff */
+extern void early_init_dt_setup_engineerid(unsigned long engineerid);
+
 /*
  * If BLK_DEV_INITRD, the fdt early init code will call this function,
  * to be provided by the arch code. start and end are specified as

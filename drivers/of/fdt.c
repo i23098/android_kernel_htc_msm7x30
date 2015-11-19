@@ -579,6 +579,19 @@ inline void early_init_dt_check_for_initrd(unsigned long node)
 #endif /* CONFIG_BLK_DEV_INITRD */
 
 /**
+ * early_init_dt_check_for_initrd - Decode board settings from flat tree
+ * @node: reference to node containing board specific configs ('chosen')
+ */
+void __init early_init_dt_check_htc_board(unsigned long node)
+{
+	unsigned long len;
+	__be32 *prop;
+	prop = of_get_flat_dt_prop(node, "linux,engineerid", &len);
+	if (prop)
+		early_init_dt_setup_engineerid(of_read_ulong(prop, len/4));
+}
+
+/**
  * early_init_dt_scan_root - fetch the top level address and size cells
  */
 int __init early_init_dt_scan_root(unsigned long node, const char *uname,
@@ -676,6 +689,7 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 		return 0;
 
 	early_init_dt_check_for_initrd(node);
+	early_init_dt_check_htc_board(node);
 
 	/* Retrieve command line */
 	p = of_get_flat_dt_prop(node, "bootargs", &l);

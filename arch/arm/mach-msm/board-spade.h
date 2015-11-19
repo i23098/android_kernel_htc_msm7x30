@@ -43,13 +43,13 @@ extern struct platform_device msm_device_mddi0;
  *
  * Please, try to keep this up-to-date if you make changes!
  */
-
+/* in devicetree already
 #define MSM_LINUX_BASE1	0x04000000
 #define MSM_LINUX_SIZE1	0x0C000000
 #define MSM_LINUX_BASE2	0x20000000
 #define MSM_LINUX_SIZE2	0x0C300000
 #define MSM_MEM_256MB_OFFSET	0x10000000
-
+*/
 #define MSM_RAM_CONSOLE_BASE	0x00500000
 #define MSM_RAM_CONSOLE_SIZE	0x00100000
 
