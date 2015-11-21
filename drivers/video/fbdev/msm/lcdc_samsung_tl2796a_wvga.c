@@ -342,7 +342,6 @@ static struct lcm_cmd samsung_oled_gamma_table[][OLED_GAMMA_TABLE_SIZE] = {
 #define SPI_ERROR_FLAGS_EN      (0x00000038)
 #define SPI_ERROR_FLAGS         (0x00000034)
 #define SPI_OUTPUT_FIFO         (0x00000100)
-extern int panel_type;
 extern int qspi_send(uint32_t id, uint8_t data);
 static int lcm_write_cmd(uint32_t reg, uint32_t data)
 {

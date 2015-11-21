@@ -157,13 +157,6 @@ struct pm8xxx_gpio_init_info {
 	struct pm_gpio			config;
 };
 
-static unsigned int engineerid;
-
-unsigned int spade_get_engineerid(void)
-{
-	return engineerid;
-}
-
 #if defined(CONFIG_MSM7KV2_1X_AUDIO) || defined(CONFIG_MSM7KV2_AUDIO)
 static struct resource msm_aictl_resources[] = {
 	{
@@ -1429,7 +1422,7 @@ static void __init audience_gpio_init(void)
   /*Bit2:
     0: with audience.
     1: without audience*/
-  if (engineerid & 0x4) {
+  if (board_get_engineerid() & 0x4) {
     config_gpio_table(audience_gpio_on_table, ARRAY_SIZE(audience_gpio_on_table));
     gpio_set_value(SPADE_AUD_A1026_INT, 0);
     mdelay(1);

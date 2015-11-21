@@ -150,13 +150,6 @@ struct pm8xxx_gpio_init_info {
 	struct pm_gpio			config;
 };
 
-static unsigned int engineerid;
-
-unsigned int vision_get_engineerid(void)
-{
-	return engineerid;
-}
-
 #ifdef CONFIG_MSM7KV2_AUDIO
 static struct resource msm_aictl_resources[] = {
 	{
@@ -1271,7 +1264,7 @@ static int marimba_tsadc_power(int vreg_on)
                    __func__, vregs_tsadc_name[i], rc);
             goto vreg_fail;
           }
-          
+
           rc = vreg_on ? vreg_enable(vregs_tsadc[i]) :
             vreg_disable(vregs_tsadc[i]);
           if (rc < 0) {
@@ -1290,9 +1283,9 @@ static int marimba_tsadc_power(int vreg_on)
           goto do_vote_fail;
         }
         msleep(5); /* ensure power is stable */
-        
+
         return 0;
-        
+
 do_vote_fail:
 vreg_fail:
 	while (i) {
@@ -1315,7 +1308,7 @@ static int marimba_tsadc_vote(int vote_on)
         if (rc < 0)
           pr_err("%s: vreg level %s failed (%d)\n",
                  __func__, vote_on ? "on" : "off", rc);
-        
+
         return rc;
 }
 
@@ -3540,8 +3533,6 @@ static void __init vision_init_early(void)
 static void __init vision_fixup(struct machine_desc *desc, struct tag *tags,
 								char **cmdline, struct meminfo *mi)
 {
-	engineerid = parse_tag_engineerid(tags);
-
 	mi->nr_banks = 2;
 	mi->bank[0].start = MSM_LINUX_BASE1;
 	mi->bank[0].size = MSM_LINUX_SIZE1;

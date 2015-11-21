@@ -43,7 +43,6 @@
 #define SONY_GAMMA		0x4		/*Set bit 2 as 1 when panel contains GAMMA table in its NVM*/
 #define SONY_RGB666		0x8		/*Set bit 3 as 1 when panel is 18 bit, otherwise it is 16 bit*/
 
-extern int panel_type;
 unsigned int g_unblank_stage = 0;
 
 #define SONYWVGA_MIN_VAL		10
@@ -69,7 +68,7 @@ static struct wake_lock panel_idle_lock;
 
 inline int is_sony_spi(void)
 {
-	if( panel_type == PANEL_ID_SAG_SONY )
+	if(board_get_panel_type() == PANEL_ID_SAG_SONY )
 		return ( (panel_type & BL_MASK) == BL_SPI ? 1 : 0 );
 	else
 		return ( panel_type & SONY_PWM_SPI ? 1 : 0 );
@@ -77,7 +76,7 @@ inline int is_sony_spi(void)
 
 inline int is_sony_with_gamma(void)
 {
-	if(panel_type == PANEL_ID_SAG_SONY)
+	if(board_get_panel_type() == PANEL_ID_SAG_SONY)
 		return 1;
 	else
 		return (panel_type & SONY_GAMMA ? 1 : 0);
@@ -85,7 +84,7 @@ inline int is_sony_with_gamma(void)
 
 inline int is_sony_RGB666(void)
 {
-	if(panel_type == PANEL_ID_SAG_SONY)
+	if(board_get_panel_type() == PANEL_ID_SAG_SONY)
 		return ((panel_type & DEPTH_MASK) == DEPTH_RGB666 ? 1 : 0);
 	else
 		return (panel_type & SONY_RGB666 ? 1 : 0);
@@ -271,7 +270,7 @@ static void sonywvga_set_gamma_val(int val)
 	} else {
 		shrink_pwm = sonywvga_panel_shrink_pwm(val);
 		qspi_send_9bit(&gamma_update);
-		if( panel_type == PANEL_ID_SAG_SONY )
+		if(board_get_panel_type() == PANEL_ID_SAG_SONY )
 			lcm_write_tb(SAG_SONY_GAMMA_UPDATE_TABLE,  ARRAY_SIZE(SAG_SONY_GAMMA_UPDATE_TABLE));
 		else
 			lcm_write_tb(SONY_GAMMA_UPDATE_TABLE,  ARRAY_SIZE(SONY_GAMMA_UPDATE_TABLE));
@@ -323,7 +322,7 @@ static int sonywvga_panel_unblank(struct platform_device *pdev)
 			ARRAY_SIZE(SONY_TFT_INIT_TABLE));
 
 	sonywvga_set_gamma_val(last_val_pwm);
-	g_unblank_stage = 1;        
+	g_unblank_stage = 1;
 
 	mutex_unlock(&panel_lock);
 	wake_unlock(&panel_idle_lock);

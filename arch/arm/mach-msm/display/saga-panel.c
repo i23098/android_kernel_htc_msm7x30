@@ -45,7 +45,6 @@
 #endif
 #define LCM_GPIO_CFG(gpio, func) \
 PCOM_GPIO_CFG(gpio, func, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_4MA)
-extern int panel_type;
 struct vreg *vreg_ldo19, *vreg_ldo20;
 struct mddi_cmd {
         unsigned char cmd;
@@ -134,10 +133,10 @@ static int panel_gpio_switch(int on)
 }
 
 static inline int is_sony_panel(void){
-	return (panel_type == PANEL_ID_SAG_SONY)? 1 : 0;
+	return (board_get_panel_type() == PANEL_ID_SAG_SONY)? 1 : 0;
 }
 static inline int is_hitachi_panel(void){
-	return (panel_type == PANEL_ID_SAG_HITACHI)? 1 : 0;
+	return (board_get_panel_type() == PANEL_ID_SAG_HITACHI)? 1 : 0;
 }
 
 static int panel_init_power(void)
@@ -263,7 +262,7 @@ static int
 mddi_hitachi_power(u32 on)
 {
   printk(KERN_ERR "%s: %d\n", __func__, on);
-	if (panel_type == PANEL_ID_SAG_HITACHI) {
+	if (board_get_panel_type() == PANEL_ID_SAG_HITACHI) {
           vreg_enable(vreg_ldo19);
           gpio_set_value(SAGA_MDDI_RSTz,0);
           vreg_enable(vreg_ldo20);

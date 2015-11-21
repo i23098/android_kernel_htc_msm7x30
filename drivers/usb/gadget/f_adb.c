@@ -27,7 +27,7 @@
 #include <linux/device.h>
 #include <linux/miscdevice.h>
 
-#include <mach/board_htc.h>
+#include <mach/board.h>
 
 #define ADB_IOCTL_MAGIC 's'
 #define ADB_ERR_PAYLOAD_STUCK       _IOW(ADB_IOCTL_MAGIC, 0, unsigned)

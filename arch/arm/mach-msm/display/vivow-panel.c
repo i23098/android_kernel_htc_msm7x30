@@ -42,7 +42,6 @@
 #define B(s...) do {} while(0)
 #endif
 #define DEFAULT_BRIGHTNESS 100
-extern int panel_type;
 
 #define DRIVER_IC_CUT2			4
 #define PANEL_VIVOW_SHARP		1
@@ -431,7 +430,7 @@ static int vivow_shrink_pwm(int brightness)
 	int level;
 	unsigned int min_pwm, def_pwm, max_pwm;
 
-	if(panel_type == PANEL_VIVOW_HITACHI) {
+	if(board_get_panel_type() == PANEL_VIVOW_HITACHI) {
 		min_pwm = VIVOW_BR_MIN_HITACHI_PANEL_PWM;
 		def_pwm = VIVOW_BR_DEF_HITACHI_PANEL_PWM;
 		max_pwm = VIVOW_BR_MAX_HITACHI_PANEL_PWM;
@@ -490,7 +489,7 @@ static void vivow_set_brightness(struct led_classdev *led_cdev,
 	}
 
 	mutex_lock(&cabc.lock);
-	if(panel_type == PANEL_VIVOW_HITACHI) {
+	if(board_get_panel_type() == PANEL_VIVOW_HITACHI) {
 		pcmd->vals[4] = shrink_br;
 		client->remote_write(client, 0x04, 0xB0);
 	        client->remote_write_vals(client, pcmd->vals, pcmd->cmd, pcmd->len);
@@ -858,12 +857,12 @@ vivow_mddi_init(struct msm_mddi_bridge_platform_data *bridge_data,
 	B(KERN_DEBUG "%s\n", __func__);
 	client_data->auto_hibernate(client_data, 0);
 
-	if(panel_type == PANEL_VIVOW_HITACHI) {
+	if(board_get_panel_type() == PANEL_VIVOW_HITACHI) {
 		do_renesas_cmd(client_data, hitachi_renesas_cmd, ARRAY_SIZE(hitachi_renesas_cmd));
 	}
 	else {
-		if (panel_type == PANEL_VIVOW_SONY
-			|| panel_type == PANEL_VIVOW_SONY_CUT2) {
+		if (board_get_panel_type() == PANEL_VIVOW_SONY
+			||board_get_panel_type() == PANEL_VIVOW_SONY_CUT2) {
 			init_seq = sony_init_seq;
 			array_size = ARRAY_SIZE(sony_init_seq);
 		} else {
@@ -905,7 +904,7 @@ vivow_panel_blank(struct msm_mddi_bridge_platform_data *bridge_data,
 {
 	B(KERN_DEBUG "%s(%d)\n", __func__, __LINE__);
 	client_data->auto_hibernate(client_data, 0);
-	if(panel_type == PANEL_VIVOW_HITACHI) {
+	if(board_get_panel_type() == PANEL_VIVOW_HITACHI) {
 		client_data->remote_write(client_data, 0x0, 0x28);
 		vivow_backlight_switch(LED_OFF);
 		client_data->remote_write(client_data, 0x0, 0xB8);
@@ -930,7 +929,7 @@ vivow_panel_unblank(struct msm_mddi_bridge_platform_data *bridge_data,
 
 
 	client_data->auto_hibernate(client_data, 0);
-	if(panel_type == PANEL_VIVOW_HITACHI) {
+	if(board_get_panel_type() == PANEL_VIVOW_HITACHI) {
 		if (color_enhancement == 0) {
 			vivow_mdp_color_enhancement(mdp_pdata.mdp_dev);
 			color_enhancement = 1;
@@ -1005,7 +1004,7 @@ mddi_power(struct msm_mddi_client_data *client_data, int on)
 		config = PCOM_GPIO_CFG(VIVOW_LCD_ID0, 0, GPIO_INPUT, GPIO_NO_PULL, GPIO_2MA);
 		rc = msm_proc_comm(PCOM_RPC_GPIO_TLMM_CONFIG_EX, &config, 0);
 
-		if(panel_type == PANEL_VIVOW_HITACHI) {
+		if(board_get_panel_type() == PANEL_VIVOW_HITACHI) {
 			vreg_enable(V_LCMIO_1V8);
 			vreg_enable(V_LCM_2V85);
 			msleep(1);
@@ -1032,7 +1031,7 @@ mddi_power(struct msm_mddi_client_data *client_data, int on)
 
 	} else {
 
-		if(panel_type == PANEL_VIVOW_HITACHI) {
+		if(board_get_panel_type() == PANEL_VIVOW_HITACHI) {
 			gpio_set_value(VIVOW_LCD_RSTz, 0);
 			msleep(10);
 			vreg_disable(V_LCM_2V85);
@@ -1057,8 +1056,8 @@ mddi_power(struct msm_mddi_client_data *client_data, int on)
 static void mddi_fixup(uint16_t *mfr_name, uint16_t *product_code)
 {
 	printk(KERN_INFO "mddi fixup\n");
-	if (panel_type == PANEL_VIVOW_SONY
-		|| panel_type == PANEL_VIVOW_SONY_CUT2) {
+	if (board_get_panel_type() == PANEL_VIVOW_SONY
+		||board_get_panel_type() == PANEL_VIVOW_SONY_CUT2) {
 		*mfr_name = 0xb9f6;
 		*product_code = 0x5560;
 	}else {
@@ -1106,7 +1105,7 @@ int __init vivow_init_panel(unsigned int sys_rev)
 	B(KERN_INFO "%s(%d): enter. panel_type 0x%08x\n", __func__, __LINE__, panel_type);
 
 	//use dmap for hitachi panel
-	if(panel_type == PANEL_VIVOW_HITACHI)
+	if(board_get_panel_type() == PANEL_VIVOW_HITACHI)
 	{
 		mdp_pdata.overrides = 0;
 		pr_err("%s: mdp_pdata.overrides = 0\n", __func__);
@@ -1117,7 +1116,7 @@ int __init vivow_init_panel(unsigned int sys_rev)
 	if (rc)
 		return rc;
 
-	if (panel_type & DRIVER_IC_CUT2 || panel_type == PANEL_VIVOW_HITACHI)
+	if (panel_type & DRIVER_IC_CUT2 ||board_get_panel_type() == PANEL_VIVOW_HITACHI)
 		mddi_pdata.clk_rate = 384000000;
 	else
 		mddi_pdata.clk_rate = 256000000;
@@ -1135,7 +1134,7 @@ int __init vivow_init_panel(unsigned int sys_rev)
 	if (rc)
 		return rc;
 
-	if(panel_type == PANEL_VIVOW_HITACHI)
+	if(board_get_panel_type() == PANEL_VIVOW_HITACHI)
 		vivow_backlight_driver.driver.name = "renesas_backlight";
 
 	rc = platform_driver_register(&vivow_backlight_driver);

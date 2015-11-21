@@ -102,6 +102,12 @@ extern u64 dt_mem_next_cell(int s, __be32 **cellp);
 
 /* htc board specific staff */
 extern void early_init_dt_setup_engineerid(unsigned long engineerid);
+extern void early_init_dt_setup_smi(unsigned long value);
+extern void early_init_dt_setup_hwid(unsigned long value);
+extern void early_init_dt_setup_skuid(unsigned long value);
+extern void early_init_dt_setup_panel_type(unsigned long value);
+extern void early_init_dt_setup_memsize(unsigned long value);
+/* end htc board specific */
 
 /*
  * If BLK_DEV_INITRD, the fdt early init code will call this function,

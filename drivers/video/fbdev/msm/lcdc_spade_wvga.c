@@ -49,7 +49,6 @@ int qspi_send_9bit(struct spi_msg *msg);
 
 static int spade_adjust_backlight(enum led_brightness val);
 
-extern int panel_type;
 static DEFINE_MUTEX(panel_lock);
 static void (*panel_power_gpio)(int on);
 static struct wake_lock panel_idle_lock;
@@ -72,7 +71,7 @@ static void spadewvga_panel_power(int on)
 {
   if (panel_power_gpio)
     (*panel_power_gpio)(on);
-  if (on == 1 && (panel_type == PANEL_SHARP || panel_type == PANEL_ID_SPADE_AUO_N90))
+  if (on == 1 && (board_get_panel_type() == PANEL_SHARP ||board_get_panel_type() == PANEL_ID_SPADE_AUO_N90))
     screen_on = true;
 }
 
@@ -679,11 +678,11 @@ static int lcm_sharp_write_seq(struct spi_msg *cmd_table, unsigned size)
 
 static int lcdc_spade_panel_on(struct platform_device *pdev)
 {
-	screen_on = true;	
+	screen_on = true;
 	LCMDBG("\n");
 	mutex_lock(&panel_lock);
-	
-	switch (panel_type) {
+
+	switch (board_get_panel_type()) {
 		case PANEL_AUO:
 			lcm_auo_write_seq(auo_init_seq, ARRAY_SIZE(auo_init_seq));
 			LCMDBG(": init auo_panel\n");
@@ -707,7 +706,7 @@ static int lcdc_spade_panel_on(struct platform_device *pdev)
 #endif
 
 	mutex_unlock(&panel_lock);
-		
+
 	LCMDBG(": backlight to %d\n", last_val);
 	atomic_set(&lcm_init_done, 1);
 	spade_adjust_backlight(last_val);
@@ -720,9 +719,9 @@ static int lcdc_spade_panel_off(struct platform_device *pdev)
 	LCMDBG(": backlight off\n");
 	spade_adjust_backlight(0);
 	atomic_set(&lcm_init_done, 0);
-	
+
 	mutex_lock(&panel_lock);
-	switch (panel_type) {
+	switch (board_get_panel_type()) {
 		case PANEL_AUO:
 			lcm_auo_write_seq(auo_sleep_in_seq, ARRAY_SIZE(auo_sleep_in_seq));
 			lcm_auo_write_seq(auo_uninit_seq, ARRAY_SIZE(auo_uninit_seq));
@@ -739,7 +738,7 @@ static int lcdc_spade_panel_off(struct platform_device *pdev)
 			LCMDBG(": uninit sharp_panel\n");
 			break;
 	}
-	mutex_unlock(&panel_lock);   
+	mutex_unlock(&panel_lock);
 	return 0;
 }
 
@@ -757,7 +756,7 @@ static int spade_adjust_backlight(enum led_brightness val)
 	uint8_t shrink_br;
 
 
-	if (panel_type == PANEL_ID_SPADE_SHA_N90)
+	if (board_get_panel_type() == PANEL_ID_SPADE_SHA_N90)
 		def_bl = 101;
 	else
 		def_bl = 91;
@@ -775,14 +774,14 @@ static int spade_adjust_backlight(enum led_brightness val)
 	if (shrink_br == 0)
 		 data[0] = 0;
         data[1] = shrink_br;
-	
-	if (screen_on == false && shrink_br > 0){	
+
+	if (screen_on == false && shrink_br > 0){
 		LCMDBG(": screen is off,not setting brightness > 0, shrink_br=%d\n", shrink_br);
 		shrink_br = 0;
 	} else {
 		microp_i2c_write(0x25, data, sizeof(data));
 		last_val = shrink_br ? shrink_br: last_val;
-	  }	
+	  }
         mutex_unlock(&panel_lock);
 
 	return shrink_br;
@@ -887,7 +886,7 @@ int spade_panel_sleep_in(void)
 	}
 
         spadewvga_panel_power(1);
-	switch (panel_type) {
+	switch (board_get_panel_type()) {
 		case PANEL_AUO:
 			lcm_auo_write_seq(auo_sleep_in_seq,
 				ARRAY_SIZE(auo_sleep_in_seq));
@@ -950,13 +949,13 @@ static int __init spadewvga_init(void)
 	pinfo->fb_num = 2;
 	pinfo->bl_max = 255;
 	pinfo->bl_min = 1;
-        
+
         pinfo->clk_rate = 24576000;
         pinfo->lcdc.border_clr = 0;
         pinfo->lcdc.underflow_clr = 0xff;
         pinfo->lcdc.hsync_skew = 0;
-        
-        switch (panel_type)
+
+        switch (board_get_panel_type())
           {
           case PANEL_AUO:
             pinfo->lcdc.h_back_porch = 30;
@@ -964,7 +963,7 @@ static int __init spadewvga_init(void)
             pinfo->lcdc.h_pulse_width = 2;
             pinfo->lcdc.v_back_porch = 5;
             pinfo->lcdc.v_front_porch = 2;
-            pinfo->lcdc.v_pulse_width = 2;            
+            pinfo->lcdc.v_pulse_width = 2;
             break;
           case PANEL_ID_SPADE_AUO_N90:
             pinfo->lcdc.h_back_porch = 8;
@@ -972,7 +971,7 @@ static int __init spadewvga_init(void)
             pinfo->lcdc.h_pulse_width = 4;
             pinfo->lcdc.v_back_porch = 8;
             pinfo->lcdc.v_front_porch = 8;
-            pinfo->lcdc.v_pulse_width = 4;            
+            pinfo->lcdc.v_pulse_width = 4;
             break;
           case PANEL_SHARP:
           case PANEL_ID_SPADE_SHA_N90:
@@ -982,7 +981,7 @@ static int __init spadewvga_init(void)
             pinfo->lcdc.h_pulse_width = 6;
             pinfo->lcdc.v_back_porch = 6;
             pinfo->lcdc.v_front_porch = 3;
-            pinfo->lcdc.v_pulse_width = 3;            
+            pinfo->lcdc.v_pulse_width = 3;
             break;
           default:
             return -EINVAL;

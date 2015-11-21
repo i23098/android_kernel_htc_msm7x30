@@ -56,7 +56,7 @@ extern struct platform_device msm_device_mddi0;
 #define MSM_PMEM_SF_SIZE	0x01F00000
 
 #define MSM_FB_SIZE    roundup((800 * ALIGN(480, 32) * 4 * 3), 4096) /* 4 bpp x 3 pages, Note: must be multiple of 4096 */
- 
+
 #ifdef CONFIG_ION_MSM
 #define MSM_ION_CAMERA_SIZE     0x018A0000
 #define MSM_ION_SF_SIZE     MSM_PMEM_SF_SIZE
@@ -191,8 +191,6 @@ extern struct platform_device msm_device_mddi0;
 #define CAM2_PWD			(146)
 #define CAM2_RST			(31)
 #define CLK_SWITCH		(144)
-
-unsigned int vision_get_engineerid(void);
 
 int vision_init_mmc(unsigned int sys_rev);
 void __init vision_audio_init(void);

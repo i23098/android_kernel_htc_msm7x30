@@ -145,13 +145,7 @@ struct pm8xxx_gpio_init_info {
 
 int __init primou_init_panel(void);
 
-static unsigned int engineerid;
 unsigned long msm_fb_base;
-
-unsigned int primou_get_engineerid(void)
-{
-	return engineerid;
-}
 
 #define GPIO_INPUT      0
 #define GPIO_OUTPUT     1
@@ -2235,7 +2229,7 @@ static int primou_rawchip_vreg_on(void)
 		} else {
 			gpio_direction_output(PRIMOU_GPIO_RAW_1V2_EN, 1);
 			gpio_free(PRIMOU_GPIO_RAW_1V2_EN);
-		}		
+		}
 	} else {
 		/* V_RAWCSI_1V2 */
 		rc = sensor_power_enable("gp17", 1200);
@@ -2282,7 +2276,7 @@ static int primou_rawchip_vreg_off(void)
 		} else {
 			gpio_direction_output(PRIMOU_GPIO_RAW_1V2_EN, 0);
 			gpio_free(PRIMOU_GPIO_RAW_1V2_EN);
-		}		
+		}
 	} else {
 		/* V_RAW_1V2 */
 		rc = sensor_power_disable("gp5");
@@ -6818,8 +6812,6 @@ static void __init primou_init_early(void)
 static void __init primou_fixup(struct machine_desc *desc, struct tag *tags,
 								char **cmdline, struct meminfo *mi)
 {
-	engineerid = parse_tag_engineerid(tags);
-
 	mi->nr_banks = 2;
 	mi->bank[0].start = MSM_LINUX_BASE1;
 	mi->bank[0].size = MSM_LINUX_SIZE1;

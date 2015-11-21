@@ -51,7 +51,6 @@ enum {
 	PANEL_UNKNOW
 };
 
-extern int panel_type;
 static struct vreg *vreg_lcm_1v8, *vreg_lcm_2v8;
 
 #define LCM_GPIO_CFG(gpio, func) \
@@ -172,7 +171,7 @@ static void spade_auo_panel_power(bool on_off)
 
 static int panel_power(int on)
 {
-  switch (panel_type) {
+  switch (board_get_panel_type()) {
   case PANEL_AUO:
   case PANEL_ID_SPADE_AUO_N90:
     spade_auo_panel_power(on == 1 ? true : false);

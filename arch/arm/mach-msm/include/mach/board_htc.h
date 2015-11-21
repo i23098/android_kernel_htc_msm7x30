@@ -101,11 +101,6 @@ struct t_usb_status_notifier{
 /* END: add USB connected notify function */
 #endif
 
-int __init board_mfg_mode(void);
-int __init parse_tag_smi(const struct tag *tags);
-int __init parse_tag_hwid(const struct tag * tags);
-int __init parse_tag_skuid(const struct tag * tags);
-int parse_tag_engineerid(const struct tag * tags);
 void board_get_sku_color_tag(char **);
 void board_get_keycaps_tag(char **);
 void board_get_cid_tag(char **);
@@ -116,5 +111,4 @@ char *board_serialno(void);
 unsigned long get_kernel_flag(void);
 unsigned int get_radio_flag(void);
 char *get_model_id(void);
-unsigned get_engineerid(void);
 #endif

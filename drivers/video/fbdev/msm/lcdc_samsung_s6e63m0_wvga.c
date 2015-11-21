@@ -119,7 +119,6 @@ static struct spi_msg samsung_oled_gamma_table[] = {
 #define SPI_ERROR_FLAGS_EN      (0x00000038)
 #define SPI_ERROR_FLAGS         (0x00000034)
 #define SPI_OUTPUT_FIFO         (0x00000100)
-extern int panel_type;
 extern int qspi_send(uint32_t id, uint8_t data);
 extern int qspi_send_9bit(struct spi_msg *msg);
 

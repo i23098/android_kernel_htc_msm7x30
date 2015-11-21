@@ -184,7 +184,6 @@
 /*display*/
 extern struct platform_device msm_device_mdp;
 extern struct platform_device msm_device_mddi0;
-extern int panel_type;
 
 int primou_init_mmc(unsigned int sys_rev);
 void __init primou_audio_init(void);

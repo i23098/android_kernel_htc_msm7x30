@@ -11,6 +11,11 @@
 		linux,initrd-end = <0x50ac600>;
 		linux,initrd-start = <0x5000000>;
 		linux,engineerid = <0x0>;
+		linux,smi = <0x0>;
+		linux,hwid = <0x0>;
+		linux,skuid = <0x26503>;
+		linux,panel_type = <0x0>;
+		linux,memsize = <0x300>;
 	};
 
 	aliases {

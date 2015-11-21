@@ -51,7 +51,6 @@ enum {
 	PANEL_UNKNOW
 };
 
-extern int panel_type;
 static struct vreg *vreg_lcm_1v8, *vreg_lcm_2v8;
 
 static bool screen_on = true;
@@ -174,7 +173,7 @@ static void primou_lg_panel_power(bool on_off)
 
 static int panel_power(int on)
 {
-  switch (panel_type) {
+  switch (board_get_panel_type()) {
   case PANEL_LG:
   case PANEL_ID_primou_LG:
     primou_lg_panel_power(on == 1 ? true : false);

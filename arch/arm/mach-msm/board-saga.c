@@ -151,12 +151,6 @@ struct pm8xxx_gpio_init_info {
 
 int __init saga_init_panel(void);
 
-static unsigned int engineerid;
-unsigned int saga_get_engineerid(void)
-{
-	return engineerid;
-}
-
 #define GPIO_INPUT      0
 #define GPIO_OUTPUT     1
 
@@ -5597,9 +5591,6 @@ static void __init saga_init_early(void)
 static void __init saga_fixup(struct machine_desc *desc, struct tag *tags,
 		char **cmdline, struct meminfo *mi)
 {
-	//int mem = parse_tag_memsize((const struct tag *)tags);
-	engineerid = parse_tag_engineerid(tags);
-
 	mi->nr_banks = 2;
 	mi->bank[0].start = MSM_LINUX_BASE1;
 	mi->bank[0].size = MSM_LINUX_SIZE1;

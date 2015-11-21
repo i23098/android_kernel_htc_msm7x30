@@ -130,7 +130,7 @@ static unsigned aux_pcm_gpio_off[] = {
 
 void glacier_snddev_poweramp_on(int en)
 {
-	if (en) 
+	if (en)
 		mdelay(30);
 	gpio_set_value(PM8058_GPIO_PM_TO_SYS(GLACIER_AUD_SPK_ENO), en);
 }
@@ -194,7 +194,7 @@ void glacier_snddev_hs_spk_pamp_on(int en)
 
 void glacier_snddev_imic_pamp_on(int en)
 {
-	unsigned int engineerID = glacier_get_engineerid();
+	unsigned int engineerID = board_get_engineerid();
 	pr_aud_info("%s: %d\n", __func__, en);
 	if (en)
 		pmic_hsed_enable(PM_HSED_CONTROLLER_0, PM_HSED_ENABLE_ALWAYS);
@@ -236,7 +236,7 @@ void glacier_mic_bias_enable(int en, int shift)
 
 int glacier_support_audience(void)
 {
-	unsigned int engineerID = glacier_get_engineerid();
+	unsigned int engineerID = board_get_engineerid();
 	pr_aud_info("%s: engineerid: %x", __func__, engineerID);
 	/*Bit2:
 	0: with audience.

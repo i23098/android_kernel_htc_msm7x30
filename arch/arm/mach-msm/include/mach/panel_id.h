@@ -16,7 +16,6 @@
 #ifndef __PANEL_ID_H
 #define __PANEL_ID_H
 
-extern int panel_type;
 
 /* BIT0 - BIT15 : panel id */
 /* BIT16 - BIT18 : backlight interface */
@@ -145,5 +144,6 @@ extern int panel_type;
 #define PANEL_ID_PRITD_HITACHI      (0x57 | BL_SPI | IF_LCDC | DEPTH_RGB888)
 #define PANEL_ID_END            0xFFFF
 
+unsigned int board_get_panel_type(void);
 #endif	/* __PANEL_ID_H */
 

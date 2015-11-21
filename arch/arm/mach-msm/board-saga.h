@@ -163,8 +163,6 @@
 
 extern struct platform_device msm_device_mdp;
 extern struct platform_device msm_device_mddi0;
-extern int panel_type;
-unsigned int saga_get_engineerid(void);
 int saga_panel_sleep_in(void);
 #ifdef CONFIG_MICROP_COMMON
 void __init saga_microp_init(void);

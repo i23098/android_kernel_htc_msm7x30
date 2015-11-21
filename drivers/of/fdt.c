@@ -591,6 +591,26 @@ void __init early_init_dt_check_htc_board(unsigned long node)
 	prop = of_get_flat_dt_prop(node, "linux,engineerid", &len);
 	if (prop)
 		early_init_dt_setup_engineerid(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,smi", &len);
+	if (prop)
+		early_init_dt_setup_smi(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,hwid", &len);
+	if (prop)
+		early_init_dt_setup_hwid(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,skuid", &len);
+	if (prop)
+		early_init_dt_setup_skuid(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,panel_type", &len);
+	if (prop)
+		early_init_dt_setup_panel_type(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,memsize", &len);
+	if (prop)
+		early_init_dt_setup_memsize(of_read_ulong(prop, len/4));
 }
 
 /**

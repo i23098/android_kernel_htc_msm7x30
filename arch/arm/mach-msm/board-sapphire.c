@@ -80,7 +80,7 @@ static struct map_desc sapphire_io_desc[] __initdata = {
 static void __init sapphire_fixup(struct machine_desc *desc, struct tag *tags,
 				  char **cmdline, struct meminfo *mi)
 {
-	int smi_sz = parse_tag_smi((const struct tag *)tags);
+	int smi_sz = board_get_smi_sz();
 
 	mi->nr_banks = 1;
 	mi->bank[0].start = PHYS_OFFSET;

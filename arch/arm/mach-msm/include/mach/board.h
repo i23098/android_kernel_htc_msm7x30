@@ -666,11 +666,13 @@ static LIST_HEAD(g_lh_usb_host_detect_notifier_list);
 /* END: add USB connected notify function */
 
 int board_mfg_mode(void);
+unsigned int board_get_skuid(void);
+unsigned int board_get_engineerid(void);
+unsigned int board_get_skuid(void);
+unsigned int board_get_smi_sz(void);
+unsigned int board_get_memsize(void);
 int board_build_flag(void);
-int __init parse_tag_skuid(const struct tag *tags);
-int __init parse_tag_memsize(const struct tag *tags);
 int __init parse_tag_ddr_id(const struct tag *tags);
-int __init parse_tag_engineerid(const struct tag *tags);
 int __init parse_tag_cam(const struct tag *tag);
 void msm_snddev_init(void);
 void msm_snddev_init_timpani(void);

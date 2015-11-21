@@ -43,7 +43,6 @@
 
 #define DEFAULT_BRIGHTNESS 100
 
-extern int panel_type;
 extern unsigned long msm_fb_base;
 
 #define PANEL_OBSOLATE_0		0
@@ -128,7 +127,7 @@ static void glacier_set_brightness(struct led_classdev *led_cdev,
 	if (test_bit(GATE_ON, &cabc.status) == 0)
 		return;
 
-	if(panel_type == PANEL_SHARP)
+	if(board_get_panel_type() == PANEL_SHARP)
 		shrink_br = glacier_shrink_pwm(val, PWM_USER_DEF,
 				PWM_USER_MIN, PWM_USER_MAX, PWM_SHARP_DEF,
 				PWM_SHARP_MIN, PWM_SHARP_MAX);
@@ -529,7 +528,7 @@ glacier_mddi_init(struct msm_mddi_bridge_platform_data *bridge_data,
 	unsigned reg, val;
 	struct nov_regs *init_seq;
 
-	if (panel_type == PANEL_SONY) {
+	if (board_get_panel_type() == PANEL_SONY) {
 		init_seq = sony_init_seq;
 		array_size = ARRAY_SIZE(sony_init_seq);
 	} else {
@@ -584,7 +583,7 @@ glacier_panel_unblank(struct msm_mddi_bridge_platform_data *bridge_data,
 
 	client_data->auto_hibernate(client_data, 0);
 
-	if (panel_type == PANEL_SHARP) {
+	if (board_get_panel_type() == PANEL_SHARP) {
 		/* disable driver ic flip since sharp used mdp flip */
 		client_data->remote_write(client_data, 0x00, 0x3600);
 	}
@@ -620,7 +619,7 @@ mddi_novatec_power(struct msm_mddi_client_data *client_data, int on)
 {
 	unsigned pulldown = 1;
 
-	if (panel_type == 0) {
+	if (board_get_panel_type() == 0) {
 		if (on) {
 			if(axi_clk)
 				clk_set_rate(axi_clk, 192000000);
@@ -810,7 +809,7 @@ int __init glacier_init_panel(void)
 	resources_msm_fb[0].start = msm_fb_base;
 	resources_msm_fb[0].end = msm_fb_base + MSM_FB_SIZE - 1;
 
-	if (panel_type == PANEL_SHARP)
+	if (board_get_panel_type() == PANEL_SHARP)
 		msm_device_mdp.dev.platform_data = &mdp_pdata_sharp;
 	else
 		msm_device_mdp.dev.platform_data = &mdp_pdata_common;
@@ -821,7 +820,7 @@ int __init glacier_init_panel(void)
 
 	mddi_pdata.clk_rate = 384000000;
 
-	if (panel_type == 0) {
+	if (board_get_panel_type() == 0) {
 		mddi_pdata.type = MSM_MDP_MDDI_TYPE_I;
 	} else {
 		mddi_pdata.type = MSM_MDP_MDDI_TYPE_II;

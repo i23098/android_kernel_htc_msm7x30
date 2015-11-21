@@ -25,45 +25,44 @@ static unsigned char mfg_gpio_table[MFG_GPIO_TABLE_MAX_SIZE];
  * We need to setup meminfo in mach->fixup, so this function
  * will need to traverse each tag to find smi tag.
  */
+static int smi_sz = 0;
+
+void __init early_init_dt_setup_smi(unsigned long value) {
+	pr_info("[dt]smi = 0x%lx\n", value);
+	smi_sz = value;
+}
+
+unsigned int board_get_smi_sz(void)
+{
+	return smi_sz;
+}
+
 int __init parse_tag_smi(const struct tag *tags)
 {
-	int smi_sz = 0, find = 0;
-	struct tag *t = (struct tag *)tags;
-
-	for (; t->hdr.size; t = tag_next(t)) {
-		if (t->hdr.tag == ATAG_SMI) {
-			printk(KERN_DEBUG "find the smi tag\n");
-			find = 1;
-			break;
-		}
-	}
-	if (!find)
-		return -1;
-
-	printk(KERN_DEBUG "parse_tag_smi: smi size = %d\n", t->u.mem.size);
-	smi_sz = t->u.mem.size;
+	smi_sz = tags->u.mem.size;
+	printk(KERN_DEBUG "[atag]parse_tag_smi: smi size = %d\n", smi_sz);
 	return smi_sz;
 }
 __tagtable(ATAG_SMI, parse_tag_smi);
 
 
 #define ATAG_HWID 0x4d534D72
+static int hwid = 0;
+
+void __init early_init_dt_setup_hwid(unsigned long value) {
+	pr_info("[dt]hwid = 0x%lx\n", value);
+	smi_sz = value;
+}
+
+unsigned int board_get_hwid(void)
+{
+	return hwid;
+}
+
 int __init parse_tag_hwid(const struct tag *tags)
 {
-	int hwid = 0, find = 0;
-	struct tag *t = (struct tag *)tags;
-
-	for (; t->hdr.size; t = tag_next(t)) {
-		if (t->hdr.tag == ATAG_HWID) {
-			printk(KERN_DEBUG "find the hwid tag\n");
-			find = 1;
-			break;
-		}
-	}
-
-	if (find)
-		hwid = t->u.revision.rev;
-	printk(KERN_DEBUG "parse_tag_hwid: hwid = 0x%x\n", hwid);
+	hwid = tags->u.revision.rev;
+	printk(KERN_DEBUG "[atag]parse_tag_hwid: hwid = 0x%x\n", hwid);
 	return hwid;
 }
 __tagtable(ATAG_HWID, parse_tag_hwid);
@@ -120,22 +119,22 @@ void board_get_carrier_tag(char **ret_data)
 EXPORT_SYMBOL(board_get_carrier_tag);
 
 #define ATAG_SKUID 0x4d534D73
+static int skuid = 0;
+
+void __init early_init_dt_setup_skuid(unsigned long value) {
+	pr_info("[dt]skuid = 0x%lx\n", value);
+	smi_sz = value;
+}
+
+unsigned int board_get_skuid(void)
+{
+	return skuid;
+}
+
 int __init parse_tag_skuid(const struct tag *tags)
 {
-	int skuid = 0, find = 0;
-	struct tag *t = (struct tag *)tags;
-
-	for (; t->hdr.size; t = tag_next(t)) {
-		if (t->hdr.tag == ATAG_SKUID) {
-			printk(KERN_DEBUG "find the skuid tag\n");
-			find = 1;
-			break;
-		}
-	}
-
-	if (find)
-		skuid = t->u.revision.rev;
-	printk(KERN_DEBUG "parse_tag_skuid: hwid = 0x%x\n", skuid);
+	skuid = tags->u.revision.rev;
+	printk(KERN_DEBUG "[atag]parse_tag_skuid: skuid = 0x%x\n", skuid);
 	return skuid;
 }
 __tagtable(ATAG_SKUID, parse_tag_skuid);
@@ -179,23 +178,22 @@ static int __init parse_tag_csa_calibration(const struct tag *tag)
 __tagtable(ATAG_CSA, parse_tag_csa_calibration);
 
 #define ATAG_MEMSIZE 0x5441001e
+static unsigned memory_size;
+
+void __init early_init_dt_setup_memsize(unsigned long value) {
+	pr_info("[dt]memsize = 0x%lx\n", value);
+	memory_size = value;
+}
+
+unsigned int board_get_memsize(void)
+{
+	return memory_size;
+}
+
 int __init parse_tag_memsize(const struct tag *tags)
 {
-	unsigned memory_size = 0, find = 0;
-	struct tag *t = (struct tag *)tags;
-
-	for (; t->hdr.size; t = tag_next(t)) {
-		if (t->hdr.tag == ATAG_MEMSIZE) {
-			printk(KERN_DEBUG "find the memsize tag\n");
-			find = 1;
-			break;
-		}
-	}
-
-	if (find) {
-		memory_size = t->u.revision.rev;
-	}
-	printk(KERN_DEBUG "parse_tag_memsize: %d\n", memory_size);
+	memory_size = tags->u.revision.rev;
+	printk(KERN_DEBUG "[atag]parse_tag_memsize: %d\n", memory_size);
 	return memory_size;
 }
 __tagtable(ATAG_MEMSIZE, parse_tag_memsize);
@@ -225,26 +223,21 @@ __tagtable(ATAG_DDR_ID, parse_tag_ddr_id);
 #define ATAG_ENGINEERID 0x4d534D75
 static unsigned engineerid;
 EXPORT_SYMBOL(engineerid);
+
 void __init early_init_dt_setup_engineerid(unsigned long value) {
 	pr_info("[dt]engineerid: hwid = 0x%lx\n", value);
 	engineerid = value;
 }
+
+unsigned int board_get_engineerid(void)
+{
+	return engineerid;
+}
+
 int __init parse_tag_engineerid(const struct tag *tags)
 {
-	int find = 0;
-	struct tag *t = (struct tag *)tags;
-
-	for (; t->hdr.size; t = tag_next(t)) {
-		if (t->hdr.tag == ATAG_ENGINEERID) {
-			printk(KERN_DEBUG "find the engineer tag\n");
-			find = 1;
-			break;
-		}
-	}
-
-	if (find)
-		engineerid = t->u.revision.rev;
-	printk(KERN_DEBUG "parse_tag_engineerid: hwid = 0x%x\n", engineerid);
+	engineerid = tags->u.revision.rev;
+	printk(KERN_DEBUG "[atag]parse_tag_engineerid: engineerid = 0x%x\n", engineerid);
 	return engineerid;
 }
 __tagtable(ATAG_ENGINEERID, parse_tag_engineerid);
@@ -289,25 +282,24 @@ __tagtable(ATAG_PS, parse_tag_ps_calibration);
 
 /* camera values */
 #define ATAG_CAM	0x54410021
-
 int __init parse_tag_cam(const struct tag *tags)
 {
-int mem_size = 0, find = 0;
-struct tag *t = (struct tag *)tags;
+    int mem_size = 0, find = 0;
+    struct tag *t = (struct tag *)tags;
 
-for (; t->hdr.size; t = tag_next(t)) {
-	if (t->hdr.tag == ATAG_CAM) {
-		printk(KERN_DEBUG "find the memsize tag\n");
-		find = 1;
-		break;
-	}
-}
+    for (; t->hdr.size; t = tag_next(t)) {
+	    if (t->hdr.tag == ATAG_CAM) {
+		    printk(KERN_DEBUG "find the memsize tag\n");
+		    find = 1;
+		    break;
+	    }
+    }
 
-if (find) {
-	mem_size = t->u.revision.rev;
-}
-printk(KERN_DEBUG "parse_tag_memsize: %d\n", mem_size);
-return mem_size;
+    if (find) {
+	    mem_size = t->u.revision.rev;
+    }
+    printk(KERN_DEBUG "parse_tag_memsize: %d\n", mem_size);
+    return mem_size;
 }
 __tagtable(ATAG_CAM, parse_tag_cam);
 
@@ -342,12 +334,23 @@ int unregister_notifier_by_psensor(struct notifier_block *nb)
 }
 
 #define ATAG_HERO_PANEL_TYPE 0x4d534D74
-int panel_type;
+static int panel_type = 0;
+
+void __init early_init_dt_setup_panel_type(unsigned long value) {
+	pr_info("[dt]panel_type = 0x%lx\n", value);
+	smi_sz = value;
+}
+
+unsigned int board_get_panel_type(void)
+{
+	return panel_type;
+}
+
 int __init tag_panel_parsing(const struct tag *tags)
 {
 	panel_type = tags->u.revision.rev;
 
-	printk(KERN_DEBUG "%s: panel type = %d\n", __func__,
+	printk(KERN_DEBUG "[atag]%s: panel type = %d\n", __func__,
 		panel_type);
 
 	return panel_type;
@@ -525,11 +528,6 @@ __setup("androidboot.mid=", model_id_init);
 char *get_model_id(void)
 {
 	return modelid;
-}
-
-unsigned get_engineerid(void)
-{
-	return engineerid;
 }
 
 static char *sku_color_tag = NULL;
