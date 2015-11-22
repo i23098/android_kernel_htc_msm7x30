@@ -39,12 +39,10 @@ struct qct_lsc_struct{
 struct qct_awb_lsc_struct{
 	unsigned long int caBuff[8];/* AWB Calibartion */
 	struct qct_lsc_struct qct_lsc_data;/* LSC Calibration */
-    unsigned long int flashcaBuff[8];  //flash_camera
+	unsigned long int flashcaBuff[8];  //flash_camera
 };
 
 static unsigned char cam_awb_ram[AWB_CAL_MAX_SIZE];
-
-int gCAM_AWB_CAL_LEN;
 
 unsigned char *get_cam_awb_cal(void)
 {
@@ -52,40 +50,24 @@ unsigned char *get_cam_awb_cal(void)
 }
 
 EXPORT_SYMBOL(get_cam_awb_cal);
-/* HTC_START */
-/* klocwork */
-unsigned char *dummy(unsigned char *p)
-{
-    return p;
-}
-/* HTC_END */
+
 static int __init parse_tag_cam_awb_cal(const struct tag *tag)
 {
 	unsigned char *dptr = (unsigned char *)(&tag->u);
-	unsigned size;
+	size_t size, i;
 
-	size = min((tag->hdr.size - 2) * sizeof(__u32), AWB_CAL_MAX_SIZE);
+	size = min(tag->hdr.size, AWB_CAL_MAX_SIZE);
 
-	printk(KERN_INFO "CAM_AWB_CAL Data size = %d , 0x%x, size = %d\n",
-			tag->hdr.size, tag->hdr.tag, size);
+	memcpy(cam_awb_ram, dptr, size); /* HTC */
 
-    gCAM_AWB_CAL_LEN = size;
-	memcpy(cam_awb_ram, dummy(dptr), size); /* HTC */
+	pr_info("CAM_AWB_CAL[0x%02x:0x%02x]:\n", tag->hdr.size, size);
 
-
-#ifdef ATAG_CAM_AWB_CAL_DEBUG
-   {
-	 int *pint, i;
-
-	 printk(KERN_INFO "parse_tag_cam_awb_cal():\n");
-
-	 pint = (int *)cam_awb_ram;
-
-	 for (i = 0; i < 1024; i++)
-	   printk(KERN_INFO "%x\n", pint[i]);
-
-   }
-#endif
+	for (i = 0; i < size; i++) {
+		printk(" %02x", cam_awb_ram[i]);
+		if ((i % 16) == 15)
+			printk("\n");
+	}
+	printk("\n");
 
 	return 0;
 }
@@ -97,25 +79,13 @@ static ssize_t awb_calibration_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	ssize_t ret = 0;
-    unsigned char *ptr;
+	unsigned char *ptr;
 
 	ptr = get_cam_awb_cal();
 	/* fixed : workaround because of defined 8 parameters now */
 
 	ret = sizeof(struct qct_awb_lsc_struct);/* 8*4; */
 	memcpy(buf, ptr, ret);
-
-
-#ifdef ATAG_CAM_AWB_CAL_DEBUG
-   {
-	 int i, *pint;
-	 printk(KERN_INFO "awb_calibration_show():\n");
-	 pint = (int *)buf;
-	 for (i = 0; i < 898; i++)
-	   printk(KERN_INFO "%x\n", pint[i]);
-
-   }
-#endif
 
 	return ret;
 }
