@@ -107,6 +107,7 @@ extern void early_init_dt_setup_hwid(unsigned long value);
 extern void early_init_dt_setup_skuid(unsigned long value);
 extern void early_init_dt_setup_panel_type(unsigned long value);
 extern void early_init_dt_setup_memsize(unsigned long value);
+extern void early_init_dt_setup_bt_mac(char * address, size_t len);
 /* end htc board specific */
 
 /*

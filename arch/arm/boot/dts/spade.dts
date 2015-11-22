@@ -15,7 +15,10 @@
 		linux,hwid = <0x0>;
 		linux,skuid = <0x26503>;
 		linux,panel_type = <0x0>;
+		/* 768MB */
 		linux,memsize = <0x300>;
+		/* bluetooth mac address */
+		linux,bt_mac = [ff de ad be af ff 00 00];
 	};
 
 	aliases {

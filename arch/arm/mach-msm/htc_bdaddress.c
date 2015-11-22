@@ -15,8 +15,6 @@
 #include <asm/setup.h>
 #include <mach/htc_bdaddress.h>
 
-#define ATAG_BT_DEBUG
-
 /* configuration tags specific to Bluetooth*/
 #define ATAG_BLUETOOTH 0x43294329
 #define MAX_BT_SIZE 0x8U
@@ -29,24 +27,30 @@ static unsigned char *get_bt_bd_ram(void)
 	return (bt_bd_ram);
 }
 
+void __init early_init_dt_setup_bt_mac(char * address, size_t len) {
+	unsigned size, i;
+	size = min(len, MAX_BT_SIZE);
+	memcpy((void *)bt_bd_ram, (void *)address, size);
+	printk("[dt]bluetooth mac:");
+
+	for (i = 0; i < size; i++)
+		printk(" %02x", bt_bd_ram[i]);
+	printk("\n");
+}
+
 static int __init parse_tag_bt(const struct tag *tag)
 {
 	unsigned char *dptr = (unsigned char *)(&tag->u);
-	unsigned size;
-	#ifdef ATAG_BT_DEBUG
-    unsigned i;
-	#endif
+	unsigned size, i;
 
 	size = min((tag->hdr.size-2)*sizeof(__u32), MAX_BT_SIZE);
 	memcpy((void *)bt_bd_ram, (void *)dptr, size);
 
-	#ifdef ATAG_BT_DEBUG
-	printk("BT Data size= %d, 0x%x,", tag->hdr.size, tag->hdr.tag);
+	printk("[atag]bluetooth mac:");
 
 	for (i = 0; i < size; i++)
-		printk("%02x,", bt_bd_ram[i]);
-	#endif
-
+		printk(" %02x", bt_bd_ram[i]);
+	printk("\n");
 	return 0;
 }
 __tagtable(ATAG_BLUETOOTH, parse_tag_bt);
