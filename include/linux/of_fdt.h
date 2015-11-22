@@ -108,6 +108,8 @@ extern void early_init_dt_setup_skuid(unsigned long value);
 extern void early_init_dt_setup_panel_type(unsigned long value);
 extern void early_init_dt_setup_memsize(unsigned long value);
 extern void early_init_dt_setup_bt_mac(char * address, size_t len);
+extern void early_init_dt_setup_ps_calibration(unsigned long ps_low, unsigned long ps_high);
+extern void early_init_dt_setup_gs_calibration(unsigned long value);
 /* end htc board specific */
 
 /*

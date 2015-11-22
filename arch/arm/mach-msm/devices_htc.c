@@ -40,7 +40,7 @@ unsigned int board_get_smi_sz(void)
 int __init parse_tag_smi(const struct tag *tags)
 {
 	smi_sz = tags->u.mem.size;
-	printk(KERN_DEBUG "[atag]parse_tag_smi: smi size = %d\n", smi_sz);
+	pr_info("[atag]smi_size = %d\n", smi_sz);
 	return smi_sz;
 }
 __tagtable(ATAG_SMI, parse_tag_smi);
@@ -62,7 +62,7 @@ unsigned int board_get_hwid(void)
 int __init parse_tag_hwid(const struct tag *tags)
 {
 	hwid = tags->u.revision.rev;
-	printk(KERN_DEBUG "[atag]parse_tag_hwid: hwid = 0x%x\n", hwid);
+	pr_info("[atag]hwid = 0x%x\n", hwid);
 	return hwid;
 }
 __tagtable(ATAG_HWID, parse_tag_hwid);
@@ -134,7 +134,7 @@ unsigned int board_get_skuid(void)
 int __init parse_tag_skuid(const struct tag *tags)
 {
 	skuid = tags->u.revision.rev;
-	printk(KERN_DEBUG "[atag]parse_tag_skuid: skuid = 0x%x\n", skuid);
+	pr_info("[atag]skuid = 0x%x\n", skuid);
 	return skuid;
 }
 __tagtable(ATAG_SKUID, parse_tag_skuid);
@@ -193,7 +193,7 @@ unsigned int board_get_memsize(void)
 int __init parse_tag_memsize(const struct tag *tags)
 {
 	memory_size = tags->u.revision.rev;
-	printk(KERN_DEBUG "[atag]parse_tag_memsize: %d\n", memory_size);
+	pr_info("[atag]memsize: %d\n", memory_size);
 	return memory_size;
 }
 __tagtable(ATAG_MEMSIZE, parse_tag_memsize);
@@ -237,7 +237,7 @@ unsigned int board_get_engineerid(void)
 int __init parse_tag_engineerid(const struct tag *tags)
 {
 	engineerid = tags->u.revision.rev;
-	printk(KERN_DEBUG "[atag]parse_tag_engineerid: engineerid = 0x%x\n", engineerid);
+	pr_info("[atag]engineerid = 0x%x\n", engineerid);
 	return engineerid;
 }
 __tagtable(ATAG_ENGINEERID, parse_tag_engineerid);
@@ -249,10 +249,15 @@ __tagtable(ATAG_ENGINEERID, parse_tag_engineerid);
 unsigned int gs_kvalue;
 EXPORT_SYMBOL(gs_kvalue);
 
+void __init early_init_dt_setup_gs_calibration(unsigned long value){
+	pr_info("[dt]gs_calibration = 0x%lx\n", value);
+	gs_kvalue = value;
+}
+
 static int __init parse_tag_gs_calibration(const struct tag *tag)
 {
 	gs_kvalue = tag->u.revision.rev;
-	printk(KERN_DEBUG "%s: gs_kvalue = 0x%x\n", __func__, gs_kvalue);
+	pr_info("[atag]gs_kvalue = 0x%x\n", gs_kvalue);
 	return 0;
 }
 
@@ -267,13 +272,20 @@ EXPORT_SYMBOL(ps_kparam1);
 unsigned int ps_kparam2;
 EXPORT_SYMBOL(ps_kparam2);
 
+void __init early_init_dt_setup_ps_calibration(unsigned long ps_low, unsigned long ps_high) {
+	pr_info("[dt]ps_low = 0x%x, ps_high = 0x%x\n",
+		ps_kparam1, ps_kparam2);
+	ps_kparam1 = ps_low;
+	ps_kparam2 = ps_high;
+}
+
 static int __init parse_tag_ps_calibration(const struct tag *tag)
 {
 	ps_kparam1 = tag->u.serialnr.low;
 	ps_kparam2 = tag->u.serialnr.high;
 
-	printk(KERN_INFO "%s: ps_kparam1 = 0x%x, ps_kparam2 = 0x%x\n",
-		__func__, ps_kparam1, ps_kparam2);
+	pr_info("[atag]ps_kparam1 = 0x%x, ps_kparam2 = 0x%x\n",
+		ps_kparam1, ps_kparam2);
 
 	return 0;
 }
@@ -350,8 +362,7 @@ int __init tag_panel_parsing(const struct tag *tags)
 {
 	panel_type = tags->u.revision.rev;
 
-	printk(KERN_DEBUG "[atag]%s: panel type = %d\n", __func__,
-		panel_type);
+	pr_info("[atag]panel type = %d\n", panel_type);
 
 	return panel_type;
 }

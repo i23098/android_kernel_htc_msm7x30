@@ -19,6 +19,8 @@
 		linux,memsize = <0x300>;
 		/* bluetooth mac address */
 		linux,bt_mac = [ff de ad be af ff 00 00];
+		linux,ps_calibration = <0x50530d18 0x140b1516>;
+		linux,gs_calibration = <0x67e80602>;
 	};
 
 	aliases {
