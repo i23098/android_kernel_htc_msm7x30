@@ -54,21 +54,12 @@ EXPORT_SYMBOL(get_cam_awb_cal);
 static int __init parse_tag_cam_awb_cal(const struct tag *tag)
 {
 	unsigned char *dptr = (unsigned char *)(&tag->u);
-	size_t size, i;
+	size_t size;
 
-	size = min(tag->hdr.size, AWB_CAL_MAX_SIZE);
-
+	size = min((tag->hdr.size - 2) * sizeof(__u32), AWB_CAL_MAX_SIZE);
 	memcpy(cam_awb_ram, dptr, size); /* HTC */
 
-	pr_info("CAM_AWB_CAL[0x%02x:0x%02x]:\n", tag->hdr.size, size);
-
-	for (i = 0; i < size; i++) {
-		printk(" %02x", cam_awb_ram[i]);
-		if ((i % 16) == 15)
-			printk("\n");
-	}
-	printk("\n");
-
+	pr_info("CamAwb data size = %d\n", tag->hdr.size);
 	return 0;
 }
 

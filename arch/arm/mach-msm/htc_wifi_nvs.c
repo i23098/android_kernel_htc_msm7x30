@@ -1,6 +1,6 @@
 /* arch/arm/mach-msm/htc_wifi_nvs.c
  *
- * Code to extract WiFi calibration information from ATAG set up 
+ * Code to extract WiFi calibration information from ATAG set up
  * by the bootloader.
  *
  * Copyright (C) 2008 Google, Inc.
@@ -45,12 +45,12 @@ unsigned char *wlan_random_mac(unsigned char *set_mac_addr)
 {
     static unsigned char mac_addr[6] = {0, 0, 0, 0, 0, 0};
     if (set_mac_addr != NULL) {
-	mac_addr[0] = set_mac_addr[0];
-	mac_addr[1] = set_mac_addr[1];
-	mac_addr[2] = set_mac_addr[2];
-	mac_addr[3] = set_mac_addr[3];
-	mac_addr[4] = set_mac_addr[4];
-	mac_addr[5] = set_mac_addr[5];
+		mac_addr[0] = set_mac_addr[0];
+		mac_addr[1] = set_mac_addr[1];
+		mac_addr[2] = set_mac_addr[2];
+		mac_addr[3] = set_mac_addr[3];
+		mac_addr[4] = set_mac_addr[4];
+		mac_addr[5] = set_mac_addr[5];
     }
     return mac_addr;
 }
@@ -60,17 +60,10 @@ static int __init parse_tag_msm_wifi(const struct tag *tag)
 {
 	unsigned char *dptr = (unsigned char *)(&tag->u);
 	unsigned size;
-#ifdef ATAG_MSM_WIFI_DEBUG
-	unsigned i;
-#endif
 
 	size = min((tag->hdr.size - 2) * sizeof(__u32), NVS_MAX_SIZE);
-#ifdef ATAG_MSM_WIFI_DEBUG
-	printk("WiFi Data size = %d , 0x%x\n", tag->hdr.size, tag->hdr.tag);
-	for (i = 0; i < size ; i++)
-		printk("%02x ", *dptr++);
-#endif	
 	memcpy(wifi_nvs_ram, dptr, size);
+	printk("WiFi Data size = %d\n", tag->hdr.size);
 	return 0;
 }
 
