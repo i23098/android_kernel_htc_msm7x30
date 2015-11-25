@@ -376,6 +376,7 @@ int __init parse_tag_mfg_gpio_table(const struct tag *tags)
 
        size = min((__u32)(tags->hdr.size - 2) * sizeof(__u32), (__u32)MFG_GPIO_TABLE_MAX_SIZE);
        memcpy(mfg_gpio_table, dptr, size);
+       printk("GPIO table size = %d\n", tags->hdr.size);
        return 0;
 }
 __tagtable(ATAG_MFG_GPIO_TABLE, parse_tag_mfg_gpio_table);
