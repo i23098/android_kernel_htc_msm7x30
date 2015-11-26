@@ -369,15 +369,25 @@ int __init tag_panel_parsing(const struct tag *tags)
 __tagtable(ATAG_HERO_PANEL_TYPE, tag_panel_parsing);
 
 #define ATAG_MFG_GPIO_TABLE 0x59504551
+
+void __init early_init_dt_setup_gpio_table(char * data, size_t len) {
+	unsigned size;
+
+	size = min(len, (__u32)MFG_GPIO_TABLE_MAX_SIZE);
+	memcpy(mfg_gpio_table, data, size);
+
+	pr_info("[dt]GPIO table size = %d\n", len / 4);
+}
+
 int __init parse_tag_mfg_gpio_table(const struct tag *tags)
 {
-       unsigned char *dptr = (unsigned char *)(&tags->u);
-       __u32 size;
+	unsigned char *dptr = (unsigned char *)(&tags->u);
+	__u32 size;
 
-       size = min((__u32)(tags->hdr.size - 2) * sizeof(__u32), (__u32)MFG_GPIO_TABLE_MAX_SIZE);
-       memcpy(mfg_gpio_table, dptr, size);
-       printk("GPIO table size = %d\n", tags->hdr.size);
-       return 0;
+	size = min((__u32)(tags->hdr.size - 2) * sizeof(__u32), (__u32)MFG_GPIO_TABLE_MAX_SIZE);
+	memcpy(mfg_gpio_table, dptr, size);
+	pr_info("[atag]GPIO table size = %d\n", tags->hdr.size);
+	return 0;
 }
 __tagtable(ATAG_MFG_GPIO_TABLE, parse_tag_mfg_gpio_table);
 

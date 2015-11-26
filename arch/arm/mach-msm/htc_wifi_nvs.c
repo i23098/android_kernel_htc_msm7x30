@@ -63,11 +63,21 @@ static int __init parse_tag_msm_wifi(const struct tag *tag)
 
 	size = min((tag->hdr.size - 2) * sizeof(__u32), NVS_MAX_SIZE);
 	memcpy(wifi_nvs_ram, dptr, size);
-	printk("WiFi Data size = %d\n", tag->hdr.size);
+
+	pr_info("[atag]WiFi Data size = %d\n", tag->hdr.size);
 	return 0;
 }
 
 __tagtable(ATAG_MSM_WIFI, parse_tag_msm_wifi);
+
+void __init early_init_dt_setup_msm_wifi_data(char * data, size_t len) {
+	unsigned size;
+
+	size = min(len, NVS_MAX_SIZE);
+	memcpy(wifi_nvs_ram, data, size);
+
+	pr_info("[dt]WiFi Data size = %d\n", len / 4);
+}
 
 static unsigned wifi_get_nvs_size(void)
 {

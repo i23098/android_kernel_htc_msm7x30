@@ -59,12 +59,20 @@ static int __init parse_tag_cam_awb_cal(const struct tag *tag)
 	size = min((tag->hdr.size - 2) * sizeof(__u32), AWB_CAL_MAX_SIZE);
 	memcpy(cam_awb_ram, dptr, size); /* HTC */
 
-	pr_info("CamAwb data size = %d\n", tag->hdr.size);
+	pr_info("[atag]CamAwb data size = %d\n", tag->hdr.size);
 	return 0;
 }
 
 __tagtable(ATAG_MSM_AWB_CAL, parse_tag_cam_awb_cal);
 
+void __init early_init_dt_setup_awb_cal(char * data, size_t len) {
+	unsigned size;
+
+	size = min(len, AWB_CAL_MAX_SIZE);
+	memcpy(cam_awb_ram, data, size); /* HTC */
+
+	pr_info("[dt]CamAwb data size = %d\n", len / 4);
+}
 
 static ssize_t awb_calibration_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
