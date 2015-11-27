@@ -114,6 +114,8 @@ static int __init parse_tag_msm_partition(const struct tag *tag)
 	if (count > MSM_MAX_PARTITIONS)
 		count = MSM_MAX_PARTITIONS;
 
+	pr_info("[atag]Partitions:\n");
+
 	for (n = 0; n < count; n++) {
 		memcpy(name, entry->name, 15);
 		name[15] = 0;
@@ -124,6 +126,8 @@ static int __init parse_tag_msm_partition(const struct tag *tag)
 		ptn->name = name;
 		ptn->offset = entry->offset;
 		ptn->size = entry->size;
+
+		pr_info("%16s 0x%06x[0x%06x]\n", name, entry->offset, entry->size * 2);
 
 		name += 16;
 		entry++;
@@ -173,3 +177,34 @@ out:
 }
 
 __tagtable(ATAG_MSM_PARTITION, parse_tag_msm_partition);
+
+void __init early_init_dt_setup_msm_partitions(char * data, size_t len) {
+	struct mtd_partition *ptn = msm_nand_partitions;
+	char *name = msm_nand_names;
+	unsigned count, n;
+	struct msm_ptbl_entry *entry = (void *)data;
+
+	count = len / sizeof(struct msm_ptbl_entry);
+
+	if (count > MSM_MAX_PARTITIONS)
+		count = MSM_MAX_PARTITIONS;
+
+	pr_info("[dt]Partitions:\n");
+
+	for (n = 0; n < count; n++) {
+		memcpy(name, entry->name, 15);
+		name[15] = 0;
+
+		ptn->name = name;
+		ptn->offset = entry->offset;
+		ptn->size = entry->size;
+
+		pr_info("%16s 0x%06x[0x%06x]\n", name, entry->offset, entry->size * 2);
+
+		name += 16;
+		entry++;
+		ptn++;
+	}
+	msm_nand_data.nr_parts = count;
+	msm_nand_data.parts = msm_nand_partitions;
+}

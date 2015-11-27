@@ -6,6 +6,17 @@
 	#address-cells = <0x1>;
 	#size-cells = <0x1>;
 
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,armv7";
+			reg = <0>;
+		};
+	};
+
 	chosen {
 		bootargs = "board_spade.disable_uart2=0 board_spade.usb_h2w_sw=0 board_spade.disable_sdcard=0 diag.enabled=0 board_spade.debug_uart=0 smisize=0 userdata_sel=0 androidboot.emmc=true  androidboot.baseband=26.13.04.19_M androidboot.cid=HTC__001 androidboot.batt_poweron=good_battery androidboot.carrier=HTC-WWE androidboot.mid=PD9810000 androidboot.keycaps=qwerty androidboot.mode=normal androidboot.serialno=xxxxxxxxxxxx androidboot.bootloader=0.85.2007 no_console_suspend=1 androidboot.selinux=permissive androidboot.hardware=htc7x30";
 		linux,initrd-end = <0x50ac600>;
@@ -475,6 +486,22 @@
 			00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 			00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 		];
+		linux,msm_partitions = [
+			6d 69 73 63 00 00 00 00 00 00 00 00 00 00 00 00
+			11 00 00 00 00 02 00 00 00 00 00 00 72 65 63 6f
+			76 65 72 79 00 00 00 00 00 00 00 00 15 00 00 00
+			fa 43 00 00 00 00 00 00 62 6f 6f 74 00 00 00 00
+			00 00 00 00 00 00 00 00 16 00 00 00 00 20 00 00
+			00 00 00 00 73 79 73 74 65 6d 00 00 00 00 00 00
+			00 00 00 00 19 00 00 00 ff 6f 11 00 00 00 00 00
+			63 61 63 68 65 00 00 00 00 00 00 00 00 00 00 00
+			1b 00 00 00 ff 5f 09 00 00 00 00 00 75 73 65 72
+			64 61 74 61 00 00 00 00 00 00 00 00 1a 00 00 00
+			ff b7 24 00 00 00 00 00 64 65 76 6c 6f 67 00 00
+			00 00 00 00 00 00 00 00 1c 00 00 00 ff a5 00 00
+			00 00 00 00 70 64 61 74 61 00 00 00 00 00 00 00
+			00 00 00 00 1d 00 00 00 00 02 00 00 00 00 00 00
+		];
 	};
 
 	aliases {
@@ -490,4 +517,49 @@
 		reg = <0x20000000 0xc300000>;
 	};
 
+	/*
+	partitions {
+		#address-cells = <0x1>;
+		#size-cells = <0x1>;
+
+		partition@17 {
+			label = "misc";
+			reg = <0x0000011 0x000400>;
+		};
+
+		partition@21 {
+			label = "recovery";
+			reg = <0x0000015 0x0087f4>;
+		};
+
+		partition@22 {
+			label = "boot";
+			reg = <0x0000016 0x004000>;
+		};
+
+		partition@25 {
+			label = "system";
+			reg = <0x0000019 0x22dffe>;
+		};
+
+		partition@27 {
+			label = "cache";
+			reg = <0x000001b 0x12bffe>;
+		};
+
+		partition@26 {
+			label = "userdata";
+			reg = <0x000001a 0x496ffe>;
+		};
+
+		partition@28 {
+			label = "devlog";
+			reg = <0x000001c 0x014bfe>;
+		};
+
+		partition@29 {
+			label = "pdata";
+			reg = <0x000001d 0x000400>;
+		};
+	};*/
 };

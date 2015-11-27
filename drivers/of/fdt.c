@@ -639,6 +639,9 @@ void __init early_init_dt_check_htc_board(unsigned long node)
 	if (prop && len > 0)
 		early_init_dt_setup_gpio_table((char *)prop, len);
 
+	prop = of_get_flat_dt_prop(node, "linux,msm_partitions", &len);
+	if (prop && len > 0)
+		early_init_dt_setup_msm_partitions((char *)prop, len);
 }
 
 /**
