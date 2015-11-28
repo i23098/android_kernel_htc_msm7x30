@@ -100,21 +100,15 @@ const char *get_partition_name_by_num(int partnum)
 EXPORT_SYMBOL(get_partition_name_by_num);
 
 extern char devlog_part[64];
-static int __init parse_tag_msm_partition(const struct tag *tag)
-{
+static void __init parse_msm_partition(char * data, int count) {
 	struct mtd_partition *ptn = msm_nand_partitions;
 	char *name = msm_nand_names;
-	struct msm_ptbl_entry *entry = (void *) &tag->u;
-	unsigned count, n;
+	struct msm_ptbl_entry *entry = (void *)data;
+	unsigned n;
 	unsigned have_kpanic = 0;
-
-	count = (tag->hdr.size - 2) /
-		(sizeof(struct msm_ptbl_entry) / sizeof(__u32));
 
 	if (count > MSM_MAX_PARTITIONS)
 		count = MSM_MAX_PARTITIONS;
-
-	pr_info("[atag]Partitions:\n");
 
 	for (n = 0; n < count; n++) {
 		memcpy(name, entry->name, 15);
@@ -172,6 +166,16 @@ out:
 #endif /* CONFIG_VIRTUAL_KPANIC_SRC */
 	msm_nand_data.nr_parts = count;
 	msm_nand_data.parts = msm_nand_partitions;
+}
+
+static int __init parse_tag_msm_partition(const struct tag *tag)
+{
+	unsigned count = (tag->hdr.size - 2) /
+		(sizeof(struct msm_ptbl_entry) / sizeof(__u32));
+
+	pr_info("[atag]Partitions:\n");
+
+	parse_msm_partition((void *) &tag->u, count);
 
 	return 0;
 }
@@ -179,32 +183,9 @@ out:
 __tagtable(ATAG_MSM_PARTITION, parse_tag_msm_partition);
 
 void __init early_init_dt_setup_msm_partitions(char * data, size_t len) {
-	struct mtd_partition *ptn = msm_nand_partitions;
-	char *name = msm_nand_names;
-	unsigned count, n;
-	struct msm_ptbl_entry *entry = (void *)data;
-
-	count = len / sizeof(struct msm_ptbl_entry);
-
-	if (count > MSM_MAX_PARTITIONS)
-		count = MSM_MAX_PARTITIONS;
+	unsigned count = len / sizeof(struct msm_ptbl_entry);
 
 	pr_info("[dt]Partitions:\n");
 
-	for (n = 0; n < count; n++) {
-		memcpy(name, entry->name, 15);
-		name[15] = 0;
-
-		ptn->name = name;
-		ptn->offset = entry->offset;
-		ptn->size = entry->size;
-
-		pr_info("%16s 0x%06x[0x%06x]\n", name, entry->offset, entry->size * 2);
-
-		name += 16;
-		entry++;
-		ptn++;
-	}
-	msm_nand_data.nr_parts = count;
-	msm_nand_data.parts = msm_nand_partitions;
+	parse_msm_partition(data, count);
 }
