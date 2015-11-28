@@ -22,8 +22,6 @@ unsigned int __machine_arch_type;
 #include <linux/types.h>
 #include <linux/linkage.h>
 
-#include <asm/unaligned.h>
-
 static void putstr(const char *ptr);
 extern void error(char *x);
 
@@ -47,16 +45,6 @@ static void icedcc_putc(int ch)
 	asm("mcr p14, 0, %0, c0, c5, 0" : : "r" (ch));
 }
 
-#elif defined(CONFIG_CPU_V7)
-
-static void icedcc_putc(int ch)
-{
-	asm(
-	"wait:	mrc	p14, 0, pc, c0, c1, 0			\n\
-		bcs	wait					\n\
-		mcr     p14, 0, %0, c0, c5, 0			"
-	: : "r" (ch));
-}
 
 #elif defined(CONFIG_CPU_XSCALE)
 
@@ -115,7 +103,6 @@ extern char input_data[];
 extern char input_data_end[];
 
 unsigned char *output_data;
-unsigned long output_ptr;
 
 unsigned long free_mem_ptr;
 unsigned long free_mem_end_ptr;
@@ -142,12 +129,12 @@ asmlinkage void __div0(void)
 
 extern int do_decompress(u8 *input, int len, u8 *output, void (*error)(char *x));
 
-unsigned long
+
+void
 decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
 		unsigned long free_mem_ptr_end_p,
 		int arch_id)
 {
-	unsigned char *tmp;
 	int ret;
 
 	output_data		= (unsigned char *)output_start;
@@ -157,9 +144,6 @@ decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
 
 	arch_decomp_setup();
 
-	tmp = (unsigned char *) (((unsigned long)input_data_end) - 4);
-	output_ptr = get_unaligned_le32(tmp);
-
 	putstr("Uncompressing Linux...");
 	ret = do_decompress(input_data, input_data_end - input_data,
 			    output_data, error);
@@ -167,5 +151,4 @@ decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
 		error("decompressor returned an error");
 	else
 		putstr(" done, booting the kernel.\n");
-	return output_ptr;
 }

@@ -5,15 +5,6 @@
 #
 
 OBJS		=
-plus_sec := $(call as-instr,.arch_extension sec,+sec)
-AFLAGS_head.o += -Wa,-march=armv7-a$(plus_sec)
-AFLAGS_misc.o +=-Wa,-march=armv7-a$(plus_sec)
-AFLAGS_decompress.o += -Wa,-march=armv7-a$(plus_sec)
-ifeq ($(CONFIG_KERNEL_LZ4),y)
-CFLAGS_decompress.o := -Os
-endif
-AFLAGS_lib1funcs.o +=-Wa,-march=armv7-a$(plus_sec)
-AFLAGS_piggy.$(suffix_y).o += -Wa,-march=armv7-a$(plus_sec)
 
 # Ensure that MMCIF loader code appears early in the image
 # to minimise that number of bocks that have to be read in
@@ -136,6 +127,7 @@ KBUILD_CFLAGS = $(subst -pg, , $(ORIG_CFLAGS))
 endif
 
 ccflags-y := -fpic -fno-builtin -I$(obj)
+asflags-y := -Wa,-march=all
 
 # Supply kernel BSS size to the decompressor via a linker symbol.
 KBSS_SZ = $(shell $(CROSS_COMPILE)size $(obj)/../../../../vmlinux | \
