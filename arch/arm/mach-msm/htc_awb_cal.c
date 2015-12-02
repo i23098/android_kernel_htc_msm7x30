@@ -25,8 +25,6 @@ GNU General Public License for more details.
 #include <linux/syscalls.h>
 
 /* configuration tags specific to msm */
-#define ATAG_MSM_AWB_CAL	0x59504550 /* MSM CAMERA AWB Calibration */
-
 #define AWB_CAL_MAX_SIZE	0x1000U     /* 0x1000 = 4096 bytes */
 
 struct qct_lsc_struct{

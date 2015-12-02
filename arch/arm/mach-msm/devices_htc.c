@@ -20,7 +20,6 @@
 #define MFG_GPIO_TABLE_MAX_SIZE        0x400
 static unsigned char mfg_gpio_table[MFG_GPIO_TABLE_MAX_SIZE];
 
-#define ATAG_SMI 0x4d534D71
 /* setup calls mach->fixup, then parse_tags, parse_cmdline
  * We need to setup meminfo in mach->fixup, so this function
  * will need to traverse each tag to find smi tag.
@@ -46,7 +45,6 @@ int __init parse_tag_smi(const struct tag *tags)
 __tagtable(ATAG_SMI, parse_tag_smi);
 
 
-#define ATAG_HWID 0x4d534D72
 static int hwid = 0;
 
 void __init early_init_dt_setup_hwid(unsigned long value) {
@@ -118,7 +116,6 @@ void board_get_carrier_tag(char **ret_data)
 }
 EXPORT_SYMBOL(board_get_carrier_tag);
 
-#define ATAG_SKUID 0x4d534D73
 static int skuid = 0;
 
 void __init early_init_dt_setup_skuid(unsigned long value) {
@@ -142,10 +139,16 @@ __tagtable(ATAG_SKUID, parse_tag_skuid);
 /* Proximity sensor calibration values */
 unsigned int als_kadc;
 EXPORT_SYMBOL(als_kadc);
+
+void __init early_init_dt_setup_als_calibration(unsigned long value) {
+	pr_info("[dt]als calibration = 0x%lx\n", value);
+	als_kadc = value;
+}
+
 static int __init parse_tag_als_calibration(const struct tag *tag)
 {
 	als_kadc = tag->u.als_kadc.kadc;
-
+	pr_info("[atag]als calibration = 0x%x\n", skuid);
 	return 0;
 }
 
@@ -177,7 +180,6 @@ static int __init parse_tag_csa_calibration(const struct tag *tag)
 }
 __tagtable(ATAG_CSA, parse_tag_csa_calibration);
 
-#define ATAG_MEMSIZE 0x5441001e
 static unsigned memory_size;
 
 void __init early_init_dt_setup_memsize(unsigned long value) {
@@ -220,7 +222,6 @@ int __init parse_tag_ddr_id(const struct tag *tags)
 }
 __tagtable(ATAG_DDR_ID, parse_tag_ddr_id);
 
-#define ATAG_ENGINEERID 0x4d534D75
 static unsigned engineerid;
 EXPORT_SYMBOL(engineerid);
 
@@ -243,9 +244,6 @@ int __init parse_tag_engineerid(const struct tag *tags)
 __tagtable(ATAG_ENGINEERID, parse_tag_engineerid);
 
 
-/* G-Sensor calibration value */
-#define ATAG_GS         0x5441001d
-
 unsigned int gs_kvalue;
 EXPORT_SYMBOL(gs_kvalue);
 
@@ -263,9 +261,6 @@ static int __init parse_tag_gs_calibration(const struct tag *tag)
 
 __tagtable(ATAG_GS, parse_tag_gs_calibration);
 
-/* Proximity sensor calibration values */
-#define ATAG_PS         0x5441001c
-
 unsigned int ps_kparam1;
 EXPORT_SYMBOL(ps_kparam1);
 
@@ -273,10 +268,10 @@ unsigned int ps_kparam2;
 EXPORT_SYMBOL(ps_kparam2);
 
 void __init early_init_dt_setup_ps_calibration(unsigned long ps_low, unsigned long ps_high) {
-	pr_info("[dt]ps_low = 0x%x, ps_high = 0x%x\n",
-		ps_kparam1, ps_kparam2);
 	ps_kparam1 = ps_low;
 	ps_kparam2 = ps_high;
+	pr_info("[dt]ps_low = 0x%x, ps_high = 0x%x\n",
+		ps_kparam1, ps_kparam2);
 }
 
 static int __init parse_tag_ps_calibration(const struct tag *tag)
@@ -345,7 +340,6 @@ int unregister_notifier_by_psensor(struct notifier_block *nb)
 	return blocking_notifier_chain_unregister(&psensor_notifier_list, nb);
 }
 
-#define ATAG_HERO_PANEL_TYPE 0x4d534D74
 static int panel_type = 0;
 
 void __init early_init_dt_setup_panel_type(unsigned long value) {
@@ -367,8 +361,6 @@ int __init tag_panel_parsing(const struct tag *tags)
 	return panel_type;
 }
 __tagtable(ATAG_HERO_PANEL_TYPE, tag_panel_parsing);
-
-#define ATAG_MFG_GPIO_TABLE 0x59504551
 
 void __init early_init_dt_setup_gpio_table(char * data, size_t len) {
 	unsigned size;

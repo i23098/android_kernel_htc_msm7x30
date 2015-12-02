@@ -36,9 +36,6 @@
 
 
 /* configuration tags specific to msm */
-
-#define ATAG_MSM_PARTITION 0x4d534D70 /* MSMp */
-
 struct msm_ptbl_entry
 {
 	char name[16];

@@ -616,6 +616,10 @@ void __init early_init_dt_check_htc_board(unsigned long node)
 	if (prop && len > 0)
 		early_init_dt_setup_bt_mac((char *)prop, len);
 
+	prop = of_get_flat_dt_prop(node, "linux,als_calibration", &len);
+	if (prop)
+		early_init_dt_setup_als_calibration(of_read_ulong(prop, len/4));
+
 	prop = of_get_flat_dt_prop(node, "linux,gs_calibration", &len);
 	if (prop)
 		early_init_dt_setup_gs_calibration(of_read_ulong(prop, len/4));
@@ -623,6 +627,13 @@ void __init early_init_dt_check_htc_board(unsigned long node)
 	prop = of_get_flat_dt_prop(node, "linux,ps_calibration", &len);
 	if (prop && len > 0)
 		early_init_dt_setup_ps_calibration(
+		    of_read_ulong(prop, len/8),
+		    of_read_ulong(prop + 1, len/8)
+		);
+
+	prop = of_get_flat_dt_prop(node, "linux,revision", &len);
+	if (prop && len > 0)
+		early_init_dt_setup_revision(
 		    of_read_ulong(prop, len/8),
 		    of_read_ulong(prop + 1, len/8)
 		);

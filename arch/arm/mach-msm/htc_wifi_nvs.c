@@ -25,8 +25,6 @@
 #include <asm/setup.h>
 
 /* configuration tags specific to msm */
-#define ATAG_MSM_WIFI	0x57494649 /* MSM WiFi */
-
 #define NVS_MAX_SIZE	0x800U
 #define NVS_LEN_OFFSET	0x0C
 #define NVS_DATA_OFFSET	0x40
