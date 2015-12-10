@@ -33,7 +33,7 @@
 #include "../board-spade.h"
 #include "../devices.h"
 #include "../proc_comm.h"
-#include "../../../../drivers/video/fbdev/msm/mdp_hw.h"
+#include "../../../../drivers/video/msm/mdp_hw.h"
 
 #define DEBUG_LCM
 
@@ -258,18 +258,18 @@ static int panel_init_power(void)
 int __init spade_init_panel(void)
 {
   int ret;
-
+  
   ret = panel_init_power();
   if (ret)
     return ret;
-
+  
   msm_fb_add_devices(
                      spade_fb_devices, ARRAY_SIZE(spade_fb_devices));
 
   ret = platform_device_register(&lcdc_spadewvga_panel_device);
   if (ret != 0)
     return ret;
-
+  
   return 0;
 }
 

@@ -33,7 +33,7 @@
 #include "../board-primou.h"
 #include "../devices.h"
 #include "../proc_comm.h"
-#include "../../../../drivers/video/fbdev/msm/mdp_hw.h"
+#include "../../../../drivers/video/msm/mdp_hw.h"
 
 #define DEBUG_LCM
 

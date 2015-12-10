@@ -36,7 +36,7 @@
 #include "../board-saga.h"
 #include "../devices.h"
 #include "../proc_comm.h"
-#include "../../../../drivers/video/fbdev/msm/mdp_hw.h"
+#include "../../../../drivers/video/msm/mdp_hw.h"
 
 #if 1
 #define B(s...) printk(s)
@@ -144,23 +144,23 @@ static int panel_init_power(void)
   int rc;
 
   vreg_ldo19 = vreg_get(NULL, "wlan2");
-
+  
   if (IS_ERR(vreg_ldo19)) {
     pr_err("%s: wlan2 vreg get failed (%ld)\n",
            __func__, PTR_ERR(vreg_ldo19));
     return -1;
   }
-
+  
   /* lcd panel power */
   /* 2.85V -- LDO20 */
   vreg_ldo20 = vreg_get(NULL, "gp13");
-
+  
   if (IS_ERR(vreg_ldo20)) {
     pr_err("%s: gp13 vreg get failed (%ld)\n",
            __func__, PTR_ERR(vreg_ldo20));
     return -1;
   }
-
+  
   rc = vreg_set_level(vreg_ldo19, 1800);
   if (rc) {
     pr_err("%s: vreg LDO19 set level failed (%d)\n",
