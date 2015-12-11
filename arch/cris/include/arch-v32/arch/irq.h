@@ -102,9 +102,9 @@ __asm__ (				\
  * multiple_irq handler is run and it prioritizes the timer interrupt. However
  * if we had BLOCK'edit here, we would not get the multiple_irq at all.
  *
- * The non-blocking here is based on the knowledge that the timer interrupt runs
- * with interrupts disabled, and therefore there will not be an sti() before the
- * timer irq handler is run to acknowledge the interrupt.
+ * The non-blocking here is based on the knowledge that the timer interrupt is
+ * registred as a fast interrupt (IRQF_DISABLED) so that we _know_ there will not
+ * be an sti() before the timer irq handler is run to acknowledge the interrupt.
  */
 #define BUILD_TIMER_IRQ(nr, mask) 	\
 void IRQ_NAME(nr);			\
@@ -112,7 +112,7 @@ __asm__ (				\
 	".text\n\t"			\
 	"IRQ" #nr "_interrupt:\n\t"	\
 	SAVE_ALL			\
-	KGDB_FIXUP                      \
+        KGDB_FIXUP                      \
 	"move.d "#nr",$r10\n\t"		\
 	"move.d $sp,$r12\n\t"		\
 	"jsr crisv32_do_IRQ\n\t"	\

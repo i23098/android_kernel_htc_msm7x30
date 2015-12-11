@@ -18,7 +18,7 @@
 #define WRAP_SLOT	0x4000
 
 /*****************************************************************
-	Global Multichannel parameter RAM
+        Global Multichannel parameter RAM
 *****************************************************************/
 struct global_multi_pram {
     /*
@@ -43,7 +43,7 @@ struct global_multi_pram {
 };
 
 /*****************************************************************
-	Quicc32 HDLC parameter RAM
+        Quicc32 HDLC parameter RAM
 *****************************************************************/
 struct quicc32_pram {
 
@@ -57,7 +57,7 @@ struct quicc32_pram {
     unsigned long   zistate;		/* Zero Insertion machine state */
     unsigned long   tcrc;		/* Temp Transmit CRC */
     unsigned short  intmask;		/* Channel's interrupt mask flags */
-    unsigned short  bdflags;
+    unsigned short  bdflags;		
     unsigned short  rbase;		/* Rx Buffer Descriptors Base Address */
     unsigned short  mflr;		/* Max Frame Length Register */
     unsigned long   rstate;		/* Rx Internal State */
@@ -73,7 +73,7 @@ struct quicc32_pram {
 
 
 /*****************************************************************
-	HDLC parameter RAM
+        HDLC parameter RAM
 *****************************************************************/
 
 struct hdlc_pram {
@@ -97,7 +97,7 @@ struct hdlc_pram {
     unsigned long   ttemp;          /* Tx temp */
     unsigned long   rcrc;           /* temp receive CRC */
     unsigned long   tcrc;           /* temp transmit CRC */
-
+   
     /*
      * HDLC specific parameter RAM
      */
@@ -125,7 +125,7 @@ struct hdlc_pram {
 
 
 /*****************************************************************
-	UART parameter RAM
+        UART parameter RAM
 *****************************************************************/
 
 /*
@@ -157,7 +157,7 @@ struct uart_pram {
     unsigned long   ttemp;          /* Tx temp */
     unsigned long   rcrc;           /* temp receive CRC */
     unsigned long   tcrc;           /* temp transmit CRC */
-
+   
     /*
      * UART specific parameter RAM
      */
@@ -165,13 +165,13 @@ struct uart_pram {
     unsigned short  max_idl;        /* maximum idle characters */
     unsigned short  idlc;           /* rx idle counter (internal) */
     unsigned short  brkcr;          /* break count register */
-
+                   
     unsigned short  parec;          /* Rx parity error counter */
     unsigned short  frmer;          /* Rx framing error counter */
     unsigned short  nosec;          /* Rx noise counter */
     unsigned short  brkec;          /* Rx break character counter */
-    unsigned short  brkln;          /* Receive break length */
-
+    unsigned short  brkln;          /* Reaceive break length */
+                   
     unsigned short  uaddr1;         /* address character 1 */
     unsigned short  uaddr2;         /* address character 2 */
     unsigned short  rtemp;          /* temp storage */
@@ -185,7 +185,7 @@ struct uart_pram {
 
 
 /*****************************************************************
-	BISYNC parameter RAM
+        BISYNC parameter RAM
 *****************************************************************/
 
 struct bisync_pram {
@@ -209,7 +209,7 @@ struct bisync_pram {
     unsigned long   ttemp;          /* Tx temp */
     unsigned long   rcrc;           /* temp receive CRC */
     unsigned long   tcrc;           /* temp transmit CRC */
-
+   
     /*
      * BISYNC specific parameter RAM
      */
@@ -225,8 +225,8 @@ struct bisync_pram {
 };
 
 /*****************************************************************
-	IOM2 parameter RAM
-	(overlaid on tx bd[5] of SCC channel[2])
+        IOM2 parameter RAM
+        (overlaid on tx bd[5] of SCC channel[2])
 *****************************************************************/
 struct iom2_pram {
     unsigned short  ci_data;        /* ci data */
@@ -236,8 +236,8 @@ struct iom2_pram {
 };
 
 /*****************************************************************
-	SPI/SMC parameter RAM
-	(overlaid on tx bd[6,7] of SCC channel[2])
+        SPI/SMC parameter RAM
+        (overlaid on tx bd[6,7] of SCC channel[2])
 *****************************************************************/
 
 #define SPI_R       0x8000          /* Ready bit in BD */
@@ -331,14 +331,14 @@ struct ethernet_pram {
     unsigned long   ttemp;          /* Tx temp */
     unsigned long   rcrc;           /* temp receive CRC */
     unsigned long   tcrc;           /* temp transmit CRC */
-
+   
     /*
      * ETHERNET specific parameter RAM
      */
     unsigned long   c_pres;         /* preset CRC */
     unsigned long   c_mask;         /* constant mask for CRC */
     unsigned long   crcec;          /* CRC error counter */
-    unsigned long   alec;           /* alignment error counter */
+    unsigned long   alec;           /* alighnment error counter */
     unsigned long   disfc;          /* discard frame counter */
     unsigned short  pads;           /* short frame PAD characters */
     unsigned short  ret_lim;        /* retry limit threshold */
@@ -360,12 +360,12 @@ struct ethernet_pram {
     unsigned long   tbuf0_crc;
     unsigned short  tbuf0_bcnt;
     union {
-	unsigned char b[6];
-	struct {
-	    unsigned short high;
-	    unsigned short middl;
-	    unsigned short low;
-	} w;
+        unsigned char b[6];
+        struct {
+            unsigned short high;
+            unsigned short middl;
+            unsigned short low;
+        } w;
     } paddr;
     unsigned short  p_per;          /* persistence */
     unsigned short  rfbd_ptr;       /* rx first bd pointer */
@@ -408,7 +408,7 @@ struct transparent_pram {
     unsigned long   ttemp;          /* Tx temp */
     unsigned long   rcrc;           /* temp receive CRC */
     unsigned long   tcrc;           /* temp transmit CRC */
-
+   
     /*
      * TRANSPARENT specific parameter RAM
      */

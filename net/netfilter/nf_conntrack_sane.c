@@ -76,7 +76,6 @@ static int help(struct sk_buff *skb,
 	struct sane_reply_net_start *reply;
 
 	ct_sane_info = &nfct_help(ct)->help.ct_sane_info;
-
 	/* Until there's been traffic both ways, don't look in packets. */
 	if (ctinfo != IP_CT_ESTABLISHED &&
 	    ctinfo != IP_CT_ESTABLISHED_REPLY)

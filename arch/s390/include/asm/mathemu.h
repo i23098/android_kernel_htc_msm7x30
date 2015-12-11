@@ -1,8 +1,9 @@
 /*
+ *  arch/s390/kernel/mathemu.h
  *    IEEE floating point emulation.
  *
  *  S390 version
- *    Copyright IBM Corp. 1999
+ *    Copyright (C) 1999 IBM Deutschland Entwicklung GmbH, IBM Corporation
  *    Author(s): Martin Schwidefsky (schwidefsky@de.ibm.com)
  */
 

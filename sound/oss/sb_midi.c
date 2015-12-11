@@ -121,7 +121,7 @@ static int sb_midi_end_read(int dev)
 
 static int sb_midi_ioctl(int dev, unsigned cmd, void __user *arg)
 {
-	return -EINVAL;
+        return -EINVAL;
 }
 
 void sb_midi_interrupt(sb_devc * devc)
@@ -179,14 +179,14 @@ void sb_dsp_midi_init(sb_devc * devc, struct module *owner)
 	{
 		printk(KERN_WARNING "Sound Blaster:  failed to allocate MIDI memory.\n");
 		sound_unload_mididev(dev);
-		return;
+		  return;
 	}
 	memcpy((char *) midi_devs[dev], (char *) &sb_midi_operations,
 	       sizeof(struct midi_operations));
 
 	if (owner)
-		midi_devs[dev]->owner = owner;
-
+			midi_devs[dev]->owner = owner;
+	
 	midi_devs[dev]->devc = devc;
 
 

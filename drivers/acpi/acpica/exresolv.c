@@ -1,3 +1,4 @@
+
 /******************************************************************************
  *
  * Module Name: exresolv - AML Interpreter object resolution
@@ -5,7 +6,7 @@
  *****************************************************************************/
 
 /*
- * Copyright (C) 2000 - 2015, Intel Corp.
+ * Copyright (C) 2000 - 2012, Intel Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -146,7 +147,7 @@ acpi_ex_resolve_object_to_value(union acpi_operand_object **stack_ptr,
 
 	stack_desc = *stack_ptr;
 
-	/* This is an object of type union acpi_operand_object */
+	/* This is a union acpi_operand_object    */
 
 	switch (stack_desc->common.type) {
 	case ACPI_TYPE_LOCAL_REFERENCE:
@@ -156,6 +157,7 @@ acpi_ex_resolve_object_to_value(union acpi_operand_object **stack_ptr,
 		switch (ref_type) {
 		case ACPI_REFCLASS_LOCAL:
 		case ACPI_REFCLASS_ARG:
+
 			/*
 			 * Get the local from the method's state info
 			 * Note: this increments the local's object reference count
@@ -308,7 +310,6 @@ acpi_ex_resolve_object_to_value(union acpi_operand_object **stack_ptr,
 		break;
 
 	default:
-
 		break;
 	}
 
@@ -320,13 +321,13 @@ acpi_ex_resolve_object_to_value(union acpi_operand_object **stack_ptr,
  * FUNCTION:    acpi_ex_resolve_multiple
  *
  * PARAMETERS:  walk_state          - Current state (contains AML opcode)
- *              operand             - Starting point for resolution
+ *              Operand             - Starting point for resolution
  *              return_type         - Where the object type is returned
  *              return_desc         - Where the resolved object is returned
  *
  * RETURN:      Status
  *
- * DESCRIPTION: Return the base object and type. Traverse a reference list if
+ * DESCRIPTION: Return the base object and type.  Traverse a reference list if
  *              necessary to get to the base object.
  *
  ******************************************************************************/
@@ -348,12 +349,10 @@ acpi_ex_resolve_multiple(struct acpi_walk_state *walk_state,
 
 	switch (ACPI_GET_DESCRIPTOR_TYPE(obj_desc)) {
 	case ACPI_DESC_TYPE_OPERAND:
-
 		type = obj_desc->common.type;
 		break;
 
 	case ACPI_DESC_TYPE_NAMED:
-
 		type = ((struct acpi_namespace_node *)obj_desc)->type;
 		obj_desc =
 		    acpi_ns_get_attached_object((struct acpi_namespace_node *)
@@ -521,7 +520,7 @@ acpi_ex_resolve_multiple(struct acpi_walk_state *walk_state,
 	 */
 	type = obj_desc->common.type;
 
-exit:
+      exit:
 	/* Convert internal types to external types */
 
 	switch (type) {
@@ -540,9 +539,7 @@ exit:
 		break;
 
 	default:
-
 		/* No change to Type required */
-
 		break;
 	}
 
