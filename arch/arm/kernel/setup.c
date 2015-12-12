@@ -78,10 +78,6 @@ static int __init fpe_setup(char *line)
 __setup("fpe=", fpe_setup);
 #endif
 
-#ifdef CONFIG_ARM_INSERT_DTB
-extern unsigned char arch_arm_boot_dts_spade_dtb[];
-#endif
-
 extern void paging_init(struct machine_desc *desc);
 extern void sanity_check_meminfo(void);
 extern void reboot_setup(char *str);
@@ -961,10 +957,6 @@ void __init setup_arch(char **cmdline_p)
 
 	setup_processor();
 	mdesc = setup_machine_fdt(__atags_pointer);
-#ifdef CONFIG_ARM_INSERT_DTB
-	if (!mdesc)
-		mdesc = setup_machine_fdt(virt_to_phys(arch_arm_boot_dts_spade_dtb));
-#endif
 	if (!mdesc)
 		mdesc = setup_machine_tags(machine_arch_type);
 	machine_desc = mdesc;
