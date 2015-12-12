@@ -51,7 +51,7 @@
 #include <linux/ksm.h>
 #include <linux/rmap.h>
 #include <linux/rcupdate.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/memcontrol.h>
 #include <linux/mmu_notifier.h>
 #include <linux/migrate.h>
@@ -522,7 +522,7 @@ void page_unlock_anon_vma(struct anon_vma *anon_vma)
  * Returns virtual address or -EFAULT if page's index/offset is not
  * within the range mapped the @vma.
  */
-inline unsigned long
+unsigned long
 vma_address(struct page *page, struct vm_area_struct *vma)
 {
 	pgoff_t pgoff = page->index << (PAGE_CACHE_SHIFT - PAGE_SHIFT);
