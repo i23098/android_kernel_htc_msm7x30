@@ -236,6 +236,16 @@
 
 
 /*
+ * Component probe and remove ordering levels for components with runtime
+ * dependencies.
+ */
+#define SND_SOC_COMP_ORDER_FIRST		-2
+#define SND_SOC_COMP_ORDER_EARLY		-1
+#define SND_SOC_COMP_ORDER_NORMAL		0
+#define SND_SOC_COMP_ORDER_LATE		1
+#define SND_SOC_COMP_ORDER_LAST		2
+
+/*
  * Bias levels
  *
  * @ON:      Bias is fully on for audio playback and capture operations.
@@ -247,10 +257,10 @@
  * @OFF:     Power Off. No restrictions on transition times.
  */
 enum snd_soc_bias_level {
-	SND_SOC_BIAS_OFF,
-	SND_SOC_BIAS_STANDBY,
-	SND_SOC_BIAS_PREPARE,
-	SND_SOC_BIAS_ON,
+	SND_SOC_BIAS_OFF = 0,
+	SND_SOC_BIAS_STANDBY = 1,
+	SND_SOC_BIAS_PREPARE = 2,
+	SND_SOC_BIAS_ON = 3,
 };
 
 struct snd_jack;
@@ -294,6 +304,7 @@ enum snd_soc_compress_type {
 
 enum snd_soc_pcm_subclass {
 	SND_SOC_MUTEX_FE	= 0,
+	SND_SOC_PCM_CLASS_PCM = SND_SOC_MUTEX_FE,
 	SND_SOC_MUTEX_BE	= 1,
 };
 
@@ -336,9 +347,9 @@ int snd_soc_default_readable_register(struct snd_soc_codec *codec,
 				      unsigned int reg);
 int snd_soc_default_writable_register(struct snd_soc_codec *codec,
 				      unsigned int reg);
-unsigned int snd_soc_platform_read(struct snd_soc_platform *platform,
+int snd_soc_platform_read(struct snd_soc_platform *platform,
 					unsigned int reg);
-unsigned int snd_soc_platform_write(struct snd_soc_platform *platform,
+int snd_soc_platform_write(struct snd_soc_platform *platform,
 					unsigned int reg, unsigned int val);
 
 struct snd_pcm_substream *snd_soc_get_dai_substream(struct snd_soc_card *card,
@@ -396,6 +407,8 @@ struct snd_kcontrol *snd_soc_cnew(const struct snd_kcontrol_new *_template,
 				  void *data, char *long_name,
 				  const char *prefix);
 int snd_soc_add_controls(struct snd_soc_codec *codec,
+	const struct snd_kcontrol_new *controls, int num_controls);
+int snd_soc_add_platform_controls(struct snd_soc_platform *platform,
 	const struct snd_kcontrol_new *controls, int num_controls);
 int snd_soc_add_platform_controls(struct snd_soc_platform *platform,
 	const struct snd_kcontrol_new *controls, int num_controls);
@@ -683,6 +696,14 @@ struct snd_soc_platform_driver {
 	int (*pcm_new)(struct snd_soc_pcm_runtime *);
 	void (*pcm_free)(struct snd_pcm *);
 
+	/* Default control and setup, added after probe() is run */
+	const struct snd_kcontrol_new *controls;
+	int num_controls;
+	const struct snd_soc_dapm_widget *dapm_widgets;
+	int num_dapm_widgets;
+	const struct snd_soc_dapm_route *dapm_routes;
+	int num_dapm_routes;
+
 	/*
 	 * For platform caused delay reporting.
 	 * Optional.
@@ -700,7 +721,7 @@ struct snd_soc_platform_driver {
 	int (*stream_event)(struct snd_soc_dapm_context *dapm);
 	int (*bespoke_trigger)(struct snd_pcm_substream *, int);
 
-	/* platform DAPM IO TODO: refactor this */
+	/* platform IO - used for platform DAPM */
 	unsigned int (*read)(struct snd_soc_platform *, unsigned int);
 	int (*write)(struct snd_soc_platform *, unsigned int, unsigned int);
 };
@@ -819,8 +840,10 @@ struct snd_soc_card {
 
 	/* callbacks */
 	int (*set_bias_level)(struct snd_soc_card *,
+			      struct snd_soc_dapm_context *dapm,
 			      enum snd_soc_bias_level level);
 	int (*set_bias_level_post)(struct snd_soc_card *,
+				   struct snd_soc_dapm_context *dapm,
 				   enum snd_soc_bias_level level);
 
 	long pmdown_time;

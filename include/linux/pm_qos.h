@@ -1,5 +1,5 @@
-#ifndef _LINUX_PM_QOS_H
-#define _LINUX_PM_QOS_H
+#ifndef _LINUX_PM_QOS_PARAMS_H
+#define _LINUX_PM_QOS_PARAMS_H
 /* interface for the pm_qos_power infrastructure of the linux kernel.
  *
  * Mark Gross <mgross@linux.intel.com>
@@ -59,3 +59,4 @@ static inline int pm_qos_request_active(struct pm_qos_request_list *req)
 #endif
 
 #endif
+

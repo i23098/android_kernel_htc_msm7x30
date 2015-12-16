@@ -355,6 +355,8 @@ int snd_soc_dapm_new_widgets(struct snd_soc_dapm_context *dapm);
 void snd_soc_dapm_free(struct snd_soc_dapm_context *dapm);
 int snd_soc_dapm_add_routes(struct snd_soc_dapm_context *dapm,
 			    const struct snd_soc_dapm_route *route, int num);
+int snd_soc_dapm_weak_routes(struct snd_soc_dapm_context *dapm,
+			     const struct snd_soc_dapm_route *route, int num);
 int snd_soc_dapm_query_path(struct snd_soc_dapm_context *dapm,
 	const char *source_name, const char *sink_name, int stream);
 const char *snd_soc_dapm_get_aif(struct snd_soc_dapm_context *dapm,
@@ -453,6 +455,7 @@ struct snd_soc_dapm_path {
 	/* status */
 	u32 connect:1;	/* source and sink widgets are connected */
 	u32 walked:1;	/* path has been walked */
+	u32 weak:1;	/* path ignored for power management */
 	u32 length:6;	/* path length - used by route mapper */
 
 	int (*connected)(struct snd_soc_dapm_widget *source,
@@ -535,10 +538,11 @@ struct snd_soc_dapm_context {
 
 	struct device *dev; /* from parent - for debug */
 	struct snd_soc_codec *codec; /* parent codec */
-	struct snd_soc_platform *platform; /*parent platform */
+	struct snd_soc_platform *platform; /* parent platform */
 	struct snd_soc_card *card; /* parent card */
 
 	/* used during DAPM updates */
+	enum snd_soc_bias_level target_bias_level;
 	int dev_power;
 	struct list_head list;
 
