@@ -7,7 +7,7 @@
  * Copyright (C) 2010 Texas Instruments Inc.
  *
  * Authors: Liam Girdwood <lrg@ti.com>
- *          Mark Brown <broonie@opensource.wolfsonmicro.com>       
+ *          Mark Brown <broonie@opensource.wolfsonmicro.com>
  *
  *  This program is free software; you can redistribute  it and/or modify it
  *  under  the terms of  the GNU General  Public License as published by the
@@ -27,17 +27,13 @@
 #include <sound/soc.h>
 #include <sound/initval.h>
 
-static DEFINE_MUTEX(pcm_mutex);
-
-static int soc_pcm_apply_symmetry(struct snd_pcm_substream *substream)
+static int soc_pcm_apply_symmetry(struct snd_pcm_substream *substream,
+					struct snd_soc_dai *soc_dai)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
-	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	int ret;
 
-	if (!codec_dai->driver->symmetric_rates &&
-	    !cpu_dai->driver->symmetric_rates &&
+	if (!soc_dai->driver->symmetric_rates &&
 	    !rtd->dai_link->symmetric_rates)
 		return 0;
 
@@ -45,19 +41,19 @@ static int soc_pcm_apply_symmetry(struct snd_pcm_substream *substream)
 	 * the second can need to get its constraints before the first has
 	 * picked a rate.  Complain and allow the application to carry on.
 	 */
-	if (!rtd->rate) {
-		dev_warn(&rtd->dev,
+	if (!soc_dai->rate) {
+		dev_warn(soc_dai->dev,
 			 "Not enforcing symmetric_rates due to race\n");
 		return 0;
 	}
 
-	dev_dbg(&rtd->dev, "Symmetry forces %dHz rate\n", rtd->rate);
+	dev_dbg(soc_dai->dev, "Symmetry forces %dHz rate\n", soc_dai->rate);
 
 	ret = snd_pcm_hw_constraint_minmax(substream->runtime,
 					   SNDRV_PCM_HW_PARAM_RATE,
-					   rtd->rate, rtd->rate);
+					   soc_dai->rate, soc_dai->rate);
 	if (ret < 0) {
-		dev_err(&rtd->dev,
+		dev_err(soc_dai->dev,
 			"Unable to apply rate symmetry constraint: %d\n", ret);
 		return ret;
 	}
@@ -70,7 +66,7 @@ static int soc_pcm_apply_symmetry(struct snd_pcm_substream *substream)
  * then initialized and any private data can be allocated. This also calls
  * startup for the cpu DAI, platform, machine and codec DAI.
  */
-static int soc_pcm_open(struct snd_pcm_substream *substream)
+int soc_pcm_open(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_pcm_runtime *runtime = substream->runtime;
@@ -187,8 +183,14 @@ static int soc_pcm_open(struct snd_pcm_substream *substream)
 	}
 
 	/* Symmetry only applies if we've already got an active stream. */
-	if (cpu_dai->active || codec_dai->active) {
-		ret = soc_pcm_apply_symmetry(substream);
+	if (cpu_dai->active) {
+		ret = soc_pcm_apply_symmetry(substream, cpu_dai);
+		if (ret != 0)
+			goto config_err;
+	}
+
+	if (codec_dai->active) {
+		ret = soc_pcm_apply_symmetry(substream, codec_dai);
 		if (ret != 0)
 			goto config_err;
 	}
@@ -268,7 +270,7 @@ static void close_delayed_work(struct work_struct *work)
  * freed here. The cpu DAI, codec DAI, machine and platform are also
  * shutdown.
  */
-static int soc_pcm_close(struct snd_pcm_substream *substream)
+int soc_pcm_close(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_platform *platform = rtd->platform;
@@ -290,8 +292,12 @@ static int soc_pcm_close(struct snd_pcm_substream *substream)
 	codec_dai->active--;
 	codec->active--;
 
-	if (!cpu_dai->active && !codec_dai->active)
-		rtd->rate = 0;
+	/* clear the corresponding DAIs rate when inactive */
+	if (!cpu_dai->active)
+		cpu_dai->rate = 0;
+
+	if (!codec_dai->active)
+		codec_dai->rate = 0;
 
 	/* Muting the DAC suppresses artifacts caused during digital
 	 * shutdown, for example from stopping clocks.
@@ -313,10 +319,17 @@ static int soc_pcm_close(struct snd_pcm_substream *substream)
 	cpu_dai->runtime = NULL;
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		/* start delayed pop wq here for playback streams */
-		codec_dai->pop_wait = 1;
-		schedule_delayed_work(&rtd->delayed_work,
-			msecs_to_jiffies(rtd->pmdown_time));
+		if (unlikely(codec->ignore_pmdown_time)) {
+			/* powered down playback stream now */
+			snd_soc_dapm_stream_event(rtd,
+				codec_dai->driver->playback.stream_name,
+				SND_SOC_DAPM_STREAM_STOP);
+		} else {
+			/* start delayed pop wq here for playback streams */
+			codec_dai->pop_wait = 1;
+			schedule_delayed_work(&rtd->delayed_work,
+				msecs_to_jiffies(rtd->pmdown_time));
+		}
 	} else {
 		/* capture streams can be powered down now */
 		snd_soc_dapm_stream_event(rtd,
@@ -333,7 +346,7 @@ static int soc_pcm_close(struct snd_pcm_substream *substream)
  * rate, etc.  This function is non atomic and can be called multiple times,
  * it can refer to the runtime info.
  */
-static int soc_pcm_prepare(struct snd_pcm_substream *substream)
+int soc_pcm_prepare(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_platform *platform = rtd->platform;
@@ -403,7 +416,7 @@ out:
  * function can also be called multiple times and can allocate buffers
  * (using snd_pcm_lib_* ). It's non-atomic.
  */
-static int soc_pcm_hw_params(struct snd_pcm_substream *substream,
+int soc_pcm_hw_params(struct snd_pcm_substream *substream,
 				struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
@@ -449,7 +462,9 @@ static int soc_pcm_hw_params(struct snd_pcm_substream *substream,
 		}
 	}
 
-	rtd->rate = params_rate(params);
+	/* store the rate for each DAIs */
+	cpu_dai->rate = params_rate(params);
+	codec_dai->rate = params_rate(params);
 
 out:
 	mutex_unlock(&rtd->pcm_mutex);
@@ -474,7 +489,7 @@ codec_err:
 /*
  * Frees resources allocated by hw_params, can be called multiple times
  */
-static int soc_pcm_hw_free(struct snd_pcm_substream *substream)
+int soc_pcm_hw_free(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_platform *platform = rtd->platform;
@@ -507,7 +522,7 @@ static int soc_pcm_hw_free(struct snd_pcm_substream *substream)
 	return 0;
 }
 
-static int soc_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
+int soc_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_platform *platform = rtd->platform;
