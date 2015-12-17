@@ -266,7 +266,7 @@ struct msm_otg {
 	int ac_detect_count;
 
 	struct msm_xo_voter *xo_handle; /*handle to vote for PXO buffer*/
-	struct pm_qos_request_list pm_qos_req_dma;
+	struct pm_qos_request pm_qos_req_dma;
 	int reset_phy_before_lpm;
 
 	void (*vbus_notification_cb)(int online);

@@ -92,7 +92,7 @@ struct msm_i2c_dev {
 	int                          clk_state;
 	void                         *complete;
 
-	struct pm_qos_request_list pm_qos_req;
+	struct pm_qos_request pm_qos_req;
 
 	int                          last_addr;
 	int                          reg;

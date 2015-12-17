@@ -279,7 +279,7 @@ struct msm_sync {
 	struct msm_camvpe_fn vpefn;
 	struct msm_sensor_ctrl sctrl;
 	struct msm_strobe_flash_ctrl sfctrl;
-	struct pm_qos_request_list idle_pm_qos;
+	struct pm_qos_request idle_pm_qos;
 	struct platform_device *pdev;
 	int16_t ignore_qcmd_type;
 	uint8_t ignore_qcmd;
