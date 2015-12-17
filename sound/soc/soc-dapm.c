@@ -2,7 +2,6 @@
  * soc-dapm.c  --  ALSA SoC Dynamic Audio Power Management
  *
  * Copyright 2005 Wolfson Microelectronics PLC.
- *
  * Author: Liam Girdwood <lrg@slimlogic.co.uk>
  *
  *  This program is free software; you can redistribute  it and/or modify it
@@ -2691,7 +2690,7 @@ int snd_soc_dapm_put_enum_virt(struct snd_kcontrol *kcontrol,
 			widget->value = ucontrol->value.enumerated.item[0];
 
 			snd_soc_dapm_mux_update_power(widget, kcontrol, change,
-					widget->value, e);
+					      widget->value, e);
 		}
 	}
 
@@ -3003,14 +3002,16 @@ static void soc_dapm_stream_event(struct snd_soc_dapm_context *dapm,
 int snd_soc_dapm_stream_event(struct snd_soc_pcm_runtime *rtd,
 	const char *stream, int event)
 {
+	struct snd_soc_codec *codec = rtd->codec;
+
 	if (stream == NULL)
 		return 0;
 
 	mutex_lock(&rtd->card->dapm_mutex);
-	mutex_lock(&rtd->codec->mutex);
+	mutex_lock(&codec->mutex);
 	soc_dapm_stream_event(&rtd->platform->dapm, stream, event);
-	soc_dapm_stream_event(&rtd->codec->dapm, stream, event);
-	mutex_unlock(&rtd->codec->mutex);
+	soc_dapm_stream_event(&codec->dapm, stream, event);
+	mutex_unlock(&codec->mutex);
 	mutex_unlock(&rtd->card->dapm_mutex);
 	return 0;
 }

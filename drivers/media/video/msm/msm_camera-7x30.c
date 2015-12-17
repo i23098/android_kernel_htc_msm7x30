@@ -43,7 +43,7 @@
 #include <asm/cacheflush.h>
 #include <linux/rtc.h>
 #include <linux/slab.h>
-#include <linux/pm_qos.h>
+#include <linux/pm_qos_params.h>
 
 #ifdef CONFIG_RAWCHIP
 #include "rawchip/rawchip.h"

@@ -9,7 +9,7 @@
 #include <linux/poll.h>
 #include <linux/cdev.h>
 #include <linux/platform_device.h>
-#include <linux/pm_qos.h>
+#include <linux/pm_qos_params.h>
 #include "linux/types.h"
 
 #include <mach/board.h>

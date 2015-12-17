@@ -37,7 +37,7 @@
 #include <linux/dmi.h>
 #include <linux/moduleparam.h>
 #include <linux/sched.h>	/* need_resched() */
-#include <linux/pm_qos.h>
+#include <linux/pm_qos_params.h>
 #include <linux/clockchips.h>
 #include <linux/cpuidle.h>
 #include <linux/irqflags.h>
@@ -627,7 +627,7 @@ static int acpi_processor_power_verify(struct acpi_processor *pr)
 		case ACPI_STATE_C2:
 			if (!cx->address)
 				break;
-			cx->valid = 1; 
+			cx->valid = 1;
 			cx->latency_ticks = cx->latency; /* Normalize latency */
 			break;
 

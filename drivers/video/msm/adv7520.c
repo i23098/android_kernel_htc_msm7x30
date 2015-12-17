@@ -18,7 +18,7 @@
 #include <linux/completion.h>
 #include <linux/wakelock.h>
 #include <linux/clk.h>
-#include <linux/pm_qos.h>
+#include <linux/pm_qos_params.h>
 
 #include <asm/atomic.h>
 

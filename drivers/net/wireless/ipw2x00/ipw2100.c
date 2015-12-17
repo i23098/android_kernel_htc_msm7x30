@@ -161,7 +161,7 @@ that only one external action is invoked at a time.
 #include <linux/firmware.h>
 #include <linux/acpi.h>
 #include <linux/ctype.h>
-#include <linux/pm_qos.h>
+#include <linux/pm_qos_params.h>
 
 #include <net/lib80211.h>
 
@@ -7310,7 +7310,7 @@ static int ipw2100_wx_set_txpow(struct net_device *dev,
 {
 	struct ipw2100_priv *priv = libipw_priv(dev);
 	int err = 0, value;
-	
+
 	if (ipw_radio_kill_sw(priv, wrqu->txpower.disabled))
 		return -EINPROGRESS;
 

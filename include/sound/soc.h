@@ -47,16 +47,6 @@
 	.info = snd_soc_info_volsw, .get = snd_soc_get_volsw,\
 	.put = snd_soc_put_volsw, \
 	.private_value =  SOC_SINGLE_VALUE(reg, shift, max, invert) }
-#define SOC_SINGLE_S8_TLV(xname, xreg, xmin, xmax, tlv_array) \
-{	.iface  = SNDRV_CTL_ELEM_IFACE_MIXER, .name = (xname), \
-	.access = SNDRV_CTL_ELEM_ACCESS_TLV_READ | \
-		SNDRV_CTL_ELEM_ACCESS_READWRITE, \
-	.tlv.p  = (tlv_array), \
-	.info   = snd_soc_info_volsw_s8, .get = snd_soc_get_volsw_s8, \
-	.put    = snd_soc_put_volsw_s8, \
-	.private_value = (unsigned long)&(struct soc_mixer_control) \
-		{.reg = xreg, .min = xmin, .max = xmax, \
-		 .platform_max = xmax} }
 #define SOC_DOUBLE(xname, xreg, shift_left, shift_right, xmax, xinvert) \
 {	.iface = SNDRV_CTL_ELEM_IFACE_MIXER, .name = (xname),\
 	.info = snd_soc_info_volsw, .get = snd_soc_get_volsw, \
@@ -303,9 +293,8 @@ enum snd_soc_compress_type {
 };
 
 enum snd_soc_pcm_subclass {
-	SND_SOC_MUTEX_FE	= 0,
-	SND_SOC_PCM_CLASS_PCM = SND_SOC_MUTEX_FE,
-	SND_SOC_MUTEX_BE	= 1,
+	SND_SOC_PCM_CLASS_PCM	= 0,
+	SND_SOC_PCM_CLASS_BE	= 1,
 };
 
 int snd_soc_codec_set_sysclk(struct snd_soc_codec *codec, int clk_id,
