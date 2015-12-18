@@ -1,0 +1,127 @@
+  CHK     include/linux/version.h
+  DTC     arch/arm/boot/spade.dtb
+DTC: dts->dtb  on file "arch/arm/boot/dts/spade.dts"
+  CHK     include/generated/utsrelease.h
+make[1]: 'include/generated/mach-types.h' is up to date.
+  CALL    scripts/checksyscalls.sh
+  CHK     include/generated/compile.h
+  LD      sound/soundcore.o
+  CHK     kernel/config_data.h
+  CC      lib/bcd.o
+  CC      lib/div64.o
+  CC      lib/sort.o
+  CC      lib/parser.o
+  CC      lib/halfmd4.o
+  CC      lib/debug_locks.o
+  CC      lib/random32.o
+  CC      lib/bust_spinlocks.o
+  CC      lib/hexdump.o
+  CC      lib/kasprintf.o
+  CC      lib/bitmap.o
+  CC      lib/scatterlist.o
+  CC      lib/string_helpers.o
+  CC      lib/gcd.o
+  CC      lib/lcm.o
+  CC      lib/list_sort.o
+  CC      sound/soc/soc-core.o
+  CC      lib/uuid.o
+  CC      lib/flex_array.o
+  CC      lib/bsearch.o
+  CC      lib/find_last_bit.o
+  CC      lib/llist.o
+  CC      lib/kstrtox.o
+  CC      lib/iomap_copy.o
+  CC      lib/devres.o
+  CC      lib/hweight.o
+  CC      lib/bitrev.o
+  CC      lib/crc-ccitt.o
+  CC      lib/crc16.o
+  HOSTCC  lib/gen_crc32table
+  CC      lib/libcrc32c.o
+  CC      lib/genalloc.o
+  CC      lib/lz4/lz4_compress.o
+  CC      lib/lz4/lz4hc_compress.o
+  CC      lib/lzo/lzo1x_compress.o
+  CC      lib/lzo/lzo1x_decompress_safe.o
+  CC      lib/lz4/lz4_decompress.o
+  LD      lib/lzo/lzo_compress.o
+  LD      lib/lzo/lzo_decompress.o
+sound/soc/soc-core.c:594:11: error: ‘null_dai_ops’ undeclared here (not in a function)
+   .ops = &null_dai_ops,
+           ^
+scripts/Makefile.build:305: recipe for target 'sound/soc/soc-core.o' failed
+make[2]: *** [sound/soc/soc-core.o] Error 1
+scripts/Makefile.build:441: recipe for target 'sound/soc' failed
+make[1]: *** [sound/soc] Error 2
+Makefile:966: recipe for target 'sound' failed
+make: *** [sound] Error 2
+make: *** Waiting for unfinished jobs....
+  LD      lib/lzo/built-in.o
+  LD      lib/lz4/built-in.o
+  CC      lib/xz/xz_dec_syms.o
+  CC      lib/xz/xz_dec_stream.o
+  CC      lib/xz/xz_dec_lzma2.o
+  CC      lib/xz/xz_dec_bcj.o
+  CC      lib/zlib_deflate/deflate.o
+  LD      lib/xz/xz_dec.o
+  LD      lib/xz/built-in.o
+  CC      lib/zlib_inflate/inffast.o
+  CC      lib/zlib_deflate/deftree.o
+  CC      lib/zlib_deflate/deflate_syms.o
+  CC      lib/zlib_inflate/inflate.o
+  LD      lib/zlib_deflate/zlib_deflate.o
+  LD      lib/zlib_deflate/built-in.o
+  CC      lib/textsearch.o
+  CC      lib/ts_kmp.o
+  CC      lib/zlib_inflate/infutil.o
+  CC      lib/ts_bm.o
+  CC      lib/ts_fsm.o
+  CC      lib/audit.o
+  CC      lib/zlib_inflate/inftrees.o
+  CC      lib/zlib_inflate/inflate_syms.o
+  CC      lib/nlattr.o
+  CC      lib/strnlen_user.o
+  CC      lib/strncpy_from_user.o
+  CC      lib/bug.o
+  LD      lib/zlib_inflate/zlib_inflate.o
+  CC      lib/argv_split.o
+  LD      lib/zlib_inflate/built-in.o
+  CC      lib/ctype.o
+  CC      lib/cmdline.o
+  CC      lib/dec_and_lock.o
+  CC      lib/decompress.o
+  CC      lib/decompress_inflate.o
+  CC      lib/dump_stack.o
+  CC      lib/find_next_bit.o
+  CC      lib/idr.o
+  CC      lib/extable.o
+  CC      lib/int_sqrt.o
+  CC      lib/ioremap.o
+  CC      lib/irq_regs.o
+  CC      lib/is_single_threaded.o
+  CC      lib/klist.o
+  CC      lib/kobject.o
+  CC      lib/kobject_uevent.o
+  CC      lib/kref.o
+  CC      lib/md5.o
+  CC      lib/memory_alloc.o
+  CC      lib/memcopy.o
+  CC      lib/plist.o
+  CC      lib/prio_heap.o
+  CC      lib/prio_tree.o
+  CC      lib/radix-tree.o
+  CC      lib/proportions.o
+  CC      lib/ratelimit.o
+  CC      lib/rbtree.o
+  CC      lib/reciprocal_div.o
+  CC      lib/rwsem.o
+  CC      lib/show_mem.o
+  CC      lib/sha1.o
+  CC      lib/sradix-tree.o
+  CC      lib/string.o
+  CC      lib/timerqueue.o
+  CC      lib/vsprintf.o
+  GEN     lib/crc32table.h
+  CC      lib/crc32.o
+  AR      lib/lib.a
+  LD      lib/built-in.o

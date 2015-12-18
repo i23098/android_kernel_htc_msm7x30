@@ -60,8 +60,6 @@ static LIST_HEAD(dai_list);
 static LIST_HEAD(platform_list);
 static LIST_HEAD(codec_list);
 
-int soc_dsp_debugfs_add(struct snd_soc_pcm_runtime *rtd);
-
 /*
  * This is a timeout to do a DAPM powerdown after a stream is closed().
  * It can be used to eliminate pops between different playback streams, e.g.
@@ -123,24 +121,6 @@ static int format_register_str(struct snd_soc_codec *codec,
 
 	return 0;
 }
-
-/* ASoC no host IO hardware.
- * TODO: fine tune these values for all host less transfers.
- */
-static const struct snd_pcm_hardware no_host_hardware = {
-	.info			= SNDRV_PCM_INFO_MMAP |
-				  SNDRV_PCM_INFO_MMAP_VALID |
-				  SNDRV_PCM_INFO_INTERLEAVED |
-				  SNDRV_PCM_INFO_PAUSE |
-				  SNDRV_PCM_INFO_RESUME,
-	.formats		= SNDRV_PCM_FMTBIT_S16_LE |
-				  SNDRV_PCM_FMTBIT_S32_LE,
-	.period_bytes_min	= PAGE_SIZE >> 2,
-	.period_bytes_max	= PAGE_SIZE >> 1,
-	.periods_min		= 2,
-	.periods_max		= 4,
-	.buffer_bytes_max	= PAGE_SIZE,
-};
 
 /* codec register dump */
 static ssize_t soc_codec_reg_show(struct snd_soc_codec *codec, char *buf,
@@ -498,6 +478,26 @@ static int soc_ac97_dev_register(struct snd_soc_codec *codec)
 }
 #endif
 
+int soc_dsp_debugfs_add(struct snd_soc_pcm_runtime *rtd);
+
+/* ASoC no host IO hardware.
+ * TODO: fine tune these values for all host less transfers.
+ */
+static const struct snd_pcm_hardware no_host_hardware = {
+	.info			= SNDRV_PCM_INFO_MMAP |
+				  SNDRV_PCM_INFO_MMAP_VALID |
+				  SNDRV_PCM_INFO_INTERLEAVED |
+				  SNDRV_PCM_INFO_PAUSE |
+				  SNDRV_PCM_INFO_RESUME,
+	.formats		= SNDRV_PCM_FMTBIT_S16_LE |
+				  SNDRV_PCM_FMTBIT_S32_LE,
+	.period_bytes_min	= PAGE_SIZE >> 2,
+	.period_bytes_max	= PAGE_SIZE >> 1,
+	.periods_min		= 2,
+	.periods_max		= 4,
+	.buffer_bytes_max	= PAGE_SIZE,
+};
+
 /*
  * Power down the audio subsystem pmdown_time msecs after close is called.
  * This is to ensure there are no pops or clicks in between any music tracks
@@ -583,6 +583,32 @@ struct snd_soc_pcm_runtime *snd_soc_get_pcm_runtime(struct snd_soc_card *card,
 	return NULL;
 }
 EXPORT_SYMBOL_GPL(snd_soc_get_pcm_runtime);
+
+#define NULL_FORMATS \
+	(SNDRV_PCM_FMTBIT_S16 | SNDRV_PCM_FMTBIT_U16 |\
+	SNDRV_PCM_FMTBIT_S24 | SNDRV_PCM_FMTBIT_U24 |\
+	SNDRV_PCM_FMTBIT_S32 | SNDRV_PCM_FMTBIT_U32)
+
+static const struct snd_soc_dai_ops null_dai_ops = {
+};
+
+static struct snd_soc_dai_driver null_codec_dai_drv = {
+		.name = "null-codec-dai",
+		.ops = &null_dai_ops,
+		.capture = {
+			.channels_min = 1 ,
+			.channels_max = 16,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.formats = NULL_FORMATS,
+		},
+		.playback = {
+			.channels_min = 1 ,
+			.channels_max = 16,
+			.rates = SNDRV_PCM_RATE_CONTINUOUS,
+			.formats = NULL_FORMATS,
+		},
+};
+static struct snd_soc_codec_driver null_codec_drv = {};
 
 #ifdef CONFIG_PM_SLEEP
 /* powers down audio subsystem for suspend */
@@ -887,31 +913,6 @@ EXPORT_SYMBOL_GPL(snd_soc_resume);
 #define snd_soc_suspend NULL
 #define snd_soc_resume NULL
 #endif
-
-#define NULL_FORMATS \
-	(SNDRV_PCM_FMTBIT_S16 | SNDRV_PCM_FMTBIT_U16 |\
-	SNDRV_PCM_FMTBIT_S24 | SNDRV_PCM_FMTBIT_U24 |\
-	SNDRV_PCM_FMTBIT_S32 | SNDRV_PCM_FMTBIT_U32)
-
-static const struct snd_soc_dai_ops null_dai_ops = {
-};
-static struct snd_soc_dai_driver null_codec_dai_drv = {
-		.name = "null-codec-dai",
-		.ops = &null_dai_ops,
-		.capture = {
-			.channels_min = 1 ,
-			.channels_max = 16,
-			.rates = SNDRV_PCM_RATE_CONTINUOUS,
-			.formats = NULL_FORMATS,
-		},
-		.playback = {
-			.channels_min = 1 ,
-			.channels_max = 16,
-			.rates = SNDRV_PCM_RATE_CONTINUOUS,
-			.formats = NULL_FORMATS,
-		},
-};
-static struct snd_soc_codec_driver null_codec_drv = {};
 
 static int soc_bind_dai_link(struct snd_soc_card *card, int num)
 {
