@@ -43,7 +43,7 @@ static inline int be_connect(struct snd_soc_pcm_runtime *fe,
 	struct snd_soc_dsp_params *dsp_params;
 
 	if (!fe->dsp[stream].runtime) {
-		dev_err(&fe->dev, "%s no runtime\n", fe->dai_link->name);
+		dev_err(fe->dev, "%s no runtime\n", fe->dai_link->name);
 		return -ENODEV;
 	}
 
@@ -64,7 +64,7 @@ static inline int be_connect(struct snd_soc_pcm_runtime *fe,
 	list_add(&dsp_params->list_be, &fe->dsp[stream].be_clients);
 	list_add(&dsp_params->list_fe, &be->dsp[stream].fe_clients);
 
-	dev_dbg(&fe->dev, "  connected new DSP %s path %s %s %s\n",
+	dev_dbg(fe->dev, "  connected new DSP %s path %s %s %s\n",
 			stream ? "capture" : "playback",  fe->dai_link->name,
 			stream ? "<-" : "->", be->dai_link->name);
 
@@ -82,7 +82,7 @@ static inline void be_disconnect(struct snd_soc_pcm_runtime *fe, int stream)
 
 	list_for_each_entry_safe(dsp_params, d, &fe->dsp[stream].be_clients, list_be) {
 		if (dsp_params->state == SND_SOC_DSP_LINK_STATE_FREE) {
-			dev_dbg(&fe->dev, "  freed DSP %s path %s %s %s\n",
+			dev_dbg(fe->dev, "  freed DSP %s path %s %s %s\n",
 					stream ? "capture" : "playback", fe->dai_link->name,
 					stream ? "<-" : "->", dsp_params->be->dai_link->name);
 
@@ -171,7 +171,7 @@ static int dsp_add_new_paths(struct snd_soc_pcm_runtime *fe,
 	paths = snd_soc_dapm_get_connected_widgets_type(&card->dapm,
 			cpu_dai->driver->name, &list, stream, fe_type);
 
-	dev_dbg(&fe->dev, "found %d audio %s paths\n", paths,
+	dev_dbg(fe->dev, "found %d audio %s paths\n", paths,
 			stream ? "capture" : "playback");
 	if (!paths)
 		goto out;
@@ -185,7 +185,7 @@ static int dsp_add_new_paths(struct snd_soc_pcm_runtime *fe,
 			/* is there a valid BE rtd for this widget */
 			be = be_get_rtd(card, list->widgets[i]);
 			if (!be) {
-				dev_err(&fe->dev, "no BE found for %s\n",
+				dev_err(fe->dev, "no BE found for %s\n",
 						list->widgets[i]->name);
 				continue;
 			}
@@ -197,7 +197,7 @@ static int dsp_add_new_paths(struct snd_soc_pcm_runtime *fe,
 			/* newly connected FE and BE */
 			err = be_connect(fe, be, stream);
 			if (err < 0) {
-				dev_err(&fe->dev, "can't connect %s\n", list->widgets[i]->name);
+				dev_err(fe->dev, "can't connect %s\n", list->widgets[i]->name);
 				break;
 			} else if (err == 0)
 				continue;
@@ -227,7 +227,7 @@ static int dsp_prune_old_paths(struct snd_soc_pcm_runtime *fe, int stream,
 	enum snd_soc_dapm_type fe_type, be_type;
 	struct snd_soc_dapm_widget *widget;
 
-	dev_dbg(&fe->dev, "scan for old %s %s streams\n", fe->dai_link->name,
+	dev_dbg(fe->dev, "scan for old %s %s streams\n", fe->dai_link->name,
 			stream ? "capture" : "playback");
 
 	if (stream == SNDRV_PCM_STREAM_PLAYBACK) {
@@ -242,7 +242,7 @@ static int dsp_prune_old_paths(struct snd_soc_pcm_runtime *fe, int stream,
 	paths = snd_soc_dapm_get_connected_widgets_type(&card->dapm,
 			cpu_dai->driver->name, &list, stream, fe_type);
 
-	dev_dbg(&fe->dev, "found %d audio %s paths\n", paths,
+	dev_dbg(fe->dev, "found %d audio %s paths\n", paths,
 			stream ? "capture" : "playback");
 	if (!paths) {
 		/* prune all BEs */
@@ -253,7 +253,7 @@ static int dsp_prune_old_paths(struct snd_soc_pcm_runtime *fe, int stream,
 			count++;
 		}
 
-		dev_dbg(&fe->dev, "pruned all %s BE for FE %s\n", fe->dai_link->name,
+		dev_dbg(fe->dev, "pruned all %s BE for FE %s\n", fe->dai_link->name,
 			stream ? "capture" : "playback");
 		goto out;
 	}
@@ -264,7 +264,7 @@ static int dsp_prune_old_paths(struct snd_soc_pcm_runtime *fe, int stream,
 		/* is there a valid widget for this BE */
 		widget = be_get_widget(card, dsp_params->be);
 		if (!widget) {
-			dev_err(&fe->dev, "no widget found for %s\n",
+			dev_err(fe->dev, "no widget found for %s\n",
 					dsp_params->be->dai_link->name);
 			continue;
 		}
@@ -273,7 +273,7 @@ static int dsp_prune_old_paths(struct snd_soc_pcm_runtime *fe, int stream,
 		if (widget_in_list(list, widget))
 			continue;
 
-		dev_dbg(&fe->dev, "pruning %s BE %s for %s\n",
+		dev_dbg(fe->dev, "pruning %s BE %s for %s\n",
 			stream ? "capture" : "playback", dsp_params->be->dai_link->name,
 			fe->dai_link->name);
 		dsp_params->state = SND_SOC_DSP_LINK_STATE_FREE;
@@ -371,7 +371,7 @@ static int soc_dsp_be_dai_startup(struct snd_soc_pcm_runtime *fe, int stream)
 		if (dsp_params->state != SND_SOC_DSP_LINK_STATE_NEW)
 			continue;
 
-		dev_dbg(&dsp_params->be->dev, "dsp: open BE %s\n",
+		dev_dbg(dsp_params->be->dev, "dsp: open BE %s\n",
 				dsp_params->be->dai_link->name);
 
 		be_substream->runtime = dsp_params->be->dsp[stream].runtime;
@@ -449,12 +449,12 @@ static int soc_dsp_fe_dai_startup(struct snd_pcm_substream *fe_substream)
 	if (ret < 0)
 		goto be_err;
 
-	dev_dbg(&fe->dev, "dsp: open FE %s\n", fe->dai_link->name);
+	dev_dbg(fe->dev, "dsp: open FE %s\n", fe->dai_link->name);
 
 	/* start the DAI frontend */
 	ret = soc_pcm_open(fe_substream);
 	if (ret < 0) {
-		dev_err(&fe->dev,"dsp: failed to start FE %d\n", ret);
+		dev_err(fe->dev,"dsp: failed to start FE %d\n", ret);
 		goto unwind;
 	}
 
@@ -493,7 +493,7 @@ static int soc_dsp_be_dai_shutdown(struct snd_soc_pcm_runtime *fe, int stream)
 		if (dsp_params->state != SND_SOC_DSP_LINK_STATE_FREE)
 			continue;
 
-		dev_dbg(&dsp_params->be->dev, "dsp: close BE %s\n",
+		dev_dbg(dsp_params->be->dev, "dsp: close BE %s\n",
 			dsp_params->fe->dai_link->name);
 
 		soc_pcm_close(be_substream);
@@ -510,7 +510,7 @@ static int soc_dsp_fe_dai_shutdown(struct snd_pcm_substream *substream)
 
 	mutex_lock_nested(&fe->card->dsp_mutex, 0);
 
-	dev_dbg(&fe->dev, "dsp: close FE %s\n", fe->dai_link->name);
+	dev_dbg(fe->dev, "dsp: close FE %s\n", fe->dai_link->name);
 
 	/* now shutdown the frontend */
 	soc_pcm_close(substream);
@@ -554,7 +554,7 @@ static int soc_dsp_be_dai_hw_params(struct snd_soc_pcm_runtime *fe, int stream)
 		if (dsp_params->be->dsp[stream].users != 1)
 			continue;
 
-		dev_dbg(&dsp_params->be->dev, "dsp: hw_params BE %s\n",
+		dev_dbg(dsp_params->be->dev, "dsp: hw_params BE %s\n",
 			dsp_params->fe->dai_link->name);
 
 		/* copy params for each dsp_params */
@@ -566,7 +566,7 @@ static int soc_dsp_be_dai_hw_params(struct snd_soc_pcm_runtime *fe, int stream)
 			ret = dsp_params->be->dai_link->be_hw_params_fixup(dsp_params->be,
 					&dsp_params->params);
 			if (ret < 0) {
-				dev_err(&dsp_params->be->dev,
+				dev_err(dsp_params->be->dev,
 						"dsp: hw_params BE fixup failed %d\n", ret);
 				return ret;
 			}
@@ -574,7 +574,7 @@ static int soc_dsp_be_dai_hw_params(struct snd_soc_pcm_runtime *fe, int stream)
 
 		ret = soc_pcm_hw_params(be_substream, &dsp_params->params);
 		if (ret < 0) {
-			dev_err(&dsp_params->be->dev, "dsp: hw_params BE failed %d\n", ret);
+			dev_err(dsp_params->be->dev, "dsp: hw_params BE failed %d\n", ret);
 			return ret;
 		}
 	}
@@ -595,12 +595,12 @@ int soc_dsp_fe_dai_hw_params(struct snd_pcm_substream *substream,
 	if (ret < 0)
 		goto out;
 
-	dev_dbg(&fe->dev, "dsp: hw_params FE %s\n", fe->dai_link->name);
+	dev_dbg(fe->dev, "dsp: hw_params FE %s\n", fe->dai_link->name);
 
 	/* call hw_params on the frontend */
 	ret = soc_pcm_hw_params(substream, params);
 	if (ret < 0)
-		dev_err(&fe->dev,"dsp: hw_params FE failed %d\n", ret);
+		dev_err(fe->dev,"dsp: hw_params FE failed %d\n", ret);
 
 out:
 	mutex_unlock(&fe->card->dsp_mutex);
@@ -612,12 +612,12 @@ static int dsp_do_trigger(struct snd_soc_dsp_params *dsp_params,
 {
 	int ret;
 
-	dev_dbg(&dsp_params->be->dev, "dsp: trigger BE %s cmd %d\n",
+	dev_dbg(dsp_params->be->dev, "dsp: trigger BE %s cmd %d\n",
 			dsp_params->fe->dai_link->name, cmd);
 
 	ret = soc_pcm_trigger(substream, cmd);
 	if (ret < 0)
-		dev_err(&dsp_params->be->dev,"dsp: trigger BE failed %d\n", ret);
+		dev_err(dsp_params->be->dev,"dsp: trigger BE failed %d\n", ret);
 
 	return ret;
 }
@@ -692,12 +692,12 @@ int soc_dsp_fe_dai_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SND_SOC_DSP_TRIGGER_PRE:
 		/* call trigger on the frontend before the backend. */
 
-		dev_dbg(&fe->dev, "dsp: pre trigger FE %s cmd %d\n",
+		dev_dbg(fe->dev, "dsp: pre trigger FE %s cmd %d\n",
 				fe->dai_link->name, cmd);
 
 		ret = soc_pcm_trigger(substream, cmd);
 		if (ret < 0) {
-			dev_err(&fe->dev,"dsp: trigger FE failed %d\n", ret);
+			dev_err(fe->dev,"dsp: trigger FE failed %d\n", ret);
 			return ret;
 		}
 
@@ -708,11 +708,11 @@ int soc_dsp_fe_dai_trigger(struct snd_pcm_substream *substream, int cmd)
 
 		ret = soc_dsp_be_dai_trigger(fe, substream->stream, cmd);
 		if (ret < 0) {
-			dev_err(&fe->dev,"dsp: trigger FE failed %d\n", ret);
+			dev_err(fe->dev,"dsp: trigger FE failed %d\n", ret);
 			return ret;
 		}
 
-		dev_dbg(&fe->dev, "dsp: post trigger FE %s cmd %d\n",
+		dev_dbg(fe->dev, "dsp: post trigger FE %s cmd %d\n",
 				fe->dai_link->name, cmd);
 
 		ret = soc_pcm_trigger(substream, cmd);
@@ -720,17 +720,17 @@ int soc_dsp_fe_dai_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SND_SOC_DSP_TRIGGER_BESPOKE:
 		/* bespoke trigger() - handles both FE and BEs */
 
-		dev_dbg(&fe->dev, "dsp: bespoke trigger FE %s cmd %d\n",
+		dev_dbg(fe->dev, "dsp: bespoke trigger FE %s cmd %d\n",
 				fe->dai_link->name, cmd);
 
 		ret = soc_pcm_bespoke_trigger(substream, cmd);
 		if (ret < 0) {
-			dev_err(&fe->dev,"dsp: trigger FE failed %d\n", ret);
+			dev_err(fe->dev,"dsp: trigger FE failed %d\n", ret);
 			return ret;
 		}
 		break;
 	default:
-		dev_err(&fe->dev, "dsp: invalid trigger cmd %d for %s\n", cmd,
+		dev_err(fe->dev, "dsp: invalid trigger cmd %d for %s\n", cmd,
 				fe->dai_link->name);
 		return -EINVAL;
 	}
@@ -758,12 +758,12 @@ static int soc_dsp_be_dai_prepare(struct snd_soc_pcm_runtime *fe, int stream)
 				dsp_params->state == SND_SOC_DSP_LINK_STATE_FREE)
 			continue;
 
-		dev_dbg(&dsp_params->be->dev, "dsp: prepare BE %s\n",
+		dev_dbg(dsp_params->be->dev, "dsp: prepare BE %s\n",
 			dsp_params->fe->dai_link->name);
 
 		ret = soc_pcm_prepare(be_substream);
 		if (ret < 0) {
-			dev_err(&dsp_params->be->dev,"dsp: backend prepare failed %d\n",
+			dev_err(dsp_params->be->dev,"dsp: backend prepare failed %d\n",
 					ret);
 			break;
 		}
@@ -782,11 +782,11 @@ int soc_dsp_fe_dai_prepare(struct snd_pcm_substream *substream)
 
 	mutex_lock_nested(&fe->card->dsp_mutex, 0);
 
-	dev_dbg(&fe->dev, "dsp: prepare FE %s\n", fe->dai_link->name);
+	dev_dbg(fe->dev, "dsp: prepare FE %s\n", fe->dai_link->name);
 
 	/* there is no point preparing this FE if there are no BEs */
 	if (list_empty(&fe->dsp[stream].be_clients)) {
-		dev_err(&fe->dev, "dsp: no backend DAIs enabled for %s\n",
+		dev_err(fe->dev, "dsp: no backend DAIs enabled for %s\n",
 				fe->dai_link->name);
 		ret = -EINVAL;
 		goto out;
@@ -802,7 +802,7 @@ int soc_dsp_fe_dai_prepare(struct snd_pcm_substream *substream)
 	/* call prepare on the frontend */
 	ret = soc_pcm_prepare(substream);
 	if (ret < 0) {
-		dev_err(&fe->dev,"dsp: prepare FE %s failed\n", fe->dai_link->name);
+		dev_err(fe->dev,"dsp: prepare FE %s failed\n", fe->dai_link->name);
 		goto out;
 	}
 
@@ -844,7 +844,7 @@ static int soc_dsp_be_dai_hw_free(struct snd_soc_pcm_runtime *fe, int stream)
 		if (dsp_params->be->dsp[stream].users != 1)
 			continue;
 
-		dev_dbg(&dsp_params->be->dev, "dsp: hw_free BE %s\n",
+		dev_dbg(dsp_params->be->dev, "dsp: hw_free BE %s\n",
 			dsp_params->fe->dai_link->name);
 
 		soc_pcm_hw_free(be_substream);
@@ -862,12 +862,12 @@ int soc_dsp_fe_dai_hw_free(struct snd_pcm_substream *substream)
 
 	fe_state_update(fe, stream, SND_SOC_DSP_LINK_STATE_FREE);
 
-	dev_dbg(&fe->dev, "dsp: hw_free FE %s\n", fe->dai_link->name);
+	dev_dbg(fe->dev, "dsp: hw_free FE %s\n", fe->dai_link->name);
 
 	/* call hw_free on the frontend */
 	ret = soc_pcm_hw_free(substream);
 	if (ret < 0)
-		dev_err(&fe->dev,"dsp: hw_free FE %s failed\n", fe->dai_link->name);
+		dev_err(fe->dev,"dsp: hw_free FE %s failed\n", fe->dai_link->name);
 
 	/* only hw_params backends that are either sinks or sources
 	 * to this frontend DAI */
@@ -890,7 +890,7 @@ int soc_dsp_dapm_stream_event(struct snd_soc_pcm_runtime *fe,
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 
-		dev_dbg(&be->dev, "pm: BE %s stream %s event %d dir %d\n",
+		dev_dbg(be->dev, "pm: BE %s stream %s event %d dir %d\n",
 				be->dai_link->name, stream, event, dir);
 
 		snd_soc_dapm_stream_event(be, stream, event);
@@ -906,24 +906,24 @@ static int dsp_run_update_shutdown(struct snd_soc_pcm_runtime *fe, int stream)
 	struct snd_soc_dsp_params *dsp_params;
 	int ret;
 
-	dev_dbg(&fe->dev, "runtime %s close on FE %s\n",
+	dev_dbg(fe->dev, "runtime %s close on FE %s\n",
 			stream ? "capture" : "playback", fe->dai_link->name);
 
 	if (dsp_link->trigger[stream] == SND_SOC_DSP_TRIGGER_BESPOKE) {
 		/* call bespoke trigger - FE takes care of all BE triggers */
-		dev_dbg(&fe->dev, "dsp: bespoke trigger FE %s cmd stop\n",
+		dev_dbg(fe->dev, "dsp: bespoke trigger FE %s cmd stop\n",
 				fe->dai_link->name);
 
 		ret = soc_pcm_bespoke_trigger(substream, SNDRV_PCM_TRIGGER_STOP);
 		if (ret < 0) {
-			dev_err(&fe->dev,"dsp: trigger FE failed %d\n", ret);
+			dev_err(fe->dev,"dsp: trigger FE failed %d\n", ret);
 			return ret;
 		}
 	} else {
 
 		list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
 
-			dev_dbg(&fe->dev, "dsp: trigger FE %s cmd stop\n",
+			dev_dbg(fe->dev, "dsp: trigger FE %s cmd stop\n",
 				fe->dai_link->name);
 
 			ret = soc_dsp_be_dai_trigger(fe, stream, SNDRV_PCM_TRIGGER_STOP);
@@ -974,7 +974,7 @@ static int dsp_run_update_startup(struct snd_soc_pcm_runtime *fe, int stream)
 	struct snd_soc_dsp_params *dsp_params;
 	int ret, cmd;
 
-	dev_dbg(&fe->dev, "runtime %s open on FE %s\n",
+	dev_dbg(fe->dev, "runtime %s open on FE %s\n",
 			stream ? "capture" : "playback", fe->dai_link->name);
 
 	ret = soc_dsp_be_dai_startup(fe, stream);
@@ -1005,12 +1005,12 @@ static int dsp_run_update_startup(struct snd_soc_pcm_runtime *fe, int stream)
 		cmd = dsp_get_fe_trigger_cmd(fe, stream);
 
 		/* call trigger on the frontend - FE takes care of all BE triggers */
-		dev_dbg(&fe->dev, "dsp: bespoke trigger FE %s cmd start\n",
+		dev_dbg(fe->dev, "dsp: bespoke trigger FE %s cmd start\n",
 				fe->dai_link->name);
 
 		ret = soc_pcm_bespoke_trigger(substream, cmd);
 		if (ret < 0) {
-			dev_err(&fe->dev,"dsp: trigger FE failed %d\n", ret);
+			dev_err(fe->dev,"dsp: trigger FE failed %d\n", ret);
 			return ret;
 		}
 
@@ -1059,14 +1059,14 @@ static int dsp_run_update(struct snd_soc_pcm_runtime *fe, int stream,
 	if (start) {
 		ret = dsp_run_update_startup(fe, stream);
 		if (ret < 0)
-			dev_err(&fe->dev, "failed to startup BEs\n");
+			dev_err(fe->dev, "failed to startup BEs\n");
 	}
 
 	/* close down old BEs */
 	if (stop) {
 		ret = dsp_run_update_shutdown(fe, stream);
 		if (ret < 0)
-			dev_err(&fe->dev, "failed to shutdown BEs\n");
+			dev_err(fe->dev, "failed to shutdown BEs\n");
 	}
 
 	fe->dsp[stream].runtime_update = 0;
@@ -1112,7 +1112,7 @@ int soc_dsp_runtime_update(struct snd_soc_dapm_widget *widget)
 		/* run PCM ops on new/old playback paths */
 		ret = dsp_run_update(fe, SNDRV_PCM_STREAM_PLAYBACK, start, stop);
 		if (ret < 0) {
-			dev_err(&fe->dev, "failed to update playback FE stream %s\n",
+			dev_err(fe->dev, "failed to update playback FE stream %s\n",
 					fe->dai_link->stream_name);
 		}
 
@@ -1134,7 +1134,7 @@ capture:
 			ret = dsp_run_update(fe, SNDRV_PCM_STREAM_CAPTURE,
 				start, stop);
 			if (ret < 0) {
-				dev_err(&fe->dev, "failed to update capture FE stream %s\n",
+				dev_err(fe->dev, "failed to update capture FE stream %s\n",
 					fe->dai_link->stream_name);
 			}
 
@@ -1159,7 +1159,7 @@ int soc_dsp_be_digital_mute(struct snd_soc_pcm_runtime *fe, int mute)
 		struct snd_soc_dai *dai = be->codec_dai;
 		struct snd_soc_dai_driver *drv = dai->driver;
 
-		dev_dbg(&be->dev, "BE digital mute %s\n", be->dai_link->name);
+		dev_dbg(be->dev, "BE digital mute %s\n", be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
 			continue;
@@ -1183,7 +1183,7 @@ int soc_dsp_be_cpu_dai_suspend(struct snd_soc_pcm_runtime *fe)
 		struct snd_soc_dai *dai = be->cpu_dai;
 		struct snd_soc_dai_driver *drv = dai->driver;
 
-		dev_dbg(&be->dev, "pm: BE CPU DAI playback suspend %s\n",
+		dev_dbg(be->dev, "pm: BE CPU DAI playback suspend %s\n",
 				be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
@@ -1201,7 +1201,7 @@ int soc_dsp_be_cpu_dai_suspend(struct snd_soc_pcm_runtime *fe)
 		struct snd_soc_dai *dai = be->cpu_dai;
 		struct snd_soc_dai_driver *drv = dai->driver;
 
-		dev_dbg(&be->dev, "pm: BE CPU DAI capture suspend %s\n",
+		dev_dbg(be->dev, "pm: BE CPU DAI capture suspend %s\n",
 				be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
@@ -1226,7 +1226,7 @@ int soc_dsp_be_ac97_cpu_dai_suspend(struct snd_soc_pcm_runtime *fe)
 		struct snd_soc_dai *dai = be->cpu_dai;
 		struct snd_soc_dai_driver *drv = dai->driver;
 
-		dev_dbg(&be->dev, "pm: BE CPU DAI playback suspend %s\n",
+		dev_dbg(be->dev, "pm: BE CPU DAI playback suspend %s\n",
 				be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
@@ -1244,7 +1244,7 @@ int soc_dsp_be_ac97_cpu_dai_suspend(struct snd_soc_pcm_runtime *fe)
 		struct snd_soc_dai *dai = be->cpu_dai;
 		struct snd_soc_dai_driver *drv = dai->driver;
 
-		dev_dbg(&be->dev, "pm: BE CPU DAI capture suspend %s\n",
+		dev_dbg(be->dev, "pm: BE CPU DAI capture suspend %s\n",
 				be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
@@ -1270,7 +1270,7 @@ int soc_dsp_be_platform_suspend(struct snd_soc_pcm_runtime *fe)
 		struct snd_soc_platform_driver *drv = platform->driver;
 		struct snd_soc_dai *dai = be->cpu_dai;
 
-		dev_dbg(&be->dev, "pm: BE platform playback suspend %s\n",
+		dev_dbg(be->dev, "pm: BE platform playback suspend %s\n",
 				be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
@@ -1291,7 +1291,7 @@ int soc_dsp_be_platform_suspend(struct snd_soc_pcm_runtime *fe)
 		struct snd_soc_platform_driver *drv = platform->driver;
 		struct snd_soc_dai *dai = be->cpu_dai;
 
-		dev_dbg(&be->dev, "pm: BE platform capture suspend %s\n",
+		dev_dbg(be->dev, "pm: BE platform capture suspend %s\n",
 				be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
@@ -1318,7 +1318,7 @@ int soc_dsp_be_cpu_dai_resume(struct snd_soc_pcm_runtime *fe)
 		struct snd_soc_dai *dai = be->cpu_dai;
 		struct snd_soc_dai_driver *drv = dai->driver;
 
-		dev_dbg(&be->dev, "pm: BE CPU DAI playback resume %s\n",
+		dev_dbg(be->dev, "pm: BE CPU DAI playback resume %s\n",
 				be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
@@ -1336,7 +1336,7 @@ int soc_dsp_be_cpu_dai_resume(struct snd_soc_pcm_runtime *fe)
 		struct snd_soc_dai *dai = be->cpu_dai;
 		struct snd_soc_dai_driver *drv = dai->driver;
 
-		dev_dbg(&be->dev, "pm: BE CPU DAI capture resume %s\n",
+		dev_dbg(be->dev, "pm: BE CPU DAI capture resume %s\n",
 				be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
@@ -1361,7 +1361,7 @@ int soc_dsp_be_ac97_cpu_dai_resume(struct snd_soc_pcm_runtime *fe)
 		struct snd_soc_dai *dai = be->cpu_dai;
 		struct snd_soc_dai_driver *drv = dai->driver;
 
-		dev_dbg(&be->dev, "pm: BE CPU DAI playback resume %s\n",
+		dev_dbg(be->dev, "pm: BE CPU DAI playback resume %s\n",
 				be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
@@ -1379,7 +1379,7 @@ int soc_dsp_be_ac97_cpu_dai_resume(struct snd_soc_pcm_runtime *fe)
 		struct snd_soc_dai *dai = be->cpu_dai;
 		struct snd_soc_dai_driver *drv = dai->driver;
 
-		dev_dbg(&be->dev, "pm: BE CPU DAI capture resume %s\n",
+		dev_dbg(be->dev, "pm: BE CPU DAI capture resume %s\n",
 				be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
@@ -1405,7 +1405,7 @@ int soc_dsp_be_platform_resume(struct snd_soc_pcm_runtime *fe)
 		struct snd_soc_platform_driver *drv = platform->driver;
 		struct snd_soc_dai *dai = be->cpu_dai;
 
-		dev_dbg(&be->dev, "pm: BE platform playback resume %s\n",
+		dev_dbg(be->dev, "pm: BE platform playback resume %s\n",
 				be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
@@ -1426,7 +1426,7 @@ int soc_dsp_be_platform_resume(struct snd_soc_pcm_runtime *fe)
 		struct snd_soc_platform_driver *drv = platform->driver;
 		struct snd_soc_dai *dai = be->cpu_dai;
 
-		dev_dbg(&be->dev, "pm: BE platform capture resume %s\n",
+		dev_dbg(be->dev, "pm: BE platform capture resume %s\n",
 				be->dai_link->name);
 
 		if (be->dai_link->ignore_suspend)
@@ -1452,7 +1452,7 @@ int soc_dsp_fe_dai_open(struct snd_pcm_substream *fe_substream)
 	/* calculate valid and active FE <-> BE dsp_paramss */
 	err = dsp_add_new_paths(fe, fe_substream->stream, 0);
 	if (err <= 0) {
-		dev_warn(&fe->dev, "asoc: %s no valid %s route from source to sink\n",
+		dev_warn(fe->dev, "asoc: %s no valid %s route from source to sink\n",
 			fe->dai_link->name, fe_substream->stream ? "capture" : "playback");
 	}
 
@@ -1480,7 +1480,7 @@ int soc_dsp_debugfs_add(struct snd_soc_pcm_runtime *rtd)
 	rtd->debugfs_dsp_root = debugfs_create_dir(rtd->dai_link->name,
 			rtd->card->debugfs_card_root);
 	if (!rtd->debugfs_dsp_root) {
-		dev_dbg(&rtd->dev,
+		dev_dbg(rtd->dev,
 			 "ASoC: Failed to create dsp debugfs directory %s\n",
 			 rtd->dai_link->name);
 		return -EINVAL;
