@@ -37,6 +37,34 @@ int soc_pcm_prepare(struct snd_pcm_substream *);
 int soc_pcm_trigger(struct snd_pcm_substream *, int);
 int soc_pcm_bespoke_trigger(struct snd_pcm_substream *, int);
 
+static inline struct snd_pcm_substream *snd_soc_dsp_get_substream(
+		struct snd_soc_pcm_runtime *be, int stream)
+{
+	return be->pcm->streams[stream].substream;
+}
+
+/*
+ * FE stream event, send event to all active BEs.
+ */
+static inline int soc_dsp_dapm_stream_event(struct snd_soc_pcm_runtime *fe,
+	int dir, const char *stream, int event)
+{
+	struct snd_soc_dsp_params *dsp_params;
+
+	/* resume for playback */
+	list_for_each_entry(dsp_params, &fe->dsp[dir].be_clients, list_be) {
+
+		struct snd_soc_pcm_runtime *be = dsp_params->be;
+
+		dev_dbg(be->dev, "pm: BE %s stream %s event %d dir %d\n",
+				be->dai_link->name, stream, event, dir);
+
+		snd_soc_dapm_stream_event(be, stream, event);
+	}
+
+	return 0;
+}
+
 static inline int be_connect(struct snd_soc_pcm_runtime *fe,
 		struct snd_soc_pcm_runtime *be, int stream)
 {
@@ -302,18 +330,6 @@ static void be_state_update(struct snd_soc_pcm_runtime *fe, int stream,
 }
 
 /*
- * Update the state of all BE's to new regardless of current state.
- */
-static void fe_state_update(struct snd_soc_pcm_runtime *fe, int stream,
-		enum snd_soc_dsp_link_state new)
-{
-	struct snd_soc_dsp_params *dsp_params;
-
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be)
-			dsp_params->state = new;
-}
-
-/*
  * Clear the runtime pending state of all BE's.
  */
 static void fe_clear_pending(struct snd_soc_pcm_runtime *fe, int stream)
@@ -322,28 +338,6 @@ static void fe_clear_pending(struct snd_soc_pcm_runtime *fe, int stream)
 
 	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be)
 			dsp_params->be->dsp[stream].runtime_update = 0;
-}
-
-/* Unwind the BE startup */
-static void soc_dsp_be_dai_startup_unwind(struct snd_soc_pcm_runtime *fe, int stream)
-{
-	struct snd_soc_dsp_params *dsp_params;
-
-	/* disable any enabled and non active backends */
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
-
-		struct snd_pcm_substream *be_substream =
-			snd_soc_dsp_get_substream(dsp_params->be, stream);
-
-		if (--dsp_params->be->dsp[stream].users != 0)
-			continue;
-
-		if (dsp_params->state != SND_SOC_DSP_LINK_STATE_NEW)
-			continue;
-
-		soc_pcm_close(be_substream);
-		be_substream->runtime = NULL;
-	}
 }
 
 /* Startup all new BE */
@@ -413,64 +407,6 @@ unwind:
 	return err;
 }
 
-void soc_dsp_set_dynamic_runtime(struct snd_pcm_substream *substream)
-{
-	struct snd_pcm_runtime *runtime = substream->runtime;
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
-	struct snd_soc_dai_driver *cpu_dai_drv = cpu_dai->driver;
-
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		runtime->hw.rate_min = cpu_dai_drv->playback.rate_min;
-		runtime->hw.rate_max = cpu_dai_drv->playback.rate_max;
-		runtime->hw.channels_min = cpu_dai_drv->playback.channels_min;
-		runtime->hw.channels_max = cpu_dai_drv->playback.channels_max;
-		runtime->hw.formats &= cpu_dai_drv->playback.formats;
-		runtime->hw.rates = cpu_dai_drv->playback.rates;
-	} else {
-		runtime->hw.rate_min = cpu_dai_drv->capture.rate_min;
-		runtime->hw.rate_max = cpu_dai_drv->capture.rate_max;
-		runtime->hw.channels_min = cpu_dai_drv->capture.channels_min;
-		runtime->hw.channels_max = cpu_dai_drv->capture.channels_max;
-		runtime->hw.formats &= cpu_dai_drv->capture.formats;
-		runtime->hw.rates = cpu_dai_drv->capture.rates;
-	}
-}
-
-static int soc_dsp_fe_dai_startup(struct snd_pcm_substream *fe_substream)
-{
-	struct snd_soc_pcm_runtime *fe = fe_substream->private_data;
-	struct snd_pcm_runtime *runtime = fe_substream->runtime;
-	int ret = 0;
-
-	mutex_lock_nested(&fe->card->dsp_mutex, 0);
-
-	ret = soc_dsp_be_dai_startup(fe, fe_substream->stream);
-	if (ret < 0)
-		goto be_err;
-
-	dev_dbg(fe->dev, "dsp: open FE %s\n", fe->dai_link->name);
-
-	/* start the DAI frontend */
-	ret = soc_pcm_open(fe_substream);
-	if (ret < 0) {
-		dev_err(fe->dev,"dsp: failed to start FE %d\n", ret);
-		goto unwind;
-	}
-
-	soc_dsp_set_dynamic_runtime(fe_substream);
-	snd_pcm_limit_hw_rates(runtime);
-
-	mutex_unlock(&fe->card->dsp_mutex);
-	return 0;
-
-unwind:
-	soc_dsp_be_dai_startup_unwind(fe, fe_substream->stream);
-be_err:
-	mutex_unlock(&fe->card->dsp_mutex);
-	return ret;
-}
-
 /* BE shutdown - called on DAPM sync updates (i.e. FE is already running)*/
 static int soc_dsp_be_dai_shutdown(struct snd_soc_pcm_runtime *fe, int stream)
 {
@@ -499,36 +435,6 @@ static int soc_dsp_be_dai_shutdown(struct snd_soc_pcm_runtime *fe, int stream)
 		soc_pcm_close(be_substream);
 		be_substream->runtime = NULL;
 	}
-	return 0;
-}
-
-/* FE +BE shutdown - called on FE PCM ops */
-static int soc_dsp_fe_dai_shutdown(struct snd_pcm_substream *substream)
-{
-	struct snd_soc_pcm_runtime *fe = substream->private_data;
-	int stream = substream->stream;
-
-	mutex_lock_nested(&fe->card->dsp_mutex, 0);
-
-	dev_dbg(fe->dev, "dsp: close FE %s\n", fe->dai_link->name);
-
-	/* now shutdown the frontend */
-	soc_pcm_close(substream);
-
-	/* shutdown the BEs */
-	soc_dsp_be_dai_shutdown(fe, substream->stream);
-
-	/* run the stream event for each BE */
-	if (stream == SNDRV_PCM_STREAM_PLAYBACK)
-		soc_dsp_dapm_stream_event(fe, stream,
-				fe->cpu_dai->driver->playback.stream_name,
-				SND_SOC_DAPM_STREAM_STOP);
-	else
-		soc_dsp_dapm_stream_event(fe, stream,
-				fe->cpu_dai->driver->capture.stream_name,
-				SND_SOC_DAPM_STREAM_STOP);
-
-	mutex_unlock(&fe->card->dsp_mutex);
 	return 0;
 }
 
@@ -579,32 +485,6 @@ static int soc_dsp_be_dai_hw_params(struct snd_soc_pcm_runtime *fe, int stream)
 		}
 	}
 	return 0;
-}
-
-int soc_dsp_fe_dai_hw_params(struct snd_pcm_substream *substream,
-				    struct snd_pcm_hw_params *params)
-{
-	struct snd_soc_pcm_runtime *fe = substream->private_data;
-	int ret;
-
-	mutex_lock_nested(&fe->card->dsp_mutex, 0);
-
-	memcpy(&fe->dsp[substream->stream].params, params,
-			sizeof(struct snd_pcm_hw_params));
-	ret = soc_dsp_be_dai_hw_params(fe, substream->stream);
-	if (ret < 0)
-		goto out;
-
-	dev_dbg(fe->dev, "dsp: hw_params FE %s\n", fe->dai_link->name);
-
-	/* call hw_params on the frontend */
-	ret = soc_pcm_hw_params(substream, params);
-	if (ret < 0)
-		dev_err(fe->dev,"dsp: hw_params FE failed %d\n", ret);
-
-out:
-	mutex_unlock(&fe->card->dsp_mutex);
-	return ret;
 }
 
 static int dsp_do_trigger(struct snd_soc_dsp_params *dsp_params,
@@ -682,62 +562,6 @@ int soc_dsp_be_dai_trigger(struct snd_soc_pcm_runtime *fe, int stream, int cmd)
 }
 EXPORT_SYMBOL_GPL(soc_dsp_be_dai_trigger);
 
-int soc_dsp_fe_dai_trigger(struct snd_pcm_substream *substream, int cmd)
-{
-	struct snd_soc_pcm_runtime *fe = substream->private_data;
-	struct snd_soc_dsp_link *dsp_link = fe->dai_link->dsp_link;
-	int stream = substream->stream, ret;
-
-	switch (dsp_link->trigger[stream]) {
-	case SND_SOC_DSP_TRIGGER_PRE:
-		/* call trigger on the frontend before the backend. */
-
-		dev_dbg(fe->dev, "dsp: pre trigger FE %s cmd %d\n",
-				fe->dai_link->name, cmd);
-
-		ret = soc_pcm_trigger(substream, cmd);
-		if (ret < 0) {
-			dev_err(fe->dev,"dsp: trigger FE failed %d\n", ret);
-			return ret;
-		}
-
-		ret = soc_dsp_be_dai_trigger(fe, substream->stream, cmd);
-		break;
-	case SND_SOC_DSP_TRIGGER_POST:
-		/* call trigger on the frontend after the backend. */
-
-		ret = soc_dsp_be_dai_trigger(fe, substream->stream, cmd);
-		if (ret < 0) {
-			dev_err(fe->dev,"dsp: trigger FE failed %d\n", ret);
-			return ret;
-		}
-
-		dev_dbg(fe->dev, "dsp: post trigger FE %s cmd %d\n",
-				fe->dai_link->name, cmd);
-
-		ret = soc_pcm_trigger(substream, cmd);
-		break;
-	case SND_SOC_DSP_TRIGGER_BESPOKE:
-		/* bespoke trigger() - handles both FE and BEs */
-
-		dev_dbg(fe->dev, "dsp: bespoke trigger FE %s cmd %d\n",
-				fe->dai_link->name, cmd);
-
-		ret = soc_pcm_bespoke_trigger(substream, cmd);
-		if (ret < 0) {
-			dev_err(fe->dev,"dsp: trigger FE failed %d\n", ret);
-			return ret;
-		}
-		break;
-	default:
-		dev_err(fe->dev, "dsp: invalid trigger cmd %d for %s\n", cmd,
-				fe->dai_link->name);
-		return -EINVAL;
-	}
-
-	return ret;
-}
-
 static int soc_dsp_be_dai_prepare(struct snd_soc_pcm_runtime *fe, int stream)
 {
 	struct snd_soc_dsp_params *dsp_params;
@@ -775,52 +599,6 @@ static int soc_dsp_be_dai_prepare(struct snd_soc_pcm_runtime *fe, int stream)
 	return ret;
 }
 
-int soc_dsp_fe_dai_prepare(struct snd_pcm_substream *substream)
-{
-	struct snd_soc_pcm_runtime *fe = substream->private_data;
-	int stream = substream->stream, ret = 0;
-
-	mutex_lock_nested(&fe->card->dsp_mutex, 0);
-
-	dev_dbg(fe->dev, "dsp: prepare FE %s\n", fe->dai_link->name);
-
-	/* there is no point preparing this FE if there are no BEs */
-	if (list_empty(&fe->dsp[stream].be_clients)) {
-		dev_err(fe->dev, "dsp: no backend DAIs enabled for %s\n",
-				fe->dai_link->name);
-		ret = -EINVAL;
-		goto out;
-	}
-
-	ret = soc_dsp_be_dai_prepare(fe, substream->stream);
-	if (ret < 0)
-		goto out;
-
-	/* mark the BE as active */
-	fe_state_update(fe, stream, SND_SOC_DSP_LINK_STATE_PREPARE);
-
-	/* call prepare on the frontend */
-	ret = soc_pcm_prepare(substream);
-	if (ret < 0) {
-		dev_err(fe->dev,"dsp: prepare FE %s failed\n", fe->dai_link->name);
-		goto out;
-	}
-
-	/* run the stream event for each BE */
-	if (stream == SNDRV_PCM_STREAM_PLAYBACK)
-		soc_dsp_dapm_stream_event(fe, stream,
-				fe->cpu_dai->driver->playback.stream_name,
-				SNDRV_PCM_TRIGGER_START);
-	else
-		soc_dsp_dapm_stream_event(fe, stream,
-				fe->cpu_dai->driver->capture.stream_name,
-				SNDRV_PCM_TRIGGER_START);
-
-out:
-	mutex_unlock(&fe->card->dsp_mutex);
-	return ret;
-}
-
 static int soc_dsp_be_dai_hw_free(struct snd_soc_pcm_runtime *fe, int stream)
 {
 	struct snd_soc_dsp_params *dsp_params;
@@ -848,52 +626,6 @@ static int soc_dsp_be_dai_hw_free(struct snd_soc_pcm_runtime *fe, int stream)
 			dsp_params->fe->dai_link->name);
 
 		soc_pcm_hw_free(be_substream);
-	}
-
-	return 0;
-}
-
-int soc_dsp_fe_dai_hw_free(struct snd_pcm_substream *substream)
-{
-	struct snd_soc_pcm_runtime *fe = substream->private_data;
-	int ret, stream = substream->stream;
-
-	mutex_lock_nested(&fe->card->dsp_mutex, 0);
-
-	fe_state_update(fe, stream, SND_SOC_DSP_LINK_STATE_FREE);
-
-	dev_dbg(fe->dev, "dsp: hw_free FE %s\n", fe->dai_link->name);
-
-	/* call hw_free on the frontend */
-	ret = soc_pcm_hw_free(substream);
-	if (ret < 0)
-		dev_err(fe->dev,"dsp: hw_free FE %s failed\n", fe->dai_link->name);
-
-	/* only hw_params backends that are either sinks or sources
-	 * to this frontend DAI */
-	ret = soc_dsp_be_dai_hw_free(fe, stream);
-
-	mutex_unlock(&fe->card->dsp_mutex);
-	return ret;
-}
-
-/*
- * FE stream event, send event to all active BEs.
- */
-int soc_dsp_dapm_stream_event(struct snd_soc_pcm_runtime *fe,
-	int dir, const char *stream, int event)
-{
-	struct snd_soc_dsp_params *dsp_params;
-
-	/* resume for playback */
-	list_for_each_entry(dsp_params, &fe->dsp[dir].be_clients, list_be) {
-
-		struct snd_soc_pcm_runtime *be = dsp_params->be;
-
-		dev_dbg(be->dev, "pm: BE %s stream %s event %d dir %d\n",
-				be->dai_link->name, stream, event, dir);
-
-		snd_soc_dapm_stream_event(be, stream, event);
 	}
 
 	return 0;
@@ -1439,39 +1171,6 @@ int soc_dsp_be_platform_resume(struct snd_soc_pcm_runtime *fe)
 	}
 
 	return 0;
-}
-
-/* called when opening FE stream  */
-int soc_dsp_fe_dai_open(struct snd_pcm_substream *fe_substream)
-{
-	struct snd_soc_pcm_runtime *fe = fe_substream->private_data;
-	int err;
-
-	fe->dsp[fe_substream->stream].runtime = fe_substream->runtime;
-
-	/* calculate valid and active FE <-> BE dsp_paramss */
-	err = dsp_add_new_paths(fe, fe_substream->stream, 0);
-	if (err <= 0) {
-		dev_warn(fe->dev, "asoc: %s no valid %s route from source to sink\n",
-			fe->dai_link->name, fe_substream->stream ? "capture" : "playback");
-	}
-
-	return soc_dsp_fe_dai_startup(fe_substream);
-}
-
-/* called when closing FE stream  */
-int soc_dsp_fe_dai_close(struct snd_pcm_substream *fe_substream)
-{
-	struct snd_soc_pcm_runtime *fe = fe_substream->private_data;
-	int ret;
-
-	ret = soc_dsp_fe_dai_shutdown(fe_substream);
-
-	be_disconnect(fe, fe_substream->stream);
-
-	fe->dsp[fe_substream->stream].runtime = NULL;
-
-	return ret;
 }
 
 #ifdef CONFIG_DEBUG_FS

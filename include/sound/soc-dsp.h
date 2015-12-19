@@ -58,47 +58,6 @@ struct snd_soc_dsp_link {
 	enum snd_soc_dsp_trigger trigger[2];
 };
 
-/* FE DSP PCM ops - called by soc-core */
-int soc_dsp_fe_dai_open(struct snd_pcm_substream *substream);
-int soc_dsp_fe_dai_close(struct snd_pcm_substream *substream);
-int soc_dsp_fe_dai_prepare(struct snd_pcm_substream *substream);
-int soc_dsp_fe_dai_hw_free(struct snd_pcm_substream *substream);
-int soc_dsp_fe_dai_trigger(struct snd_pcm_substream *substream, int cmd);
-int soc_dsp_fe_dai_hw_params(struct snd_pcm_substream *substream,
-				    struct snd_pcm_hw_params *params);
-
-/* Backend DSP trigger.
- * Can be called by core or components depending on trigger config.
- */
-int soc_dsp_be_dai_trigger(struct snd_soc_pcm_runtime *fe, int stream, int cmd);
-
-/* Is this trigger() call required for this BE and stream */
-static inline int snd_soc_dsp_is_trigger_for_be(struct snd_soc_pcm_runtime *fe,
-		struct snd_soc_pcm_runtime *be, int stream)
-{
-	if (!fe->dsp[stream].runtime_update)
-		return 1;
-	else if (be->dsp[stream].runtime_update)
-		return 1;
-	else
-		return 0;
-}
-
-/* Is this trigger() call required for this FE and stream */
-static inline int snd_soc_dsp_is_trigger_for_fe(struct snd_soc_pcm_runtime *fe,
-		int stream)
-{
-	return !fe->dsp[stream].runtime_update;
-}
-
-static inline int snd_soc_dsp_platform_trigger(struct snd_pcm_substream *substream,
-	int cmd, struct snd_soc_platform *platform)
-{
-	if (platform->driver->ops->trigger)
-		return platform->driver->ops->trigger(substream, cmd);
-	return 0;
-}
-
 /* Runtime update - open/close Backend DSP paths depending on mixer updates */
 int soc_dsp_runtime_update(struct snd_soc_dapm_widget *widget);
 
@@ -110,15 +69,4 @@ int soc_dsp_be_platform_suspend(struct snd_soc_pcm_runtime *fe);
 int soc_dsp_be_cpu_dai_resume(struct snd_soc_pcm_runtime *fe);
 int soc_dsp_be_ac97_cpu_dai_resume(struct snd_soc_pcm_runtime *fe);
 int soc_dsp_be_platform_resume(struct snd_soc_pcm_runtime *fe);
-
-/* DAPM stream events for Backend DSP paths */
-int soc_dsp_dapm_stream_event(struct snd_soc_pcm_runtime *fe,
-	int dir, const char *stream, int event);
-
-static inline struct snd_pcm_substream *snd_soc_dsp_get_substream(
-		struct snd_soc_pcm_runtime *be, int stream)
-{
-	return be->pcm->streams[stream].substream;
-}
-
 #endif
