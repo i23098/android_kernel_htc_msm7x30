@@ -39,6 +39,21 @@
 #include <mach/perflock.h>
 #endif
 
+/**
+ * ep_choose - select descriptor endpoint at current device speed
+ * @g: gadget, connected and running at some speed
+ * @hs: descriptor to use for high speed operation
+ * @fs: descriptor to use for full or low speed operation
+ */
+static inline struct usb_endpoint_descriptor *
+ep_choose(struct usb_gadget *g, struct usb_endpoint_descriptor *hs,
+		struct usb_endpoint_descriptor *fs)
+{
+	if (gadget_is_dualspeed(g) && g->speed == USB_SPEED_HIGH)
+		return hs;
+	return fs;
+}
+
 /*
  * Kbuild is not very cooperative with respect to linking separately
  * compiled library objects into one module.  So for now we won't use
