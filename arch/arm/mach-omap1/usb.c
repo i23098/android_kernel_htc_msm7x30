@@ -53,7 +53,7 @@
 #define INT_USB_IRQ_HGEN	INT_USB_HHC_1
 #define INT_USB_IRQ_OTG		IH2_BASE + 8
 
-#ifdef	CONFIG_USB_GADGET_OMAP
+#ifdef	CONFIG_USB_OMAP
 
 static struct resource udc_resources[] = {
 	/* order is significant! */
@@ -483,7 +483,7 @@ static void __init omap_1510_usb_init(struct omap_usb_config *config)
 	while (!(omap_readw(ULPD_DPLL_CTRL) & DPLL_LOCK))
 		cpu_relax();
 
-#ifdef	CONFIG_USB_GADGET_OMAP
+#ifdef	CONFIG_USB_OMAP
 	if (config->register_dev) {
 		int status;
 

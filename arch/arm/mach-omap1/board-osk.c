@@ -290,7 +290,7 @@ static struct omap_usb_config osk_usb_config __initdata = {
 	 * be used, with a NONSTANDARD gender-bending cable/dongle, as
 	 * a peripheral.
 	 */
-#ifdef	CONFIG_USB_GADGET_OMAP
+#ifdef	CONFIG_USB_OMAP
 	.register_dev	= 1,
 	.hmc_mode	= 0,
 #else

@@ -641,7 +641,7 @@ int hsusb_rpc_connect(int connect)
 }
 EXPORT_SYMBOL(hsusb_rpc_connect);
 
-#ifdef CONFIG_USB_GADGET_MSM_72K
+#ifdef CONFIG_USB_MSM_72K
 /* charger api wrappers */
 int hsusb_chg_init(int connect)
 {

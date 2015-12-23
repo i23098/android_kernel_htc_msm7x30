@@ -97,7 +97,7 @@ omap_otg_init(struct omap_usb_config *config)
 	syscon = omap_readl(OTG_SYSCON_1);
 	syscon |= HST_IDLE_EN|DEV_IDLE_EN|OTG_IDLE_EN;
 
-#ifdef	CONFIG_USB_GADGET_OMAP
+#ifdef	CONFIG_USB_OMAP
 	if (config->otg || config->register_dev) {
 		struct platform_device *udc_device = config->udc_device;
 

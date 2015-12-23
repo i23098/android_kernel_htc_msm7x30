@@ -43,7 +43,7 @@
 
 #if defined(CONFIG_ARCH_OMAP2)
 
-#ifdef	CONFIG_USB_GADGET_OMAP
+#ifdef	CONFIG_USB_OMAP
 
 static struct resource udc_resources[] = {
 	/* order is significant! */

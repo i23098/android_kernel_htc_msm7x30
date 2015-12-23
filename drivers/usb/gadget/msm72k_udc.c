@@ -2430,15 +2430,6 @@ static int msm72k_set_selfpowered(struct usb_gadget *_gadget, int set)
 
 }
 
-static const struct usb_gadget_ops msm72k_ops = {
-	.get_frame	= msm72k_get_frame,
-	.vbus_session	= msm72k_udc_vbus_session,
-	.vbus_draw	= msm72k_udc_vbus_draw,
-	.pullup		= msm72k_pullup,
-	.wakeup		= msm72k_wakeup,
-	.set_selfpowered = msm72k_set_selfpowered,
-};
-
 static void usb_do_remote_wakeup(struct work_struct *w)
 {
 	struct usb_info *ui = the_usb_info;
@@ -2590,6 +2581,142 @@ static struct attribute_group otg_attr_grp = {
 };
 #endif
 
+static int msm72k_start(struct usb_gadget_driver *driver,
+			    int (*bind)(struct usb_gadget *))
+{
+	struct usb_info *ui = the_usb_info;
+	int			retval, n;
+
+	if (!driver
+			|| driver->speed < USB_SPEED_FULL
+			|| !bind
+			|| !driver->disconnect
+			|| !driver->setup)
+		return -EINVAL;
+	if (!ui)
+		return -ENODEV;
+	if (ui->driver)
+		return -EBUSY;
+
+	/* first hook up the driver ... */
+	ui->driver = driver;
+	ui->gadget.dev.driver = &driver->driver;
+	ui->gadget.name = driver_name;
+	INIT_LIST_HEAD(&ui->gadget.ep_list);
+	ui->gadget.ep0 = &ui->ep0in.ep;
+	INIT_LIST_HEAD(&ui->gadget.ep0->ep_list);
+	ui->gadget.speed = USB_SPEED_UNKNOWN;
+	atomic_set(&ui->softconnect, 1);
+
+	for (n = 1; n < 16; n++) {
+		struct msm_endpoint *ept = ui->ept + n;
+		list_add_tail(&ept->ep.ep_list, &ui->gadget.ep_list);
+		ept->ep.maxpacket = 512;
+	}
+	for (n = 17; n < 32; n++) {
+		struct msm_endpoint *ept = ui->ept + n;
+		list_add_tail(&ept->ep.ep_list, &ui->gadget.ep_list);
+		ept->ep.maxpacket = 512;
+	}
+
+	retval = device_add(&ui->gadget.dev);
+	if (retval)
+		goto fail;
+
+	retval = bind(&ui->gadget);
+	if (retval) {
+		dev_err(&ui->pdev->dev, "bind to driver %s --> error %d\n",
+				driver->driver.name, retval);
+		device_del(&ui->gadget.dev);
+		goto fail;
+	}
+
+	retval = device_create_file(&ui->gadget.dev, &dev_attr_wakeup);
+	if (retval != 0)
+		dev_err(&ui->pdev->dev, "failed to create sysfs entry:"
+			"(wakeup) error: (%d)\n", retval);
+	retval = device_create_file(&ui->gadget.dev, &dev_attr_usb_state);
+	if (retval != 0)
+		dev_err(&ui->pdev->dev, "failed to create sysfs entry:"
+			" (usb_state) error: (%d)\n", retval);
+
+	retval = device_create_file(&ui->gadget.dev, &dev_attr_usb_speed);
+	if (retval != 0)
+		dev_err(&ui->pdev->dev, "failed to create sysfs entry:"
+			" (usb_speed) error: (%d)\n", retval);
+
+	retval = device_create_file(&ui->gadget.dev, &dev_attr_chg_type);
+	if (retval != 0)
+		dev_err(&ui->pdev->dev,
+			"failed to create sysfs entry(chg_type): err:(%d)\n",
+					retval);
+	retval = device_create_file(&ui->gadget.dev, &dev_attr_chg_current);
+	if (retval != 0)
+		dev_err(&ui->pdev->dev,
+			"failed to create sysfs entry(chg_current):"
+			"err:(%d)\n", retval);
+
+	dev_dbg(&ui->pdev->dev, "registered gadget driver '%s'\n",
+			driver->driver.name);
+	usb_start(ui);
+
+	return 0;
+
+fail:
+	ui->driver = NULL;
+	ui->gadget.dev.driver = NULL;
+	return retval;
+}
+
+static int msm72k_stop(struct usb_gadget_driver *driver)
+{
+	struct usb_info *dev = the_usb_info;
+
+	if (!dev)
+		return -ENODEV;
+	if (!driver || driver != dev->driver || !driver->unbind)
+		return -EINVAL;
+
+	msm72k_pullup_internal(&dev->gadget, 0);
+	if (dev->irq) {
+		free_irq(dev->irq, dev);
+		dev->irq = 0;
+	}
+	dev->state = USB_STATE_IDLE;
+	atomic_set(&dev->configured, 0);
+	switch_set_state(&dev->sdev, 0);
+	/* cancel pending ep0 transactions */
+	flush_endpoint(&dev->ep0out);
+	flush_endpoint(&dev->ep0in);
+
+	device_remove_file(&dev->gadget.dev, &dev_attr_wakeup);
+	device_remove_file(&dev->gadget.dev, &dev_attr_usb_state);
+	device_remove_file(&dev->gadget.dev, &dev_attr_usb_speed);
+	device_remove_file(&dev->gadget.dev, &dev_attr_chg_type);
+	device_remove_file(&dev->gadget.dev, &dev_attr_chg_current);
+	driver->disconnect(&dev->gadget);
+	driver->unbind(&dev->gadget);
+	dev->gadget.dev.driver = NULL;
+	dev->driver = NULL;
+
+	device_del(&dev->gadget.dev);
+
+	dev_dbg(&dev->pdev->dev,
+		"unregistered gadget driver '%s'\n", driver->driver.name);
+	return 0;
+}
+
+static const struct usb_gadget_ops msm72k_ops = {
+	.get_frame	= msm72k_get_frame,
+	.vbus_session	= msm72k_udc_vbus_session,
+	.vbus_draw	= msm72k_udc_vbus_draw,
+	.pullup		= msm72k_pullup,
+	.wakeup		= msm72k_wakeup,
+	.set_selfpowered = msm72k_set_selfpowered,
+	.start		= msm72k_start,
+	.stop		= msm72k_stop,
+};
+
 static int msm72k_probe(struct platform_device *pdev)
 {
 	struct usb_info *ui;
@@ -2677,130 +2804,15 @@ static int msm72k_probe(struct platform_device *pdev)
 int usb_gadget_probe_driver(struct usb_gadget_driver *driver,
 			    int (*bind)(struct usb_gadget *))
 {
-	struct usb_info *ui = the_usb_info;
-	int			retval, n;
-
-	if (!driver
-			|| driver->speed < USB_SPEED_FULL
-			|| !bind
-			|| !driver->disconnect
-			|| !driver->setup)
-		return -EINVAL;
-	if (!ui)
-		return -ENODEV;
-	if (ui->driver)
-		return -EBUSY;
-
-	/* first hook up the driver ... */
-	ui->driver = driver;
-	ui->gadget.dev.driver = &driver->driver;
-	ui->gadget.name = driver_name;
-	INIT_LIST_HEAD(&ui->gadget.ep_list);
-	ui->gadget.ep0 = &ui->ep0in.ep;
-	INIT_LIST_HEAD(&ui->gadget.ep0->ep_list);
-	ui->gadget.speed = USB_SPEED_UNKNOWN;
-	atomic_set(&ui->softconnect, 1);
-
-	for (n = 1; n < 16; n++) {
-		struct msm_endpoint *ept = ui->ept + n;
-		list_add_tail(&ept->ep.ep_list, &ui->gadget.ep_list);
-		ept->ep.maxpacket = 512;
-	}
-	for (n = 17; n < 32; n++) {
-		struct msm_endpoint *ept = ui->ept + n;
-		list_add_tail(&ept->ep.ep_list, &ui->gadget.ep_list);
-		ept->ep.maxpacket = 512;
-	}
-
-	retval = device_add(&ui->gadget.dev);
-	if (retval)
-		goto fail;
-
-	retval = bind(&ui->gadget);
-	if (retval) {
-		dev_err(&ui->pdev->dev, "bind to driver %s --> error %d\n",
-				driver->driver.name, retval);
-		device_del(&ui->gadget.dev);
-		goto fail;
-	}
-
-	retval = device_create_file(&ui->gadget.dev, &dev_attr_wakeup);
-	if (retval != 0)
-		dev_err(&ui->pdev->dev, "failed to create sysfs entry:"
-			"(wakeup) error: (%d)\n", retval);
-	retval = device_create_file(&ui->gadget.dev, &dev_attr_usb_state);
-	if (retval != 0)
-		dev_err(&ui->pdev->dev, "failed to create sysfs entry:"
-			" (usb_state) error: (%d)\n", retval);
-
-	retval = device_create_file(&ui->gadget.dev, &dev_attr_usb_speed);
-	if (retval != 0)
-		dev_err(&ui->pdev->dev, "failed to create sysfs entry:"
-			" (usb_speed) error: (%d)\n", retval);
-
-	retval = device_create_file(&ui->gadget.dev, &dev_attr_chg_type);
-	if (retval != 0)
-		dev_err(&ui->pdev->dev,
-			"failed to create sysfs entry(chg_type): err:(%d)\n",
-					retval);
-	retval = device_create_file(&ui->gadget.dev, &dev_attr_chg_current);
-	if (retval != 0)
-		dev_err(&ui->pdev->dev,
-			"failed to create sysfs entry(chg_current):"
-			"err:(%d)\n", retval);
-
-	dev_dbg(&ui->pdev->dev, "registered gadget driver '%s'\n",
-			driver->driver.name);
-	usb_start(ui);
-
-	return 0;
-
-fail:
-	ui->driver = NULL;
-	ui->gadget.dev.driver = NULL;
-	return retval;
+	return msm72k_start(driver, bind);
 }
 EXPORT_SYMBOL(usb_gadget_probe_driver);
 
 int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
 {
-	struct usb_info *dev = the_usb_info;
-
-	if (!dev)
-		return -ENODEV;
-	if (!driver || driver != dev->driver || !driver->unbind)
-		return -EINVAL;
-
-	msm72k_pullup_internal(&dev->gadget, 0);
-	if (dev->irq) {
-		free_irq(dev->irq, dev);
-		dev->irq = 0;
-	}
-	dev->state = USB_STATE_IDLE;
-	atomic_set(&dev->configured, 0);
-	switch_set_state(&dev->sdev, 0);
-	/* cancel pending ep0 transactions */
-	flush_endpoint(&dev->ep0out);
-	flush_endpoint(&dev->ep0in);
-
-	device_remove_file(&dev->gadget.dev, &dev_attr_wakeup);
-	device_remove_file(&dev->gadget.dev, &dev_attr_usb_state);
-	device_remove_file(&dev->gadget.dev, &dev_attr_usb_speed);
-	device_remove_file(&dev->gadget.dev, &dev_attr_chg_type);
-	device_remove_file(&dev->gadget.dev, &dev_attr_chg_current);
-	driver->disconnect(&dev->gadget);
-	driver->unbind(&dev->gadget);
-	dev->gadget.dev.driver = NULL;
-	dev->driver = NULL;
-
-	device_del(&dev->gadget.dev);
-
-	dev_dbg(&dev->pdev->dev,
-		"unregistered gadget driver '%s'\n", driver->driver.name);
-	return 0;
+	return msm72k_stop(driver);
 }
 EXPORT_SYMBOL(usb_gadget_unregister_driver);
-
 
 static int msm72k_udc_runtime_suspend(struct device *dev)
 {

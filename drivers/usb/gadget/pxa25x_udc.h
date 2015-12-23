@@ -20,8 +20,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef __LINUX_USB_GADGET_PXA25X_H
-#define __LINUX_USB_GADGET_PXA25X_H
+#ifndef __LINUX_USB_PXA25X_H
+#define __LINUX_USB_PXA25X_H
 
 #include <linux/types.h>
 
@@ -264,4 +264,4 @@ dump_state(struct pxa25x_udc *dev)
 #define INFO(stuff...)		pr_info("udc: " stuff)
 
 
-#endif /* __LINUX_USB_GADGET_PXA25X_H */
+#endif /* __LINUX_USB_PXA25X_H */

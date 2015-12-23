@@ -44,7 +44,7 @@ int msm_chg_rpc_close(void);
 
 int hsusb_rpc_connect(int connect);
 
-#ifdef CONFIG_USB_GADGET_MSM_72K
+#ifdef CONFIG_USB_MSM_72K
 int hsusb_chg_init(int connect);
 void hsusb_chg_vbus_draw(unsigned mA);
 void hsusb_chg_connected(enum chg_type chgtype);
@@ -80,7 +80,7 @@ static inline int msm_chg_usb_i_is_not_available(void) { return 0; }
 static inline int msm_chg_usb_charger_disconnected(void) { return 0; }
 static inline int msm_chg_rpc_close(void) { return 0; }
 
-#ifdef CONFIG_USB_GADGET_MSM_72K
+#ifdef CONFIG_USB_MSM_72K
 static inline int hsusb_chg_init(int connect) { return 0; }
 static inline void hsusb_chg_vbus_draw(unsigned mA) { }
 static inline void hsusb_chg_connected(enum chg_type chgtype) { }
