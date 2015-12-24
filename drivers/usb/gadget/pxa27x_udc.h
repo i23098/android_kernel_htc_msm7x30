@@ -20,8 +20,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307	 USA
  */
 
-#ifndef __LINUX_USB_PXA27X_H
-#define __LINUX_USB_PXA27X_H
+#ifndef __LINUX_USB_GADGET_PXA27X_H
+#define __LINUX_USB_GADGET_PXA27X_H
 
 #include <linux/types.h>
 #include <linux/spinlock.h>
@@ -502,4 +502,4 @@ static inline struct pxa_udc *to_gadget_udc(struct usb_gadget *gadget)
 #define ep_warn(ep, fmt, arg...) \
 	dev_warn(ep->dev->dev, "%s:%s:" fmt, EPNAME(ep), __func__, ## arg)
 
-#endif /* __LINUX_USB_PXA27X_H */
+#endif /* __LINUX_USB_GADGET_PXA27X_H */
