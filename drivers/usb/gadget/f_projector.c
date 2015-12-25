@@ -82,9 +82,6 @@ struct projector_dev {
 	struct usb_ep *ep_in;
 	struct usb_ep *ep_out;
 
-	struct usb_endpoint_descriptor	*in;
-	struct usb_endpoint_descriptor	*out;
-
 	int online;
 	int error;
 
@@ -861,19 +858,19 @@ static int projector_function_set_alt(struct usb_function *f,
 
 	DBG("%s intf: %d alt: %d\n", __func__, intf, alt);
 
-	dev->in = ep_choose(cdev->gadget,
+	dev->ep_in->desc = ep_choose(cdev->gadget,
 				&projector_highspeed_in_desc,
 				&projector_fullspeed_in_desc);
 
-	dev->out = ep_choose(cdev->gadget,
+	dev->ep_out->desc = ep_choose(cdev->gadget,
 				&projector_highspeed_out_desc,
 				&projector_fullspeed_out_desc);
 
-	ret = usb_ep_enable(dev->ep_in, dev->in);
+	ret = usb_ep_enable(dev->ep_in);
 	if (ret)
 		return ret;
 
-	ret = usb_ep_enable(dev->ep_out,dev->out);
+	ret = usb_ep_enable(dev->ep_out);
 	if (ret) {
 		usb_ep_disable(dev->ep_in);
 		return ret;

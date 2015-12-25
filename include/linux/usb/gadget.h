@@ -192,10 +192,9 @@ struct usb_ep {
  *
  * returns zero, or a negative error code.
  */
-static inline int usb_ep_enable(struct usb_ep *ep,
-				const struct usb_endpoint_descriptor *desc)
+static inline int usb_ep_enable(struct usb_ep *ep)
 {
-	return ep->ops->enable(ep, desc);
+	return ep->ops->enable(ep, ep->desc);
 }
 
 /**

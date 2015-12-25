@@ -68,7 +68,6 @@ struct f_ecm {
 	struct ecm_ep_descs		hs;
 
 	struct usb_ep			*notify;
-	struct usb_endpoint_descriptor	*notify_desc;
 	struct usb_request		*notify_req;
 	u8				notify_state;
 	bool				is_open;
@@ -472,11 +471,11 @@ static int ecm_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 			usb_ep_disable(ecm->notify);
 		} else {
 			VDBG(cdev, "init ecm ctrl %d\n", intf);
-			ecm->notify_desc = ep_choose(cdev->gadget,
+			ecm->notify->desc = ep_choose(cdev->gadget,
 					ecm->hs.notify,
 					ecm->fs.notify);
 		}
-		usb_ep_enable(ecm->notify, ecm->notify_desc);
+		usb_ep_enable(ecm->notify);
 		ecm->notify->driver_data = ecm;
 
 	/* Data interface has two altsettings, 0 and 1 */
@@ -555,7 +554,7 @@ static void ecm_disable(struct usb_function *f)
 	if (ecm->notify->driver_data) {
 		usb_ep_disable(ecm->notify);
 		ecm->notify->driver_data = NULL;
-		ecm->notify_desc = NULL;
+		ecm->notify->desc = NULL;
 	}
 }
 

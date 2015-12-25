@@ -173,7 +173,9 @@ fail_1:
 
 static int __enable_ep(struct usb_ep *ep, struct usb_endpoint_descriptor *desc)
 {
-	int err = usb_ep_enable(ep, desc);
+	int err;
+	ep->desc = desc;
+	err = usb_ep_enable(ep);
 	ep->driver_data = dbgp.gadget;
 	return err;
 }

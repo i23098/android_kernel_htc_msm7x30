@@ -369,6 +369,13 @@ static int hidg_setup(struct usb_function *f,
 	case ((USB_DIR_IN | USB_TYPE_STANDARD | USB_RECIP_INTERFACE) << 8
 		  | USB_REQ_GET_DESCRIPTOR):
 		switch (value >> 8) {
+		case HID_DT_HID:
+			VDBG(cdev, "USB_REQ_GET_DESCRIPTOR: HID\n");
+			length = min_t(unsigned short, length,
+						   hidg_desc.bLength);
+			memcpy(req->buf, &hidg_desc, length);
+			goto respond;
+			break;
 		case HID_DT_REPORT:
 			VDBG(cdev, "USB_REQ_GET_DESCRIPTOR: REPORT\n");
 			length = min_t(unsigned short, length,
@@ -416,7 +423,6 @@ static int hidg_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 {
 	struct usb_composite_dev		*cdev = f->config->cdev;
 	struct f_hidg				*hidg = func_to_hidg(f);
-	const struct usb_endpoint_descriptor	*ep_desc;
 	int status = 0;
 
 	VDBG(cdev, "hidg_set_alt intf:%d alt:%d\n", intf, alt);
@@ -426,9 +432,9 @@ static int hidg_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 		if (hidg->in_ep->driver_data != NULL)
 			usb_ep_disable(hidg->in_ep);
 
-		ep_desc = ep_choose(f->config->cdev->gadget,
+		hidg->in_ep->desc = ep_choose(f->config->cdev->gadget,
 				hidg->hs_in_ep_desc, hidg->fs_in_ep_desc);
-		status = usb_ep_enable(hidg->in_ep, ep_desc);
+		status = usb_ep_enable(hidg->in_ep);
 		if (status < 0) {
 			ERROR(cdev, "Enable endpoint FAILED!\n");
 			goto fail;

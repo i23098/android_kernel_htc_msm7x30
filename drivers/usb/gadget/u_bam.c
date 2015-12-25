@@ -876,7 +876,7 @@ int gbam_connect(struct grmnet *gr, u8 port_num)
 	port = bam_ports[port_num].port;
 	d = &port->data_ch;
 
-	ret = usb_ep_enable(gr->in, gr->in_desc);
+	ret = usb_ep_enable(gr->in);
 	if (ret) {
 		pr_err("%s: usb_ep_enable failed eptype:IN ep:%p",
 				__func__, gr->in);
@@ -884,7 +884,7 @@ int gbam_connect(struct grmnet *gr, u8 port_num)
 	}
 	gr->in->driver_data = port;
 
-	ret = usb_ep_enable(gr->out, gr->out_desc);
+	ret = usb_ep_enable(gr->out);
 	if (ret) {
 		pr_err("%s: usb_ep_enable failed eptype:OUT ep:%p",
 				__func__, gr->out);

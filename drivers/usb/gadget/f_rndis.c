@@ -95,7 +95,6 @@ struct f_rndis {
 	struct rndis_ep_descs		hs;
 
 	struct usb_ep			*notify;
-	struct usb_endpoint_descriptor	*notify_desc;
 	struct usb_request		*notify_req;
 	atomic_t			notify_count;
 
@@ -514,10 +513,10 @@ static int rndis_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 		} else {
 			VDBG(cdev, "init rndis ctrl %d\n", intf);
 		}
-		rndis->notify_desc = ep_choose(cdev->gadget,
+		rndis->notify->desc = ep_choose(cdev->gadget,
 				rndis->hs.notify,
 				rndis->fs.notify);
-		usb_ep_enable(rndis->notify, rndis->notify_desc);
+		usb_ep_enable(rndis->notify);
 		rndis->notify->driver_data = rndis;
 
 	} else if (intf == rndis->data_id) {

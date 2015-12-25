@@ -20,6 +20,7 @@
  * 02110-1301 USA
  */
 
+#include <linux/mm.h>
 #include <linux/slab.h>
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -427,17 +428,16 @@ static int pn_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 		spin_lock(&port->lock);
 		__pn_reset(f);
 		if (alt == 1) {
-			struct usb_endpoint_descriptor *out, *in;
 			int i;
 
-			out = ep_choose(gadget,
+			fp->out_ep->desc = ep_choose(gadget,
 					&pn_hs_sink_desc,
 					&pn_fs_sink_desc);
-			in = ep_choose(gadget,
+			fp->in_ep->desc = ep_choose(gadget,
 					&pn_hs_source_desc,
 					&pn_fs_source_desc);
-			usb_ep_enable(fp->out_ep, out);
-			usb_ep_enable(fp->in_ep, in);
+			usb_ep_enable(fp->out_ep);
+			usb_ep_enable(fp->in_ep);
 
 			port->usb = fp;
 			fp->out_ep->driver_data = fp;
@@ -561,7 +561,6 @@ err_req:
 	for (i = 0; i < phonet_rxq_size && fp->out_reqv[i]; i++)
 		usb_ep_free_request(fp->out_ep, fp->out_reqv[i]);
 err:
-
 	if (fp->out_ep)
 		fp->out_ep->driver_data = NULL;
 	if (fp->in_ep)

@@ -187,8 +187,6 @@ struct diag_context {
 	struct usb_function function;
 	struct usb_ep *out;
 	struct usb_ep *in;
-	struct usb_endpoint_descriptor  *in_desc;
-	struct usb_endpoint_descriptor  *out_desc;
 	struct list_head read_pool;
 	struct list_head write_pool;
 	struct work_struct config_work;
@@ -694,21 +692,21 @@ static int diag_function_set_alt(struct usb_function *f,
 	struct usb_request *req;
 #endif
 
-	dev->in_desc = ep_choose(cdev->gadget,
+	dev->in->desc = ep_choose(cdev->gadget,
 			(struct usb_endpoint_descriptor *)f->hs_descriptors[1],
 			(struct usb_endpoint_descriptor *)f->descriptors[1]);
-	dev->out_desc = ep_choose(cdev->gadget,
+	dev->out->desc = ep_choose(cdev->gadget,
 			(struct usb_endpoint_descriptor *)f->hs_descriptors[2],
 			(struct usb_endpoint_descriptor *)f->descriptors[2]);
 	dev->in->driver_data = dev;
-	rc = usb_ep_enable(dev->in, dev->in_desc);
+	rc = usb_ep_enable(dev->in);
 	if (rc) {
 		ERROR(dev->cdev, "can't enable %s, result %d\n",
 						dev->in->name, rc);
 		return rc;
 	}
 	dev->out->driver_data = dev;
-	rc = usb_ep_enable(dev->out, dev->out_desc);
+	rc = usb_ep_enable(dev->out);
 	if (rc) {
 		ERROR(dev->cdev, "can't enable %s, result %d\n",
 						dev->out->name, rc);
