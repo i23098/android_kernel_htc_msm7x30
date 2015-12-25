@@ -833,7 +833,7 @@ ep_config (struct file *fd, const char __user *buf, size_t len, loff_t *ptr)
 	case USB_SPEED_LOW:
 	case USB_SPEED_FULL:
 		ep->desc = &data->desc;
-		value = usb_ep_enable (ep);
+		value = usb_ep_enable(ep);
 		if (value == 0)
 			data->state = STATE_EP_ENABLED;
 		break;
@@ -841,7 +841,7 @@ ep_config (struct file *fd, const char __user *buf, size_t len, loff_t *ptr)
 	case USB_SPEED_HIGH:
 		/* fails if caller didn't provide that descriptor... */
 		ep->desc = &data->hs_desc;
-		value = usb_ep_enable (ep);
+		value = usb_ep_enable(ep);
 		if (value == 0)
 			data->state = STATE_EP_ENABLED;
 		break;
@@ -1349,7 +1349,7 @@ static void make_qualifier (struct dev_data *dev)
 	qual.bDeviceProtocol = desc->bDeviceProtocol;
 
 	/* assumes ep0 uses the same value for both speeds ... */
-	qual.bMaxPacketSize0 = desc->bMaxPacketSize0;
+	qual.bMaxPacketSize0 = dev->gadget->ep0->maxpacket;
 
 	qual.bNumConfigurations = 1;
 	qual.bRESERVED = 0;
@@ -1406,7 +1406,6 @@ gadgetfs_setup (struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 		}
 
 		dev->state = STATE_DEV_CONNECTED;
-		dev->dev->bMaxPacketSize0 = gadget->ep0->maxpacket;
 
 		INFO (dev, "connected\n");
 		event = next_event (dev, GADGETFS_CONNECT);
@@ -1434,6 +1433,7 @@ gadgetfs_setup (struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 
 		case USB_DT_DEVICE:
 			value = min (w_length, (u16) sizeof *dev->dev);
+			dev->dev->bMaxPacketSize0 = dev->gadget->ep0->maxpacket;
 			req->buf = dev->dev;
 			break;
 #ifdef	CONFIG_USB_GADGET_DUALSPEED
@@ -1508,7 +1508,7 @@ gadgetfs_setup (struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 		}
 		break;
 
-#ifndef	CONFIG_USB_PXA25X
+#ifndef	CONFIG_USB_GADGET_PXA25X
 	/* PXA automagically handles this request too */
 	case USB_REQ_GET_CONFIGURATION:
 		if (ctrl->bRequestType != 0x80)
@@ -1714,7 +1714,6 @@ gadgetfs_bind (struct usb_gadget *gadget)
 	set_gadget_data (gadget, dev);
 	dev->gadget = gadget;
 	gadget->ep0->driver_data = dev;
-	dev->dev->bMaxPacketSize0 = gadget->ep0->maxpacket;
 
 	/* preallocate control response and buffer */
 	dev->req = usb_ep_alloc_request (gadget->ep0, GFP_KERNEL);

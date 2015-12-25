@@ -117,7 +117,7 @@ static inline int usb_gadget_controller_number(struct usb_gadget *gadget)
 	else if (gadget_is_net2272(gadget))
 		return 0x31;
 	else if (gadget_is_msm72k(gadget))
-		return 0x31;
+		return 0x32;
 
 	return -ENOENT;
 }

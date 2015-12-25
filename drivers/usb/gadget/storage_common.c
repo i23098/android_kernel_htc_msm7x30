@@ -719,16 +719,10 @@ static void fsg_lun_close(struct fsg_lun *curlun)
 static int fsg_lun_fsync_sub(struct fsg_lun *curlun)
 {
 	struct file	*filp = curlun->filp;
-	int ret = 0;
 
 	if (curlun->ro || !filp)
 		return 0;
-
-	printk(KERN_DEBUG "vfs_fsync++\n");
-	ret = vfs_fsync(filp, 1);
-	printk(KERN_DEBUG "vfs_fsync--\n");
-
-	return ret;
+	return vfs_fsync(filp, 1);
 }
 
 static void store_cdrom_address(u8 *dest, int msf, u32 addr)

@@ -1151,6 +1151,8 @@ printer_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 			switch (wValue >> 8) {
 
 			case USB_DT_DEVICE:
+				device_desc.bMaxPacketSize0 =
+					gadget->ep0->maxpacket;
 				value = min(wLength, (u16) sizeof device_desc);
 				memcpy(req->buf, &device_desc, value);
 				break;
@@ -1158,6 +1160,12 @@ printer_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 			case USB_DT_DEVICE_QUALIFIER:
 				if (!gadget->is_dualspeed)
 					break;
+				/*
+				 * assumes ep0 uses the same value for both
+				 * speeds
+				 */
+				dev_qualifier.bMaxPacketSize0 =
+					gadget->ep0->maxpacket;
 				value = min(wLength,
 						(u16) sizeof dev_qualifier);
 				memcpy(req->buf, &dev_qualifier, value);
@@ -1453,15 +1461,11 @@ autoconf_fail:
 	out_ep->driver_data = out_ep;	/* claim */
 
 #ifdef	CONFIG_USB_GADGET_DUALSPEED
-	/* assumes ep0 uses the same value for both speeds ... */
-	dev_qualifier.bMaxPacketSize0 = device_desc.bMaxPacketSize0;
-
-	/* and that all endpoints are dual-speed */
+	/* assumes that all endpoints are dual-speed */
 	hs_ep_in_desc.bEndpointAddress = fs_ep_in_desc.bEndpointAddress;
 	hs_ep_out_desc.bEndpointAddress = fs_ep_out_desc.bEndpointAddress;
 #endif	/* DUALSPEED */
 
-	device_desc.bMaxPacketSize0 = gadget->ep0->maxpacket;
 	usb_gadget_set_selfpowered(gadget);
 
 	if (gadget->is_otg) {
@@ -1607,7 +1611,7 @@ cleanup(void)
 	if (status)
 		ERROR(dev, "usb_gadget_unregister_driver %x\n", status);
 
-	unregister_chrdev_region(g_printer_devno, 1);
+	unregister_chrdev_region(g_printer_devno, 2);
 	class_destroy(usb_gadget_class);
 	mutex_unlock(&usb_printer_gadget.lock_printer_io);
 }

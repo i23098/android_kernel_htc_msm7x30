@@ -1183,7 +1183,8 @@ dequeue:
 			/* XXX pass on more specific error code */
 			req->req.status = -EIO;
 			req->req.actual = 0;
-			USB_INFO("ept %d %s error. info=%08x\n",
+			dev_err(&ui->pdev->dev,
+				"ept %d %s error. info=%08x\n",
 			       ept->num,
 			       (ept->flags & EPT_FLAG_IN) ? "in" : "out",
 			       info);
@@ -1486,6 +1487,8 @@ static void usb_start(struct usb_info *ui)
 static int usb_free(struct usb_info *ui, int ret)
 {
 	dev_dbg(&ui->pdev->dev, "usb_free(%d)\n", ret);
+
+	usb_del_gadget_udc(&ui->gadget);
 
 	if (ui->xceiv)
 		otg_put_transceiver(ui->xceiv);
@@ -2051,10 +2054,14 @@ static void usb_debugfs_init(struct usb_info *ui) {}
 static int
 msm72k_enable(struct usb_ep *_ep, const struct usb_endpoint_descriptor *desc)
 {
-	struct msm_endpoint *ept = to_msm_endpoint(_ep);
-	unsigned char ep_type =
-			desc->bmAttributes & USB_ENDPOINT_XFERTYPE_MASK;
+	struct msm_endpoint *ept;
+	unsigned char ep_type;
 
+	if (_ep == NULL || desc == NULL)
+		return -EINVAL;
+
+	ept = to_msm_endpoint(_ep);
+	ep_type = desc->bmAttributes & USB_ENDPOINT_XFERTYPE_MASK;
 	_ep->maxpacket = le16_to_cpu(desc->wMaxPacketSize);
 	config_ept(ept);
 	ept->wedged = 0;
@@ -2068,6 +2075,11 @@ static int msm72k_disable(struct usb_ep *_ep)
 
 	usb_ept_enable(ept, 0, 0);
 	flush_endpoint(ept);
+	/*
+	 * Clear descriptors here. Otherwise previous descriptors
+	 * will be used by function drivers upon next enumeration.
+	 */
+	_ep->desc = NULL;
 	return 0;
 }
 
@@ -2339,7 +2351,6 @@ static int msm72k_pullup(struct usb_gadget *_gadget, int is_active)
 {
 	struct usb_info *ui = container_of(_gadget, struct usb_info, gadget);
 	unsigned long flags;
-
 
 	atomic_set(&ui->softconnect, is_active);
 
@@ -2757,6 +2768,10 @@ static int msm72k_probe(struct platform_device *pdev)
 	ui->gadget.is_otg = 1;
 #endif
 
+	retval = usb_add_gadget_udc(&pdev->dev, &ui->gadget);
+	if (retval)
+		return usb_free(ui, retval);
+
 	ui->sdev.name = DRIVER_NAME;
 	ui->sdev.print_name = print_switch_name;
 	ui->sdev.print_state = print_switch_state;
@@ -2838,10 +2853,20 @@ static struct dev_pm_ops msm72k_udc_dev_pm_ops = {
 	.runtime_idle = msm72k_udc_runtime_idle
 };
 
+static int __exit msm72k_remove(struct platform_device *pdev)
+{
+	struct usb_info *ui = container_of(&pdev, struct usb_info, pdev);
+
+	return usb_free(ui, 0);
+}
+
 static struct platform_driver usb_driver = {
+	.driver 	= {
+		.name	= "msm_hsusb",
+		.pm		= &msm72k_udc_dev_pm_ops,
+	},
 	.probe = msm72k_probe,
-	.driver = { .name = "msm_hsusb",
-		    .pm = &msm72k_udc_dev_pm_ops, },
+	.remove = msm72k_remove,
 };
 
 static int __init init(void)

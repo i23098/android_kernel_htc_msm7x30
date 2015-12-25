@@ -97,7 +97,7 @@ struct eth_dev {
 
 static unsigned qmult = 10;
 module_param(qmult, uint, S_IRUGO|S_IWUSR);
-MODULE_PARM_DESC(qmult, "queue length multiplier at high speed");
+MODULE_PARM_DESC(qmult, "queue length multiplier at high/super speed");
 
 #else	/* full speed (low speed doesn't do bulk) */
 #define qmult		1
@@ -341,8 +341,7 @@ next_frame:
 		DBG(dev, "rx %s reset\n", ep->name);
 		defer_kevent(dev, WORK_RX_MEMORY);
 quiesce:
-		if (skb)
-			dev_kfree_skb_any(skb);
+		dev_kfree_skb_any(skb);
 		goto clean;
 
 	/* data overrun */
@@ -695,7 +694,7 @@ static int eth_stop(struct net_device *net)
 		usb_ep_disable(link->in_ep);
 		usb_ep_disable(link->out_ep);
 		if (netif_carrier_ok(net)) {
-			INFO(dev, "host still using in/out endpoints\n");
+			DBG(dev, "host still using in/out endpoints\n");
 			usb_ep_enable(link->in_ep);
 			usb_ep_enable(link->out_ep);
 		}
@@ -968,6 +967,7 @@ void gether_disconnect(struct gether *link)
 	struct eth_dev		*dev = link->ioport;
 	struct usb_request	*req;
 
+	WARN_ON(!dev);
 	if (!dev)
 		return;
 
