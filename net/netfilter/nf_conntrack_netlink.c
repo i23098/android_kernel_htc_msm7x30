@@ -1950,7 +1950,6 @@ ctnetlink_del_expect(struct sock *ctnl, struct sk_buff *skb,
 						  &net->ct.expect_hash[i],
 						  hnode) {
 				m_help = nfct_help(exp->master);
-
 				if (!strcmp(m_help->helper->name, name) &&
 				    del_timer(&exp->timeout)) {
 					nf_ct_unlink_expect_report(exp,

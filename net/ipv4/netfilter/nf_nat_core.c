@@ -320,7 +320,6 @@ nf_nat_setup_info(struct nf_conn *ct,
 		spin_lock_bh(&nf_nat_lock);
 		/* nf_conntrack_alter_reply might re-allocate exntension aera */
 		nat = nfct_nat(ct);
-
 		nat->ct = ct;
 		hlist_add_head_rcu(&nat->bysource,
 				   &net->ipv4.nat_bysource[srchash]);

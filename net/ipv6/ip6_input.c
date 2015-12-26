@@ -150,7 +150,6 @@ err:
 drop:
 	rcu_read_unlock();
 	kfree_skb(skb);
-
 	return NET_RX_DROP;
 }
 

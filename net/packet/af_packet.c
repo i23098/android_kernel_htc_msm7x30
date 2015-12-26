@@ -526,7 +526,6 @@ out_unlock:
 	rcu_read_unlock();
 out_free:
 	kfree_skb(skb);
-
 	return err;
 }
 
@@ -854,9 +853,7 @@ ring_is_full:
 	spin_unlock(&sk->sk_receive_queue.lock);
 
 	sk->sk_data_ready(sk, 0);
-
 	kfree_skb(copy_skb);
-
 	goto drop_n_restore;
 }
 

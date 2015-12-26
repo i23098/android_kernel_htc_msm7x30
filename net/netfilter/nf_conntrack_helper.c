@@ -212,7 +212,6 @@ static void __nf_conntrack_helper_unregister(struct nf_conntrack_helper *me,
 		hlist_for_each_entry_safe(exp, n, next,
 					  &net->ct.expect_hash[i], hnode) {
 			struct nf_conn_help *help = nfct_help(exp->master);
-
 			if ((rcu_dereference_protected(
 					help->helper,
 					lockdep_is_held(&nf_conntrack_lock)

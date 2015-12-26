@@ -106,7 +106,6 @@ int nf_ct_gre_keymap_add(struct nf_conn *ct, enum ip_conntrack_dir dir,
 	struct nf_ct_gre_keymap **kmp, *km;
 
 	kmp = &help->help.ct_pptp_info.keymap[dir];
-
 	if (*kmp) {
 		/* check whether it's a retransmission */
 		read_lock_bh(&net_gre->keymap_lock);
