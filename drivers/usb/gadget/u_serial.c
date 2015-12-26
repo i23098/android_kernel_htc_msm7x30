@@ -85,7 +85,6 @@
 #define RX_QUEUE_SIZE		96
 #define RX_BUF_SIZE		4096
 
-
 /* circular buffer */
 struct gs_buf {
 	unsigned		buf_size;

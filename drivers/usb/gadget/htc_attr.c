@@ -15,6 +15,10 @@
 #include <mach/board.h>
 #include <linux/gpio.h>
 
+extern ssize_t otg_store_usb_phy_setting(const char *buf, size_t count);
+extern ssize_t otg_show_usb_phy_setting(char *buf);
+
+
 enum {
 	USB_FUNCTION_UMS = 0,
 	USB_FUNCTION_ADB = 1,
@@ -484,7 +488,7 @@ static ssize_t store_usb_function_switch(struct device *dev,
 
 	ret = strict_strtoul(buf, 10, (unsigned long *)&u);
 	if (ret < 0) {
-		USB_ERR("%s: %d\n", __func__, ret);
+		pr_err("%s: %d\n", __func__, ret);
 		return 0;
 	}
 
@@ -638,14 +642,14 @@ static ssize_t store_usb_host_mode(struct device *dev,
 
 	ret = strict_strtoul(buf, 10, (unsigned long *)&u);
 	if (ret < 0) {
-		USB_ERR("%s: %d\n", __func__, ret);
+		pr_err("%s: %d\n", __func__, ret);
 		return 0;
 	}
 
 	enable = u ? 1 : 0;
 	msm_otg_set_id_state(!enable);
 
-	USB_INFO("%s USB host\n", enable ? "Enable" : "Disable");
+	pr_info("%s USB host\n", enable ? "Enable" : "Disable");
 
 	return count;
 }
@@ -682,4 +686,3 @@ static struct attribute *android_htc_usb_attributes[] = {
 static const struct attribute_group android_usb_attr_group = {
 	.attrs = android_htc_usb_attributes,
 };
-

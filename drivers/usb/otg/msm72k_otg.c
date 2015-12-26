@@ -31,7 +31,6 @@
 #include <linux/uaccess.h>
 #include <mach/clk.h>
 #include <mach/msm_xo.h>
-#include <linux/usb/htc_info.h>
 
 #include <mach/cable_detect.h>
 
@@ -55,12 +54,12 @@ static void send_usb_connect_notify(struct work_struct *w)
 		return;
 
 	motg->connect_type_ready = 1;
-	USBH_INFO("send connect type %d\n", motg->connect_type);
+	pr_info("send connect type %d\n", motg->connect_type);
 	mutex_lock(&notify_sem);
 #ifdef CONFIG_CABLE_DETECT_ACCESSORY
         if (cable_get_accessory_type() == DOCK_STATE_DMB) {
                 motg->connect_type = CONNECT_TYPE_CLEAR;
-                USBH_INFO("current accessory is DMB, send  %d\n", motg->connect_type);
+                pr_info("current accessory is DMB, send  %d\n", motg->connect_type);
         }
 #endif
 	list_for_each_entry(notifier, &g_lh_usb_notifier_list, notifier_link) {
@@ -113,7 +112,7 @@ void msm_hsusb_vbus_notif_register(void (*vbus_notif)(int))
 	struct msm_otg *motg = the_msm_otg;
 	if (motg) {
 		motg->vbus_notification_cb = vbus_notif;
-		USBH_INFO("%s: success\n", __func__);
+		pr_info("%s: success\n", __func__);
 	}
 }
 
@@ -144,7 +143,7 @@ static int is_b_sess_vld(void)
 	else
 		return (dev->otg.state == OTG_STATE_B_PERIPHERAL);
 #endif
-	USBH_INFO("%s: htc_otg_vbus:%d, otgsc_bsv:%d\n", __func__,
+	pr_info("%s: htc_otg_vbus:%d, otgsc_bsv:%d\n", __func__,
 		htc_otg_vbus, (OTGSC_BSV & readl(USB_OTGSC)) ? 1 : 0);
 	return htc_otg_vbus;
 }
@@ -165,7 +164,7 @@ static unsigned ulpi_read(struct msm_otg *dev, unsigned reg)
 		cpu_relax();
 
 	if (timeout == 0) {
-		USBH_WARNING("ulpi_read: timeout %08x\n",
+		pr_warn("ulpi_read: timeout %08x\n",
 				 readl(USB_ULPI_VIEWPORT));
 		spin_unlock_irqrestore(&dev->lock, flags);
 		return 0xffffffff;
@@ -194,7 +193,7 @@ static int ulpi_write(struct msm_otg *dev, unsigned val, unsigned reg)
 		;
 
 	if (timeout == 0) {
-		USBH_WARNING("ulpi_write: timeout\n");
+		pr_warn("ulpi_write: timeout\n");
 		spin_unlock_irqrestore(&dev->lock, flags);
 		return -1;
 	}
@@ -242,21 +241,21 @@ ssize_t otg_store_usb_phy_setting(const char *buf, size_t count)
 	unsigned long value;
 	int i;
 
-	USBH_INFO("%s\n", buf);
+	pr_info("%s\n", buf);
 	for (i = 0; i < 2; i++)
 		token[i] = strsep((char **)&buf, " ");
 
 	i = strict_strtoul(token[0], 16, (unsigned long *)&reg);
 	if (i < 0) {
-		USBH_ERR("%s: reg %d\n", __func__, i);
+		pr_err("%s: reg %d\n", __func__, i);
 		return 0;
 	}
 	i = strict_strtoul(token[1], 16, (unsigned long *)&value);
 	if (i < 0) {
-		USBH_ERR("%s: value %d\n", __func__, i);
+		pr_err("%s: value %d\n", __func__, i);
 		return 0;
 	}
-	USBH_INFO("Set 0x%02lx = 0x%02lx\n", reg, value);
+	pr_info("Set 0x%02lx = 0x%02lx\n", reg, value);
 
 	ulpi_write(motg, value, reg);
 
@@ -608,7 +607,7 @@ static int msm_otg_send_event(struct otg_transceiver *xceiv,
 	ret = kobject_uevent_env(&xceiv->dev->kobj, KOBJ_CHANGE, envp);
 #if 0
 	if (ret < 0)
-		USBH_ERR("uevent sending failed with ret = %d\n", ret);
+		pr_err("uevent sending failed with ret = %d\n", ret);
 #endif
 	return ret;
 }
@@ -624,7 +623,7 @@ static int msm_otg_start_hnp(struct otg_transceiver *xceiv)
 	spin_unlock_irqrestore(&dev->lock, flags);
 
 	if (state != OTG_STATE_A_HOST) {
-		USBH_ERR("HNP can not be initiated in %s state\n",
+		pr_err("HNP can not be initiated in %s state\n",
 				state_string(state));
 		return -EINVAL;
 	}
@@ -649,7 +648,7 @@ static int msm_otg_start_srp(struct otg_transceiver *xceiv)
 	spin_unlock_irqrestore(&dev->lock, flags);
 
 	if (state != OTG_STATE_B_IDLE) {
-		USBH_ERR("SRP can not be initiated in %s state\n",
+		pr_err("SRP can not be initiated in %s state\n",
 				state_string(state));
 		ret = -EINVAL;
 		goto out;
@@ -714,7 +713,7 @@ static void ac_detect_expired(unsigned long _data)
 	u32 delay = 0;
 	struct msm_otg *dev = the_msm_otg;
 
-	USBH_INFO("%s: count = %d, connect_type = %d\n", __func__,
+	pr_info("%s: count = %d, connect_type = %d\n", __func__,
 			dev->ac_detect_count, dev->connect_type);
 
 	if (dev->connect_type == CONNECT_TYPE_USB || dev->ac_detect_count >= 3)
@@ -728,7 +727,7 @@ static void ac_detect_expired(unsigned long _data)
 		 */
 #ifdef CONFIG_CABLE_DETECT_ACCESSORY
 		if (cable_get_accessory_type() == DOCK_STATE_CAR) {
-			USBH_INFO("car mode charger\n");
+			pr_info("car mode charger\n");
 			atomic_set(&dev->chg_type, USB_CHG_TYPE__WALLCHARGER);
 			dev->connect_type = CONNECT_TYPE_AC;
 			dev->ac_detect_count = 0;
@@ -746,7 +745,7 @@ static void ac_detect_expired(unsigned long _data)
 
 		mod_timer(&dev->ac_detect_timer, jiffies + delay);
 	} else {
-		USBH_INFO("AC charger\n");
+		pr_info("AC charger\n");
 		atomic_set(&dev->chg_type, USB_CHG_TYPE__WALLCHARGER);
 		dev->connect_type = CONNECT_TYPE_AC;
 		dev->ac_detect_count = 0;
@@ -760,7 +759,7 @@ static void msm_otg_notify_charger_attached(int connect_type)
 {
 	struct msm_otg *motg = the_msm_otg;
 
-	USBH_INFO("chg_type: %s %s => %s\n",
+	pr_info("chg_type: %s %s => %s\n",
 		charger_string(atomic_read(&motg->chg_type)),
 		connect_to_string(motg->connect_type),
 		connect_to_string(connect_type));
@@ -900,7 +899,7 @@ static int msm_otg_suspend(struct msm_otg *dev)
 	if (atomic_read(&dev->in_lpm))
 		goto out;
 
-	USBH_INFO("lpm enter, %s\n", charger_string(chg_type));
+	pr_info("lpm enter, %s\n", charger_string(chg_type));
 #ifdef CONFIG_USB_MSM_ACA
 	/*
 	 * ACA interrupts are disabled before entering into LPM.
@@ -985,7 +984,7 @@ static int msm_otg_suspend(struct msm_otg *dev)
 	disable_phy_clk();
 	while (!is_phy_clk_disabled()) {
 		if (time_after(jiffies, timeout)) {
-			USBH_ERR("%s: Unable to suspend phy\n", __func__);
+			pr_err("%s: Unable to suspend phy\n", __func__);
 			/*
 			 * Start otg state machine in default state upon
 			 * phy suspend failure*/
@@ -1015,7 +1014,7 @@ static int msm_otg_suspend(struct msm_otg *dev)
 	/* usb phy no more require TCXO clock, hence vote for TCXO disable*/
 	ret = msm_xo_mode_vote(dev->xo_handle, MSM_XO_MODE_OFF);
 	if (ret)
-		USBH_ERR("%s failed to devote for"
+		pr_err("%s failed to devote for"
 			"TCXO D1 buffer%d\n", __func__, ret);
 
 	if (device_may_wakeup(dev->otg.dev)) {
@@ -1069,12 +1068,12 @@ static int msm_otg_resume(struct msm_otg *dev)
 	if (!atomic_read(&dev->in_lpm))
 		return 0;
 
-	USBH_INFO("lpm exit\n");
+	pr_info("lpm exit\n");
 	/* vote for vddcx, as PHY cannot tolerate vddcx below 1.0V */
 	if (dev->pdata->config_vddcx) {
 		ret = dev->pdata->config_vddcx(1);
 		if (ret) {
-			USBH_ERR("%s: unable to enable vddcx digital core:%d\n",
+			pr_err("%s: unable to enable vddcx digital core:%d\n",
 				__func__, ret);
 		}
 	}
@@ -1084,7 +1083,7 @@ static int msm_otg_resume(struct msm_otg *dev)
 	/* Vote for TCXO when waking up the phy */
 	ret = msm_xo_mode_vote(dev->xo_handle, MSM_XO_MODE_ON);
 	if (ret)
-		USBH_ERR("%s failed to vote for"
+		pr_err("%s failed to vote for"
 			"TCXO D1 buffer%d\n", __func__, ret);
 
 	clk_enable(dev->core_clk);
@@ -1150,7 +1149,7 @@ static void msm_otg_resume_w(struct work_struct *w)
 	enable_phy_clk();
 	while (is_phy_clk_disabled() || !is_phy_active()) {
 		if (time_after(jiffies, timeout)) {
-			USBH_ERR("%s: Unable to wakeup phy. is_phy_active: %x\n",
+			pr_err("%s: Unable to wakeup phy. is_phy_active: %x\n",
 				 __func__, !!is_phy_active());
 			/* Reset both phy and link */
 			otg_reset(&dev->otg, 1);
@@ -1294,7 +1293,7 @@ static int msm_otg_set_suspend(struct otg_transceiver *xceiv, int suspend)
 		enable_phy_clk();
 		while (is_phy_clk_disabled() || !is_phy_active()) {
 			if (time_after(jiffies, timeout)) {
-				USBH_ERR("%s: Unable to wakeup phy. "
+				pr_err("%s: Unable to wakeup phy. "
 					"is_phy_active: %x\n",
 					__func__, !!is_phy_active());
 				/* Reset both phy and link */
@@ -1442,20 +1441,20 @@ void msm_otg_set_id_state(int id)
 	struct msm_otg *dev = the_msm_otg;
 	unsigned long flags;
 
-	USBH_INFO("%s: %d\n", __func__, id);
+	pr_info("%s: %d\n", __func__, id);
 
 	if (!dev) {
-		USBH_INFO("OTG does not probe yet\n");
+		pr_info("OTG does not probe yet\n");
 		return;
 	}
 
 	dev->pmic_id_status = id;
 	if (id) {
 		set_bit(ID, &dev->inputs);
-		USBH_INFO("Set ID\n");
+		pr_info("Set ID\n");
 	} else {
 		clear_bit(ID, &dev->inputs);
-		USBH_INFO("Clear ID\n");
+		pr_info("Clear ID\n");
 	}
 
 	spin_lock_irqsave(&dev->lock, flags);
@@ -1475,11 +1474,11 @@ void msm_otg_set_vbus_state(int online)
 {
 	struct msm_otg *dev = the_msm_otg;
 
-	USBH_INFO("%s: %d\n", __func__, online);
+	pr_info("%s: %d\n", __func__, online);
 
 	htc_otg_vbus = online;
 	if (!dev) {
-		USBH_INFO("OTG does not probe yet\n");
+		pr_info("OTG does not probe yet\n");
 		return;
 	}
         /* block vbus event if entering host mode manually */
@@ -1542,10 +1541,10 @@ static irqreturn_t msm_otg_irq(int irq, void *data)
 
 	if ((otgsc & OTGSC_IDIE) && (otgsc & OTGSC_IDIS)) {
 		if (otgsc & OTGSC_ID) {
-			USBH_INFO("Id set\n");
+			pr_info("Id set\n");
 			set_bit(ID, &dev->inputs);
 		} else {
-			USBH_INFO("Id clear\n");
+			pr_info("Id clear\n");
 			/* Assert a_bus_req to supply power on
 			 * VBUS when Micro/Mini-A cable is connected
 			 * with out user intervention.
@@ -1616,7 +1615,7 @@ static irqreturn_t msm_otg_irq(int irq, void *data)
 		case OTG_STATE_A_WAIT_VRISE:
 		case OTG_STATE_A_WAIT_VFALL:
 			/* suppress the unknown interrupt */
-			USBH_WARNING("%s: nobody handles IRQ\n", __func__);
+			pr_warn("%s: nobody handles IRQ\n", __func__);
 			writel(sts, USB_USBSTS);
 			work = 0;
 			break;
@@ -1650,7 +1649,7 @@ static void phy_clk_reset(struct msm_otg *dev)
 
 	rc = clk_reset(dev->phy_reset_clk, assert);
 	if (rc) {
-		USBH_ERR("%s: phy clk assert failed\n", __func__);
+		pr_err("%s: phy clk assert failed\n", __func__);
 		return;
 	}
 
@@ -1658,7 +1657,7 @@ static void phy_clk_reset(struct msm_otg *dev)
 
 	rc = clk_reset(dev->phy_reset_clk, !assert);
 	if (rc) {
-		USBH_ERR("%s: phy clk deassert failed\n", __func__);
+		pr_err("%s: phy clk deassert failed\n", __func__);
 		return;
 	}
 
@@ -1678,7 +1677,7 @@ static unsigned ulpi_read_with_reset(struct msm_otg *dev, unsigned reg)
 		phy_clk_reset(dev);
 	}
 
-	USBH_ERR("%s: ulpi read failed for %d times\n",
+	pr_err("%s: ulpi read failed for %d times\n",
 			__func__, ULPI_VERIFY_MAX_LOOP_COUNT);
 
 	return -1;
@@ -1695,7 +1694,7 @@ unsigned val, unsigned reg)
 			return 0;
 		phy_clk_reset(dev);
 	}
-	USBH_ERR("%s: ulpi write failed for %d times\n",
+	pr_err("%s: ulpi write failed for %d times\n",
 		__func__, ULPI_VERIFY_MAX_LOOP_COUNT);
 
 	return -1;
@@ -1779,7 +1778,7 @@ static int msm_otg_phy_reset(struct msm_otg *dev)
 
 	rc = clk_reset(dev->alt_core_clk, CLK_RESET_ASSERT);
 	if (rc) {
-		USBH_ERR("%s: usb hs clk assert failed\n", __func__);
+		pr_err("%s: usb hs clk assert failed\n", __func__);
 		return -1;
 	}
 
@@ -1787,7 +1786,7 @@ static int msm_otg_phy_reset(struct msm_otg *dev)
 
 	rc = clk_reset(dev->alt_core_clk, CLK_RESET_DEASSERT);
 	if (rc) {
-		USBH_ERR("%s: usb hs clk deassert failed\n", __func__);
+		pr_err("%s: usb hs clk deassert failed\n", __func__);
 		return -1;
 	}
 	/* Observing ulpi timeouts as part of PHY calibration. On resetting
@@ -1824,14 +1823,14 @@ static int msm_otg_phy_reset(struct msm_otg *dev)
 	timeout = jiffies + USB_LINK_RESET_TIMEOUT;
 	do {
 		if (time_after(jiffies, timeout)) {
-			USBH_ERR("msm_otg: usb link reset timeout\n");
+			pr_err("msm_otg: usb link reset timeout\n");
 			break;
 		}
 		msleep(1);
 	} while (readl(USB_USBCMD) & USBCMD_RESET);
 
 	if (readl(USB_USBCMD) & USBCMD_RESET) {
-		USBH_ERR("%s: usb core reset failed\n", __func__);
+		pr_err("%s: usb core reset failed\n", __func__);
 		return -1;
 	}
 
@@ -1844,7 +1843,7 @@ static void otg_reset(struct otg_transceiver *xceiv, int phy_reset)
 	unsigned long timeout;
 	u32 mode, work = 0;
 
-	USBH_INFO("%s\n", __func__);
+	pr_info("%s\n", __func__);
 	clk_enable(dev->alt_core_clk);
 
 	if (!phy_reset)
@@ -1868,7 +1867,7 @@ reset_link:
 	timeout = jiffies + USB_LINK_RESET_TIMEOUT;
 	do {
 		if (time_after(jiffies, timeout)) {
-			USBH_ERR("msm_otg: usb link reset timeout\n");
+			pr_err("msm_otg: usb link reset timeout\n");
 			break;
 		}
 		msleep(1);
@@ -1902,7 +1901,7 @@ reset_link:
 		mode = USBMODE_SDIS | USBMODE_DEVICE;
 	else
 		mode = USBMODE_SDIS | USBMODE_HOST;
-	USBH_INFO("%s: mode:0x%08x\n", __func__, mode);
+	pr_info("%s: mode:0x%08x\n", __func__, mode);
 	writel(mode, USB_USBMODE);
 
 #if 0
@@ -1976,7 +1975,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 	state = dev->otg.state;
 	spin_unlock_irqrestore(&dev->lock, flags);
 
-	USBH_INFO("%s: state:%s bit:0x%08x\n", __func__, state_string(state),
+	pr_info("%s: state:%s bit:0x%08x\n", __func__, state_string(state),
 			(unsigned) dev->inputs);
 	mutex_lock(&smwork_sem);
 	switch (state) {
@@ -3092,7 +3091,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 			 */
 			dev->pmic_id_status = 1;
 		} else if (ret != -ENOTSUPP) {
-			USBH_ERR("%s: pmic_id_ notif_init failed err:%d",
+			pr_err("%s: pmic_id_ notif_init failed err:%d",
 					__func__, ret);
 			goto free_pmic_vbus_notif;
 		}

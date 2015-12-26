@@ -720,7 +720,7 @@ static long ffs_ep0_ioctl(struct file *file, unsigned code, unsigned long value)
 	if (code == FUNCTIONFS_INTERFACE_REVMAP) {
 		struct ffs_function *func = ffs->func;
 		ret = func ? ffs_func_revmap_intf(func, value) : -ENODEV;
-	} else if (gadget && gadget->ops->ioctl) {
+	} else if (gadget->ops->ioctl) {
 		ret = gadget->ops->ioctl(gadget, code, value);
 	} else {
 		ret = -ENOTTY;
@@ -1495,21 +1495,7 @@ static int functionfs_bind_config(struct usb_composite_dev *cdev,
 
 static void ffs_func_free(struct ffs_function *func)
 {
-	struct ffs_ep *ep         = func->eps;
-	unsigned count            = func->ffs->eps_count;
-	unsigned long flags;
-
 	ENTER();
-
-	/* cleanup after autoconfig */
-	spin_lock_irqsave(&func->ffs->eps_lock, flags);
-	do {
-		if (ep->ep && ep->req)
-			usb_ep_free_request(ep->ep, ep->req);
-		ep->req = NULL;
-		++ep;
-	} while (--count);
-	spin_unlock_irqrestore(&func->ffs->eps_lock, flags);
 
 	ffs_data_put(func->ffs);
 

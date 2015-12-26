@@ -16,9 +16,6 @@
  *
  */
 
-/* #define DEBUG */
-/* #define VERBOSE_DEBUG */
-
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/fs.h>
@@ -38,21 +35,6 @@
 #ifdef CONFIG_PERFLOCK
 #include <mach/perflock.h>
 #endif
-
-/**
- * ep_choose - select descriptor endpoint at current device speed
- * @g: gadget, connected and running at some speed
- * @hs: descriptor to use for high speed operation
- * @fs: descriptor to use for full or low speed operation
- */
-static inline struct usb_endpoint_descriptor *
-ep_choose(struct usb_gadget *g, struct usb_endpoint_descriptor *hs,
-		struct usb_endpoint_descriptor *fs)
-{
-	if (gadget_is_dualspeed(g) && g->speed == USB_SPEED_HIGH)
-		return hs;
-	return fs;
-}
 
 /*
  * Kbuild is not very cooperative with respect to linking separately
@@ -107,32 +89,6 @@ ep_choose(struct usb_gadget *g, struct usb_endpoint_descriptor *hs,
 #ifdef CONFIG_USB_ANDROID_USBNET
 #include "f_usbnet.c"
 #endif
-
-#include <linux/usb/htc_info.h>
-
-#ifdef pr_debug
-#undef pr_debug
-#endif
-#define pr_debug(fmt, args...) \
-	printk(KERN_DEBUG "[USB] " pr_fmt(fmt), ## args)
-
-#ifdef pr_err
-#undef pr_err
-#endif
-#define pr_err(fmt, args...) \
-	printk(KERN_ERR "[USB] " pr_fmt(fmt), ## args)
-
-#ifdef pr_warning
-#undef pr_warning
-#endif
-#define pr_warning(fmt, args...) \
-	printk(KERN_WARNING "[USB] " pr_fmt(fmt), ## args)
-
-#ifdef pr_info
-#undef pr_info
-#endif
-#define pr_info(fmt, args...) \
-	printk(KERN_INFO "[USB] " pr_fmt(fmt), ## args)
 
 MODULE_AUTHOR("Mike Lockwood");
 MODULE_DESCRIPTION("Android Composite USB Driver");
@@ -2144,6 +2100,7 @@ static struct usb_composite_driver android_usb_driver = {
 	.dev		= &device_desc,
 	.strings	= dev_strings,
 	.unbind		= android_usb_unbind,
+	.max_speed	= USB_SPEED_SUPER,
 };
 
 #ifdef CONFIG_USB_ANDROID_USBNET

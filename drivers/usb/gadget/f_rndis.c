@@ -26,10 +26,10 @@
 
 #include <linux/slab.h>
 #include <linux/kernel.h>
-#include <linux/platform_device.h>
+#include <linux/device.h>
 #include <linux/etherdevice.h>
 
-#include <asm/atomic.h>
+#include <linux/atomic.h>
 
 #include "u_ether.h"
 #include "rndis.h"
@@ -76,29 +76,17 @@
  *   - MS-Windows drivers sometimes emit undocumented requests.
  */
 
-struct rndis_ep_descs {
-	struct usb_endpoint_descriptor	*in;
-	struct usb_endpoint_descriptor	*out;
-	struct usb_endpoint_descriptor	*notify;
-};
-
 struct f_rndis {
 	struct gether			port;
 	u8				ctrl_id, data_id;
 	u8				ethaddr[ETH_ALEN];
-	u32				vendorID;
-	const char			*manufacturer;
+	u32                             vendorID;
+	const char                      *manufacturer;
 	int				config;
-
-
-	struct rndis_ep_descs		fs;
-	struct rndis_ep_descs		hs;
 
 	struct usb_ep			*notify;
 	struct usb_request		*notify_req;
 	atomic_t			notify_count;
-
-	atomic_t			online;
 };
 
 static inline struct f_rndis *func_to_rndis(struct usb_function *f)
@@ -296,6 +284,76 @@ static struct usb_descriptor_header *eth_hs_function[] = {
 	NULL,
 };
 
+/* super speed support: */
+
+static struct usb_endpoint_descriptor ss_notify_desc = {
+	.bLength =		USB_DT_ENDPOINT_SIZE,
+	.bDescriptorType =	USB_DT_ENDPOINT,
+
+	.bEndpointAddress =	USB_DIR_IN,
+	.bmAttributes =		USB_ENDPOINT_XFER_INT,
+	.wMaxPacketSize =	cpu_to_le16(STATUS_BYTECOUNT),
+	.bInterval =		LOG2_STATUS_INTERVAL_MSEC + 4,
+};
+
+static struct usb_ss_ep_comp_descriptor ss_intr_comp_desc = {
+	.bLength =		sizeof ss_intr_comp_desc,
+	.bDescriptorType =	USB_DT_SS_ENDPOINT_COMP,
+
+	/* the following 3 values can be tweaked if necessary */
+	/* .bMaxBurst =		0, */
+	/* .bmAttributes =	0, */
+	.wBytesPerInterval =	cpu_to_le16(STATUS_BYTECOUNT),
+};
+
+static struct usb_endpoint_descriptor ss_in_desc = {
+	.bLength =		USB_DT_ENDPOINT_SIZE,
+	.bDescriptorType =	USB_DT_ENDPOINT,
+
+	.bEndpointAddress =	USB_DIR_IN,
+	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
+	.wMaxPacketSize =	cpu_to_le16(1024),
+};
+
+static struct usb_endpoint_descriptor ss_out_desc = {
+	.bLength =		USB_DT_ENDPOINT_SIZE,
+	.bDescriptorType =	USB_DT_ENDPOINT,
+
+	.bEndpointAddress =	USB_DIR_OUT,
+	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
+	.wMaxPacketSize =	cpu_to_le16(1024),
+};
+
+static struct usb_ss_ep_comp_descriptor ss_bulk_comp_desc = {
+	.bLength =		sizeof ss_bulk_comp_desc,
+	.bDescriptorType =	USB_DT_SS_ENDPOINT_COMP,
+
+	/* the following 2 values can be tweaked if necessary */
+	/* .bMaxBurst =		0, */
+	/* .bmAttributes =	0, */
+};
+
+static struct usb_descriptor_header *eth_ss_function[] = {
+	(struct usb_descriptor_header *) &rndis_iad_descriptor,
+
+	/* control interface matches ACM, not Ethernet */
+	(struct usb_descriptor_header *) &rndis_control_intf,
+	(struct usb_descriptor_header *) &header_desc,
+	(struct usb_descriptor_header *) &call_mgmt_descriptor,
+	(struct usb_descriptor_header *) &rndis_acm_descriptor,
+	(struct usb_descriptor_header *) &rndis_union_desc,
+	(struct usb_descriptor_header *) &ss_notify_desc,
+	(struct usb_descriptor_header *) &ss_intr_comp_desc,
+
+	/* data interface has no altsetting */
+	(struct usb_descriptor_header *) &rndis_data_intf,
+	(struct usb_descriptor_header *) &ss_in_desc,
+	(struct usb_descriptor_header *) &ss_bulk_comp_desc,
+	(struct usb_descriptor_header *) &ss_out_desc,
+	(struct usb_descriptor_header *) &ss_bulk_comp_desc,
+	NULL,
+};
+
 /* string descriptors: */
 
 static struct usb_string rndis_string_defs[] = {
@@ -398,23 +456,14 @@ static void rndis_response_complete(struct usb_ep *ep, struct usb_request *req)
 static void rndis_command_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	struct f_rndis			*rndis = req->context;
+	struct usb_composite_dev	*cdev = rndis->port.func.config->cdev;
 	int				status;
-
-	if (req->status < 0) {
-		pr_err("%s: staus error: %d\n", __func__, req->status);
-		return;
-	}
-
-	if (!atomic_read(&rndis->online)) {
-		pr_warning("%s: usb rndis is not online\n", __func__);
-		return;
-	}
 
 	/* received RNDIS command from USB_CDC_SEND_ENCAPSULATED_COMMAND */
 //	spin_lock(&dev->lock);
 	status = rndis_msg_parser(rndis->config, (u8 *) req->buf);
 	if (status < 0)
-		pr_err("[USB] RNDIS command error %d, %d/%d\n",
+		ERROR(cdev, "RNDIS command error %d, %d/%d\n",
 			status, req->actual, req->length);
 //	spin_unlock(&dev->lock);
 }
@@ -429,12 +478,6 @@ rndis_setup(struct usb_function *f, const struct usb_ctrlrequest *ctrl)
 	u16			w_index = le16_to_cpu(ctrl->wIndex);
 	u16			w_value = le16_to_cpu(ctrl->wValue);
 	u16			w_length = le16_to_cpu(ctrl->wLength);
-
-	if (!atomic_read(&rndis->online)) {
-		pr_warning("%s: usb rndis is not online\n", __func__);
-		return -ENOTCONN;
-	}
-
 
 	/* composite driver infrastructure handles everything except
 	 * CDC class messages; interface activation uses set_alt().
@@ -510,12 +553,12 @@ static int rndis_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 		if (rndis->notify->driver_data) {
 			VDBG(cdev, "reset rndis control %d\n", intf);
 			usb_ep_disable(rndis->notify);
-		} else {
-			VDBG(cdev, "init rndis ctrl %d\n", intf);
 		}
-		rndis->notify->desc = ep_choose(cdev->gadget,
-				rndis->hs.notify,
-				rndis->fs.notify);
+		if (!rndis->notify->desc) {
+			VDBG(cdev, "init rndis ctrl %d\n", intf);
+			if (config_ep_by_speed(cdev->gadget, f, rndis->notify))
+				goto fail;
+		}
 		usb_ep_enable(rndis->notify);
 		rndis->notify->driver_data = rndis;
 
@@ -527,13 +570,17 @@ static int rndis_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 			gether_disconnect(&rndis->port);
 		}
 
-		if (!rndis->port.in_ep->desc) {
+		if (!rndis->port.in_ep->desc || !rndis->port.out_ep->desc) {
 			DBG(cdev, "init rndis\n");
+			if (config_ep_by_speed(cdev->gadget, f,
+					       rndis->port.in_ep) ||
+			    config_ep_by_speed(cdev->gadget, f,
+					       rndis->port.out_ep)) {
+				rndis->port.in_ep->desc = NULL;
+				rndis->port.out_ep->desc = NULL;
+				goto fail;
+			}
 		}
-		rndis->port.in_ep->desc = ep_choose(cdev->gadget,
-				rndis->hs.in, rndis->fs.in);
-		rndis->port.out_ep->desc = ep_choose(cdev->gadget,
-				rndis->hs.out, rndis->fs.out);
 
 		/* Avoid ZLPs; they can be troublesome. */
 		rndis->port.is_zlp_ok = false;
@@ -562,7 +609,6 @@ static int rndis_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 	} else
 		goto fail;
 
-	atomic_set(&rndis->online, 1);
 	return 0;
 fail:
 	return -EINVAL;
@@ -572,8 +618,6 @@ static void rndis_disable(struct usb_function *f)
 {
 	struct f_rndis		*rndis = func_to_rndis(f);
 	struct usb_composite_dev *cdev = f->config->cdev;
-
-	atomic_set(&rndis->online, 0);
 
 	if (!rndis->notify->driver_data)
 		return;
@@ -691,13 +735,6 @@ rndis_bind(struct usb_configuration *c, struct usb_function *f)
 	if (!f->descriptors)
 		goto fail;
 
-	rndis->fs.in = usb_find_endpoint(eth_fs_function,
-			f->descriptors, &fs_in_desc);
-	rndis->fs.out = usb_find_endpoint(eth_fs_function,
-			f->descriptors, &fs_out_desc);
-	rndis->fs.notify = usb_find_endpoint(eth_fs_function,
-			f->descriptors, &fs_notify_desc);
-
 	/* support all relevant hardware speeds... we expect that when
 	 * hardware is dual speed, all bulk-capable endpoints work at
 	 * both speeds
@@ -714,13 +751,20 @@ rndis_bind(struct usb_configuration *c, struct usb_function *f)
 		f->hs_descriptors = usb_copy_descriptors(eth_hs_function);
 		if (!f->hs_descriptors)
 			goto fail;
+	}
 
-		rndis->hs.in = usb_find_endpoint(eth_hs_function,
-				f->hs_descriptors, &hs_in_desc);
-		rndis->hs.out = usb_find_endpoint(eth_hs_function,
-				f->hs_descriptors, &hs_out_desc);
-		rndis->hs.notify = usb_find_endpoint(eth_hs_function,
-				f->hs_descriptors, &hs_notify_desc);
+	if (gadget_is_superspeed(c->cdev->gadget)) {
+		ss_in_desc.bEndpointAddress =
+				fs_in_desc.bEndpointAddress;
+		ss_out_desc.bEndpointAddress =
+				fs_out_desc.bEndpointAddress;
+		ss_notify_desc.bEndpointAddress =
+				fs_notify_desc.bEndpointAddress;
+
+		/* copy descriptors, and track endpoint copies */
+		f->ss_descriptors = usb_copy_descriptors(eth_ss_function);
+		if (!f->ss_descriptors)
+			goto fail;
 	}
 
 	rndis->port.open = rndis_open;
@@ -744,12 +788,15 @@ rndis_bind(struct usb_configuration *c, struct usb_function *f)
 	 */
 
 	DBG(cdev, "RNDIS: %s speed IN/%s OUT/%s NOTIFY/%s\n",
+			gadget_is_superspeed(c->cdev->gadget) ? "super" :
 			gadget_is_dualspeed(c->cdev->gadget) ? "dual" : "full",
 			rndis->port.in_ep->name, rndis->port.out_ep->name,
 			rndis->notify->name);
 	return 0;
 
 fail:
+	if (gadget_is_superspeed(c->cdev->gadget) && f->ss_descriptors)
+		usb_free_descriptors(f->ss_descriptors);
 	if (gadget_is_dualspeed(c->cdev->gadget) && f->hs_descriptors)
 		usb_free_descriptors(f->hs_descriptors);
 	if (f->descriptors)
@@ -781,6 +828,8 @@ rndis_unbind(struct usb_configuration *c, struct usb_function *f)
 	rndis_deregister(rndis->config);
 	rndis_exit();
 
+	if (gadget_is_superspeed(c->cdev->gadget))
+		usb_free_descriptors(f->ss_descriptors);
 	if (gadget_is_dualspeed(c->cdev->gadget))
 		usb_free_descriptors(f->hs_descriptors);
 	usb_free_descriptors(f->descriptors);
@@ -820,13 +869,13 @@ rndis_bind_config(struct usb_configuration *c, u8 ethaddr[ETH_ALEN],
 	if (!can_support_rndis(c) || !ethaddr)
 		return -EINVAL;
 
-	/* setup RNDIS itself */
-	status = rndis_init();
-	if (status < 0)
-		return status;
-
 	/* maybe allocate device-global string IDs */
 	if (rndis_string_defs[0].id == 0) {
+
+		/* ... and setup RNDIS itself */
+		status = rndis_init();
+		if (status < 0)
+			return status;
 
 		/* control interface label */
 		status = usb_string_id(c->cdev);

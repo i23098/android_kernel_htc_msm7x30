@@ -259,8 +259,6 @@ EXPORT_SYMBOL_GPL(usb_del_gadget_udc);
 
 /* ------------------------------------------------------------------------- */
 
-#if 0
-//msm?
 int usb_gadget_probe_driver(struct usb_gadget_driver *driver,
 		int (*bind)(struct usb_gadget *))
 {
@@ -340,7 +338,6 @@ int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
 	return ret;
 }
 EXPORT_SYMBOL_GPL(usb_gadget_unregister_driver);
-#endif
 
 /* ------------------------------------------------------------------------- */
 

@@ -40,18 +40,14 @@
 
 #include <mach/board.h>
 #include <mach/msm_hsusb.h>
-#include <mach/htc_battery_common.h>
 #include <linux/device.h>
 #include <mach/msm_hsusb_hw.h>
 #include <mach/clk.h>
 #include <linux/uaccess.h>
 #include <linux/wakelock.h>
-#include <linux/usb/htc_info.h>
+#include <mach/htc_battery_common.h>
 
 static const char driver_name[] = "msm72k_udc";
-
-/* #define DEBUG */
-/* #define VERBOSE */
 
 #define MSM_USB_BASE ((unsigned) ui->addr)
 
@@ -338,7 +334,7 @@ static void ulpi_init(struct usb_info *ui)
 		return;
 
 	while (seq[0] >= 0) {
-		USB_INFO("ulpi: write 0x%02x to 0x%02x\n", seq[0], seq[1]);
+		pr_info("ulpi: write 0x%02x to 0x%02x\n", seq[0], seq[1]);
 		otg_io_write(ui->xceiv, seq[0], seq[1]);
 		seq += 2;
 	}
@@ -427,8 +423,8 @@ static void usb_chg_stop(struct work_struct *w)
 	if (temp == USB_CHG_TYPE__SDP)
 		otg_set_power(ui->xceiv, 0);
 #else
-	USB_INFO("disable charger\n");
-	htc_battery_charger_disable();
+       pr_info("disable charger\n");
+       htc_battery_charger_disable();
 #endif
 }
 
@@ -525,13 +521,6 @@ static void config_ept(struct msm_endpoint *ept)
 	ept->head->config = cfg;
 	ept->head->next = TERMINATE;
 
-#if 0
-	if (ept->ep.maxpacket)
-		USB_DEBUG("ept #%d %s max:%d head:%p bit:%d\n",
-		       ept->num,
-		       (ept->flags & EPT_FLAG_IN) ? "in" : "out",
-		       ept->ep.maxpacket, ept->head, ept->bit);
-#endif
 }
 
 static void configure_endpoints(struct usb_info *ui)
@@ -955,12 +944,6 @@ static void handle_setup(struct usb_info *ui)
 	flush_endpoint(&ui->ep0out);
 	flush_endpoint(&ui->ep0in);
 
-#if 0
-	dev_dbg(&ui->pdev->dev,
-		"setup: type=%02x req=%02x val=%04x idx=%04x len=%04x\n",
-	       ctl.bRequestType, ctl.bRequest, ctl.wValue,
-	       ctl.wIndex, ctl.wLength);
-#endif
 	if ((ctl.bRequestType & (USB_DIR_IN | USB_TYPE_MASK)) ==
 					(USB_DIR_IN | USB_TYPE_STANDARD)) {
 		if (ctl.bRequest == USB_REQ_GET_STATUS) {
@@ -1304,7 +1287,7 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 	}
 
 	if (n & STS_URI) {
-		USB_INFO("reset\n");
+		pr_info("reset\n");
 		spin_lock_irqsave(&ui->lock, flags);
 		ui->gadget.speed = USB_SPEED_UNKNOWN;
 		spin_unlock_irqrestore(&ui->lock, flags);
@@ -1320,10 +1303,6 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 #endif
 		msm_hsusb_set_state(USB_STATE_DEFAULT);
 		atomic_set(&ui->remote_wakeup, 0);
-#if 0
-		if (!ui->gadget.is_a_peripheral)
-			schedule_delayed_work(&ui->chg_stop, 0);
-#endif
 
 		writel(readl(USB_ENDPTSETUPSTAT), USB_ENDPTSETUPSTAT);
 		writel(readl(USB_ENDPTCOMPLETE), USB_ENDPTCOMPLETE);
@@ -1359,7 +1338,7 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 	}
 
 	if (n & STS_SLI) {
-		USB_INFO("suspend\n");
+		pr_info("suspend\n");
 
 		/* We should not handle suspend after cable removed */
 		if (!is_usb_online(ui))
@@ -1564,11 +1543,10 @@ static void usb_do_work(struct work_struct *w)
 				ui->state = USB_STATE_ONLINE;
 				usb_do_work_check_vbus(ui);
 
-                                if (!ui->gadget.is_a_peripheral)
-                                        schedule_delayed_work(
-                                                        &ui->chg_det,
-                                                        USB_CHG_DET_DELAY);
-
+			if (!ui->gadget.is_a_peripheral)
+					schedule_delayed_work(
+									&ui->chg_det,
+									USB_CHG_DET_DELAY);
 
 				if (!atomic_read(&ui->softconnect))
 					break;
@@ -1738,7 +1716,7 @@ void msm_hsusb_set_vbus_state(int online)
 	unsigned long flags;
 	struct usb_info *ui = the_usb_info;
 
-	USB_INFO("%s: %d\n", __func__, online);
+	pr_info("%s: %d\n", __func__, online);
 
 	if (!ui) {
 		pr_err("%s called before driver initialized\n", __func__);
@@ -2324,12 +2302,12 @@ static int msm72k_pullup_internal(struct usb_gadget *_gadget, int is_active)
 	if (is_active) {
 		spin_lock_irqsave(&ui->lock, flags);
 		if (is_usb_online(ui) && ui->driver) {
-			USB_INFO("%s: %d\n", __func__, is_active);
+			pr_info("%s: %d\n", __func__, is_active);
 			writel(readl(USB_USBCMD) | USBCMD_RS, USB_USBCMD);
 		}
 		spin_unlock_irqrestore(&ui->lock, flags);
 	} else {
-		USB_INFO("%s: %d\n", __func__, is_active);
+		pr_info("%s: %d\n", __func__, is_active);
 		writel(readl(USB_USBCMD) & ~USBCMD_RS, USB_USBCMD);
 		/* S/W workaround, Issue#1 */
 		otg_io_write(ui->xceiv, 0x48, 0x04);
@@ -2362,10 +2340,6 @@ static int msm72k_pullup(struct usb_gadget *_gadget, int is_active)
 	spin_unlock_irqrestore(&ui->lock, flags);
 
 	msm72k_pullup_internal(_gadget, is_active);
-/*
-	if (is_active && !ui->gadget.is_a_peripheral)
-		schedule_delayed_work(&ui->chg_det, USB_CHG_DET_DELAY);
-*/
 	return 0;
 }
 
@@ -2759,6 +2733,7 @@ static int msm72k_probe(struct platform_device *pdev)
 
 	ui->gadget.ops = &msm72k_ops;
 	ui->gadget.is_dualspeed = 1;
+	ui->gadget.speed = USB_SPEED_HIGH;
 	device_initialize(&ui->gadget.dev);
 	dev_set_name(&ui->gadget.dev, "gadget");
 	ui->gadget.dev.parent = &pdev->dev;
@@ -2815,19 +2790,6 @@ static int msm72k_probe(struct platform_device *pdev)
 		setup_timer(&phy_status_timer, usb_phy_status_check_timer, 0);
 	return 0;
 }
-
-int usb_gadget_probe_driver(struct usb_gadget_driver *driver,
-			    int (*bind)(struct usb_gadget *))
-{
-	return msm72k_start(driver, bind);
-}
-EXPORT_SYMBOL(usb_gadget_probe_driver);
-
-int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
-{
-	return msm72k_stop(driver);
-}
-EXPORT_SYMBOL(usb_gadget_unregister_driver);
 
 static int msm72k_udc_runtime_suspend(struct device *dev)
 {

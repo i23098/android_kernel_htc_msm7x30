@@ -153,6 +153,40 @@ static struct usb_endpoint_descriptor fs_bulk_out_desc = {
 	.bInterval        =	0,
 };
 
+static struct usb_endpoint_descriptor ss_bulk_in_desc = {
+	.bLength          =	USB_DT_ENDPOINT_SIZE,
+	.bDescriptorType  =	USB_DT_ENDPOINT,
+	.bEndpointAddress =	USB_DIR_IN,
+	.bmAttributes     =	USB_ENDPOINT_XFER_BULK,
+	.wMaxPacketSize   = __constant_cpu_to_le16(1024),
+};
+
+static struct usb_ss_ep_comp_descriptor ss_bulk_in_comp_desc = {
+	.bLength =		sizeof ss_bulk_in_comp_desc,
+	.bDescriptorType =	USB_DT_SS_ENDPOINT_COMP,
+
+	/* the following 2 values can be tweaked if necessary */
+	/* .bMaxBurst =		0, */
+	/* .bmAttributes =	0, */
+};
+
+static struct usb_endpoint_descriptor ss_bulk_out_desc = {
+	.bLength          =	USB_DT_ENDPOINT_SIZE,
+	.bDescriptorType  =	USB_DT_ENDPOINT,
+	.bEndpointAddress =	USB_DIR_OUT,
+	.bmAttributes     =	USB_ENDPOINT_XFER_BULK,
+	.wMaxPacketSize   = __constant_cpu_to_le16(1024),
+};
+
+static struct usb_ss_ep_comp_descriptor ss_bulk_out_comp_desc = {
+	.bLength =		sizeof ss_bulk_out_comp_desc,
+	.bDescriptorType =	USB_DT_SS_ENDPOINT_COMP,
+
+	/* the following 2 values can be tweaked if necessary */
+	/* .bMaxBurst =		0, */
+	/* .bmAttributes =	0, */
+};
+
 static struct usb_descriptor_header *fs_diag_desc[] = {
 	(struct usb_descriptor_header *) &intf_desc,
 	(struct usb_descriptor_header *) &fs_bulk_in_desc,
@@ -163,6 +197,15 @@ static struct usb_descriptor_header *hs_diag_desc[] = {
 	(struct usb_descriptor_header *) &intf_desc,
 	(struct usb_descriptor_header *) &hs_bulk_in_desc,
 	(struct usb_descriptor_header *) &hs_bulk_out_desc,
+	NULL,
+};
+
+static struct usb_descriptor_header *ss_diag_desc[] = {
+	(struct usb_descriptor_header *) &intf_desc,
+	(struct usb_descriptor_header *) &ss_bulk_in_desc,
+	(struct usb_descriptor_header *) &ss_bulk_in_comp_desc,
+	(struct usb_descriptor_header *) &ss_bulk_out_desc,
+	(struct usb_descriptor_header *) &ss_bulk_out_comp_desc,
 	NULL,
 };
 
@@ -692,12 +735,12 @@ static int diag_function_set_alt(struct usb_function *f,
 	struct usb_request *req;
 #endif
 
-	dev->in->desc = ep_choose(cdev->gadget,
-			(struct usb_endpoint_descriptor *)f->hs_descriptors[1],
-			(struct usb_endpoint_descriptor *)f->descriptors[1]);
-	dev->out->desc = ep_choose(cdev->gadget,
-			(struct usb_endpoint_descriptor *)f->hs_descriptors[2],
-			(struct usb_endpoint_descriptor *)f->descriptors[2]);
+	if (config_ep_by_speed(cdev->gadget, f, dev->in) ||
+	    config_ep_by_speed(cdev->gadget, f, dev->out)) {
+		dev->in->desc = NULL;
+		dev->out->desc = NULL;
+		return -EINVAL;
+	}
 	dev->in->driver_data = dev;
 	rc = usb_ep_enable(dev->in);
 	if (rc) {
@@ -739,6 +782,8 @@ static void diag_function_unbind(struct usb_configuration *c,
 {
 	struct diag_context *ctxt = func_to_diag(f);
 
+	if (gadget_is_superspeed(c->cdev->gadget))
+		usb_free_descriptors(f->ss_descriptors);
 	if (gadget_is_dualspeed(c->cdev->gadget))
 		usb_free_descriptors(f->hs_descriptors);
 
@@ -781,9 +826,29 @@ static int diag_function_bind(struct usb_configuration *c,
 
 		/* copy descriptors, and track endpoint copies */
 		f->hs_descriptors = usb_copy_descriptors(hs_diag_desc);
+		if (!f->hs_descriptors)
+			goto fail;
+	}
+
+	if (gadget_is_superspeed(c->cdev->gadget)) {
+		ss_bulk_in_desc.bEndpointAddress =
+				fs_bulk_in_desc.bEndpointAddress;
+		ss_bulk_out_desc.bEndpointAddress =
+				fs_bulk_out_desc.bEndpointAddress;
+
+		/* copy descriptors, and track endpoint copies */
+		f->ss_descriptors = usb_copy_descriptors(ss_diag_desc);
+		if (!f->ss_descriptors)
+			goto fail;
 	}
 	return 0;
 fail:
+	if (f->ss_descriptors)
+		usb_free_descriptors(f->ss_descriptors);
+	if (f->hs_descriptors)
+		usb_free_descriptors(f->hs_descriptors);
+	if (f->descriptors)
+		usb_free_descriptors(f->descriptors);
 	if (ctxt->out)
 		ctxt->out->driver_data = NULL;
 	if (ctxt->in)
@@ -875,7 +940,6 @@ int diag_function_add(struct usb_configuration *c, const char *name,
 
 	return ret;
 }
-
 
 #if defined(CONFIG_DEBUG_FS)
 static char debug_buffer[PAGE_SIZE];

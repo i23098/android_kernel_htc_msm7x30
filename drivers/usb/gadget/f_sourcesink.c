@@ -131,6 +131,49 @@ static struct usb_descriptor_header *hs_source_sink_descs[] = {
 	NULL,
 };
 
+/* super speed support: */
+
+static struct usb_endpoint_descriptor ss_source_desc = {
+	.bLength =		USB_DT_ENDPOINT_SIZE,
+	.bDescriptorType =	USB_DT_ENDPOINT,
+
+	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
+	.wMaxPacketSize =	cpu_to_le16(1024),
+};
+
+struct usb_ss_ep_comp_descriptor ss_source_comp_desc = {
+	.bLength =		USB_DT_SS_EP_COMP_SIZE,
+	.bDescriptorType =	USB_DT_SS_ENDPOINT_COMP,
+	.bMaxBurst =		0,
+	.bmAttributes =		0,
+	.wBytesPerInterval =	0,
+};
+
+static struct usb_endpoint_descriptor ss_sink_desc = {
+	.bLength =		USB_DT_ENDPOINT_SIZE,
+	.bDescriptorType =	USB_DT_ENDPOINT,
+
+	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
+	.wMaxPacketSize =	cpu_to_le16(1024),
+};
+
+struct usb_ss_ep_comp_descriptor ss_sink_comp_desc = {
+	.bLength =		USB_DT_SS_EP_COMP_SIZE,
+	.bDescriptorType =	USB_DT_SS_ENDPOINT_COMP,
+	.bMaxBurst =		0,
+	.bmAttributes =		0,
+	.wBytesPerInterval =	0,
+};
+
+static struct usb_descriptor_header *ss_source_sink_descs[] = {
+	(struct usb_descriptor_header *) &source_sink_intf,
+	(struct usb_descriptor_header *) &ss_source_desc,
+	(struct usb_descriptor_header *) &ss_source_comp_desc,
+	(struct usb_descriptor_header *) &ss_sink_desc,
+	(struct usb_descriptor_header *) &ss_sink_comp_desc,
+	NULL,
+};
+
 /* function-specific strings: */
 
 static struct usb_string strings_sourcesink[] = {
@@ -185,6 +228,15 @@ autoconf_fail:
 		hs_sink_desc.bEndpointAddress =
 				fs_sink_desc.bEndpointAddress;
 		f->hs_descriptors = hs_source_sink_descs;
+	}
+
+	/* support super speed hardware */
+	if (gadget_is_superspeed(c->cdev->gadget)) {
+		ss_source_desc.bEndpointAddress =
+				fs_source_desc.bEndpointAddress;
+		ss_sink_desc.bEndpointAddress =
+				fs_sink_desc.bEndpointAddress;
+		f->ss_descriptors = ss_source_sink_descs;
 	}
 
 	DBG(cdev, "%s speed %s: IN/%s, OUT/%s\n",
@@ -346,11 +398,11 @@ enable_source_sink(struct usb_composite_dev *cdev, struct f_sourcesink *ss)
 	int					result = 0;
 	struct usb_ep				*ep;
 
-	ss->in_ep->desc = ep_choose(cdev->gadget, &hs_source_desc, &fs_source_desc);
-	ss->out_ep->desc = ep_choose(cdev->gadget, &hs_sink_desc, &fs_sink_desc);
-
 	/* one endpoint writes (sources) zeroes IN (to the host) */
 	ep = ss->in_ep;
+	result = config_ep_by_speed(cdev->gadget, &(ss->function), ep);
+	if (result)
+		return result;
 	result = usb_ep_enable(ep);
 	if (result < 0)
 		return result;
@@ -367,6 +419,9 @@ fail:
 
 	/* one endpoint reads (sinks) anything OUT (from the host) */
 	ep = ss->out_ep;
+	result = config_ep_by_speed(cdev->gadget, &(ss->function), ep);
+	if (result)
+		goto fail;
 	result = usb_ep_enable(ep);
 	if (result < 0)
 		goto fail;
@@ -434,6 +489,8 @@ static int sourcesink_setup(struct usb_configuration *c,
 	u16			w_index = le16_to_cpu(ctrl->wIndex);
 	u16			w_value = le16_to_cpu(ctrl->wValue);
 	u16			w_length = le16_to_cpu(ctrl->wLength);
+
+	req->length = USB_BUFSIZ;
 
 	/* composite driver infrastructure handles everything except
 	 * the two control test requests.

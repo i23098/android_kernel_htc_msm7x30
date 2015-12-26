@@ -858,13 +858,21 @@ static int projector_function_set_alt(struct usb_function *f,
 
 	DBG("%s intf: %d alt: %d\n", __func__, intf, alt);
 
-	dev->ep_in->desc = ep_choose(cdev->gadget,
-				&projector_highspeed_in_desc,
-				&projector_fullspeed_in_desc);
+	ret = config_ep_by_speed(cdev->gadget, f, dev->ep_in);
+	if (ret) {
+		   dev->ep_in->desc = NULL;
+		   ERROR(cdev, "config_ep_by_speed failes for ep %s, result %d\n",
+						   dev->ep_in->name, ret);
+				   return ret;
+	}
 
-	dev->ep_out->desc = ep_choose(cdev->gadget,
-				&projector_highspeed_out_desc,
-				&projector_fullspeed_out_desc);
+	ret = config_ep_by_speed(cdev->gadget, f, dev->ep_out);
+	if (ret) {
+		   dev->ep_in->desc = NULL;
+		   ERROR(cdev, "config_ep_by_speed failes for ep %s, result %d\n",
+						   dev->ep_out->name, ret);
+				   return ret;
+	}
 
 	ret = usb_ep_enable(dev->ep_in);
 	if (ret)

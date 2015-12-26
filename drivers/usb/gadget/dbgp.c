@@ -270,8 +270,8 @@ static int __init dbgp_configure_endpoints(struct usb_gadget *gadget)
 	dbgp.serial->in = dbgp.i_ep;
 	dbgp.serial->out = dbgp.o_ep;
 
-	dbgp.serial->in_desc = &i_desc;
-	dbgp.serial->out_desc = &o_desc;
+	dbgp.serial->in->desc = &i_desc;
+	dbgp.serial->out->desc = &o_desc;
 
 	if (gserial_setup(gadget, 1) < 0) {
 		stp = 3;
@@ -314,7 +314,6 @@ static int __init dbgp_bind(struct usb_gadget *gadget)
 
 	dbgp.req->length = DBGP_REQ_EP0_LEN;
 	gadget->ep0->driver_data = gadget;
-	device_desc.bMaxPacketSize0 = gadget->ep0->maxpacket;
 
 #ifdef CONFIG_USB_G_DBGP_SERIAL
 	dbgp.serial = kzalloc(sizeof(struct gserial), GFP_KERNEL);
@@ -365,6 +364,7 @@ static int dbgp_setup(struct usb_gadget *gadget,
 			dev_dbg(&dbgp.gadget->dev, "setup: desc device\n");
 			len = sizeof device_desc;
 			data = &device_desc;
+			device_desc.bMaxPacketSize0 = gadget->ep0->maxpacket;
 			break;
 		case USB_DT_DEBUG:
 			dev_dbg(&dbgp.gadget->dev, "setup: desc debug\n");
