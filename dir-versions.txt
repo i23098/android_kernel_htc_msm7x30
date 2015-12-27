@@ -28,3 +28,8 @@ git checkout HEAD arch/arm/boot/dts/
 # pm 3.2
 rm -rf drivers/base/power/generic_ops.c drivers/base/power/sysfs.c drivers/base/power/trace.c include/linux/pm.h
 git checkout HEAD drivers/base/power/generic_ops.c drivers/base/power/sysfs.c drivers/base/power/trace.c include/linux/pm.h
+
+###########
+# ext4
+rm include/trace/events/ext4.h fs/ext4/
+git checkout HEAD include/trace/events/ext4.h fs/ext4/
