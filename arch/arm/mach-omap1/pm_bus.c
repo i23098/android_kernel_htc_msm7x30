@@ -49,7 +49,7 @@ static int omap1_pm_runtime_resume(struct device *dev)
 	return pm_generic_runtime_resume(dev);
 }
 
-static struct dev_power_domain default_power_domain = {
+static struct dev_pm_domain default_power_domain = {
 	.ops = {
 		.runtime_suspend = omap1_pm_runtime_suspend,
 		.runtime_resume = omap1_pm_runtime_resume,

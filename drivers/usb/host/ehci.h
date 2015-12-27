@@ -62,6 +62,12 @@ struct ehci_stats {
 
 #define	EHCI_MAX_ROOT_PORTS	15		/* see HCS_N_PORTS */
 
+enum ehci_rh_state {
+	EHCI_RH_HALTED,
+	EHCI_RH_SUSPENDED,
+	EHCI_RH_RUNNING
+};
+
 struct ehci_hcd {			/* one per controller */
 	/* glue to PCI and HCD framework */
 	struct ehci_caps __iomem *caps;
@@ -70,6 +76,7 @@ struct ehci_hcd {			/* one per controller */
 
 	__u32			hcs_params;	/* cached register copy */
 	spinlock_t		lock;
+	enum ehci_rh_state	rh_state;
 
 	/* async schedule support */
 	struct ehci_qh		*async;
@@ -141,6 +148,7 @@ struct ehci_hcd {			/* one per controller */
 	unsigned		fs_i_thresh:1;	/* Intel iso scheduling */
 	unsigned		use_dummy_qh:1;	/* AMD Frame List table quirk*/
 	unsigned		has_synopsys_hc_bug:1; /* Synopsys HC */
+	unsigned		frame_index_bug:1; /* MosChip (AKA NetMos) */
 
 	/* required for usb32 quirk */
 	#define OHCI_CTRL_HCFS          (3 << 6)
@@ -755,6 +763,22 @@ static inline void ehci_sync_mem(void)
 static inline void ehci_sync_mem(void)
 {
 }
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+#ifdef CONFIG_PCI
+
+/* For working around the MosChip frame-index-register bug */
+static unsigned ehci_read_frame_index(struct ehci_hcd *ehci);
+
+#else
+
+static inline unsigned ehci_read_frame_index(struct ehci_hcd *ehci)
+{
+	return ehci_readl(ehci, &ehci->regs->frame_index);
+}
+
 #endif
 
 /*-------------------------------------------------------------------------*/

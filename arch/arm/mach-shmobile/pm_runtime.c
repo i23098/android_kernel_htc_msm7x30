@@ -28,7 +28,7 @@ static int default_platform_runtime_idle(struct device *dev)
 	return pm_runtime_suspend(dev);
 }
 
-static struct dev_power_domain default_power_domain = {
+static struct dev_pm_domain default_power_domain = {
 	.ops = {
 		.runtime_suspend = pm_runtime_clk_suspend,
 		.runtime_resume = pm_runtime_clk_resume,

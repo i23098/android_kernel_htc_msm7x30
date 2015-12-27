@@ -564,7 +564,7 @@ static int _od_runtime_resume(struct device *dev)
 	return pm_generic_runtime_resume(dev);
 }
 
-static struct dev_power_domain omap_device_power_domain = {
+static struct dev_pm_domain omap_device_power_domain = {
 	.ops = {
 		.runtime_suspend = _od_runtime_suspend,
 		.runtime_idle = _od_runtime_idle,

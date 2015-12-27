@@ -343,6 +343,7 @@ struct hc_driver {
 		 * address is set
 		 */
 	int	(*update_device)(struct usb_hcd *, struct usb_device *);
+	int	(*set_usb2_hw_lpm)(struct usb_hcd *, struct usb_device *, int);
 };
 
 extern int usb_hcd_link_urb_to_ep(struct usb_hcd *hcd, struct urb *urb);
@@ -379,18 +380,9 @@ extern struct usb_hcd *usb_create_shared_hcd(const struct hc_driver *driver,
 extern struct usb_hcd *usb_get_hcd(struct usb_hcd *hcd);
 extern void usb_put_hcd(struct usb_hcd *hcd);
 extern int usb_hcd_is_primary_hcd(struct usb_hcd *hcd);
-#ifdef CONFIG_USB
 extern int usb_add_hcd(struct usb_hcd *hcd,
 		unsigned int irqnum, unsigned long irqflags);
 extern void usb_remove_hcd(struct usb_hcd *hcd);
-#else
-static inline int
-usb_add_hcd(struct usb_hcd *hcd, unsigned int irqnum, unsigned long irqflags)
-{
-	return 0;
-}
-static inline void usb_remove_hcd(struct usb_hcd *hcd) {}
-#endif
 
 struct platform_device;
 extern void usb_hcd_platform_shutdown(struct platform_device *dev);

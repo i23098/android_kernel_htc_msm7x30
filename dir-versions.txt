@@ -4,9 +4,9 @@ rm -rf sound/ include/sound/
 git checkout HEAD sound/ include/sound/
 
 ###########
-#usb 3.1
-rm -rf drivers/usb include/linux/usb include/linux/usbdevice_fs.h include/linux/usb.h include/linux/usb_usual.h
-git checkout HEAD drivers/usb include/linux/usb include/linux/usbdevice_fs.h include/linux/usb.h include/linux/usb_usual.h
+#usb 3.2
+rm -rf drivers/usb include/linux/usb include/linux/usbdevice_fs.h include/linux/usb.h include/linux/usb_usual.h include/linux/pm.h
+git checkout HEAD drivers/usb include/linux/usb include/linux/usbdevice_fs.h include/linux/usb.h include/linux/usb_usual.h include/linux/pm.h
 
 ###########
 #of 3.4
