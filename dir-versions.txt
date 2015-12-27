@@ -5,8 +5,8 @@ git checkout HEAD sound/ include/sound/
 
 ###########
 #usb 3.2
-rm -rf drivers/usb include/linux/usb include/linux/usbdevice_fs.h include/linux/usb.h include/linux/usb_usual.h include/linux/pm.h
-git checkout HEAD drivers/usb include/linux/usb include/linux/usbdevice_fs.h include/linux/usb.h include/linux/usb_usual.h include/linux/pm.h
+rm -rf drivers/usb include/linux/usb include/linux/usbdevice_fs.h include/linux/usb.h include/linux/usb_usual.h
+git checkout HEAD drivers/usb include/linux/usb include/linux/usbdevice_fs.h include/linux/usb.h include/linux/usb_usual.h
 
 ###########
 #of 3.4
@@ -23,3 +23,8 @@ git checkout HEAD arch/arm/boot/compressed/
 #dts 3.4
 rm -rf arch/arm/boot/dts/
 git checkout HEAD arch/arm/boot/dts/
+
+###########
+# pm 3.2
+rm -rf drivers/base/power/generic_ops.c drivers/base/power/sysfs.c drivers/base/power/trace.c include/linux/pm.h
+git checkout HEAD drivers/base/power/generic_ops.c drivers/base/power/sysfs.c drivers/base/power/trace.c include/linux/pm.h
