@@ -1,5 +1,25 @@
-drivers/usb - v3.1
-drivers/usb/gadget - 3.1
-sound - v3.3
-drivers/of - v3.4.101
-arch/arm/boot/compressed/ - v3.4
+###########
+#sound - v3.3
+rm -rf sound/ include/sound/
+git checkout HEAD sound/ include/sound/
+
+###########
+#usb 3.1
+rm -rf drivers/usb include/linux/usb include/linux/usbdevice_fs.h include/linux/usb.h include/linux/usb_usual.h
+git checkout HEAD drivers/usb include/linux/usb include/linux/usbdevice_fs.h include/linux/usb.h include/linux/usb_usual.h
+
+###########
+#of 3.4
+rm -rf scripts/dtc drivers/of include/linux/of.h include/linux/of_address.h include/linux/of_fdt.h include/linux/of_gpio.h include/linux/of_irq.h include/linux/of_net.h include/linux/of_pci.h include/linux/of_platform.h
+git checkout HEAD scripts/dtc drivers/of include/linux/of.h include/linux/of_address.h include/linux/of_fdt.h include/linux/of_gpio.h include/linux/of_irq.h include/linux/of_net.h include/linux/of_pci.h include/linux/of_platform.h
+
+###########
+#of 3.4
+rm -rf arch/arm/boot/compressed/
+git checkout HEAD arch/arm/boot/compressed/
+
+
+###########
+#dts 3.4
+rm -rf arch/arm/boot/dts/
+git checkout HEAD arch/arm/boot/dts/
