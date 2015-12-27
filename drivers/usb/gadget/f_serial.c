@@ -27,6 +27,7 @@
  * CDC ACM driver.  However, for many purposes it's just as functional
  * if you can arrange appropriate host side drivers.
  */
+
 struct f_gser {
 	struct gserial			port;
 	u8				data_id;

@@ -1323,7 +1323,7 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 			 */
 			dev_dbg(&ui->pdev->dev,
 					"usb: notify offline\n");
-			ui->driver->mute_disconnect(&ui->gadget);
+			ui->driver->disconnect(&ui->gadget);
 			/* cancel pending ep0 transactions */
 			flush_endpoint(&ui->ep0out);
 			flush_endpoint(&ui->ep0in);
@@ -1437,7 +1437,7 @@ static void usb_reset(struct usb_info *ui)
 
 	if (ui->driver) {
 		dev_dbg(&ui->pdev->dev, "usb: notify offline\n");
-		ui->driver->mute_disconnect(&ui->gadget);
+		ui->driver->disconnect(&ui->gadget);
 	}
 
 	/* cancel pending ep0 transactions */
