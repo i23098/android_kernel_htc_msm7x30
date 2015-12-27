@@ -60,6 +60,29 @@ static void gfs2_pin(struct gfs2_sbd *sdp, struct buffer_head *bh)
 	trace_gfs2_pin(bd, 1);
 }
 
+static bool buffer_is_rgrp(const struct gfs2_bufdata *bd)
+{
+	return bd->bd_gl->gl_name.ln_type == LM_TYPE_RGRP;
+}
+
+static void maybe_release_space(struct gfs2_bufdata *bd)
+{
+	struct gfs2_glock *gl = bd->bd_gl;
+	struct gfs2_sbd *sdp = gl->gl_sbd;
+	struct gfs2_rgrpd *rgd = gl->gl_object;
+	unsigned int index = bd->bd_bh->b_blocknr - gl->gl_name.ln_number;
+	struct gfs2_bitmap *bi = rgd->rd_bits + index;
+
+	if (bi->bi_clone == 0)
+		return;
+	if (sdp->sd_args.ar_discard)
+		gfs2_rgrp_send_discards(sdp, rgd->rd_data0, bd->bd_bh, bi);
+	memcpy(bi->bi_clone + bi->bi_offset,
+	       bd->bd_bh->b_data + bi->bi_offset, bi->bi_len);
+	clear_bit(GBF_FULL, &bi->bi_flags);
+	rgd->rd_free_clone = rgd->rd_free;
+}
+
 /**
  * gfs2_unpin - Unpin a buffer
  * @sdp: the filesystem the buffer belongs to
@@ -80,6 +103,9 @@ static void gfs2_unpin(struct gfs2_sbd *sdp, struct buffer_head *bh,
 	lock_buffer(bh);
 	mark_buffer_dirty(bh);
 	clear_buffer_pinned(bh);
+
+	if (buffer_is_rgrp(bd))
+		maybe_release_space(bd);
 
 	spin_lock(&sdp->sd_ail_lock);
 	if (bd->bd_ail) {
@@ -139,14 +165,16 @@ static void buf_lo_add(struct gfs2_sbd *sdp, struct gfs2_log_element *le)
 	struct gfs2_meta_header *mh;
 	struct gfs2_trans *tr;
 
+	lock_buffer(bd->bd_bh);
+	gfs2_log_lock(sdp);
 	if (!list_empty(&bd->bd_list_tr))
-		return;
+		goto out;
 	tr = current->journal_info;
 	tr->tr_touched = 1;
 	tr->tr_num_buf++;
 	list_add(&bd->bd_list_tr, &tr->tr_list_buf);
 	if (!list_empty(&le->le_list))
-		return;
+		goto out;
 	set_bit(GLF_LFLUSH, &bd->bd_gl->gl_flags);
 	set_bit(GLF_DIRTY, &bd->bd_gl->gl_flags);
 	gfs2_meta_check(sdp, bd->bd_bh);
@@ -157,6 +185,9 @@ static void buf_lo_add(struct gfs2_sbd *sdp, struct gfs2_log_element *le)
 	sdp->sd_log_num_buf++;
 	list_add(&le->le_list, &sdp->sd_log_le_buf);
 	tr->tr_num_buf_new++;
+out:
+	gfs2_log_unlock(sdp);
+	unlock_buffer(bd->bd_bh);
 }
 
 static void buf_lo_before_commit(struct gfs2_sbd *sdp)
@@ -464,42 +495,6 @@ static void revoke_lo_after_scan(struct gfs2_jdesc *jd, int error, int pass)
 	gfs2_revoke_clean(sdp);
 }
 
-static void rg_lo_add(struct gfs2_sbd *sdp, struct gfs2_log_element *le)
-{
-	struct gfs2_rgrpd *rgd;
-	struct gfs2_trans *tr = current->journal_info;
-
-	tr->tr_touched = 1;
-
-	rgd = container_of(le, struct gfs2_rgrpd, rd_le);
-
-	gfs2_log_lock(sdp);
-	if (!list_empty(&le->le_list)){
-		gfs2_log_unlock(sdp);
-		return;
-	}
-	gfs2_rgrp_bh_hold(rgd);
-	sdp->sd_log_num_rg++;
-	list_add(&le->le_list, &sdp->sd_log_le_rg);
-	gfs2_log_unlock(sdp);
-}
-
-static void rg_lo_after_commit(struct gfs2_sbd *sdp, struct gfs2_ail *ai)
-{
-	struct list_head *head = &sdp->sd_log_le_rg;
-	struct gfs2_rgrpd *rgd;
-
-	while (!list_empty(head)) {
-		rgd = list_entry(head->next, struct gfs2_rgrpd, rd_le.le_list);
-		list_del_init(&rgd->rd_le.le_list);
-		sdp->sd_log_num_rg--;
-
-		gfs2_rgrp_repolish_clones(rgd);
-		gfs2_rgrp_bh_put(rgd);
-	}
-	gfs2_assert_warn(sdp, !sdp->sd_log_num_rg);
-}
-
 /**
  * databuf_lo_add - Add a databuf to the transaction.
  *
@@ -523,9 +518,11 @@ static void databuf_lo_add(struct gfs2_sbd *sdp, struct gfs2_log_element *le)
 	struct address_space *mapping = bd->bd_bh->b_page->mapping;
 	struct gfs2_inode *ip = GFS2_I(mapping->host);
 
+	lock_buffer(bd->bd_bh);
+	gfs2_log_lock(sdp);
 	if (tr) {
 		if (!list_empty(&bd->bd_list_tr))
-			return;
+			goto out;
 		tr->tr_touched = 1;
 		if (gfs2_is_jdata(ip)) {
 			tr->tr_num_buf++;
@@ -533,7 +530,7 @@ static void databuf_lo_add(struct gfs2_sbd *sdp, struct gfs2_log_element *le)
 		}
 	}
 	if (!list_empty(&le->le_list))
-		return;
+		goto out;
 
 	set_bit(GLF_LFLUSH, &bd->bd_gl->gl_flags);
 	set_bit(GLF_DIRTY, &bd->bd_gl->gl_flags);
@@ -545,6 +542,9 @@ static void databuf_lo_add(struct gfs2_sbd *sdp, struct gfs2_log_element *le)
 	} else {
 		list_add_tail(&le->le_list, &sdp->sd_log_le_ordered);
 	}
+out:
+	gfs2_log_unlock(sdp);
+	unlock_buffer(bd->bd_bh);
 }
 
 static void gfs2_check_magic(struct buffer_head *bh)
@@ -695,8 +695,6 @@ static int databuf_lo_scan_elements(struct gfs2_jdesc *jd, unsigned int start,
 
 		brelse(bh_log);
 		brelse(bh_ip);
-		if (error)
-			break;
 
 		sdp->sd_replayed_blocks++;
 	}
@@ -761,8 +759,6 @@ const struct gfs2_log_operations gfs2_revoke_lops = {
 };
 
 const struct gfs2_log_operations gfs2_rg_lops = {
-	.lo_add = rg_lo_add,
-	.lo_after_commit = rg_lo_after_commit,
 	.lo_name = "rg",
 };
 

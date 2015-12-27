@@ -2376,16 +2376,18 @@ static int ocfs2_remove_value_outside(struct inode*inode,
 		}
 
 		ret = ocfs2_xattr_value_truncate(inode, vb, 0, &ctxt);
-		if (ret < 0) {
-			mlog_errno(ret);
-			break;
-		}
 
 		ocfs2_commit_trans(osb, ctxt.handle);
 		if (ctxt.meta_ac) {
 			ocfs2_free_alloc_context(ctxt.meta_ac);
 			ctxt.meta_ac = NULL;
 		}
+
+		if (ret < 0) {
+			mlog_errno(ret);
+			break;
+		}
+
 	}
 
 	if (ctxt.meta_ac)
@@ -6497,16 +6499,6 @@ static int ocfs2_reflink_xattr_inline(struct ocfs2_xattr_reflink *args)
 	}
 
 	new_oi = OCFS2_I(args->new_inode);
-	/*
-	 * Adjust extent record count to reserve space for extended attribute.
-	 * Inline data count had been adjusted in ocfs2_duplicate_inline_data().
-	 */
-	if (!(new_oi->ip_dyn_features & OCFS2_INLINE_DATA_FL) &&
-	    !(ocfs2_inode_is_fast_symlink(args->new_inode))) {
-		struct ocfs2_extent_list *el = &new_di->id2.i_list;
-		le16_add_cpu(&el->l_count, -(inline_size /
-					sizeof(struct ocfs2_extent_rec)));
-	}
 	spin_lock(&new_oi->ip_lock);
 	new_oi->ip_dyn_features |= OCFS2_HAS_XATTR_FL | OCFS2_INLINE_XATTR_FL;
 	new_di->i_dyn_features = cpu_to_le16(new_oi->ip_dyn_features);

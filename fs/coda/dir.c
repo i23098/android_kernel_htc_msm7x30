@@ -30,7 +30,7 @@
 #include "coda_int.h"
 
 /* dir inode-ops */
-static int coda_create(struct inode *dir, struct dentry *new, umode_t mode, struct nameidata *nd);
+static int coda_create(struct inode *dir, struct dentry *new, int mode, struct nameidata *nd);
 static struct dentry *coda_lookup(struct inode *dir, struct dentry *target, struct nameidata *nd);
 static int coda_link(struct dentry *old_dentry, struct inode *dir_inode, 
 		     struct dentry *entry);
@@ -191,7 +191,7 @@ static inline void coda_dir_drop_nlink(struct inode *dir)
 }
 
 /* creation routines: create, mknod, mkdir, link, symlink */
-static int coda_create(struct inode *dir, struct dentry *de, umode_t mode, struct nameidata *nd)
+static int coda_create(struct inode *dir, struct dentry *de, int mode, struct nameidata *nd)
 {
 	int error;
 	const char *name=de->d_name.name;
@@ -449,8 +449,7 @@ static int coda_venus_readdir(struct file *coda_file, void *buf,
 	struct file *host_file;
 	struct dentry *de;
 	struct venus_dirent *vdir;
-	unsigned long vdir_size =
-	    (unsigned long)(&((struct venus_dirent *)0)->d_name);
+	unsigned long vdir_size = offsetof(struct venus_dirent, d_name);
 	unsigned int type;
 	struct qstr name;
 	ino_t ino;
@@ -474,7 +473,7 @@ static int coda_venus_readdir(struct file *coda_file, void *buf,
 		coda_file->f_pos++;
 	}
 	if (coda_file->f_pos == 1) {
-		ret = filldir(buf, "..", 2, 1, de->d_parent->d_inode->i_ino, DT_DIR);
+		ret = filldir(buf, "..", 2, 1, parent_ino(de), DT_DIR);
 		if (ret < 0)
 			goto out;
 		result++;

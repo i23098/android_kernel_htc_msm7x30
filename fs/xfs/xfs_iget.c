@@ -38,7 +38,6 @@
 #include "xfs_trans_priv.h"
 #include "xfs_inode_item.h"
 #include "xfs_bmap.h"
-#include "xfs_btree_trace.h"
 #include "xfs_trace.h"
 
 
@@ -76,7 +75,6 @@ xfs_inode_alloc(
 		return NULL;
 	}
 
-	ASSERT(atomic_read(&ip->i_iocount) == 0);
 	ASSERT(atomic_read(&ip->i_pincount) == 0);
 	ASSERT(!spin_is_locked(&ip->i_flags_lock));
 	ASSERT(completion_done(&ip->i_flush));
@@ -109,6 +107,7 @@ xfs_inode_free_callback(
 	struct inode		*inode = container_of(head, struct inode, i_rcu);
 	struct xfs_inode	*ip = XFS_I(inode);
 
+	INIT_LIST_HEAD(&inode->i_dentry);
 	kmem_zone_free(xfs_inode_zone, ip);
 }
 
@@ -150,7 +149,6 @@ xfs_inode_free(
 	}
 
 	/* asserts to verify all state is correct here */
-	ASSERT(atomic_read(&ip->i_iocount) == 0);
 	ASSERT(atomic_read(&ip->i_pincount) == 0);
 	ASSERT(!spin_is_locked(&ip->i_flags_lock));
 	ASSERT(completion_done(&ip->i_flush));
@@ -355,20 +353,9 @@ xfs_iget_cache_miss(
 			BUG();
 	}
 
-	/*
-	 * These values must be set before inserting the inode into the radix
-	 * tree as the moment it is inserted a concurrent lookup (allowed by the
-	 * RCU locking mechanism) can find it and that lookup must see that this
-	 * is an inode currently under construction (i.e. that XFS_INEW is set).
-	 * The ip->i_flags_lock that protects the XFS_INEW flag forms the
-	 * memory barrier that ensures this detection works correctly at lookup
-	 * time.
-	 */
-	ip->i_udquot = ip->i_gdquot = NULL;
-	xfs_iflags_set(ip, XFS_INEW);
+	spin_lock(&pag->pag_ici_lock);
 
 	/* insert the new inode */
-	spin_lock(&pag->pag_ici_lock);
 	error = radix_tree_insert(&pag->pag_ici_root, agino, ip);
 	if (unlikely(error)) {
 		WARN_ON(error != -EEXIST);
@@ -376,6 +363,11 @@ xfs_iget_cache_miss(
 		error = EAGAIN;
 		goto out_preload_end;
 	}
+
+	/* These values _must_ be set before releasing the radix tree lock! */
+	ip->i_udquot = ip->i_gdquot = NULL;
+	xfs_iflags_set(ip, XFS_INEW);
+
 	spin_unlock(&pag->pag_ici_lock);
 	radix_tree_preload_end();
 

@@ -19,7 +19,7 @@
 #include <linux/reiserfs_xattr.h>
 #include <linux/quotaops.h>
 
-#define INC_DIR_INODE_NLINK(i) if (i->i_nlink != 1) { inc_nlink(i); if (i->i_nlink >= REISERFS_LINK_MAX) i->i_nlink=1; }
+#define INC_DIR_INODE_NLINK(i) if (i->i_nlink != 1) { inc_nlink(i); if (i->i_nlink >= REISERFS_LINK_MAX) set_nlink(i, 1); }
 #define DEC_DIR_INODE_NLINK(i) if (i->i_nlink != 1) drop_nlink(i);
 
 // directory item contains array of entry headers. This performs
@@ -572,7 +572,7 @@ static int new_inode_init(struct inode *inode, struct inode *dir, int mode)
 	return 0;
 }
 
-static int reiserfs_create(struct inode *dir, struct dentry *dentry, umode_t mode,
+static int reiserfs_create(struct inode *dir, struct dentry *dentry, int mode,
 			   struct nameidata *nd)
 {
 	int retval;
@@ -643,7 +643,7 @@ static int reiserfs_create(struct inode *dir, struct dentry *dentry, umode_t mod
 	return retval;
 }
 
-static int reiserfs_mknod(struct inode *dir, struct dentry *dentry, umode_t mode,
+static int reiserfs_mknod(struct inode *dir, struct dentry *dentry, int mode,
 			  dev_t rdev)
 {
 	int retval;
@@ -964,7 +964,7 @@ static int reiserfs_unlink(struct inode *dir, struct dentry *dentry)
 		reiserfs_warning(inode->i_sb, "reiserfs-7042",
 				 "deleting nonexistent file (%lu), %d",
 				 inode->i_ino, inode->i_nlink);
-		inode->i_nlink = 1;
+		set_nlink(inode, 1);
 	}
 
 	drop_nlink(inode);
