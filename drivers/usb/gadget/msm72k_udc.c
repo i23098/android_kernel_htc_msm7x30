@@ -2573,7 +2573,7 @@ static int msm72k_start(struct usb_gadget_driver *driver,
 	int			retval, n;
 
 	if (!driver
-			|| driver->speed < USB_SPEED_FULL
+			|| driver->max_speed < USB_SPEED_FULL
 			|| !bind
 			|| !driver->disconnect
 			|| !driver->setup)
@@ -2732,8 +2732,7 @@ static int msm72k_probe(struct platform_device *pdev)
 	ui->addr = otg->regs;
 
 	ui->gadget.ops = &msm72k_ops;
-	ui->gadget.is_dualspeed = 1;
-	ui->gadget.speed = USB_SPEED_HIGH;
+	ui->gadget.max_speed = USB_SPEED_HIGH;
 	device_initialize(&ui->gadget.dev);
 	dev_set_name(&ui->gadget.dev, "gadget");
 	ui->gadget.dev.parent = &pdev->dev;
