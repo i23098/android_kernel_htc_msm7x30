@@ -19,6 +19,7 @@
 #include <linux/mmc/sdio_ids.h>
 
 #include "core.h"
+#include "host.h"
 #include "bus.h"
 #include "sd.h"
 #include "sdio_bus.h"

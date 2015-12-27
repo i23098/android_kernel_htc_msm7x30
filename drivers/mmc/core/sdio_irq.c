@@ -26,6 +26,7 @@
 #include <linux/mmc/sdio_func.h>
 
 #include "sdio_ops.h"
+#include "host.h"
 
 static int process_sdio_pending_irqs(struct mmc_host *host)
 {

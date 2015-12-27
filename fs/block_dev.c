@@ -95,7 +95,7 @@ static void kill_bdev(struct block_device *bdev)
 		return;
 	invalidate_bh_lrus();
 	truncate_inode_pages(bdev->bd_inode->i_mapping, 0);
-}	
+}
 
 int set_blocksize(struct block_device *bdev, int size)
 {
@@ -389,13 +389,13 @@ out:
 	mutex_unlock(&bd_inode->i_mutex);
 	return retval;
 }
-	
+
 int blkdev_fsync(struct file *filp, loff_t start, loff_t end, int datasync)
 {
 	struct inode *bd_inode = filp->f_mapping->host;
 	struct block_device *bdev = I_BDEV(bd_inode);
 	int error;
-	
+
 	error = filemap_write_and_wait_range(filp->f_mapping, start, end);
 	if (error)
 		return error;
@@ -613,7 +613,7 @@ void bdput(struct block_device *bdev)
 }
 
 EXPORT_SYMBOL(bdput);
- 
+
 static struct block_device *bd_acquire(struct inode *inode)
 {
 	struct block_device *bdev;

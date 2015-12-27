@@ -1479,16 +1479,8 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 	/* Order's important: probe SDIO, then SD, then MMC */
 	if (!mmc_attach_sdio(host))
 		return 0;
-
-	if (!host->ios.vdd)
-		mmc_power_up(host);
-
 	if (!mmc_attach_sd(host))
 		return 0;
-
-	if (!host->ios.vdd)
-		mmc_power_up(host);
-
 	if (!mmc_attach_mmc(host))
 		return 0;
 
@@ -1744,7 +1736,6 @@ int mmc_suspend_host(struct mmc_host *host)
 
 	mmc_bus_get(host);
 	if (host->bus_ops && !host->bus_dead) {
-
 		/*
 		 * A long response time is not acceptable for device drivers
 		 * when doing suspend. Prevent mmc_claim_host in the suspend

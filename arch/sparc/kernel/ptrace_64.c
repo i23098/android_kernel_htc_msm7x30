@@ -1086,8 +1086,17 @@ asmlinkage int syscall_trace_enter(struct pt_regs *regs)
 
 asmlinkage void syscall_trace_leave(struct pt_regs *regs)
 {
-	audit_syscall_exit(regs);
+#ifdef CONFIG_AUDITSYSCALL
+	if (unlikely(current->audit_context)) {
+		unsigned long tstate = regs->tstate;
+		int result = AUDITSC_SUCCESS;
 
+		if (unlikely(tstate & (TSTATE_XCARRY | TSTATE_ICARRY)))
+			result = AUDITSC_FAILURE;
+
+		audit_syscall_exit(result, regs->u_regs[UREG_I0]);
+	}
+#endif
 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
 		trace_sys_exit(regs, regs->u_regs[UREG_G1]);
 

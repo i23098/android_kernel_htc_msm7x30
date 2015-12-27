@@ -302,7 +302,6 @@ void mmu_notifier_unregister(struct mmu_notifier *mn, struct mm_struct *mm)
 {
 	BUG_ON(atomic_read(&mm->mm_count) <= 0);
 
-	spin_lock(&mm->mmu_notifier_mm->lock);
 	if (!hlist_unhashed(&mn->hlist)) {
 		int id;
 
@@ -323,6 +322,7 @@ void mmu_notifier_unregister(struct mmu_notifier *mn, struct mm_struct *mm)
 		srcu_read_unlock(&srcu, id);
 	} else
 		spin_unlock(&mm->mmu_notifier_mm->lock);
+	}
 
 	/*
 	 * Wait for any running method to finish, including ->release() if it
