@@ -33,35 +33,6 @@
 static void __jbd2_journal_temp_unlink_buffer(struct journal_head *jh);
 static void __jbd2_journal_unfile_buffer(struct journal_head *jh);
 
-static struct kmem_cache *transaction_cache;
-int __init jbd2_journal_init_transaction_cache(void)
-{
-	J_ASSERT(!transaction_cache);
-	transaction_cache = kmem_cache_create("jbd2_transaction_s",
-					sizeof(transaction_t),
-					0,
-					SLAB_HWCACHE_ALIGN|SLAB_TEMPORARY,
-					NULL);
-	if (transaction_cache)
-		return 0;
-	return -ENOMEM;
-}
-
-void jbd2_journal_destroy_transaction_cache(void)
-{
-	if (transaction_cache) {
-		kmem_cache_destroy(transaction_cache);
-		transaction_cache = NULL;
-	}
-}
-
-void jbd2_journal_free_transaction(transaction_t *transaction)
-{
-	if (unlikely(ZERO_OR_NULL_PTR(transaction)))
-		return;
-	kmem_cache_free(transaction_cache, transaction);
-}
-
 /*
  * jbd2_get_transaction: obtain a new transaction_t object.
  *
@@ -162,8 +133,7 @@ static int start_this_handle(journal_t *journal, handle_t *handle,
 
 alloc_transaction:
 	if (!journal->j_running_transaction) {
-		new_transaction = kmem_cache_alloc(transaction_cache,
-						   gfp_mask | __GFP_ZERO);
+		new_transaction = kzalloc(sizeof(*new_transaction), gfp_mask);
 		if (!new_transaction) {
 			/*
 			 * If __GFP_FS is not present, then we may be
@@ -192,7 +162,7 @@ repeat:
 	if (is_journal_aborted(journal) ||
 	    (journal->j_errno != 0 && !(journal->j_flags & JBD2_ACK_ERR))) {
 		read_unlock(&journal->j_state_lock);
-		jbd2_journal_free_transaction(new_transaction);
+		kfree(new_transaction);
 		return -EROFS;
 	}
 
@@ -209,8 +179,7 @@ repeat:
 		if (!new_transaction)
 			goto alloc_transaction;
 		write_lock(&journal->j_state_lock);
-		if (!journal->j_running_transaction &&
-		    !journal->j_barrier_count) {
+		if (!journal->j_running_transaction) {
 			jbd2_get_transaction(journal, new_transaction);
 			new_transaction = NULL;
 		}
@@ -315,7 +284,7 @@ repeat:
 	read_unlock(&journal->j_state_lock);
 
 	lock_map_acquire(&handle->h_lockdep_map);
-	jbd2_journal_free_transaction(new_transaction);
+	kfree(new_transaction);
 	return 0;
 }
 
@@ -500,10 +469,10 @@ int jbd2__journal_restart(handle_t *handle, int nblocks, gfp_t gfp_mask)
 		   &transaction->t_outstanding_credits);
 	if (atomic_dec_and_test(&transaction->t_updates))
 		wake_up(&journal->j_wait_updates);
-	tid = transaction->t_tid;
 	spin_unlock(&transaction->t_handle_lock);
 
 	jbd_debug(2, "restarting handle %p\n", handle);
+	tid = transaction->t_tid;
 	need_to_start = !tid_geq(journal->j_commit_request, tid);
 	read_unlock(&journal->j_state_lock);
 	if (need_to_start)
@@ -548,13 +517,12 @@ void jbd2_journal_lock_updates(journal_t *journal)
 			break;
 
 		spin_lock(&transaction->t_handle_lock);
-		prepare_to_wait(&journal->j_wait_updates, &wait,
-				TASK_UNINTERRUPTIBLE);
 		if (!atomic_read(&transaction->t_updates)) {
 			spin_unlock(&transaction->t_handle_lock);
-			finish_wait(&journal->j_wait_updates, &wait);
 			break;
 		}
+		prepare_to_wait(&journal->j_wait_updates, &wait,
+				TASK_UNINTERRUPTIBLE);
 		spin_unlock(&transaction->t_handle_lock);
 		write_unlock(&journal->j_state_lock);
 		schedule();
@@ -814,12 +782,12 @@ done:
 			    "Possible IO failure.\n");
 		page = jh2bh(jh)->b_page;
 		offset = offset_in_page(jh2bh(jh)->b_data);
-		source = kmap_atomic(page);
+		source = kmap_atomic(page, KM_USER0);
 		/* Fire data frozen trigger just before we copy the data */
 		jbd2_buffer_frozen_trigger(jh, source + offset,
 					   jh->b_triggers);
 		memcpy(jh->b_frozen_data, source+offset, jh2bh(jh)->b_size);
-		kunmap_atomic(source);
+		kunmap_atomic(source, KM_USER0);
 
 		/*
 		 * Now that the frozen data is saved off, we need to store
@@ -1047,12 +1015,9 @@ out:
 void jbd2_journal_set_triggers(struct buffer_head *bh,
 			       struct jbd2_buffer_trigger_type *type)
 {
-	struct journal_head *jh = jbd2_journal_grab_journal_head(bh);
+	struct journal_head *jh = bh2jh(bh);
 
-	if (WARN_ON(!jh))
-		return;
 	jh->b_triggers = type;
-	jbd2_journal_put_journal_head(jh);
 }
 
 void jbd2_buffer_frozen_trigger(struct journal_head *jh, void *mapped_data,
@@ -1104,18 +1069,17 @@ int jbd2_journal_dirty_metadata(handle_t *handle, struct buffer_head *bh)
 {
 	transaction_t *transaction = handle->h_transaction;
 	journal_t *journal = transaction->t_journal;
-	struct journal_head *jh;
+	struct journal_head *jh = bh2jh(bh);
 	int ret = 0;
 
+	jbd_debug(5, "journal_head %p\n", jh);
+	JBUFFER_TRACE(jh, "entry");
 	if (is_handle_aborted(handle))
 		goto out;
-	jh = jbd2_journal_grab_journal_head(bh);
-	if (!jh) {
+	if (!buffer_jbd(bh)) {
 		ret = -EUCLEAN;
 		goto out;
 	}
-	jbd_debug(5, "journal_head %p\n", jh);
-	JBUFFER_TRACE(jh, "entry");
 
 	jbd_lock_bh_state(bh);
 
@@ -1206,7 +1170,6 @@ int jbd2_journal_dirty_metadata(handle_t *handle, struct buffer_head *bh)
 	spin_unlock(&journal->j_list_lock);
 out_unlock_bh:
 	jbd_unlock_bh_state(bh);
-	jbd2_journal_put_journal_head(jh);
 out:
 	JBUFFER_TRACE(jh, "exit");
 	WARN_ON(ret);	/* All errors are bugs, so dump the stack */
@@ -1585,9 +1548,9 @@ __blist_del_buffer(struct journal_head **list, struct journal_head *jh)
  * of these pointers, it could go bad.  Generally the caller needs to re-read
  * the pointer from the transaction_t.
  *
- * Called under j_list_lock.
+ * Called under j_list_lock.  The journal may not be locked.
  */
-static void __jbd2_journal_temp_unlink_buffer(struct journal_head *jh)
+void __jbd2_journal_temp_unlink_buffer(struct journal_head *jh)
 {
 	struct journal_head **list = NULL;
 	transaction_t *transaction;
@@ -1682,8 +1645,10 @@ __journal_try_to_free_buffer(journal_t *journal, struct buffer_head *bh)
 	spin_lock(&journal->j_list_lock);
 	if (jh->b_cp_transaction != NULL && jh->b_transaction == NULL) {
 		/* written-back checkpointed metadata buffer */
-		JBUFFER_TRACE(jh, "remove from checkpoint list");
-		__jbd2_journal_remove_checkpoint(jh);
+		if (jh->b_jlist == BJ_None) {
+			JBUFFER_TRACE(jh, "remove from checkpoint list");
+			__jbd2_journal_remove_checkpoint(jh);
+		}
 	}
 	spin_unlock(&journal->j_list_lock);
 out:
@@ -1983,8 +1948,6 @@ zap_buffer_unlocked:
 	clear_buffer_mapped(bh);
 	clear_buffer_req(bh);
 	clear_buffer_new(bh);
-	clear_buffer_delay(bh);
-	clear_buffer_unwritten(bh);
 	bh->b_bdev = NULL;
 	return may_free;
 }

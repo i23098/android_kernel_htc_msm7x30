@@ -20,7 +20,7 @@
 
 
 /**
- * usb_gadget_get_string - fill out a string descriptor 
+ * usb_gadget_get_string - fill out a string descriptor
  * @table: of c strings encoded using UTF-8
  * @id: string id, from low byte of wValue in get string descriptor
  * @buf: at least 256 bytes, must be 16-bit aligned
@@ -60,8 +60,7 @@ usb_gadget_get_string (struct usb_gadget_strings *table, int id, u8 *buf)
 
 	/* string descriptors have length, tag, then UTF16-LE text */
 	len = min ((size_t) 126, strlen (s->s));
-	len = utf8s_to_utf16s(s->s, len, UTF16_LITTLE_ENDIAN,
-			(wchar_t *) &buf[2], 126);
+	len = utf8s_to_utf16s(s->s, len, (wchar_t *) &buf[2]);
 	if (len < 0)
 		return -EINVAL;
 	buf [0] = (len + 1) * 2;
