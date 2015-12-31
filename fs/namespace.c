@@ -50,6 +50,12 @@ static struct list_head *mount_hashtable __read_mostly;
 static struct kmem_cache *mnt_cache __read_mostly;
 static struct rw_semaphore namespace_sem;
 
+static inline int mnt_has_parent(struct vfsmount *mnt)
+{
+	return mnt != mnt->mnt_parent;
+}
+
+
 /* /sys/fs */
 struct kobject *fs_kobj;
 EXPORT_SYMBOL_GPL(fs_kobj);

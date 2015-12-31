@@ -38,7 +38,6 @@
 #include <linux/prefetch.h>
 #include <linux/ratelimit.h>
 #include "internal.h"
-#include "mount.h"
 
 /*
  * Usage:
@@ -2490,8 +2489,9 @@ static int prepend_path(const struct path *path,
 
 		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
 			/* Global root? */
-			if (!mnt_has_parent(vfsmnt))
+			if (vfsmnt->mnt_parent == vfsmnt) {
 				goto global_root;
+			}
 			dentry = vfsmnt->mnt_mountpoint;
 			vfsmnt = vfsmnt->mnt_parent;
 			continue;
