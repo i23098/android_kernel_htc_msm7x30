@@ -1180,7 +1180,7 @@ static struct msm_rot_clocks rotator_clocks[] = {
 static struct msm_rotator_platform_data rotator_pdata = {
 	.number_of_clocks = ARRAY_SIZE(rotator_clocks),
 	.hardware_version_number = 0x1000303,
-	.rotator_clks = rotator_clocks,	
+	.rotator_clks = rotator_clocks,
 };
 
 struct platform_device msm_rotator_device = {
@@ -1207,7 +1207,6 @@ static void __init msm_register_device(struct platform_device *pdev, void *data)
 			  __func__, ret);
 }
 
-#ifdef CONFIG_FB_MSM_NEW
 struct resource msm_fb_resources[] = {
 	{
 		.flags = IORESOURCE_DMA,
@@ -1250,7 +1249,6 @@ struct platform_device msm_v4l2_video_overlay_device = {
 	.resource       = msm_v4l2_video_overlay_resources,
 };
 #endif
-#endif /* CONFIG_FB_MSM_NEW */
 
 void __init msm_fb_add_devices(struct msm_list_device *devices, int len)
 {

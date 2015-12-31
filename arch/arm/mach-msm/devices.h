@@ -205,7 +205,6 @@ extern unsigned msm_num_clocks_fsm9xxx;
 
 extern struct platform_device msm_footswitch;
 
-#ifdef CONFIG_FB_MSM_NEW
 extern struct resource msm_fb_resources[];
 extern struct platform_device msm_fb_device;
 #ifdef CONFIG_MSM_V4L2_VIDEO_OVERLAY_DEVICE
@@ -217,7 +216,6 @@ extern struct platform_device msm_fb_device;
 
 extern struct resource msm_v4l2_video_overlay_resources[];
 extern struct platform_device msm_v4l2_video_overlay_device;
-#endif
 #endif
 
 struct msm_list_device {
