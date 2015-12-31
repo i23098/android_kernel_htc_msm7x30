@@ -476,8 +476,11 @@ struct l2cap_seq_list {
 	__u16 *list;
 };
 
-struct l2cap_pinfo {
-	struct bt_sock	bt;
+struct l2cap_chan {
+	struct sock *sk;
+
+	struct l2cap_conn	*conn;
+
 	__le16		psm;
 	__u16		dcid;
 	__u16		scid;
@@ -486,13 +489,23 @@ struct l2cap_pinfo {
 	__u16		omtu;
 	__u16		flush_to;
 	__u8		mode;
+
+	__u8		sec_level;
+
+	__u8		ident;
+
+};
+
+struct l2cap_pinfo {
+	struct bt_sock	bt;
+	struct l2cap_chan	*chan;
+
 	__u8		fixed_channel;
 	__u8		num_conf_req;
 	__u8		num_conf_rsp;
 	__u8		incoming;
 
 	__u8		fcs;
-	__u8		sec_level;
 	__u8		role_switch;
 	__u8		force_reliable;
 	__u8		flushable;
@@ -529,8 +542,6 @@ struct l2cap_pinfo {
 	struct sk_buff	*sdu;
 	struct sk_buff	*sdu_last_frag;
 	atomic_t	ertm_queued;
-
-	__u8		ident;
 
 	__u16		tx_win;
 	__u16		tx_win_max;
@@ -660,7 +671,6 @@ struct l2cap_pinfo {
 #define __next_seq(x, pi) ((x + 1) & ((pi)->tx_win_max))
 
 extern int disable_ertm;
-extern const struct proto_ops l2cap_sock_ops;
 extern struct bt_sock_list l2cap_sk_list;
 
 int l2cap_init_sockets(void);
@@ -696,6 +706,7 @@ struct sock *l2cap_sock_alloc(struct net *net, struct socket *sock,
 struct sock *l2cap_find_sock_by_fixed_cid_and_dir(__le16 cid, bdaddr_t *src,
 						bdaddr_t *dst, int server);
 void l2cap_send_disconn_req(struct l2cap_conn *conn, struct sock *sk, int err);
+struct l2cap_chan *l2cap_chan_create(struct sock *sk);
 void l2cap_chan_del(struct sock *sk, int err);
 int l2cap_do_connect(struct sock *sk);
 int l2cap_data_channel(struct sock *sk, struct sk_buff *skb);

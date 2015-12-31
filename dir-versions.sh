@@ -2,6 +2,7 @@
 #sound - v3.3
 rm -rf sound/ include/sound/
 git checkout HEAD sound/ include/sound/
+git add sound/ include/sound/
 
 ###########
 #usb 3.3

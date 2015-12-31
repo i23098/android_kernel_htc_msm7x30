@@ -1,6 +1,6 @@
 /*
    BlueZ - Bluetooth protocol stack for Linux
-   Copyright (c) 2000-2001, 2011-2012 The Linux Foundation.  All rights reserved.
+   Copyright (C) 2000-2001 Qualcomm Incorporated
    Copyright (C) 2009-2010 Gustavo F. Padovan <gustavo@padovan.org>
    Copyright (C) 2010 Google Inc.
 
@@ -53,7 +53,7 @@ static void l2cap_sock_timeout(unsigned long arg)
 	if (sk->sk_state == BT_CONNECTED || sk->sk_state == BT_CONFIG)
 		reason = ECONNREFUSED;
 	else if (sk->sk_state == BT_CONNECT &&
-				l2cap_pi(sk)->sec_level != BT_SECURITY_SDP)
+			l2cap_pi(sk)->chan->sec_level != BT_SECURITY_SDP)
 		reason = ECONNREFUSED;
 	else
 		reason = ETIMEDOUT;
@@ -169,17 +169,17 @@ static int l2cap_sock_bind(struct socket *sock, struct sockaddr *addr, int alen)
 	} else {
 		/* Save source address */
 		bacpy(&bt_sk(sk)->src, &la.l2_bdaddr);
-		l2cap_pi(sk)->psm   = la.l2_psm;
+		l2cap_pi(sk)->chan->psm   = la.l2_psm;
 		l2cap_pi(sk)->sport = la.l2_psm;
 		sk->sk_state = BT_BOUND;
 
 		if (__le16_to_cpu(la.l2_psm) == 0x0001 ||
 					__le16_to_cpu(la.l2_psm) == 0x0003)
-			l2cap_pi(sk)->sec_level = BT_SECURITY_SDP;
+			l2cap_pi(sk)->chan->sec_level = BT_SECURITY_SDP;
 	}
 
 	if (la.l2_cid)
-		l2cap_pi(sk)->scid = la.l2_cid;
+		l2cap_pi(sk)->chan->scid = la.l2_cid;
 
 	write_unlock_bh(&l2cap_sk_list.lock);
 
@@ -195,7 +195,7 @@ static int l2cap_sock_connect(struct socket *sock, struct sockaddr *addr, int al
 	int len, err = 0;
 
 	BT_DBG("sk %p type %d mode %d state %d", sk, sk->sk_type,
-		l2cap_pi(sk)->mode, sk->sk_state);
+		l2cap_pi(sk)->chan->mode, sk->sk_state);
 
 	if (!addr || alen < sizeof(addr->sa_family) ||
 	    addr->sa_family != AF_BLUETOOTH)
@@ -216,7 +216,7 @@ static int l2cap_sock_connect(struct socket *sock, struct sockaddr *addr, int al
 		goto done;
 	}
 
-	switch (l2cap_pi(sk)->mode) {
+	switch (l2cap_pi(sk)->chan->mode) {
 	case L2CAP_MODE_BASIC:
 		break;
 	case L2CAP_MODE_ERTM:
@@ -262,8 +262,8 @@ static int l2cap_sock_connect(struct socket *sock, struct sockaddr *addr, int al
 
 	/* Set destination address and psm */
 	bacpy(&bt_sk(sk)->dst, &la.l2_bdaddr);
-	l2cap_pi(sk)->psm = la.l2_psm;
-	l2cap_pi(sk)->dcid = la.l2_cid;
+	l2cap_pi(sk)->chan->psm = la.l2_psm;
+	l2cap_pi(sk)->chan->dcid = la.l2_cid;
 
 	err = l2cap_do_connect(sk);
 	if (err)
@@ -294,7 +294,7 @@ static int l2cap_sock_listen(struct socket *sock, int backlog)
 		goto done;
 	}
 
-	switch (l2cap_pi(sk)->mode) {
+	switch (l2cap_pi(sk)->chan->mode) {
 	case L2CAP_MODE_BASIC:
 		break;
 	case L2CAP_MODE_ERTM:
@@ -307,7 +307,7 @@ static int l2cap_sock_listen(struct socket *sock, int backlog)
 		goto done;
 	}
 
-	if (!l2cap_pi(sk)->psm && !l2cap_pi(sk)->scid) {
+	if (!l2cap_pi(sk)->chan->psm && !l2cap_pi(sk)->chan->scid) {
 		bdaddr_t *src = &bt_sk(sk)->src;
 		u16 psm;
 
@@ -317,7 +317,7 @@ static int l2cap_sock_listen(struct socket *sock, int backlog)
 
 		for (psm = 0x1001; psm < 0x1100; psm += 2)
 			if (!__l2cap_get_sock_by_addr(cpu_to_le16(psm), src)) {
-				l2cap_pi(sk)->psm   = cpu_to_le16(psm);
+				l2cap_pi(sk)->chan->psm   = cpu_to_le16(psm);
 				l2cap_pi(sk)->sport = cpu_to_le16(psm);
 				err = 0;
 				break;
@@ -405,13 +405,13 @@ static int l2cap_sock_getname(struct socket *sock, struct sockaddr *addr, int *l
 	*len = sizeof(struct sockaddr_l2);
 
 	if (peer) {
-		la->l2_psm = l2cap_pi(sk)->psm;
+		la->l2_psm = l2cap_pi(sk)->chan->psm;
 		bacpy(&la->l2_bdaddr, &bt_sk(sk)->dst);
-		la->l2_cid = cpu_to_le16(l2cap_pi(sk)->dcid);
+		la->l2_cid = cpu_to_le16(l2cap_pi(sk)->chan->dcid);
 	} else {
 		la->l2_psm = l2cap_pi(sk)->sport;
 		bacpy(&la->l2_bdaddr, &bt_sk(sk)->src);
-		la->l2_cid = cpu_to_le16(l2cap_pi(sk)->scid);
+		la->l2_cid = cpu_to_le16(l2cap_pi(sk)->chan->scid);
 	}
 
 	return 0;
@@ -435,10 +435,10 @@ static int l2cap_sock_getsockopt_old(struct socket *sock, int optname, char __us
 	switch (optname) {
 	case L2CAP_OPTIONS:
 		memset(&opts, 0, sizeof(opts));
-		opts.imtu     = l2cap_pi(sk)->imtu;
-		opts.omtu     = l2cap_pi(sk)->omtu;
-		opts.flush_to = l2cap_pi(sk)->flush_to;
-		opts.mode     = l2cap_pi(sk)->mode;
+		opts.imtu     = l2cap_pi(sk)->chan->imtu;
+		opts.omtu     = l2cap_pi(sk)->chan->omtu ;
+		opts.flush_to = l2cap_pi(sk)->chan->flush_to;
+		opts.mode     = l2cap_pi(sk)->chan->mode;
 		opts.fcs      = l2cap_pi(sk)->fcs;
 		opts.max_tx   = l2cap_pi(sk)->max_tx;
 		opts.txwin_size = l2cap_pi(sk)->tx_win;
@@ -450,7 +450,7 @@ static int l2cap_sock_getsockopt_old(struct socket *sock, int optname, char __us
 		break;
 
 	case L2CAP_LM:
-		switch (l2cap_pi(sk)->sec_level) {
+		switch (l2cap_pi(sk)->chan->sec_level) {
 		case BT_SECURITY_LOW:
 			opt = L2CAP_LM_AUTH;
 			break;
@@ -534,7 +534,7 @@ static int l2cap_sock_getsockopt(struct socket *sock, int level, int optname, ch
 		}
 
 		memset(&sec, 0, sizeof(sec));
-		sec.level = l2cap_pi(sk)->sec_level;
+		sec.level = l2cap_pi(sk)->chan->sec_level;
 
 		if (sk->sk_state == BT_CONNECTED)
 			sec.key_size = l2cap_pi(sk)->conn->hcon->enc_key_size;
@@ -577,7 +577,7 @@ static int l2cap_sock_getsockopt(struct socket *sock, int level, int optname, ch
 		break;
 
 	case BT_LE_PARAMS:
-		if (l2cap_pi(sk)->scid != L2CAP_CID_LE_DATA) {
+		if (l2cap_pi(sk)->chan->scid != L2CAP_CID_LE_DATA) {
 			err = -EINVAL;
 			break;
 		}
@@ -607,7 +607,7 @@ static int l2cap_sock_setsockopt_old(struct socket *sock, int optname, char __us
 
 	lock_sock(sk);
 
-	le_sock = l2cap_pi(sk)->scid == L2CAP_CID_LE_DATA;
+	le_sock = l2cap_pi(sk)->chan->scid == L2CAP_CID_LE_DATA;
 
 	switch (optname) {
 	case L2CAP_OPTIONS:
@@ -616,10 +616,10 @@ static int l2cap_sock_setsockopt_old(struct socket *sock, int optname, char __us
 			break;
 		}
 
-		opts.imtu     = l2cap_pi(sk)->imtu;
-		opts.omtu     = l2cap_pi(sk)->omtu;
-		opts.flush_to = l2cap_pi(sk)->flush_to;
-		opts.mode     = l2cap_pi(sk)->mode;
+		opts.imtu     = l2cap_pi(sk)->chan->imtu;
+		opts.omtu     = l2cap_pi(sk)->chan->omtu ;
+		opts.flush_to = l2cap_pi(sk)->chan->flush_to;
+		opts.mode     = l2cap_pi(sk)->chan->mode;
 		opts.fcs      = l2cap_pi(sk)->fcs;
 		opts.max_tx   = l2cap_pi(sk)->max_tx;
 		opts.txwin_size = l2cap_pi(sk)->tx_win;
@@ -633,9 +633,9 @@ static int l2cap_sock_setsockopt_old(struct socket *sock, int optname, char __us
 		if ((opts.imtu || opts.omtu) && le_sock &&
 				(sk->sk_state == BT_CONNECTED)) {
 			if (opts.imtu >= L2CAP_LE_DEFAULT_MTU)
-				l2cap_pi(sk)->imtu = opts.imtu;
+				l2cap_pi(sk)->chan->imtu = opts.imtu;
 			if (opts.omtu >= L2CAP_LE_DEFAULT_MTU)
-				l2cap_pi(sk)->omtu = opts.omtu;
+				l2cap_pi(sk)->chan->omtu  = opts.omtu;
 			if (opts.imtu < L2CAP_LE_DEFAULT_MTU ||
 					opts.omtu < L2CAP_LE_DEFAULT_MTU)
 				err = -EINVAL;
@@ -648,8 +648,8 @@ static int l2cap_sock_setsockopt_old(struct socket *sock, int optname, char __us
 			break;
 		}
 
-		l2cap_pi(sk)->mode = opts.mode;
-		switch (l2cap_pi(sk)->mode) {
+		l2cap_pi(sk)->chan->mode = opts.mode;
+		switch (l2cap_pi(sk)->chan->mode) {
 		case L2CAP_MODE_BASIC:
 			l2cap_pi(sk)->conf_state &= ~L2CAP_CONF_STATE2_DEVICE;
 			break;
@@ -671,12 +671,12 @@ static int l2cap_sock_setsockopt_old(struct socket *sock, int optname, char __us
 			break;
 		}
 
-		l2cap_pi(sk)->imtu = opts.imtu;
-		l2cap_pi(sk)->omtu = opts.omtu;
+		l2cap_pi(sk)->chan->imtu = opts.imtu;
+		l2cap_pi(sk)->chan->omtu  = opts.omtu;
 		l2cap_pi(sk)->fcs  = opts.fcs;
 		l2cap_pi(sk)->max_tx = opts.max_tx;
 		l2cap_pi(sk)->tx_win = opts.txwin_size;
-		l2cap_pi(sk)->flush_to = opts.flush_to;
+		l2cap_pi(sk)->chan->flush_to = opts.flush_to;
 		break;
 
 	case L2CAP_LM:
@@ -686,11 +686,11 @@ static int l2cap_sock_setsockopt_old(struct socket *sock, int optname, char __us
 		}
 
 		if (opt & L2CAP_LM_AUTH)
-			l2cap_pi(sk)->sec_level = BT_SECURITY_LOW;
+			l2cap_pi(sk)->chan->sec_level = BT_SECURITY_LOW;
 		if (opt & L2CAP_LM_ENCRYPT)
-			l2cap_pi(sk)->sec_level = BT_SECURITY_MEDIUM;
+			l2cap_pi(sk)->chan->sec_level = BT_SECURITY_MEDIUM;
 		if (opt & L2CAP_LM_SECURE)
-			l2cap_pi(sk)->sec_level = BT_SECURITY_HIGH;
+			l2cap_pi(sk)->chan->sec_level = BT_SECURITY_HIGH;
 
 		l2cap_pi(sk)->role_switch    = (opt & L2CAP_LM_MASTER);
 		l2cap_pi(sk)->force_reliable = (opt & L2CAP_LM_RELIABLE);
@@ -748,10 +748,10 @@ static int l2cap_sock_setsockopt(struct socket *sock, int level, int optname, ch
 			break;
 		}
 
-		l2cap_pi(sk)->sec_level = sec.level;
+		l2cap_pi(sk)->chan->sec_level = sec.level;
 
 		conn = l2cap_pi(sk)->conn;
-		if (conn && l2cap_pi(sk)->scid == L2CAP_CID_LE_DATA) {
+		if (conn && l2cap_pi(sk)->chan->scid == L2CAP_CID_LE_DATA) {
 			if (!conn->hcon->out) {
 				err = -EINVAL;
 				break;
@@ -803,8 +803,8 @@ static int l2cap_sock_setsockopt(struct socket *sock, int level, int optname, ch
 		}
 
 		if ((opt > BT_AMP_POLICY_PREFER_AMP) ||
-			((l2cap_pi(sk)->mode != L2CAP_MODE_ERTM) &&
-			 (l2cap_pi(sk)->mode != L2CAP_MODE_STREAMING))) {
+			((l2cap_pi(sk)->chan->mode != L2CAP_MODE_ERTM) &&
+			 (l2cap_pi(sk)->chan->mode != L2CAP_MODE_STREAMING))) {
 			err = -EINVAL;
 			break;
 		}
@@ -828,7 +828,7 @@ static int l2cap_sock_setsockopt(struct socket *sock, int level, int optname, ch
 		break;
 
 	case BT_LE_PARAMS:
-		if (l2cap_pi(sk)->scid != L2CAP_CID_LE_DATA) {
+		if (l2cap_pi(sk)->chan->scid != L2CAP_CID_LE_DATA) {
 			err = -EINVAL;
 			break;
 		}
@@ -841,7 +841,7 @@ static int l2cap_sock_setsockopt(struct socket *sock, int level, int optname, ch
 
 		conn = l2cap_pi(sk)->conn;
 		if (!conn || !conn->hcon ||
-				l2cap_pi(sk)->scid != L2CAP_CID_LE_DATA) {
+				l2cap_pi(sk)->chan->scid != L2CAP_CID_LE_DATA) {
 			memcpy(&bt_sk(sk)->le_params, &le_params,
 							sizeof(le_params));
 			break;
@@ -909,10 +909,10 @@ static int l2cap_sock_sendmsg(struct kiocb *iocb, struct socket *sock, struct ms
 		goto done;
 	}
 
-	switch (pi->mode) {
+	switch (pi->chan->mode) {
 	case L2CAP_MODE_BASIC:
 		/* Check outgoing MTU */
-		if (len > pi->omtu) {
+		if (len > pi->chan->omtu) {
 			err = -EMSGSIZE;
 			goto done;
 		}
@@ -932,7 +932,7 @@ static int l2cap_sock_sendmsg(struct kiocb *iocb, struct socket *sock, struct ms
 	case L2CAP_MODE_STREAMING:
 
 		/* Check outgoing MTU */
-		if (len > pi->omtu) {
+		if (len > pi->chan->omtu) {
 			err = -EMSGSIZE;
 			goto done;
 		}
@@ -969,7 +969,7 @@ static int l2cap_sock_sendmsg(struct kiocb *iocb, struct socket *sock, struct ms
 				break;
 		}
 
-		if (pi->mode != L2CAP_MODE_STREAMING)
+		if (pi->chan->mode != L2CAP_MODE_STREAMING)
 			err = l2cap_ertm_tx(sk, 0, &seg_queue,
 				L2CAP_ERTM_EVENT_DATA_REQUEST);
 		else
@@ -984,7 +984,7 @@ static int l2cap_sock_sendmsg(struct kiocb *iocb, struct socket *sock, struct ms
 		break;
 
 	default:
-		BT_DBG("bad state %1.1x", pi->mode);
+		BT_DBG("bad state %1.1x", pi->chan->mode);
 		err = -EBADFD;
 	}
 
@@ -1016,11 +1016,11 @@ static int l2cap_sock_recvmsg(struct kiocb *iocb, struct socket *sock, struct ms
 
 		sk->sk_state = BT_CONFIG;
 
-		rsp.scid   = cpu_to_le16(l2cap_pi(sk)->dcid);
-		rsp.dcid   = cpu_to_le16(l2cap_pi(sk)->scid);
+		rsp.scid   = cpu_to_le16(l2cap_pi(sk)->chan->dcid);
+		rsp.dcid   = cpu_to_le16(l2cap_pi(sk)->chan->scid);
 		rsp.result = cpu_to_le16(L2CAP_CR_SUCCESS);
 		rsp.status = cpu_to_le16(L2CAP_CS_NO_INFO);
-		l2cap_send_cmd(l2cap_pi(sk)->conn, l2cap_pi(sk)->ident,
+		l2cap_send_cmd(l2cap_pi(sk)->conn, l2cap_pi(sk)->chan->ident,
 					L2CAP_CONN_RSP, sizeof(rsp), &rsp);
 
 		if (l2cap_pi(sk)->conf_state & L2CAP_CONF_REQ_SENT) {
@@ -1125,11 +1125,11 @@ void __l2cap_sock_close(struct sock *sk, int reason)
 				result = L2CAP_CR_BAD_PSM;
 			sk->sk_state = BT_DISCONN;
 
-			rsp.scid   = cpu_to_le16(l2cap_pi(sk)->dcid);
-			rsp.dcid   = cpu_to_le16(l2cap_pi(sk)->scid);
+			rsp.scid   = cpu_to_le16(l2cap_pi(sk)->chan->dcid);
+			rsp.dcid   = cpu_to_le16(l2cap_pi(sk)->chan->scid);
 			rsp.result = cpu_to_le16(result);
 			rsp.status = cpu_to_le16(L2CAP_CS_NO_INFO);
-			l2cap_send_cmd(conn, l2cap_pi(sk)->ident,
+			l2cap_send_cmd(conn, l2cap_pi(sk)->chan->ident,
 					L2CAP_CONN_RSP, sizeof(rsp), &rsp);
 		}
 
@@ -1160,7 +1160,7 @@ static int l2cap_sock_shutdown(struct socket *sock, int how)
 	lock_sock(sk);
 	if (!sk->sk_shutdown) {
 
-		if (l2cap_pi(sk)->mode == L2CAP_MODE_ERTM) {
+		if (l2cap_pi(sk)->chan->mode == L2CAP_MODE_ERTM) {
 			err = __l2cap_wait_ack(sk);
 			l2cap_ertm_shutdown(sk);
 		}
@@ -1193,7 +1193,7 @@ static int l2cap_sock_release(struct socket *sock)
 		return 0;
 
 	/* If this is an ATT Client socket, find the matching Server */
-	if (l2cap_pi(sk)->scid == L2CAP_CID_LE_DATA && !l2cap_pi(sk)->incoming)
+	if (l2cap_pi(sk)->chan->scid == L2CAP_CID_LE_DATA && !l2cap_pi(sk)->incoming)
 		srv_sk = l2cap_find_sock_by_fixed_cid_and_dir(L2CAP_CID_LE_DATA,
 					&bt_sk(sk)->src, &bt_sk(sk)->dst, 1);
 
@@ -1237,33 +1237,33 @@ void l2cap_sock_init(struct sock *sk, struct sock *parent)
 		sk->sk_sndbuf = parent->sk_sndbuf;
 		bt_sk(sk)->defer_setup = bt_sk(parent)->defer_setup;
 
-		pi->imtu = l2cap_pi(parent)->imtu;
-		pi->omtu = l2cap_pi(parent)->omtu;
+		pi->chan->imtu = l2cap_pi(parent)->chan->imtu;
+		pi->chan->omtu = l2cap_pi(parent)->chan->omtu;
 		pi->conf_state = l2cap_pi(parent)->conf_state;
-		pi->mode = l2cap_pi(parent)->mode;
+		pi->chan->mode = l2cap_pi(parent)->chan->mode;
 		pi->fcs  = l2cap_pi(parent)->fcs;
 		pi->max_tx = l2cap_pi(parent)->max_tx;
 		pi->tx_win = l2cap_pi(parent)->tx_win;
-		pi->sec_level = l2cap_pi(parent)->sec_level;
+		pi->chan->sec_level = l2cap_pi(parent)->chan->sec_level;
 		pi->role_switch = l2cap_pi(parent)->role_switch;
 		pi->force_reliable = l2cap_pi(parent)->force_reliable;
 		pi->flushable = l2cap_pi(parent)->flushable;
 		pi->force_active = l2cap_pi(parent)->force_active;
 		pi->amp_pref = l2cap_pi(parent)->amp_pref;
 	} else {
-		pi->imtu = L2CAP_DEFAULT_MTU;
-		pi->omtu = 0;
+		pi->chan->imtu = L2CAP_DEFAULT_MTU;
+		pi->chan->omtu = 0;
 		if (!disable_ertm && sk->sk_type == SOCK_STREAM) {
-			pi->mode = L2CAP_MODE_ERTM;
+			pi->chan->mode = L2CAP_MODE_ERTM;
 			pi->conf_state |= L2CAP_CONF_STATE2_DEVICE;
 		} else {
-			pi->mode = L2CAP_MODE_BASIC;
+			pi->chan->mode = L2CAP_MODE_BASIC;
 		}
 		pi->reconf_state = L2CAP_RECONF_NONE;
 		pi->max_tx = L2CAP_DEFAULT_MAX_TX;
 		pi->fcs = L2CAP_FCS_CRC16;
 		pi->tx_win = L2CAP_DEFAULT_TX_WINDOW;
-		pi->sec_level = BT_SECURITY_LOW;
+		pi->chan->sec_level = BT_SECURITY_LOW;
 		pi->role_switch = 0;
 		pi->force_reliable = 0;
 		pi->flushable = 0;
@@ -1276,14 +1276,14 @@ void l2cap_sock_init(struct sock *sk, struct sock *parent)
 	pi->ampcon = NULL;
 	pi->ampchan = NULL;
 	pi->conf_len = 0;
-	pi->flush_to = L2CAP_DEFAULT_FLUSH_TO;
-	pi->scid = 0;
-	pi->dcid = 0;
+	pi->chan->flush_to = L2CAP_DEFAULT_FLUSH_TO;
+	pi->chan->scid = 0;
+	pi->chan->dcid = 0;
 	pi->tx_win_max = L2CAP_TX_WIN_MAX_ENHANCED;
 	pi->extended_control = 0;
 
 	pi->local_conf.fcs = pi->fcs;
-	pi->local_conf.flush_to = pi->flush_to;
+	pi->local_conf.flush_to = pi->chan->flush_to;
 
 	set_default_config(&pi->remote_conf);
 
@@ -1322,33 +1322,7 @@ struct sock *l2cap_sock_alloc(struct net *net, struct socket *sock, int proto, g
 	return sk;
 }
 
-static int l2cap_sock_create(struct net *net, struct socket *sock, int protocol,
-			     int kern)
-{
-	struct sock *sk;
-
-	BT_DBG("sock %p", sock);
-
-	sock->state = SS_UNCONNECTED;
-
-	if (sock->type != SOCK_SEQPACKET && sock->type != SOCK_STREAM &&
-			sock->type != SOCK_DGRAM && sock->type != SOCK_RAW)
-		return -ESOCKTNOSUPPORT;
-
-	if (sock->type == SOCK_RAW && !kern && !capable(CAP_NET_RAW))
-		return -EPERM;
-
-	sock->ops = &l2cap_sock_ops;
-
-	sk = l2cap_sock_alloc(net, sock, protocol, GFP_ATOMIC);
-	if (!sk)
-		return -ENOMEM;
-
-	l2cap_sock_init(sk, NULL);
-	return 0;
-}
-
-const struct proto_ops l2cap_sock_ops = {
+static const struct proto_ops l2cap_sock_ops = {
 	.family		= PF_BLUETOOTH,
 	.owner		= THIS_MODULE,
 	.release	= l2cap_sock_release,
@@ -1367,6 +1341,41 @@ const struct proto_ops l2cap_sock_ops = {
 	.setsockopt	= l2cap_sock_setsockopt,
 	.getsockopt	= l2cap_sock_getsockopt
 };
+
+static int l2cap_sock_create(struct net *net, struct socket *sock, int protocol,
+			     int kern)
+{
+	struct sock *sk;
+	struct l2cap_chan *chan;
+
+	BT_DBG("sock %p", sock);
+
+	sock->state = SS_UNCONNECTED;
+
+	if (sock->type != SOCK_SEQPACKET && sock->type != SOCK_STREAM &&
+			sock->type != SOCK_DGRAM && sock->type != SOCK_RAW)
+		return -ESOCKTNOSUPPORT;
+
+	if (sock->type == SOCK_RAW && !kern && !capable(CAP_NET_RAW))
+		return -EPERM;
+
+	sock->ops = &l2cap_sock_ops;
+
+	sk = l2cap_sock_alloc(net, sock, protocol, GFP_ATOMIC);
+	if (!sk)
+		return -ENOMEM;
+
+	chan = l2cap_chan_create(sk);
+	if (!chan) {
+		l2cap_sock_kill(sk);
+		return -ENOMEM;
+	}
+
+	l2cap_pi(sk)->chan = chan;
+
+	l2cap_sock_init(sk, NULL);
+	return 0;
+}
 
 static const struct net_proto_family l2cap_sock_family_ops = {
 	.family	= PF_BLUETOOTH,
