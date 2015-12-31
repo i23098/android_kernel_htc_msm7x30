@@ -15,8 +15,8 @@ git checkout HEAD scripts/dtc drivers/of include/linux/of.h include/linux/of_add
 
 ###########
 #of 3.4
-rm -rf arch/arm/boot/compressed/
-git checkout HEAD arch/arm/boot/compressed/
+rm -rf arch/arm/boot/compressed/ scripts/kconfig/
+git checkout HEAD arch/arm/boot/compressed/ scripts/kconfig/
 
 
 ###########
@@ -31,5 +31,5 @@ git checkout HEAD drivers/base/power/generic_ops.c drivers/base/power/sysfs.c dr
 
 ###########
 # ext4
-rm include/trace/events/ext4.h fs/ext4/
-git checkout HEAD include/trace/events/ext4.h fs/ext4/
+rm -rf include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/exofs fs/gfs2
+git checkout HEAD include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/exofs fs/gfs2

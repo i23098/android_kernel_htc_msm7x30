@@ -574,10 +574,9 @@ static int hppfs_readdir(struct file *file, void *ent, filldir_t filldir)
 	return err;
 }
 
-static int hppfs_fsync(struct file *file, loff_t start, loff_t end,
-		       int datasync)
+static int hppfs_fsync(struct file *file, int datasync)
 {
-	return filemap_write_and_wait_range(file->f_mapping, start, end);
+	return 0;
 }
 
 static const struct file_operations hppfs_dir_fops = {
@@ -702,7 +701,7 @@ static struct inode *get_inode(struct super_block *sb, struct dentry *dentry)
 	inode->i_ctime = proc_ino->i_ctime;
 	inode->i_ino = proc_ino->i_ino;
 	inode->i_mode = proc_ino->i_mode;
-	set_nlink(inode, proc_ino->i_nlink);
+	inode->i_nlink = proc_ino->i_nlink;
 	inode->i_size = proc_ino->i_size;
 	inode->i_blocks = proc_ino->i_blocks;
 

@@ -122,7 +122,7 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
 	if ((oldflags & OCFS2_IMMUTABLE_FL) || ((flags ^ oldflags) &
 		(OCFS2_APPEND_FL | OCFS2_IMMUTABLE_FL))) {
 		if (!capable(CAP_LINUX_IMMUTABLE))
-			goto bail_commit;
+			goto bail_unlock;
 	}
 
 	ocfs2_inode->ip_attr = flags;
@@ -132,7 +132,6 @@ static int ocfs2_set_inode_attr(struct inode *inode, unsigned flags,
 	if (status < 0)
 		mlog_errno(status);
 
-bail_commit:
 	ocfs2_commit_trans(osb, handle);
 bail_unlock:
 	ocfs2_inode_unlock(inode, 1);
@@ -382,7 +381,7 @@ int ocfs2_info_handle_freeinode(struct inode *inode,
 	if (!oifi) {
 		status = -ENOMEM;
 		mlog_errno(status);
-		goto out_err;
+		goto bail;
 	}
 
 	if (o2info_from_user(*oifi, req))
@@ -432,7 +431,7 @@ bail:
 		o2info_set_request_error(&oifi->ifi_req, req);
 
 	kfree(oifi);
-out_err:
+
 	return status;
 }
 
@@ -667,7 +666,7 @@ int ocfs2_info_handle_freefrag(struct inode *inode,
 	if (!oiff) {
 		status = -ENOMEM;
 		mlog_errno(status);
-		goto out_err;
+		goto bail;
 	}
 
 	if (o2info_from_user(*oiff, req))
@@ -717,7 +716,7 @@ bail:
 		o2info_set_request_error(&oiff->iff_req, req);
 
 	kfree(oiff);
-out_err:
+
 	return status;
 }
 

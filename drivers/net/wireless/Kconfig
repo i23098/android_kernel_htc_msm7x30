@@ -304,9 +304,7 @@ config BCMDHD_GOOGLE
 source "drivers/net/wireless/ath/Kconfig"
 source "drivers/net/wireless/b43/Kconfig"
 source "drivers/net/wireless/b43legacy/Kconfig"
-source "drivers/net/wireless/bcm4329/Kconfig"
 source "drivers/net/wireless/bcmdhd/Kconfig"
-source "drivers/net/wireless/bcmdhd_htc/Kconfig"
 source "drivers/net/wireless/hostap/Kconfig"
 source "drivers/net/wireless/ipw2x00/Kconfig"
 source "drivers/net/wireless/iwlwifi/Kconfig"
@@ -321,8 +319,5 @@ source "drivers/net/wireless/wl1251/Kconfig"
 source "drivers/net/wireless/wl12xx/Kconfig"
 source "drivers/net/wireless/zd1211rw/Kconfig"
 source "drivers/net/wireless/mwifiex/Kconfig"
-source "drivers/net/wireless/qualcomm_wlan/Kconfig"
-source "drivers/net/wireless/bcm4329_248/Kconfig"
-source "drivers/net/wireless/bcm4330b2/Kconfig"
 
 endif # WLAN

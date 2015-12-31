@@ -72,7 +72,12 @@ nilfs_lookup(struct inode *dir, struct dentry *dentry, struct nameidata *nd)
 		return ERR_PTR(-ENAMETOOLONG);
 
 	ino = nilfs_inode_by_name(dir, &dentry->d_name);
-	inode = ino ? nilfs_iget(dir->i_sb, NILFS_I(dir)->i_root, ino) : NULL;
+	inode = NULL;
+	if (ino) {
+		inode = nilfs_iget(dir->i_sb, NILFS_I(dir)->i_root, ino);
+		if (IS_ERR(inode))
+			return ERR_CAST(inode);
+	}
 	return d_splice_alias(inode, dentry);
 }
 
@@ -289,7 +294,7 @@ static int nilfs_do_unlink(struct inode *dir, struct dentry *dentry)
 		nilfs_warning(inode->i_sb, __func__,
 			      "deleting nonexistent file (%lu), %d\n",
 			      inode->i_ino, inode->i_nlink);
-		set_nlink(inode, 1);
+		inode->i_nlink = 1;
 	}
 	err = nilfs_delete_entry(de, page);
 	if (err)

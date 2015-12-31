@@ -256,7 +256,7 @@ out:
 	return ret;
 }
 
-static struct dev_pm_domain default_power_domain = {
+static struct dev_power_domain default_power_domain = {
 	.ops = {
 		.runtime_suspend = default_platform_runtime_suspend,
 		.runtime_resume = default_platform_runtime_resume,
