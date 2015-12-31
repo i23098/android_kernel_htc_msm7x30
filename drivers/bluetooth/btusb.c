@@ -37,13 +37,13 @@
 
 #define VERSION "0.6"
 
-static int ignore_dga;
-static int ignore_csr;
-static int ignore_sniffer;
-static int disable_scofix;
-static int force_scofix;
+static bool ignore_dga;
+static bool ignore_csr;
+static bool ignore_sniffer;
+static bool disable_scofix;
+static bool force_scofix;
 
-static int reset = 1;
+static bool reset = 1;
 
 static struct usb_driver btusb_driver;
 
@@ -101,6 +101,8 @@ static struct usb_device_id btusb_table[] = {
 	{ USB_DEVICE(0x0c10, 0x0000) },
 
 	/* Broadcom BCM20702A0 */
+	{ USB_DEVICE(0x0a5c, 0x21e3) },
+	{ USB_DEVICE(0x0a5c, 0x21f3) },
 	{ USB_DEVICE(0x413c, 0x8197) },
 
 	{ }	/* Terminating entry */
@@ -119,7 +121,6 @@ static struct usb_device_id blacklist_table[] = {
 	{ USB_DEVICE(0x0cf3, 0x3002), .driver_info = BTUSB_IGNORE },
 	{ USB_DEVICE(0x13d3, 0x3304), .driver_info = BTUSB_IGNORE },
 	{ USB_DEVICE(0x0930, 0x0215), .driver_info = BTUSB_IGNORE },
-	{ USB_DEVICE(0x0489, 0xe03d), .driver_info = BTUSB_IGNORE },
 
 	/* Atheros AR9285 Malbec with sflash firmware */
 	{ USB_DEVICE(0x03f0, 0x311d), .driver_info = BTUSB_IGNORE },
@@ -321,7 +322,8 @@ static int btusb_submit_intr_urb(struct hci_dev *hdev, gfp_t mem_flags)
 
 	err = usb_submit_urb(urb, mem_flags);
 	if (err < 0) {
-		BT_ERR("%s urb %p submission failed (%d)",
+		if (err != -EPERM && err != -ENODEV)
+			BT_ERR("%s urb %p submission failed (%d)",
 						hdev->name, urb, -err);
 		usb_unanchor_urb(urb);
 	}
@@ -406,7 +408,8 @@ static int btusb_submit_bulk_urb(struct hci_dev *hdev, gfp_t mem_flags)
 
 	err = usb_submit_urb(urb, mem_flags);
 	if (err < 0) {
-		BT_ERR("%s urb %p submission failed (%d)",
+		if (err != -EPERM && err != -ENODEV)
+			BT_ERR("%s urb %p submission failed (%d)",
 						hdev->name, urb, -err);
 		usb_unanchor_urb(urb);
 	}
@@ -512,15 +515,10 @@ static int btusb_submit_isoc_urb(struct hci_dev *hdev, gfp_t mem_flags)
 
 	pipe = usb_rcvisocpipe(data->udev, data->isoc_rx_ep->bEndpointAddress);
 
-	urb->dev      = data->udev;
-	urb->pipe     = pipe;
-	urb->context  = hdev;
-	urb->complete = btusb_isoc_complete;
-	urb->interval = data->isoc_rx_ep->bInterval;
+	usb_fill_int_urb(urb, data->udev, pipe, buf, size, btusb_isoc_complete,
+				hdev, data->isoc_rx_ep->bInterval);
 
 	urb->transfer_flags  = URB_FREE_BUFFER | URB_ISO_ASAP;
-	urb->transfer_buffer = buf;
-	urb->transfer_buffer_length = size;
 
 	__fill_isoc_descriptor(urb, size,
 			le16_to_cpu(data->isoc_rx_ep->wMaxPacketSize));
@@ -529,7 +527,8 @@ static int btusb_submit_isoc_urb(struct hci_dev *hdev, gfp_t mem_flags)
 
 	err = usb_submit_urb(urb, mem_flags);
 	if (err < 0) {
-		BT_ERR("%s urb %p submission failed (%d)",
+		if (err != -EPERM && err != -ENODEV)
+			BT_ERR("%s urb %p submission failed (%d)",
 						hdev->name, urb, -err);
 		usb_unanchor_urb(urb);
 	}
@@ -720,8 +719,7 @@ static int btusb_send_frame(struct sk_buff *skb)
 		break;
 
 	case HCI_ACLDATA_PKT:
-		if (!data->bulk_tx_ep || (hdev->conn_hash.acl_num < 1 &&
-						hdev->conn_hash.le_num < 1))
+		if (!data->bulk_tx_ep)
 			return -ENODEV;
 
 		urb = usb_alloc_urb(0, GFP_ATOMIC);
@@ -777,7 +775,9 @@ skip_waking:
 
 	err = usb_submit_urb(urb, GFP_ATOMIC);
 	if (err < 0) {
-		BT_ERR("%s urb %p submission failed", hdev->name, urb);
+		if (err != -EPERM && err != -ENODEV)
+			BT_ERR("%s urb %p submission failed (%d)",
+						hdev->name, urb, -err);
 		kfree(urb->setup_packet);
 		usb_unanchor_urb(urb);
 	} else {
@@ -1229,20 +1229,7 @@ static struct usb_driver btusb_driver = {
 	.supports_autosuspend = 1,
 };
 
-static int __init btusb_init(void)
-{
-	BT_INFO("Generic Bluetooth USB driver ver %s", VERSION);
-
-	return usb_register(&btusb_driver);
-}
-
-static void __exit btusb_exit(void)
-{
-	usb_deregister(&btusb_driver);
-}
-
-module_init(btusb_init);
-module_exit(btusb_exit);
+module_usb_driver(btusb_driver);
 
 module_param(ignore_dga, bool, 0644);
 MODULE_PARM_DESC(ignore_dga, "Ignore devices with id 08fd:0001");
