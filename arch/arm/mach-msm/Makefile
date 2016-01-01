@@ -20,7 +20,7 @@ endif
 
 obj-y += acpuclock.o
 obj-y += drv_callback.o
-obj-$(CONFIG_ARCH_MSM7X01A) += acpuclock-7201.o
+obj-$(CONFIG_ARCH_MSM7X00A) += acpuclock-7201.o
 obj-$(CONFIG_ARCH_MSM7X25) += acpuclock-7201.o
 obj-$(CONFIG_ARCH_MSM7X27) += acpuclock-7201.o
 obj-$(CONFIG_ARCH_MSM_SCORPION) += pmu.o
@@ -174,7 +174,7 @@ ifdef CONFIG_PM
 	obj-$(CONFIG_ARCH_MSM7X27) += pm2.o
 	obj-$(CONFIG_ARCH_MSM7X27A) += pm2.o
 	obj-$(CONFIG_ARCH_MSM7X25) += pm.o
-	obj-$(CONFIG_ARCH_MSM7X01A) += pm.o
+	obj-$(CONFIG_ARCH_MSM7X00A) += pm.o
 	obj-y += pm-boot.o
 else
 	obj-y += no-pm.o hotplug.o
@@ -187,7 +187,7 @@ obj-$(CONFIG_MSM_SPM_V2) += spm-v2.o spm_devices.o
 obj-$(CONFIG_MSM_DMA_TEST) += dma_test.o
 obj-$(CONFIG_SURF_FFA_GPIO_KEYPAD) += keypad-surf-ffa.o
 
-obj-$(CONFIG_ARCH_MSM7X01A) += board-halibut.o devices-msm7x01a.o clock-pcom-lookup.o
+obj-$(CONFIG_ARCH_MSM7X00A) += board-halibut.o devices-msm7x00a.o clock-pcom-lookup.o
 obj-$(CONFIG_MACH_TROUT) += board-trout.o board-trout-gpio.o
 obj-$(CONFIG_MACH_TROUT) += board-trout-keypad.o board-trout-panel.o
 obj-$(CONFIG_MACH_TROUT) += htc_akm_cal.o htc_wifi_nvs.o htc_acoustic.o
@@ -450,12 +450,12 @@ obj-$(CONFIG_MACH_BLISS) += board-bliss-keypad.o
 obj-$(CONFIG_MACH_BLISS) += display/bliss-panel.o board-bliss-audio.o
 obj-$(CONFIG_MACH_BLISS) += htc_sleep_clk.o htc_fast_clk_7k.o board-bliss-rfkill.o
 obj-$(CONFIG_MACH_BLISS) += htc_bdaddress.o
-obj-$(CONFIG_MACH_SPADE) += board-spade.o 
+obj-$(CONFIG_MACH_SPADE) += board-spade.o
 obj-$(CONFIG_MACH_SPADE) += board-spade-microp.o board-spade-rfkill.o
 obj-$(CONFIG_MACH_SPADE) += board-spade-keypad.o board-spade-audio.o
 obj-$(CONFIG_MACH_SPADE) += board-spade-mmc.o board-spade-wifi.o
 obj-$(CONFIG_MACH_SPADE) += htc_bdaddress.o
-obj-$(CONFIG_MACH_GLACIER) += board-glacier.o 
+obj-$(CONFIG_MACH_GLACIER) += board-glacier.o
 obj-$(CONFIG_MACH_GLACIER) += board-glacier-microp.o board-glacier-rfkill.o
 obj-$(CONFIG_MACH_GLACIER) += board-glacier-keypad.o board-glacier-audio.o
 obj-$(CONFIG_MACH_GLACIER) += board-glacier-mmc.o board-glacier-wifi.o

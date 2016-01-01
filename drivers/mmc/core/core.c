@@ -124,6 +124,7 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 #if 0          /* 2011-11-14 FIR ITS#55, may cause kernel panic */
 		led_trigger_event(host->led, LED_OFF);
 #endif
+
 		pr_debug("%s: req done (CMD%u): %d: %08x %08x %08x %08x\n",
 			mmc_hostname(host), cmd->opcode, err,
 			cmd->resp[0], cmd->resp[1],
@@ -1405,7 +1406,6 @@ EXPORT_SYMBOL(mmc_erase);
 
 int mmc_can_erase(struct mmc_card *card)
 {
-	printk("%s: called\n",__func__);
 	if ((card->host->caps & MMC_CAP_ERASE) &&
 	    (card->csd.cmdclass & CCC_ERASE) && card->erase_size)
 		return 1;
@@ -1868,10 +1868,11 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 		if (!host->bus_ops || host->bus_ops->suspend)
 			break;
 
+		mmc_claim_host(host);
+
 		if (host->bus_ops->remove)
 			host->bus_ops->remove(host);
 
-		mmc_claim_host(host);
 		mmc_detach_bus(host);
 		mmc_power_off(host);
 		mmc_release_host(host);

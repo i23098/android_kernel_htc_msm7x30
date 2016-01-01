@@ -159,4 +159,5 @@ end:
 	spin_unlock_irqrestore(&proc_comm_lock, flags);
 	return ret;
 }
+
 EXPORT_SYMBOL(msm_proc_comm);

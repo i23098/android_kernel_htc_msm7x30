@@ -29,7 +29,7 @@
 
 #include <mach/board.h>
 
-#define MSM_CHIP_DEVICE(name, chip) { \
+#define MSM_CHIP_DEVICE(name, chip) {			      \
 		.virtual = (unsigned long) MSM_##name##_BASE, \
 		.pfn = __phys_to_pfn(chip##_##name##_PHYS), \
 		.length = chip##_##name##_SIZE, \
@@ -55,7 +55,7 @@ static void msm_map_io(struct map_desc *io_desc, int size)
 	iotable_init(io_desc, size);
 }
 
-#if defined(CONFIG_ARCH_MSM7X01A) || defined(CONFIG_ARCH_MSM7X27) \
+#if defined(CONFIG_ARCH_MSM7X00A) || defined(CONFIG_ARCH_MSM7X27) \
 	|| defined(CONFIG_ARCH_MSM7X25)
 static struct map_desc msm_io_desc[] __initdata = {
 	MSM_DEVICE(VIC),

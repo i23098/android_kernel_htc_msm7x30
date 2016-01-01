@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -134,12 +134,12 @@
 
 #define P_NR_CLKS		116
 
-extern int pc_clk_reset(unsigned id, enum clk_reset_action action);
-
 struct clk_ops;
 extern struct clk_ops clk_ops_pcom;
 extern struct clk_ops clk_ops_pcom_div2;
 extern struct clk_ops clk_ops_pcom_ext_config;
+
+int pc_clk_reset(unsigned id, enum clk_reset_action action);
 
 /*
  * struct pcom_clk - proc_comm controlled clock

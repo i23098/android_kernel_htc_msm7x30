@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2008-2010, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2008-2011 Code Aurora Forum. All rights reserved.
  * Author: Brian Swetland <swetland@google.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -127,5 +127,8 @@
 #define MSM_AD5_BASE          IOMEM(0xFE300000)
 #define MSM_AD5_PHYS          0xA7000000
 #define MSM_AD5_SIZE          (SZ_1M*13)
+
+#define MSM_HSUSB_PHYS        0xA3600000
+#define MSM_HSUSB_SIZE        SZ_1K
 
 #endif

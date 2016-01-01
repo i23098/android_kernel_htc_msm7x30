@@ -279,7 +279,7 @@ struct msmsdcc_dma_data {
 	int				crci;
 	struct msmsdcc_host		*host;
 	int				busy; /* Set if DM is busy */
-	unsigned int 			result;
+	unsigned int			result;
 	struct msm_dmov_errdata		err;
 };
 

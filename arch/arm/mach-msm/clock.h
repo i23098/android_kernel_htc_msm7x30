@@ -1,7 +1,7 @@
 /* arch/arm/mach-msm/clock.h
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2007-2011, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2007-2010, Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -169,4 +169,3 @@ extern struct clk dummy_clk;
 #define CLK_LOOKUP(con, c, dev) { .con_id = con, .clk = &c, .dev_id = dev }
 
 #endif
-

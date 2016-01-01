@@ -1,6 +1,6 @@
 /* arch/arm/mach-msm/proc_comm.h
  *
- * Copyright (c) 2007-2009,2011 Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2007 QUALCOMM Incorporated
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -167,6 +167,7 @@ enum {
 	PCOM_CMD_FAIL_SMSM_NOT_INIT,
 	PCOM_CMD_FAIL_PROC_COMM_BUSY,
 	PCOM_CMD_FAIL_PROC_COMM_NOT_INIT,
+
 };
 
 /* List of VREGs that support the Pull Down Resistor setting. */
@@ -228,8 +229,8 @@ enum vreg_pdown_id {
 };
 
 enum {
-	PCOM_CLKRGM_APPS_RESET_USB_PHY  = 34,
-	PCOM_CLKRGM_APPS_RESET_USBH     = 37,
+	PCOM_CLKRGM_APPS_RESET_USB_PHY	= 34,
+	PCOM_CLKRGM_APPS_RESET_USBH	= 37,
 };
 
 /* gpio info for PCOM_RPC_GPIO_TLMM_CONFIG_EX */

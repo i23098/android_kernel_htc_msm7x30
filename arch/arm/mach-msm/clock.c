@@ -1,7 +1,7 @@
 /* arch/arm/mach-msm/clock.c
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2007-2011, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2007-2010, Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -365,10 +365,9 @@ void __init msm_clock_init(struct clock_init_data *data)
 	clkdev_add_table(clock_tbl, num_clocks);
 }
 
-/*
- * The bootloader and/or AMSS may have left various clocks enabled.
- * Disable any clocks that have not been explicitly enabled by a
- * clk_enable() call and don't have the CLKFLAG_SKIP_AUTO_OFF flag.
+/* The bootloader and/or AMSS may have left various clocks enabled.
+ * Disable any clocks that belong to us (CLKFLAG_AUTO_OFF) but have
+ * not been explicitly enabled by a clk_enable() call.
  */
 static int __init clock_late_init(void)
 {
@@ -406,4 +405,6 @@ static int __init clock_late_init(void)
 		ret = clk_init_data->late_init();
 	return ret;
 }
+
 late_initcall(clock_late_init);
+

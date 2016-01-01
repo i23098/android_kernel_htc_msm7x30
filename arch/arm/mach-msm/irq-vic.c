@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2009, 2011 Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -180,6 +180,7 @@ static uint8_t msm_irq_to_smsm[NR_IRQS] = {
 #else
 	[INT_SDC2_0] = 8,
 #endif
+
 	[INT_SDC2_1] = 9,
 	[INT_ADSP_A9_A11] = 10,
 	[INT_UART1] = 11,
@@ -342,7 +343,7 @@ static int msm_irq_set_wake(struct irq_data *d, unsigned int on)
 
 static int msm_irq_set_type(struct irq_data *d, unsigned int flow_type)
 {
-        void __iomem *treg = VIC_INT_TO_REG_ADDR(VIC_INT_TYPE0, d->irq);
+	void __iomem *treg = VIC_INT_TO_REG_ADDR(VIC_INT_TYPE0, d->irq);
 	void __iomem *preg = VIC_INT_TO_REG_ADDR(VIC_INT_POLARITY0, d->irq);
 	unsigned index = VIC_INT_TO_REG_INDEX(d->irq);
 	int b = 1 << (d->irq & 31);
@@ -574,13 +575,13 @@ void msm_irq_exit_sleep3(uint32_t irq_mask, uint32_t wakeup_reason,
 }
 
 static struct irq_chip msm_irq_chip = {
-	.name		= "msm",
-	.irq_disable	= msm_irq_disable,
-	.irq_ack	= msm_irq_ack,
-	.irq_mask	= msm_irq_mask,
-	.irq_unmask	= msm_irq_unmask,
-	.irq_set_wake	= msm_irq_set_wake,
-	.irq_set_type	= msm_irq_set_type,
+	.name          = "msm",
+	.irq_disable    = msm_irq_disable,
+	.irq_ack       = msm_irq_ack,
+	.irq_mask      = msm_irq_mask,
+	.irq_unmask    = msm_irq_unmask,
+	.irq_set_wake  = msm_irq_set_wake,
+	.irq_set_type  = msm_irq_set_type,
 };
 
 void __init msm_init_irq(void)
@@ -602,14 +603,13 @@ void __init msm_init_irq(void)
 	/* don't use vic */
 	writel(0, VIC_CONFIG);
 
+	/* enable interrupt controller */
+	writel(3, VIC_INT_MASTEREN);
 
 	for (n = 0; n < NR_MSM_IRQS; n++) {
 		irq_set_chip_and_handler(n, &msm_irq_chip, handle_level_irq);
 		set_irq_flags(n, IRQF_VALID);
 	}
-
-	/* enable interrupt controller */
-	writel(3, VIC_INT_MASTEREN);
 	mb();
 }
 

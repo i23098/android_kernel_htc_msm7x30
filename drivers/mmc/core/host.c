@@ -446,6 +446,7 @@ void mmc_remove_host(struct mmc_host *host)
 #if 0  /* 2011-11-14 FIR ITS#55, may cause kernel panic */
 	led_trigger_unregister_simple(host->led);
 #endif
+
 	mmc_host_clk_exit(host);
 }
 

@@ -436,6 +436,7 @@ struct platform_device msm_device_ssbi7 = {
 #endif /* CONFIG_I2C_SSBI */
 
 #define MSM_HSUSB_PHYS        0xA3600000
+
 static struct resource resources_hsusb_otg[] = {
 	{
 		.start	= MSM_HSUSB_PHYS,
