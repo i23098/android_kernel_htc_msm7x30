@@ -911,6 +911,7 @@ static struct sk_buff **ipv6_gro_receive(struct sk_buff **head,
 		skb_reset_transport_header(skb);
 		__skb_push(skb, skb_gro_offset(skb));
 
+		ops = rcu_dereference(inet6_protos[proto]);
 		if (!ops || !ops->gro_receive)
 			goto out_unlock;
 
@@ -1113,8 +1114,6 @@ static int __init inet6_init(void)
 		       "reboot required to enable\n");
 		goto out;
 	}
-
-	initialize_hashidentrnd();
 
 	err = proto_register(&tcpv6_prot, 1);
 	if (err)
