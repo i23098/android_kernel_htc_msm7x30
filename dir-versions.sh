@@ -31,6 +31,27 @@ rm -rf drivers/base/power/generic_ops.c drivers/base/power/sysfs.c drivers/base/
 git checkout HEAD drivers/base/power/generic_ops.c drivers/base/power/sysfs.c drivers/base/power/trace.c include/linux/pm.h
 
 ###########
-# ext4
+# fs/ext4 3.2
 rm -rf include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/exofs fs/gfs2
 git checkout HEAD include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/exofs fs/gfs2
+
+##########
+# /net 3.1
+rm -rf include/net/ include/linux/netfilter fs/nfs fs/namei.c fs/splice.c fs/stat.c
+git checkout HEAD include/net/ include/linux/netfilter fs/nfs fs/namei.c fs/splice.c fs/stat.c
+
+##########
+# drivers/base/regmap 3.1
+rm -rf drivers/base/regmap include/linux/regmap.h
+git checkout HEAD drivers/base/regmap include/linux/regmap.h
+
+##########
+# drivers/bluetooth 3.3
+rm -rf drivers/bluetooth
+git checkout HEAD drivers/bluetooth
+
+##########
+# drivers/staging/zram/ 3.8
+rm -rf drivers/staging/zram/
+git checkout HEAD drivers/staging/zram/
+
