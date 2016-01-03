@@ -48,6 +48,8 @@ typedef void (*data_exchange_cb_t)(void *context, struct sk_buff *skb,
 								int err);
 
 struct nfc_ops {
+	int (*dev_up)(struct nfc_dev *dev);
+	int (*dev_down)(struct nfc_dev *dev);
 	int (*start_poll)(struct nfc_dev *dev, u32 protocols);
 	void (*stop_poll)(struct nfc_dev *dev);
 	int (*activate_target)(struct nfc_dev *dev, u32 target_idx,
@@ -78,9 +80,14 @@ struct nfc_dev {
 	int targets_generation;
 	spinlock_t targets_lock;
 	struct device dev;
+	bool dev_up;
 	bool polling;
+	bool remote_activated;
 	struct nfc_genl_data genl_data;
 	u32 supported_protocols;
+
+	int tx_headroom;
+	int tx_tailroom;
 
 	struct nfc_ops *ops;
 };
@@ -89,7 +96,9 @@ struct nfc_dev {
 extern struct class nfc_class;
 
 struct nfc_dev *nfc_allocate_device(struct nfc_ops *ops,
-					u32 supported_protocols);
+					u32 supported_protocols,
+					int tx_headroom,
+					int tx_tailroom);
 
 /**
  * nfc_free_device - free nfc device
