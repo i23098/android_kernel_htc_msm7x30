@@ -55,3 +55,10 @@ git checkout HEAD drivers/bluetooth
 rm -rf drivers/staging/zram/
 git checkout HEAD drivers/staging/zram/
 
+###########
+# fs/nfs 3.2
+rm -rf fs/nfs fs/nfsd include/linux/sunrpc include/linux/nfs4.h include/linux/nfs_fs.h include/linux/nfs_page.h include/linux/nfs_xdr.h net/sunrpc
+git checkout HEAD fs/nfs fs/nfsd include/linux/sunrpc include/linux/nfs4.h include/linux/nfs_fs.h include/linux/nfs_page.h include/linux/nfs_xdr.h net/sunrpc
+
+
+
