@@ -10,6 +10,7 @@
 #define _LINUX_PM_RUNTIME_H
 
 #include <linux/device.h>
+#include <linux/notifier.h>
 #include <linux/pm.h>
 
 #include <linux/jiffies.h>
@@ -51,11 +52,6 @@ static inline bool pm_children_suspended(struct device *dev)
 		|| !atomic_read(&dev->power.child_count);
 }
 
-static inline void pm_suspend_ignore_children(struct device *dev, bool enable)
-{
-	dev->power.ignore_children = enable;
-}
-
 static inline void pm_runtime_get_noresume(struct device *dev)
 {
 	atomic_inc(&dev->power.usage_count);
@@ -80,6 +76,11 @@ static inline bool pm_runtime_suspended(struct device *dev)
 {
 	return dev->power.runtime_status == RPM_SUSPENDED
 		&& !dev->power.disable_depth;
+}
+
+static inline bool pm_runtime_status_suspended(struct device *dev)
+{
+	return dev->power.runtime_status == RPM_SUSPENDED;
 }
 
 static inline bool pm_runtime_enabled(struct device *dev)
@@ -129,7 +130,7 @@ static inline void pm_runtime_get_noresume(struct device *dev) {}
 static inline void pm_runtime_put_noidle(struct device *dev) {}
 static inline bool device_run_wake(struct device *dev) { return false; }
 static inline void device_set_run_wake(struct device *dev, bool enable) {}
-static inline bool pm_runtime_suspended(struct device *dev) { return false; }
+static inline bool pm_runtime_status_suspended(struct device *dev) { return false; }
 static inline bool pm_runtime_enabled(struct device *dev) { return false; }
 
 static inline int pm_generic_runtime_idle(struct device *dev) { return 0; }
