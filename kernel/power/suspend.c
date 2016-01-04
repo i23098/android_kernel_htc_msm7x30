@@ -12,6 +12,7 @@
 #include <linux/delay.h>
 #include <linux/errno.h>
 #include <linux/init.h>
+#include <linux/kmod.h>
 #include <linux/console.h>
 #include <linux/cpu.h>
 #include <linux/syscalls.h>
@@ -21,9 +22,9 @@
 #include <linux/list.h>
 #include <linux/mm.h>
 #include <linux/slab.h>
+#include <linux/export.h>
 #include <linux/suspend.h>
 #include <linux/syscore_ops.h>
-#include <linux/ftrace.h>
 #include <trace/events/power.h>
 
 #include "power.h"
@@ -58,6 +59,7 @@ bool valid_state(suspend_state_t state)
 	 */
 	return suspend_ops && suspend_ops->valid && suspend_ops->valid(state);
 }
+EXPORT_SYMBOL_GPL(suspend_set_ops);
 
 /**
  * suspend_valid_only_mem - generic memory-only valid callback
@@ -83,6 +85,7 @@ static int suspend_test(int level)
 #endif /* !CONFIG_PM_DEBUG */
 	return 0;
 }
+EXPORT_SYMBOL_GPL(suspend_valid_only_mem);
 
 /**
  *	suspend_prepare - Do prep work before entering low-power state.
@@ -108,7 +111,10 @@ static int suspend_prepare(void)
 		goto Finish;
 
 	error = suspend_freeze_processes();
-	if (!error)
+	if (error) {
+		suspend_stats.failed_freeze++;
+		dpm_save_failed_step(SUSPEND_FREEZE);
+	} else
 		return 0;
 
 	suspend_thaw_processes();
@@ -219,7 +225,6 @@ int suspend_devices_and_enter(suspend_state_t state)
 			goto Close;
 	}
 	suspend_console();
-	ftrace_stop();
 	suspend_test_start();
 	error = dpm_suspend_start(PMSG_SUSPEND);
 	if (error) {
@@ -239,7 +244,6 @@ int suspend_devices_and_enter(suspend_state_t state)
 	suspend_test_start();
 	dpm_resume_end(PMSG_RESUME);
 	suspend_test_finish("resume devices");
-	ftrace_start();
 	resume_console();
  Close:
 	if (suspend_ops->end)
@@ -287,7 +291,9 @@ int enter_state(suspend_state_t state)
 	if (!mutex_trylock(&pm_mutex))
 		return -EBUSY;
 
+	printk(KERN_INFO "PM: Syncing filesystems ... ");
 	suspend_sys_sync_queue();
+	printk("done.\n");
 
 	pr_debug("PM: Preparing system for %s sleep\n", pm_states[state]);
 	error = suspend_prepare();
@@ -319,8 +325,16 @@ int enter_state(suspend_state_t state)
  */
 int pm_suspend(suspend_state_t state)
 {
-	if (state > PM_SUSPEND_ON && state < PM_SUSPEND_MAX)
-		return enter_state(state);
+	int ret;
+	if (state > PM_SUSPEND_ON && state < PM_SUSPEND_MAX) {
+		ret = enter_state(state);
+		if (ret) {
+			suspend_stats.fail++;
+			dpm_save_failed_errno(ret);
+		} else
+			suspend_stats.success++;
+		return ret;
+	}
 	return -EINVAL;
 }
 EXPORT_SYMBOL(pm_suspend);

@@ -60,5 +60,7 @@ git checkout HEAD drivers/staging/zram/
 rm -rf fs/nfs fs/nfsd include/linux/sunrpc include/linux/nfs4.h include/linux/nfs_fs.h include/linux/nfs_page.h include/linux/nfs_xdr.h net/sunrpc
 git checkout HEAD fs/nfs fs/nfsd include/linux/sunrpc include/linux/nfs4.h include/linux/nfs_fs.h include/linux/nfs_page.h include/linux/nfs_xdr.h net/sunrpc
 
-
-
+###########
+# kernel/power/ 3.2
+rm -rf kernel/power/ drivers/base/power/
+git checkout HEAD kernel/power/ drivers/base/power/
