@@ -3599,7 +3599,8 @@ wl_cfg80211_mgmt_tx(struct wiphy *wiphy, struct net_device *ndev,
 	enum nl80211_channel_type channel_type,
 	bool channel_type_valid, unsigned int wait,
 	const u8* buf, size_t len,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
+// update net/wireless without update basic version
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0) || 1
 	bool no_cck,
 #endif
 	u64 *cookie)
