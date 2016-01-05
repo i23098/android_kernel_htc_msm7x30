@@ -36,9 +36,9 @@ rm -rf include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/ex
 git checkout HEAD include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/exofs fs/gfs2
 
 ##########
-# /net 3.1
-rm -rf include/net/ include/linux/netfilter fs/nfs fs/namei.c fs/splice.c fs/stat.c
-git checkout HEAD include/net/ include/linux/netfilter fs/nfs fs/namei.c fs/splice.c fs/stat.c
+# /fs/*.c 3.1
+rm -rf fs/namei.c fs/splice.c fs/stat.c
+git checkout HEAD fs/namei.c fs/splice.c fs/stat.c
 
 ##########
 # drivers/base/regmap 3.1
@@ -64,3 +64,8 @@ git checkout HEAD fs/nfs fs/nfsd include/linux/sunrpc include/linux/nfs4.h inclu
 # kernel/power/ 3.2
 rm -rf kernel/power/ drivers/base/power/
 git checkout HEAD kernel/power/ drivers/base/power/
+
+##########
+# /net 3.2
+rm -rf include/linux/ieee80211.h include/net/ net/ include/linux/netfilter
+git checkout HEAD include/linux/ieee80211.h include/net/ net/ include/linux/netfilter

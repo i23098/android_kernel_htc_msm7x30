@@ -768,6 +768,13 @@ struct ieee80211_mmie {
 	u8 mic[8];
 } __attribute__ ((packed));
 
+struct ieee80211_vendor_ie {
+	u8 element_id;
+	u8 len;
+	u8 oui[3];
+	u8 oui_type;
+} __packed;
+
 /* Control frames */
 struct ieee80211_rts {
 	__le16 frame_control;

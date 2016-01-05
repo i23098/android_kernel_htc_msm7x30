@@ -2283,6 +2283,8 @@ void /* __init_or_exit */ regulatory_exit(void)
 
 	reset_regdomains(true);
 
+	dev_set_uevent_suppress(&reg_pdev->dev, true);
+
 	platform_device_unregister(reg_pdev);
 
 	spin_lock_bh(&reg_pending_beacons_lock);
