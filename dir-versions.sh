@@ -69,3 +69,8 @@ git checkout HEAD kernel/power/ drivers/base/power/
 # /net 3.2
 rm -rf include/linux/ieee80211.h include/net/ net/ include/linux/netfilter
 git checkout HEAD include/linux/ieee80211.h include/net/ net/ include/linux/netfilter
+
+##########
+# drivers/net/ 3.2
+rm -rf drivers/net/
+git checkout HEAD drivers/net/

@@ -76,6 +76,7 @@
 #include <linux/slab.h>
 #include <linux/netdevice.h>
 #include <linux/ethtool.h>
+#include <linux/export.h>
 #include "i2400m.h"
 
 
@@ -606,8 +607,7 @@ static void i2400m_get_drvinfo(struct net_device *net_dev,
 	struct i2400m *i2400m = net_dev_to_i2400m(net_dev);
 
 	strncpy(info->driver, KBUILD_MODNAME, sizeof(info->driver) - 1);
-	strncpy(info->fw_version,
-	        i2400m->fw_name ? : "", sizeof(info->fw_version) - 1);
+	strncpy(info->fw_version, i2400m->fw_name, sizeof(info->fw_version) - 1);
 	if (net_dev->dev.parent)
 		strncpy(info->bus_info, dev_name(net_dev->dev.parent),
 			sizeof(info->bus_info) - 1);

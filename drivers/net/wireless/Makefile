@@ -11,7 +11,7 @@ obj-$(CONFIG_AIRO)		+= airo.o
 obj-$(CONFIG_AIRO_CS)		+= airo_cs.o airo.o
 
 obj-$(CONFIG_ATMEL)             += atmel.o
-obj-$(CONFIG_PCI_ATMEL)         += atmel_pci.o
+obj-$(CONFIG_PCI_ATMEL)         += atmel_pci.o 
 obj-$(CONFIG_PCMCIA_ATMEL)      += atmel_cs.o
 
 obj-$(CONFIG_AT76C50X_USB)      += at76c50x-usb.o
@@ -41,7 +41,7 @@ obj-$(CONFIG_ADM8211)	+= adm8211.o
 
 obj-$(CONFIG_MWL8K)	+= mwl8k.o
 
-obj-$(CONFIG_IWLAGN)	+= iwlwifi/
+obj-$(CONFIG_IWLWIFI)	+= iwlwifi/
 obj-$(CONFIG_IWLWIFI_LEGACY)	+= iwlegacy/
 obj-$(CONFIG_RT2X00)	+= rt2x00/
 
@@ -52,12 +52,15 @@ obj-$(CONFIG_ATH_COMMON)	+= ath/
 obj-$(CONFIG_MAC80211_HWSIM)	+= mac80211_hwsim.o
 
 obj-$(CONFIG_WL1251)	+= wl1251/
-obj-$(CONFIG_WL12XX_PLATFORM_DATA)    += wl12xx/
-
+obj-$(CONFIG_WL12XX)	+= wl12xx/
+obj-$(CONFIG_WL12XX_PLATFORM_DATA)	+= wl12xx/
 
 obj-$(CONFIG_IWM)	+= iwmc3200wifi/
 
 obj-$(CONFIG_MWIFIEX)	+= mwifiex/
+obj-$(CONFIG_BRCMFMAC) += brcm80211/
+obj-$(CONFIG_BRCMUMAC) += brcm80211/
+obj-$(CONFIG_BRCMSMAC) += brcm80211/
 
 ifeq ($(CONFIG_BCMDHD_GOOGLE),y)
     obj-$(CONFIG_BCMDHD)	+= bcmdhd/

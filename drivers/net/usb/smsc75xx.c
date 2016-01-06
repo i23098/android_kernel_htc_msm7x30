@@ -43,6 +43,7 @@
 #define EEPROM_MAC_OFFSET		(0x01)
 #define DEFAULT_TX_CSUM_ENABLE		(true)
 #define DEFAULT_RX_CSUM_ENABLE		(true)
+#define DEFAULT_TSO_ENABLE		(true)
 #define SMSC75XX_INTERNAL_PHY_ID	(1)
 #define SMSC75XX_TX_OVERHEAD		(8)
 #define MAX_RX_FIFO_SIZE		(20 * 1024)
@@ -50,6 +51,7 @@
 #define USB_VENDOR_ID_SMSC		(0x0424)
 #define USB_PRODUCT_ID_LAN7500		(0x7500)
 #define USB_PRODUCT_ID_LAN7505		(0x7505)
+#define RXW_PADDING			2
 
 #define check_warn(ret, fmt, args...) \
 	({ if (ret < 0) netdev_warn(dev->net, fmt, ##args); })
@@ -718,12 +720,8 @@ static int smsc75xx_set_rx_max_frame_length(struct usbnet *dev, int size)
 static int smsc75xx_change_mtu(struct net_device *netdev, int new_mtu)
 {
 	struct usbnet *dev = netdev_priv(netdev);
-	int ret;
 
-	if (new_mtu > MAX_SINGLE_PACKET_SIZE)
-		return -EINVAL;
-
-	ret = smsc75xx_set_rx_max_frame_length(dev, new_mtu + ETH_HLEN);
+	int ret = smsc75xx_set_rx_max_frame_length(dev, new_mtu);
 	check_warn_return(ret, "Failed to set mac rx frame length");
 
 	return usbnet_change_mtu(netdev, new_mtu);
@@ -967,7 +965,7 @@ static int smsc75xx_reset(struct usbnet *dev)
 
 	netif_dbg(dev, ifup, dev->net, "FCT_TX_CTL set to 0x%08x", buf);
 
-	ret = smsc75xx_set_rx_max_frame_length(dev, dev->net->mtu + ETH_HLEN);
+	ret = smsc75xx_set_rx_max_frame_length(dev, 1514);
 	check_warn_return(ret, "Failed to set max rx frame length");
 
 	ret = smsc75xx_read_reg(dev, MAC_RX, &buf);
@@ -1003,7 +1001,7 @@ static const struct net_device_ops smsc75xx_netdev_ops = {
 	.ndo_set_mac_address 	= eth_mac_addr,
 	.ndo_validate_addr	= eth_validate_addr,
 	.ndo_do_ioctl 		= smsc75xx_ioctl,
-	.ndo_set_multicast_list = smsc75xx_set_multicast,
+	.ndo_set_rx_mode	= smsc75xx_set_multicast,
 	.ndo_set_features	= smsc75xx_set_features,
 };
 
@@ -1033,14 +1031,17 @@ static int smsc75xx_bind(struct usbnet *dev, struct usb_interface *intf)
 
 	INIT_WORK(&pdata->set_multicast, smsc75xx_deferred_multicast_write);
 
-	if (DEFAULT_TX_CSUM_ENABLE)
+	if (DEFAULT_TX_CSUM_ENABLE) {
 		dev->net->features |= NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM;
-
+		if (DEFAULT_TSO_ENABLE)
+			dev->net->features |= NETIF_F_SG |
+				NETIF_F_TSO | NETIF_F_TSO6;
+	}
 	if (DEFAULT_RX_CSUM_ENABLE)
 		dev->net->features |= NETIF_F_RXCSUM;
 
 	dev->net->hw_features = NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM |
-				NETIF_F_RXCSUM;
+		NETIF_F_SG | NETIF_F_TSO | NETIF_F_TSO6 | NETIF_F_RXCSUM;
 
 	/* Init all registers */
 	ret = smsc75xx_reset(dev);
@@ -1049,7 +1050,6 @@ static int smsc75xx_bind(struct usbnet *dev, struct usb_interface *intf)
 	dev->net->ethtool_ops = &smsc75xx_ethtool_ops;
 	dev->net->flags |= IFF_MULTICAST;
 	dev->net->hard_header_len += SMSC75XX_TX_OVERHEAD;
-	dev->hard_mtu = dev->net->mtu + dev->net->hard_header_len;
 	return 0;
 }
 
@@ -1089,13 +1089,13 @@ static int smsc75xx_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
 
 		memcpy(&rx_cmd_b, skb->data, sizeof(rx_cmd_b));
 		le32_to_cpus(&rx_cmd_b);
-		skb_pull(skb, 4 + NET_IP_ALIGN);
+		skb_pull(skb, 4 + RXW_PADDING);
 
 		packet = skb->data;
 
 		/* get the packet length */
-		size = (rx_cmd_a & RX_CMD_A_LEN) - NET_IP_ALIGN;
-		align_count = (4 - ((size + NET_IP_ALIGN) % 4)) % 4;
+		size = (rx_cmd_a & RX_CMD_A_LEN) - RXW_PADDING;
+		align_count = (4 - ((size + RXW_PADDING) % 4)) % 4;
 
 		if (unlikely(rx_cmd_a & RX_CMD_A_RED)) {
 			netif_dbg(dev, rx_err, dev->net,
@@ -1108,8 +1108,8 @@ static int smsc75xx_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
 			else if (rx_cmd_a & (RX_CMD_A_LONG | RX_CMD_A_RUNT))
 				dev->net->stats.rx_frame_errors++;
 		} else {
-			/* MAX_SINGLE_PACKET_SIZE + 4(CRC) + 2(COE) + 4(Vlan) */
-			if (unlikely(size > (MAX_SINGLE_PACKET_SIZE + ETH_HLEN + 12))) {
+			/* ETH_FRAME_LEN + 4(CRC) + 2(COE) + 4(Vlan) */
+			if (unlikely(size > (ETH_FRAME_LEN + 12))) {
 				netif_dbg(dev, rx_err, dev->net,
 					"size err rx_cmd_a=0x%08x", rx_cmd_a);
 				return 0;
@@ -1164,6 +1164,8 @@ static struct sk_buff *smsc75xx_tx_fixup(struct usbnet *dev,
 					 struct sk_buff *skb, gfp_t flags)
 {
 	u32 tx_cmd_a, tx_cmd_b;
+
+	skb_linearize(skb);
 
 	if (skb_headroom(skb) < SMSC75XX_TX_OVERHEAD) {
 		struct sk_buff *skb2 =
