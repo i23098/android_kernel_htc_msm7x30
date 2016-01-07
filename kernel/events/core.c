@@ -3739,6 +3739,7 @@ static void perf_mmap_close(struct vm_area_struct *vma)
 		struct perf_buffer *buffer = event->buffer;
 
 		atomic_long_sub((size >> PAGE_SHIFT) + 1, &user->locked_vm);
+		vma->vm_mm->pinned_vm -= event->mmap_locked;
 		vma->vm_mm->locked_vm -= event->mmap_locked;
 		rcu_assign_pointer(event->buffer, NULL);
 		mutex_unlock(&event->mmap_mutex);
@@ -3820,6 +3821,7 @@ static int perf_mmap(struct file *file, struct vm_area_struct *vma)
 
 	lock_limit = rlimit(RLIMIT_MEMLOCK);
 	lock_limit >>= PAGE_SHIFT;
+	locked = vma->vm_mm->pinned_vm + extra;
 	locked = vma->vm_mm->locked_vm + extra;
 
 	if ((locked > lock_limit) && perf_paranoid_tracepoint_raw() &&
@@ -3844,6 +3846,7 @@ static int perf_mmap(struct file *file, struct vm_area_struct *vma)
 	atomic_long_add(user_extra, &user->locked_vm);
 	event->mmap_locked = extra;
 	event->mmap_user = get_current_user();
+	vma->vm_mm->pinned_vm += event->mmap_locked;
 	vma->vm_mm->locked_vm += event->mmap_locked;
 
 unlock:
