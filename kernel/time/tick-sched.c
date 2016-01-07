@@ -192,6 +192,8 @@ static ktime_t tick_nohz_start_idle(int cpu, struct tick_sched *ts)
 
 	now = ktime_get();
 
+	update_ts_time_stats(cpu, ts, now, NULL);
+
 	ts->idle_entrytime = now;
 	ts->idle_active = 1;
 	sched_clock_idle_sleep_event();
@@ -365,10 +367,9 @@ void tick_nohz_stop_sched_tick(int inidle)
 		next_jiffies = get_next_timer_interrupt(last_jiffies);
 		delta_jiffies = next_jiffies - last_jiffies;
 	}
-
 	/*
-	 * Do not stop the tick, if we are only one off (or less)
-	 * or if the cpu is required for RCU:
+	 * Do not stop the tick, if we are only one off
+	 * or if the cpu is required for rcu
 	 */
 	if (!ts->tick_stopped && delta_jiffies <= 1)
 		goto out;
@@ -515,9 +516,9 @@ static void tick_nohz_restart(struct tick_sched *ts, ktime_t now)
 				hrtimer_get_expires(&ts->sched_timer), 0))
 				break;
 		}
-		/* Reread time and update jiffies */
-		now = ktime_get();
+		/* Update jiffies and reread time */
 		tick_do_update_jiffies64(now);
+		now = ktime_get();
 	}
 }
 

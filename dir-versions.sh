@@ -74,3 +74,8 @@ git checkout HEAD include/linux/ieee80211.h include/net/ net/ include/linux/netf
 # drivers/net/ 3.2
 rm -rf drivers/net/
 git checkout HEAD drivers/net/
+
+##########
+# kernel 3.2
+rm -rf kernel/debug kernel/events kernel/events kernel/gcov include/linux/timex.h include/linux/clockchips.h include/linux/ring_buffer.h include/linux/stacktrace.h include/linux/trace_clock.h kernel/rcutiny.c kernel/stacktrace.c kernel/irq kernel/time kernel/trace
+git checkout HEAD kernel/debug  kernel/events kernel/events kernel/gcov include/linux/timex.h include/linux/clockchips.h include/linux/ring_buffer.h include/linux/stacktrace.h include/linux/trace_clock.h kernel/rcutiny.c kernel/stacktrace.c kernel/irq kernel/time kernel/trace

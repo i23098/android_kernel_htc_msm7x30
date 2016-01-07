@@ -467,6 +467,9 @@ static int set_irq_wake_real(unsigned int irq, unsigned int on)
 	struct irq_desc *desc = irq_to_desc(irq);
 	int ret = -ENXIO;
 
+	if (irq_desc_get_chip(desc)->flags &  IRQCHIP_SKIP_SET_WAKE)
+		return 0;
+
 	if (desc->irq_data.chip->irq_set_wake)
 		ret = desc->irq_data.chip->irq_set_wake(&desc->irq_data, on);
 
@@ -562,9 +565,9 @@ int can_request_irq(unsigned int irq, unsigned long irqflags)
 		return 0;
 
 	if (irq_settings_can_request(desc)) {
-		if (!desc->action ||
-		    irqflags & desc->action->flags & IRQF_SHARED)
-			canrequest = 1;
+		if (desc->action)
+			if (irqflags & desc->action->flags & IRQF_SHARED)
+				canrequest =1;
 	}
 	irq_put_desc_unlock(desc, flags);
 	return canrequest;
@@ -1357,7 +1360,7 @@ EXPORT_SYMBOL(free_irq);
  *	and to set up the interrupt handler in the right order.
  *
  *	If you want to set up a threaded irq handler for your device
- *	then you need to supply @handler and @thread_fn. @handler ist
+ *	then you need to supply @handler and @thread_fn. @handler is
  *	still called in hard interrupt context and has to check
  *	whether the interrupt originates from the device. If yes it
  *	needs to disable the interrupt on the device and return
@@ -1375,6 +1378,7 @@ EXPORT_SYMBOL(free_irq);
  *	Flags:
  *
  *	IRQF_SHARED		Interrupt is shared
+ *	IRQF_SAMPLE_RANDOM	The interrupt can be used for entropy
  *	IRQF_TRIGGER_*		Specify active edge(s) or level
  *
  */

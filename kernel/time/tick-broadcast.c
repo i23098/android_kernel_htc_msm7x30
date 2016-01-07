@@ -66,17 +66,12 @@ static void tick_broadcast_start_periodic(struct clock_event_device *bc)
  */
 int tick_check_broadcast_device(struct clock_event_device *dev)
 {
-	struct clock_event_device *cur = tick_broadcast_device.evtdev;
-
-	if ((dev->features & CLOCK_EVT_FEAT_DUMMY) ||
-	    (tick_broadcast_device.evtdev &&
+	if ((tick_broadcast_device.evtdev &&
 	     tick_broadcast_device.evtdev->rating >= dev->rating) ||
 	     (dev->features & CLOCK_EVT_FEAT_C3STOP))
 		return 0;
 
 	clockevents_exchange_device(tick_broadcast_device.evtdev, dev);
-	if (cur)
-		cur->event_handler = clockevents_handle_noop;
 	tick_broadcast_device.evtdev = dev;
 	if (!cpumask_empty(tick_get_broadcast_mask()))
 		tick_broadcast_start_periodic(dev);
@@ -199,7 +194,7 @@ static void tick_handle_periodic_broadcast(struct clock_event_device *dev)
 	for (next = dev->next_event; ;) {
 		next = ktime_add(next, tick_period);
 
-		if (!clockevents_program_event(dev, next, ktime_get()))
+		if (!clockevents_program_event(dev, next, false))
 			return;
 		tick_do_periodic_broadcast();
 	}
@@ -378,7 +373,7 @@ static int tick_broadcast_set_event(ktime_t expires, int force)
 {
 	struct clock_event_device *bc = tick_broadcast_device.evtdev;
 
-	return tick_dev_program_event(bc, expires, force);
+	return clockevents_program_event(bc, expires, force);
 }
 
 int tick_resume_broadcast_oneshot(struct clock_event_device *bc)
@@ -396,15 +391,7 @@ void tick_check_oneshot_broadcast(int cpu)
 	if (cpumask_test_cpu(cpu, to_cpumask(tick_broadcast_oneshot_mask))) {
 		struct tick_device *td = &per_cpu(tick_cpu_device, cpu);
 
-		/*
-		 * We might be in the middle of switching over from
-		 * periodic to oneshot. If the CPU has not yet
-		 * switched over, leave the device alone.
-		 */
-		if (td->mode == TICKDEV_MODE_ONESHOT) {
-			clockevents_set_mode(td->evtdev,
-					     CLOCK_EVT_MODE_ONESHOT);
-		}
+		clockevents_set_mode(td->evtdev, CLOCK_EVT_MODE_ONESHOT);
 	}
 }
 
