@@ -1,27 +1,27 @@
 ###########
-#sound - v3.3
+# sound - v3.3
 rm -rf sound/ include/sound/
 git checkout HEAD sound/ include/sound/
 git add sound/ include/sound/
 
 ###########
-#usb 3.3
+# usb 3.3
 rm -rf drivers/usb include/linux/usb include/linux/usbdevice_fs.h include/linux/usb.h include/linux/usb_usual.h
 git checkout HEAD drivers/usb include/linux/usb include/linux/usbdevice_fs.h include/linux/usb.h include/linux/usb_usual.h
 
 ###########
-#of 3.4
+# of 3.4
 rm -rf scripts/dtc drivers/of include/linux/of.h include/linux/of_address.h include/linux/of_fdt.h include/linux/of_gpio.h include/linux/of_irq.h include/linux/of_net.h include/linux/of_pci.h include/linux/of_platform.h
 git checkout HEAD scripts/dtc drivers/of include/linux/of.h include/linux/of_address.h include/linux/of_fdt.h include/linux/of_gpio.h include/linux/of_irq.h include/linux/of_net.h include/linux/of_pci.h include/linux/of_platform.h
 
 ###########
-#of 3.4
+# of 3.4
 rm -rf arch/arm/boot/compressed/ scripts/kconfig/
 git checkout HEAD arch/arm/boot/compressed/ scripts/kconfig/
 
 
 ###########
-#dts 3.4
+# dts 3.4
 rm -rf arch/arm/boot/dts/
 git checkout HEAD arch/arm/boot/dts/
 
@@ -41,9 +41,9 @@ rm -rf fs/namei.c fs/splice.c fs/stat.c
 git checkout HEAD fs/namei.c fs/splice.c fs/stat.c
 
 ##########
-# drivers/base/regmap 3.1
-rm -rf drivers/base/regmap include/linux/regmap.h
-git checkout HEAD drivers/base/regmap include/linux/regmap.h
+# drivers/base/regmap 3.2
+rm -rf drivers/base/regmap include/linux/regmap.h include/trace/events/regmap.h
+git checkout HEAD drivers/base/regmap include/linux/regmap.h include/trace/events/regmap.h
 
 ##########
 # drivers/bluetooth 3.3
