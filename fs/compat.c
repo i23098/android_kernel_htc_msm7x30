@@ -7,7 +7,7 @@
  *  Copyright (C) 2002       Stephen Rothwell, IBM Corporation
  *  Copyright (C) 1997-2000  Jakub Jelinek  (jakub@redhat.com)
  *  Copyright (C) 1998       Eddie C. Dost  (ecd@skynet.be)
- *  Copyright (C) 2001,2002  Andi Kleen, SuSE Labs
+ *  Copyright (C) 2001,2002  Andi Kleen, SuSE Labs 
  *  Copyright (C) 2003       Pavel Machek (pavel@ucw.cz)
  *
  *  This program is free software; you can redistribute it and/or modify

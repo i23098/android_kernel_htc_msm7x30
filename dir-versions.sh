@@ -19,7 +19,6 @@ git checkout HEAD scripts/dtc drivers/of include/linux/of.h include/linux/of_add
 rm -rf arch/arm/boot/compressed/ scripts/kconfig/
 git checkout HEAD arch/arm/boot/compressed/ scripts/kconfig/
 
-
 ###########
 # dts 3.4
 rm -rf arch/arm/boot/dts/
@@ -32,8 +31,8 @@ git checkout HEAD drivers/base/power/generic_ops.c drivers/base/power/sysfs.c dr
 
 ###########
 # fs/ext4 3.2
-rm -rf include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/exofs fs/gfs2
-git checkout HEAD include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/exofs fs/gfs2
+rm -rf include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/exofs fs/gfs2 fs/compat.c
+git checkout HEAD include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/exofs fs/gfs2 fs/compat.c
 
 ##########
 # /fs/*.c 3.1
@@ -79,8 +78,10 @@ git checkout HEAD drivers/net/
 # kernel 3.2
 rm -rf kernel/debug kernel/events kernel/events kernel/gcov include/linux/timex.h include/linux/clockchips.h include/linux/ring_buffer.h include/linux/stacktrace.h include/linux/trace_clock.h kernel/rcutiny.c kernel/stacktrace.c kernel/irq kernel/time kernel/trace
 rm -rf include/linux/module.h include/linux/moduleparam.h include/linux/tracepoint.h include/linux/utsname.h kernel/capability.c kernel/configs.c kernel/dma.c kernel/kexec.c kernel/params.c kernel/sched_autogroup.c kernel/sched_autogroup.h kernel/sched_cpupri.c kernel/sched_cpupri.h kernel/sched_stats.h  kernel/tracepoint.c
+rm -rf kernel/async.c kernel/audit.c kernel/audit_tree.c kernel/compat.c kernel/crash_dump.c kernel/cred.c kernel/delayacct.c kernel/futex_compat.c kernel/groups.c kernel/hung_task.c kernel/irq_work.c kernel/kfifo.c kernel/kprobes.c kernel/ksysfs.c kernel/latencytop.c kernel/lockdep_proc.c kernel/mutex-debug.c
 git checkout HEAD kernel/debug  kernel/events kernel/events kernel/gcov include/linux/timex.h include/linux/clockchips.h include/linux/ring_buffer.h include/linux/stacktrace.h include/linux/trace_clock.h kernel/rcutiny.c kernel/stacktrace.c kernel/irq kernel/time kernel/trace
 git checkout HEAD include/linux/module.h include/linux/moduleparam.h include/linux/tracepoint.h include/linux/utsname.h kernel/capability.c kernel/configs.c kernel/dma.c kernel/kexec.c kernel/params.c kernel/sched_autogroup.c kernel/sched_autogroup.h kernel/sched_cpupri.c kernel/sched_cpupri.h kernel/sched_stats.h  kernel/tracepoint.c
+git checkout HEAD kernel/async.c kernel/audit.c kernel/audit_tree.c kernel/compat.c kernel/crash_dump.c kernel/cred.c kernel/delayacct.c kernel/futex_compat.c kernel/groups.c kernel/hung_task.c kernel/irq_work.c kernel/kfifo.c kernel/kprobes.c kernel/ksysfs.c kernel/latencytop.c kernel/lockdep_proc.c kernel/mutex-debug.c
 
 ##########
 # kernel/rcu* v3.4
