@@ -79,3 +79,8 @@ git checkout HEAD drivers/net/
 # kernel 3.2
 rm -rf kernel/debug kernel/events kernel/events kernel/gcov include/linux/timex.h include/linux/clockchips.h include/linux/ring_buffer.h include/linux/stacktrace.h include/linux/trace_clock.h kernel/rcutiny.c kernel/stacktrace.c kernel/irq kernel/time kernel/trace
 git checkout HEAD kernel/debug  kernel/events kernel/events kernel/gcov include/linux/timex.h include/linux/clockchips.h include/linux/ring_buffer.h include/linux/stacktrace.h include/linux/trace_clock.h kernel/rcutiny.c kernel/stacktrace.c kernel/irq kernel/time kernel/trace
+
+##########
+# kernel/rcu* v3.4
+rm -rf kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c
+git checkout HEAD kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c
