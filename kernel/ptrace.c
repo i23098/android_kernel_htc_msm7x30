@@ -176,7 +176,8 @@ int ptrace_check_attach(struct task_struct *child, bool ignore_state)
 		 */
 		spin_lock_irq(&child->sighand->siglock);
 		WARN_ON_ONCE(task_is_stopped(child));
-		if (task_is_traced(child) || ignore_state)
+		if (ignore_state || (task_is_traced(child) &&
+				     !(child->jobctl & JOBCTL_LISTENING)))
 			ret = 0;
 	}
 	read_unlock(&tasklist_lock);
@@ -238,9 +239,27 @@ bool ptrace_may_access(struct task_struct *task, unsigned int mode)
 	return !err;
 }
 
-static int ptrace_attach(struct task_struct *task)
+static int ptrace_attach(struct task_struct *task, long request,
+			 unsigned long flags)
 {
+	bool seize = (request == PTRACE_SEIZE);
 	int retval;
+
+	/*
+	 * SEIZE will enable new ptrace behaviors which will be implemented
+	 * gradually.  SEIZE_DEVEL is used to prevent applications
+	 * expecting full SEIZE behaviors trapping on kernel commits which
+	 * are still in the process of implementing them.
+	 *
+	 * Only test programs for new ptrace behaviors being implemented
+	 * should set SEIZE_DEVEL.  If unset, SEIZE will fail with -EIO.
+	 *
+	 * Once SEIZE behaviors are completely implemented, this flag and
+	 * the following test will be removed.
+	 */
+	retval = -EIO;
+	if (seize && !(flags & PTRACE_SEIZE_DEVEL))
+		goto out;
 
 	audit_ptrace(task);
 
@@ -273,11 +292,16 @@ static int ptrace_attach(struct task_struct *task)
 		goto unlock_tasklist;
 
 	task->ptrace = PT_PTRACED;
+	if (seize)
+		task->ptrace |= PT_SEIZED;
 	if (task_ns_capable(task, CAP_SYS_PTRACE))
 		task->ptrace |= PT_PTRACE_CAP;
 
 	__ptrace_link(task, current);
-	send_sig_info(SIGSTOP, SEND_SIG_FORCED, task);
+
+	/* SEIZE doesn't trap tracee on attach */
+	if (!seize)
+		send_sig_info(SIGSTOP, SEND_SIG_FORCED, task);
 
 	spin_lock(&task->sighand->siglock);
 
@@ -664,10 +688,12 @@ static int ptrace_regset(struct task_struct *task, int req, unsigned int type,
 int ptrace_request(struct task_struct *child, long request,
 		   unsigned long addr, unsigned long data)
 {
+	bool seized = child->ptrace & PT_SEIZED;
 	int ret = -EIO;
-	siginfo_t siginfo;
+	siginfo_t siginfo, *si;
 	void __user *datavp = (void __user *) data;
 	unsigned long __user *datalp = datavp;
+	unsigned long flags;
 
 	switch (request) {
 	case PTRACE_PEEKTEXT:
@@ -698,6 +724,62 @@ int ptrace_request(struct task_struct *child, long request,
 			ret = -EFAULT;
 		else
 			ret = ptrace_setsiginfo(child, &siginfo);
+		break;
+
+	case PTRACE_INTERRUPT:
+		/*
+		 * Stop tracee without any side-effect on signal or job
+		 * control.  At least one trap is guaranteed to happen
+		 * after this request.  If @child is already trapped, the
+		 * current trap is not disturbed and another trap will
+		 * happen after the current trap is ended with PTRACE_CONT.
+		 *
+		 * The actual trap might not be PTRACE_EVENT_STOP trap but
+		 * the pending condition is cleared regardless.
+		 */
+		if (unlikely(!seized || !lock_task_sighand(child, &flags)))
+			break;
+
+		/*
+		 * INTERRUPT doesn't disturb existing trap sans one
+		 * exception.  If ptracer issued LISTEN for the current
+		 * STOP, this INTERRUPT should clear LISTEN and re-trap
+		 * tracee into STOP.
+		 */
+		if (likely(task_set_jobctl_pending(child, JOBCTL_TRAP_STOP)))
+			signal_wake_up(child, child->jobctl & JOBCTL_LISTENING);
+
+		unlock_task_sighand(child, &flags);
+		ret = 0;
+		break;
+
+	case PTRACE_LISTEN:
+		/*
+		 * Listen for events.  Tracee must be in STOP.  It's not
+		 * resumed per-se but is not considered to be in TRACED by
+		 * wait(2) or ptrace(2).  If an async event (e.g. group
+		 * stop state change) happens, tracee will enter STOP trap
+		 * again.  Alternatively, ptracer can issue INTERRUPT to
+		 * finish listening and re-trap tracee into STOP.
+		 */
+		if (unlikely(!seized || !lock_task_sighand(child, &flags)))
+			break;
+
+		si = child->last_siginfo;
+		if (unlikely(!si || si->si_code >> 8 != PTRACE_EVENT_STOP))
+			break;
+
+		child->jobctl |= JOBCTL_LISTENING;
+
+		/*
+		 * If NOTIFY is set, it means event happened between start
+		 * of this trap and now.  Trigger re-trap immediately.
+		 */
+		if (child->jobctl & JOBCTL_TRAP_NOTIFY)
+			signal_wake_up(child, true);
+
+		unlock_task_sighand(child, &flags);
+		ret = 0;
 		break;
 
 	case PTRACE_DETACH:	 /* detach a process that was attached. */
@@ -814,8 +896,8 @@ SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
 		goto out;
 	}
 
-	if (request == PTRACE_ATTACH) {
-		ret = ptrace_attach(child);
+	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
+		ret = ptrace_attach(child, request, data);
 		/*
 		 * Some architectures need to do book-keeping after
 		 * a ptrace attach.
@@ -825,7 +907,8 @@ SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
 		goto out_put_task_struct;
 	}
 
-	ret = ptrace_check_attach(child, request == PTRACE_KILL);
+	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
+				  request == PTRACE_INTERRUPT);
 	if (ret < 0)
 		goto out_put_task_struct;
 
@@ -958,8 +1041,8 @@ asmlinkage long compat_sys_ptrace(compat_long_t request, compat_long_t pid,
 		goto out;
 	}
 
-	if (request == PTRACE_ATTACH) {
-		ret = ptrace_attach(child);
+	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
+		ret = ptrace_attach(child, request, data);
 		/*
 		 * Some architectures need to do book-keeping after
 		 * a ptrace attach.
@@ -969,7 +1052,8 @@ asmlinkage long compat_sys_ptrace(compat_long_t request, compat_long_t pid,
 		goto out_put_task_struct;
 	}
 
-	ret = ptrace_check_attach(child, request == PTRACE_KILL);
+	ret = ptrace_check_attach(child, request == PTRACE_KILL ||
+				  request == PTRACE_INTERRUPT);
 	if (!ret) {
 		ret = compat_arch_ptrace(child, request, addr, data);
 		if (ret || request != PTRACE_DETACH)

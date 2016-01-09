@@ -90,7 +90,7 @@ static int sig_ignored(struct task_struct *t, int sig, int from_ancestor_ns)
 	/*
 	 * Tracers may want to know about even ignored signals.
 	 */
-	return !tracehook_consider_ignored_signal(t, sig);
+	return !t->ptrace;
 }
 
 /*
@@ -499,7 +499,8 @@ int unhandled_signal(struct task_struct *tsk, int sig)
 		return 1;
 	if (handler != SIG_IGN && handler != SIG_DFL)
 		return 0;
-	return !tracehook_consider_fatal_signal(tsk, sig);
+	/* if ptraced, let the tracer determine */
+	return !tsk->ptrace;
 }
 
 /*
@@ -817,6 +818,32 @@ static int check_kill_permission(int sig, struct siginfo *info,
 	return security_task_kill(t, info, sig, 0);
 }
 
+/**
+ * ptrace_trap_notify - schedule trap to notify ptracer
+ * @t: tracee wanting to notify tracer
+ *
+ * This function schedules sticky ptrace trap which is cleared on the next
+ * TRAP_STOP to notify ptracer of an event.  @t must have been seized by
+ * ptracer.
+ *
+ * If @t is running, STOP trap will be taken.  If trapped for STOP and
+ * ptracer is listening for events, tracee is woken up so that it can
+ * re-trap for the new event.  If trapped otherwise, STOP trap will be
+ * eventually taken without returning to userland after the existing traps
+ * are finished by PTRACE_CONT.
+ *
+ * CONTEXT:
+ * Must be called with @task->sighand->siglock held.
+ */
+static void ptrace_trap_notify(struct task_struct *t)
+{
+	WARN_ON_ONCE(!(t->ptrace & PT_SEIZED));
+	assert_spin_locked(&t->sighand->siglock);
+
+	task_set_jobctl_pending(t, JOBCTL_TRAP_NOTIFY);
+	signal_wake_up(t, t->jobctl & JOBCTL_LISTENING);
+}
+
 /*
  * Handle magic process-wide effects of stop/continue signals. Unlike
  * the signal actions, these happen immediately at signal-generation
@@ -855,7 +882,10 @@ static int prepare_signal(int sig, struct task_struct *p, int from_ancestor_ns)
 		do {
 			task_clear_jobctl_pending(t, JOBCTL_STOP_PENDING);
 			rm_from_queue(SIG_KERNEL_STOP_MASK, &t->pending);
-			wake_up_state(t, __TASK_STOPPED);
+			if (likely(!(t->ptrace & PT_SEIZED)))
+				wake_up_state(t, __TASK_STOPPED);
+			else
+				ptrace_trap_notify(t);
 		} while_each_thread(p, t);
 
 		/*
@@ -952,8 +982,7 @@ static void complete_signal(int sig, struct task_struct *p, int group)
 	if (sig_fatal(p, sig) &&
 	    !(signal->flags & (SIGNAL_UNKILLABLE | SIGNAL_GROUP_EXIT)) &&
 	    !sigismember(&t->real_blocked, sig) &&
-	    (sig == SIGKILL ||
-	     !tracehook_consider_fatal_signal(t, sig))) {
+	    (sig == SIGKILL || !t->ptrace)) {
 		/*
 		 * This signal will be fatal to the whole group.
 		 */
@@ -1641,7 +1670,7 @@ int do_notify_parent(struct task_struct *tsk, int sig)
  	/* do_notify_parent_cldstop should have been called instead.  */
  	BUG_ON(task_is_stopped_or_traced(tsk));
 
-	BUG_ON(!task_ptrace(tsk) &&
+	BUG_ON(!tsk->ptrace &&
 	       (tsk->group_leader != tsk || !thread_group_empty(tsk)));
 
 	info.si_signo = sig;
@@ -1680,7 +1709,7 @@ int do_notify_parent(struct task_struct *tsk, int sig)
 
 	psig = tsk->parent->sighand;
 	spin_lock_irqsave(&psig->siglock, flags);
-	if (!task_ptrace(tsk) && sig == SIGCHLD &&
+	if (!tsk->ptrace && sig == SIGCHLD &&
 	    (psig->action[SIGCHLD-1].sa.sa_handler == SIG_IGN ||
 	     (psig->action[SIGCHLD-1].sa.sa_flags & SA_NOCLDWAIT))) {
 		/*
@@ -1780,7 +1809,7 @@ static void do_notify_parent_cldstop(struct task_struct *tsk,
 
 static inline int may_ptrace_stop(void)
 {
-	if (!likely(task_ptrace(current)))
+	if (!likely(current->ptrace))
 		return 0;
 	/*
 	 * Are we in the middle of do_coredump?
@@ -1879,8 +1908,10 @@ static void ptrace_stop(int exit_code, int why, int clear_code, siginfo_t *info)
 	if (why == CLD_STOPPED && (current->jobctl & JOBCTL_STOP_PENDING))
 		gstop_done = task_participate_group_stop(current);
 
-	/* any trap clears pending STOP trap */
+	/* any trap clears pending STOP trap, STOP trap clears NOTIFY */
 	task_clear_jobctl_pending(current, JOBCTL_TRAP_STOP);
+	if (info && info->si_code >> 8 == PTRACE_EVENT_STOP)
+		task_clear_jobctl_pending(current, JOBCTL_TRAP_NOTIFY);
 
 	/* entering a trap, clear TRAPPING */
 	task_clear_jobctl_trapping(current);
@@ -1948,6 +1979,9 @@ static void ptrace_stop(int exit_code, int why, int clear_code, siginfo_t *info)
 	spin_lock_irq(&current->sighand->siglock);
 	current->last_siginfo = NULL;
 
+	/* LISTENING can be set only during STOP traps, clear it */
+	current->jobctl &= ~JOBCTL_LISTENING;
+
 	/*
 	 * Queued signals ignored us while we were stopped for tracing.
 	 * So check for any that we should take before resuming user mode.
@@ -1956,21 +1990,26 @@ static void ptrace_stop(int exit_code, int why, int clear_code, siginfo_t *info)
 	recalc_sigpending_tsk(current);
 }
 
-void ptrace_notify(int exit_code)
+static void ptrace_do_notify(int signr, int exit_code, int why)
 {
 	siginfo_t info;
 
-	BUG_ON((exit_code & (0x7f | ~0xffff)) != SIGTRAP);
-
 	memset(&info, 0, sizeof info);
-	info.si_signo = SIGTRAP;
+	info.si_signo = signr;
 	info.si_code = exit_code;
 	info.si_pid = task_pid_vnr(current);
 	info.si_uid = current_uid();
 
 	/* Let the debugger run.  */
+	ptrace_stop(exit_code, why, 1, &info);
+}
+
+void ptrace_notify(int exit_code)
+{
+	BUG_ON((exit_code & (0x7f | ~0xffff)) != SIGTRAP);
+
 	spin_lock_irq(&current->sighand->siglock);
-	ptrace_stop(exit_code, CLD_TRAPPED, 1, &info);
+	ptrace_do_notify(SIGTRAP, exit_code, CLD_TRAPPED);
 	spin_unlock_irq(&current->sighand->siglock);
 }
 
@@ -2032,6 +2071,8 @@ static bool do_signal_stop(int signr)
 		 */
 		if (!(sig->flags & SIGNAL_STOP_STOPPED))
 			sig->group_exit_code = signr;
+		else
+			WARN_ON_ONCE(!current->ptrace);
 
 		sig->group_stop_count = 0;
 
@@ -2048,12 +2089,15 @@ static bool do_signal_stop(int signr)
 			if (!task_is_stopped(t) &&
 			    task_set_jobctl_pending(t, signr | gstop)) {
 				sig->group_stop_count++;
-				signal_wake_up(t, 0);
+				if (likely(!(t->ptrace & PT_SEIZED)))
+					signal_wake_up(t, 0);
+				else
+					ptrace_trap_notify(t);
 			}
 		}
 	}
 
-	if (likely(!task_ptrace(current))) {
+	if (likely(!current->ptrace)) {
 		int notify = 0;
 
 		/*
@@ -2098,7 +2142,13 @@ static bool do_signal_stop(int signr)
 /**
  * do_jobctl_trap - take care of ptrace jobctl traps
  *
- * It is currently used only to trap for group stop while ptraced.
+ * When PT_SEIZED, it's used for both group stop and explicit
+ * SEIZE/INTERRUPT traps.  Both generate PTRACE_EVENT_STOP trap with
+ * accompanying siginfo.  If stopped, lower eight bits of exit_code contain
+ * the stop signal; otherwise, %SIGTRAP.
+ *
+ * When !PT_SEIZED, it's used only for group stop trap with stop signal
+ * number as exit_code and no siginfo.
  *
  * CONTEXT:
  * Must be called with @current->sighand->siglock held, which may be
@@ -2106,17 +2156,27 @@ static bool do_signal_stop(int signr)
  */
 static void do_jobctl_trap(void)
 {
+	struct signal_struct *signal = current->signal;
 	int signr = current->jobctl & JOBCTL_STOP_SIGMASK;
 
-	WARN_ON_ONCE(!signr);
-	ptrace_stop(signr, CLD_STOPPED, 0, NULL);
-	current->exit_code = 0;
+	if (current->ptrace & PT_SEIZED) {
+		if (!signal->group_stop_count &&
+		    !(signal->flags & SIGNAL_STOP_STOPPED))
+			signr = SIGTRAP;
+		WARN_ON_ONCE(!signr);
+		ptrace_do_notify(signr, signr | (PTRACE_EVENT_STOP << 8),
+				 CLD_STOPPED);
+	} else {
+		WARN_ON_ONCE(!signr);
+		ptrace_stop(signr, CLD_STOPPED, 0, NULL);
+		current->exit_code = 0;
+	}
 }
 
 static int ptrace_signal(int signr, siginfo_t *info,
 			 struct pt_regs *regs, void *cookie)
 {
-	if (!task_ptrace(current))
+	if (!current->ptrace)
 		return signr;
 
 	ptrace_signal_deliver(regs, cookie);
@@ -2202,7 +2262,7 @@ relock:
 		do_notify_parent_cldstop(current, false, why);
 
 		leader = current->group_leader;
-		if (task_ptrace(leader) && !real_parent_is_ptracer(leader))
+		if (leader->ptrace && !real_parent_is_ptracer(leader))
 			do_notify_parent_cldstop(leader, true, why);
 
 		read_unlock(&tasklist_lock);
