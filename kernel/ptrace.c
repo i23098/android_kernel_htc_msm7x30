@@ -25,6 +25,12 @@
 #include <linux/hw_breakpoint.h>
 
 
+static int ptrace_trapping_sleep_fn(void *flags)
+{
+	schedule();
+	return 0;
+}
+
 /*
  * ptrace a task: make the debugger its new parent and
  * move it to the ptrace list.
@@ -105,6 +111,13 @@ void __ptrace_unlink(struct task_struct *child)
 	list_del_init(&child->ptrace_entry);
 
 	spin_lock(&child->sighand->siglock);
+
+	/*
+	 * Clear all pending traps and TRAPPING.  TRAPPING should be
+	 * cleared regardless of JOBCTL_STOP_PENDING.  Do it explicitly.
+	 */
+	task_clear_jobctl_pending(child, JOBCTL_TRAP_MASK);
+	task_clear_jobctl_trapping(child);
 
 	/*
 	 * Reinstate JOBCTL_STOP_PENDING if group stop is in effect and
@@ -269,7 +282,7 @@ static int ptrace_attach(struct task_struct *task)
 	spin_lock(&task->sighand->siglock);
 
 	/*
-	 * If the task is already STOPPED, set JOBCTL_STOP_PENDING and
+	 * If the task is already STOPPED, set JOBCTL_TRAP_STOP and
 	 * TRAPPING, and kick it so that it transits to TRACED.  TRAPPING
 	 * will be cleared if the child completes the transition or any
 	 * event which clears the group stop states happens.  We'll wait
@@ -286,8 +299,7 @@ static int ptrace_attach(struct task_struct *task)
 	 * in and out of STOPPED are protected by siglock.
 	 */
 	if (task_is_stopped(task) &&
-	    task_set_jobctl_pending(task,
-				    JOBCTL_STOP_PENDING | JOBCTL_TRAPPING))
+	    task_set_jobctl_pending(task, JOBCTL_TRAP_STOP | JOBCTL_TRAPPING))
 		signal_wake_up_state(task, __TASK_STOPPED);
 
 	spin_unlock(&task->sighand->siglock);
@@ -299,8 +311,8 @@ unlock_creds:
 	mutex_unlock(&task->signal->cred_guard_mutex);
 out:
 	if (!retval)
-		wait_event(current->signal->wait_chldexit,
-			   !(task->jobctl & JOBCTL_TRAPPING));
+		wait_on_bit(&task->jobctl, JOBCTL_TRAPPING_BIT,
+			    ptrace_trapping_sleep_fn, TASK_UNINTERRUPTIBLE);
 	return retval;
 }
 
