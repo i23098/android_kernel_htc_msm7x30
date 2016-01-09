@@ -7,8 +7,10 @@ choice
 config ARCH_MSM7X00A
 	bool "MSM7x00A / MSM7x01A"
 	select ARCH_MSM_ARM11
-	select MSM_VIC
+	select MSM_SMD
 	select CPU_V6
+	select MSM_PROC_COMM
+	select MSM_VIC
 	select MSM_REMOTE_SPINLOCK_SWP
 	select HAS_MSM_DEBUG_UART_PHYS
 
@@ -37,11 +39,13 @@ config ARCH_MSM7X27
 config ARCH_MSM7X30
 	bool "MSM7x30"
 	select ARCH_MSM_SCORPION
+	select MSM_SMD
 	select MSM_VIC
 	select CPU_V7
 	select MSM_REMOTE_SPINLOCK_DEKKERS
 	select ARCH_HAS_HOLES_MEMORYMODEL
 	select MSM_GPIOMUX
+	select MSM_PROC_COMM
 	select RESERVE_FIRST_PAGE
 	select MSM_DALRPC
 	select MSM_SPM_V1
@@ -50,18 +54,23 @@ config ARCH_MSM7X30
 
 config ARCH_QSD8X50
 	bool "QSD8X50"
+	select MACH_QSD8X50_SURF if !MACH_QSD8X50A_ST1_5
 	select ARCH_MSM_SCORPION
+	select MSM_SMD
 	select MSM_VIC
 	select CPU_V7
 	select MSM_REMOTE_SPINLOCK_LDREX
 	select CPU_USE_DOMAINS
 	select EMULATE_DOMAIN_MANAGER_V7
 	select MSM_GPIOMUX
+	select MSM_PROC_COMM
 	select MSM_DALRPC
 	select HAS_MSM_DEBUG_UART_PHYS
 
 config ARCH_MSM8X60
 	bool "MSM8X60"
+	select MACH_MSM8X60_SURF if (!MACH_MSM8X60_RUMI3 && !MACH_MSM8X60_SIM \
+				  && !MACH_MSM8X60_FFA)
 	select ARCH_MSM_SCORPIONMP
 	select SMP_PARALLEL_START if SMP
 	select ARM_GIC
@@ -247,12 +256,16 @@ config MSM_XO
 
 config MSM_REMOTE_SPINLOCK_DEKKERS
 	bool
+
 config MSM_REMOTE_SPINLOCK_SWP
 	bool
+
 config MSM_REMOTE_SPINLOCK_LDREX
 	bool
+
 config MSM_REMOTE_SPINLOCK_SFPB
 	bool
+
 config MSM_ADM3
 	bool
 
@@ -297,6 +310,7 @@ config PERFLOCK_SCREEN_OFF_MAX
 menu "Qualcomm MSM Board Type"
 
 config MACH_HALIBUT
+	depends on ARCH_MSM
 	depends on ARCH_MSM7X00A
 	depends on MSM_STACKED_MEMORY
 	default y
@@ -321,6 +335,7 @@ config MACH_MSM7201A_FFA
 	  Support for the Qualcomm MSM7201A FFA eval board.
 
 config MACH_TROUT
+	depends on ARCH_MSM
 	depends on ARCH_MSM7X00A
 	depends on MSM_STACKED_MEMORY
 	bool "HTC Dream (aka trout)"
@@ -584,6 +599,13 @@ config MACH_QSD8X50_SURF
 	bool "QSD8x50 SURF"
 	help
 	  Support for the Qualcomm QSD8x50 SURF eval board.
+
+config MACH_QSD8X50A_ST1_5
+	depends on ARCH_QSD8X50
+	select MSM_SOC_REV_A
+	bool "QSD8x50A ST1.5"
+	help
+	  Support for the Qualcomm ST1.5.
 
 config MACH_QSD8X50_FFA
 	depends on ARCH_QSD8X50
@@ -897,6 +919,62 @@ config MACH_RUNNYMEDE
 	  Support for the HTC Runnymede
 endmenu
 
+config MSM_IOMMU
+	bool "MSM IOMMU Support"
+	depends on ARCH_MSM8X60 || ARCH_MSM8960 || ARCH_APQ8064
+	select IOMMU_API
+	default n
+	help
+	  Support for the IOMMUs found on certain Qualcomm SOCs.
+	  These IOMMUs allow virtualization of the address space used by most
+	  cores within the multimedia subsystem.
+
+	  If unsure, say N here.
+
+config IOMMU_PGTABLES_L2
+	bool "Allow SMMU page tables in the L2 cache (Experimental)"
+	depends on MSM_IOMMU && MMU && SMP && CPU_DCACHE_DISABLE=n
+	default y
+	help
+	 Improves TLB miss latency at the expense of potential L2 pollution.
+	 However, with large multimedia buffers, the TLB should mostly contain
+	 section mappings and TLB misses should be quite infrequent.
+	 Most people can probably say Y here.
+
+config MSM_DEBUG_UART
+	int
+	default 1 if MSM_DEBUG_UART1
+	default 2 if MSM_DEBUG_UART2
+	default 3 if MSM_DEBUG_UART3
+	default 8 if MSM_DEBUG_UART8
+	default 11 if MSM_DEBUG_UART11
+
+if HAS_MSM_DEBUG_UART_PHYS
+choice
+	prompt "Debug UART"
+
+	default MSM_DEBUG_UART_NONE
+
+	config MSM_DEBUG_UART_NONE
+		bool "None"
+
+	config MSM_DEBUG_UART1
+		bool "UART1"
+
+	config MSM_DEBUG_UART2
+		bool "UART2"
+
+	config MSM_DEBUG_UART3
+		bool "UART3"
+
+	config MSM_DEBUG_UART8
+		bool "UART8"
+
+	config MSM_DEBUG_UART11
+		bool "UART11"
+endchoice
+endif
+
 config MSM_MDP40
 	bool
 	depends on ARCH_MSM7X30 || ARCH_MSM8X60
@@ -1001,40 +1079,6 @@ choice
 	  bool "1.2.00"
 
 endchoice
-
-config MSM_DEBUG_UART
-	int
-	default 1 if MSM_DEBUG_UART1
-	default 2 if MSM_DEBUG_UART2
-	default 3 if MSM_DEBUG_UART3
-	default 8 if MSM_DEBUG_UART8
-	default 11 if MSM_DEBUG_UART11
-
-if HAS_MSM_DEBUG_UART_PHYS
-choice
-	prompt "Debug UART"
-
-	default MSM_DEBUG_UART_NONE
-
-	config MSM_DEBUG_UART_NONE
-		bool "None"
-
-	config MSM_DEBUG_UART1
-		bool "UART1"
-
-	config MSM_DEBUG_UART2
-		bool "UART2"
-
-	config MSM_DEBUG_UART3
-		bool "UART3"
-
-	config MSM_DEBUG_UART8
-		bool "UART8"
-
-	config MSM_DEBUG_UART11
-		bool "UART11"
-endchoice
-endif
 
 config HTC_BATT_CORE
 	depends on POWER_SUPPLY
@@ -2075,31 +2119,6 @@ config MSM_RPM_STATS_LOG
 	  memory location. These messages provide statistical information about
 	  the low power modes that RPM enters. The drivers outputs the message
 	  via a debugfs node.
-
-config MSM_IOMMU
-	bool "MSM IOMMU Support"
-	depends on ARCH_MSM8X60 || ARCH_MSM8960 || ARCH_APQ8064
-	select IOMMU_API
-	default n
-	help
-	  Support for the IOMMUs found on certain Qualcomm SOCs.
-	  These IOMMUs allow virtualization of the address space used by most
-	  cores within the multimedia subsystem.
-
-	  If unsure, say N here.
-
-config IOMMU_PGTABLES_L2
-	bool "Allow SMMU page tables in the L2 cache (Experimental)"
-	depends on MSM_IOMMU=y
-	depends on MMU
-	depends on CPU_DCACHE_DISABLE=n
-	depends on SMP
-	default y
-	help
-	 Improves TLB miss latency at the expense of potential L2 pollution.
-	 However, with large multimedia buffers, the TLB should mostly contain
-	 section mappings and TLB misses should be quite infrequent.
-	 Most people can probably say Y here.
 
 config MSM_DIRECT_SCLK_ACCESS
 	bool "Direct access to the SCLK timer"

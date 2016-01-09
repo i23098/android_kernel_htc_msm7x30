@@ -1,22 +1,12 @@
-obj-y += io.o dma.o memory.o timer.o
-obj-y += clock.o clock-voter.o clock-dummy.o
+obj-y += io.o timer.o
+obj-y += clock.o
+obj-$(CONFIG_DEBUG_FS) += clock-debug.o
+obj-y += memory.o clock-voter.o clock-dummy.o
 obj-y += subsystem_map.o
 obj-$(CONFIG_CPU_FREQ_MSM) += cpufreq.o
-obj-$(CONFIG_DEBUG_FS) += nohlt.o clock-debug.o
+obj-$(CONFIG_DEBUG_FS) += nohlt.o
 obj-$(CONFIG_KEXEC) += msm_kexec.o
 obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
-
-obj-$(CONFIG_MSM_PROC_COMM) += proc_comm.o
-ifndef CONFIG_ARCH_MSM8X60
-	obj-$(CONFIG_MSM_PROC_COMM) += clock-pcom.o
-	obj-$(CONFIG_MSM_PROC_COMM) += vreg.o mpp.o
-	ifdef CONFIG_MSM_PROC_COMM
-ifndef CONFIG_ARCH_FSM9XXX
-		obj-$(CONFIG_REGULATOR) += footswitch-pcom.o
-endif
-		obj-$(CONFIG_DEBUG_FS) += pmic_debugfs.o
-	endif
-endif
 
 obj-y += acpuclock.o
 obj-y += drv_callback.o
@@ -32,6 +22,23 @@ obj-$(CONFIG_ARCH_MSM_SCORPION) += msm_fault_handlers.o
 endif
 
 obj-$(CONFIG_MSM_VIC) += irq-vic.o
+obj-$(CONFIG_MSM_IOMMU) += iommu.o iommu_dev.o devices-iommu.o
+obj-$(CONFIG_MSM_IOMMU) += iommu_domains.o
+
+obj-$(CONFIG_ARCH_MSM7X00A) += dma.o irq.o acpuclock-arm11.o
+obj-$(CONFIG_ARCH_MSM7X30) += dma.o
+obj-$(CONFIG_ARCH_QSD8X50) += dma.o sirc.o
+
+obj-$(CONFIG_MSM_PROC_COMM) += proc_comm.o clock-pcom.o vreg.o
+ifndef CONFIG_ARCH_MSM8X60
+	obj-$(CONFIG_MSM_PROC_COMM) += mpp.o
+	ifdef CONFIG_MSM_PROC_COMM
+ifndef CONFIG_ARCH_FSM9XXX
+		obj-$(CONFIG_REGULATOR) += footswitch-pcom.o
+endif
+		obj-$(CONFIG_DEBUG_FS) += pmic_debugfs.o
+	endif
+endif
 
 ifdef CONFIG_ARCH_QSD8X50
 	obj-$(CONFIG_MSM_SOC_REV_NONE) += acpuclock-8x50.o
@@ -543,8 +550,6 @@ obj-$(CONFIG_MSM_XO) += msm_xo.o
 obj-$(CONFIG_MSM_BUS_SCALING) += msm_bus/
 obj-$(CONFIG_MSM_BUSPM_DEV) += msm-buspm-dev.o
 
-obj-$(CONFIG_MSM_IOMMU)		+= iommu.o iommu_dev.o devices-iommu.o iommu_domains.o
-
 ifdef CONFIG_VCM
 obj-$(CONFIG_ARCH_MSM8X60) += board-msm8x60-vcm.o
 endif
@@ -562,7 +567,10 @@ ifdef CONFIG_FSM9XXX_TLMM
 obj-y   += gpio-fsm9xxx.o
 else
 ifdef CONFIG_MSM_V2_TLMM
+ifndef CONFIG_ARCH_MSM8960
+# TODO: TLMM Mapping issues need to be resolved
 obj-y	+= gpio-v2.o
+endif
 else
 obj-y	+= gpio.o
 endif

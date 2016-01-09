@@ -21,5 +21,5 @@
 #elif defined(CONFIG_ARM_GIC)
 #include <mach/entry-macro-qgic.S>
 #else
-#error "No interrupt controller selected!"
+#include <mach/entry-macro-vic.S>
 #endif

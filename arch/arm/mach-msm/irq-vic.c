@@ -250,11 +250,8 @@ static inline void msm_irq_write_all_regs(void __iomem *base, unsigned int val)
 
 static void msm_irq_ack(struct irq_data *d)
 {
-	uint32_t mask;
-
 	void __iomem *reg = VIC_INT_TO_REG_ADDR(VIC_INT_CLEAR0, d->irq);
-	mask = 1 << (d->irq & 31);
-	writel(mask, reg);
+	writel(1 << (d->irq & 31), reg);
 	mb();
 }
 
@@ -576,7 +573,7 @@ void msm_irq_exit_sleep3(uint32_t irq_mask, uint32_t wakeup_reason,
 
 static struct irq_chip msm_irq_chip = {
 	.name          = "msm",
-	.irq_disable    = msm_irq_disable,
+	.irq_disable   = msm_irq_disable,
 	.irq_ack       = msm_irq_ack,
 	.irq_mask      = msm_irq_mask,
 	.irq_unmask    = msm_irq_unmask,

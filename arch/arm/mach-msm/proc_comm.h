@@ -13,8 +13,10 @@
  *
  */
 
-#ifndef _ARCH_ARM_MACH_MSM_MSM_PROC_COMM_H_
-#define _ARCH_ARM_MACH_MSM_MSM_PROC_COMM_H_
+#ifndef _ARCH_ARM_MACH_MSM_PROC_COMM_H_
+#define _ARCH_ARM_MACH_MSM_PROC_COMM_H_
+
+#include <linux/init.h>
 
 enum {
 	PCOM_CMD_IDLE = 0x0,
@@ -265,6 +267,7 @@ enum {
 #ifdef CONFIG_MSM_PROC_COMM
 void msm_proc_comm_reset_modem_now(void);
 int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2);
+void __init proc_comm_boot_wait(void);
 #else
 static inline void msm_proc_comm_reset_modem_now(void) { }
 static inline int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2)

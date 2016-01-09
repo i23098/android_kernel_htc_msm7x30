@@ -15,8 +15,8 @@
 #include <mach/irqs.h>
 
 static struct resource cpu_pmu_resource = {
-	.start = INT_ARMQC_PERFMON,
-	.end = INT_ARMQC_PERFMON,
+	.start = INT_ARM11_PM,
+	.end = INT_ARM11_PM,
 	.flags	= IORESOURCE_IRQ,
 };
 

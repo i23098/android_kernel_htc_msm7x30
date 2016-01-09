@@ -20,17 +20,6 @@
 #include <linux/spinlock.h>
 #include <mach/msm_smsm.h>
 
-#define PC_APPS  0
-#define PC_MODEM 1
-
-#define VERSION_QDSP6     4
-#define VERSION_APPS_SBL  6
-#define VERSION_MODEM_SBL 7
-#define VERSION_APPS      8
-#define VERSION_MODEM     9
-#define VERSION_DSPS      10
-
-#define SMD_HEAP_SIZE 512
 
 struct smem_heap_info {
 	unsigned initialized;
@@ -52,6 +41,18 @@ struct smem_proc_comm {
 	unsigned data1;
 	unsigned data2;
 };
+
+#define PC_APPS  0
+#define PC_MODEM 1
+
+#define VERSION_QDSP6     4
+#define VERSION_APPS_SBL  6
+#define VERSION_MODEM_SBL 7
+#define VERSION_APPS      8
+#define VERSION_MODEM     9
+#define VERSION_DSPS      10
+
+#define SMD_HEAP_SIZE 512
 
 struct smem_shared {
 	struct smem_proc_comm proc_comm[4];

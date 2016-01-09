@@ -59,6 +59,8 @@ module_param_named(debug_mask, msm_timer_debug_mask, int, S_IRUGO | S_IWUSR | S_
 #define TIMER_MATCH_VAL         0x0000
 #define TIMER_COUNT_VAL         0x0004
 #define TIMER_ENABLE            0x0008
+#define TIMER_ENABLE_CLR_ON_MATCH_EN    2
+#define TIMER_ENABLE_EN                 1
 #define TIMER_CLEAR             0x000C
 #define DGT_CLK_CTL             0x0034
 enum {
@@ -67,8 +69,6 @@ enum {
 	DGT_CLK_CTL_DIV_3 = 2,
 	DGT_CLK_CTL_DIV_4 = 3,
 };
-#define TIMER_ENABLE_EN              1
-#define TIMER_ENABLE_CLR_ON_MATCH_EN 2
 
 #define LOCAL_TIMER 0
 #define GLOBAL_TIMER 1
@@ -1108,6 +1108,7 @@ static void __init msm_timer_init(void)
 		struct msm_clock *clock = &msm_clocks[i];
 		struct clock_event_device *ce = &clock->clockevent;
 		struct clocksource *cs = &clock->clocksource;
+
 		__raw_writel(0, clock->regbase + TIMER_ENABLE);
 		__raw_writel(1, clock->regbase + TIMER_CLEAR);
 		__raw_writel(0, clock->regbase + TIMER_COUNT_VAL);
@@ -1202,7 +1203,6 @@ int __cpuinit local_timer_setup(struct clock_event_device *evt)
 	gic_enable_ppi(clock->irq.irq);
 
 	clockevents_register_device(evt);
-
 	return 0;
 }
 
