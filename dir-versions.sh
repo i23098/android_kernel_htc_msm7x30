@@ -91,3 +91,10 @@ git checkout HEAD kernel/auditsc.c arch/arm/kernel/ptrace.c include/linux/audit.
 # kernel/rcu* v3.4
 rm -rf kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c
 git checkout HEAD kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c
+
+##########
+# block v3.4
+rm -rf block/blk-cgroup.h block/bsg-lib.c block/ioctl.c block/partition-generic.c block/scsi_ioctl.c
+git checkout HEAD block/blk-cgroup.h block/bsg-lib.c block/ioctl.c block/partition-generic.c block/scsi_ioctl.c
+# rm -rf block/blk-cgroup.c block/blk-core.c block/blk-exec.c block/blk-flush.c block/blk-ioc.c block/blk-map.c block/blk-merge.c block/blk-settings.c block/blk-softirq.c block/blk-sysfs.c block/blk-tag.c block/blk-throttle.c block/blk.h block/bsg.c block/cfq-iosched.c block/compat_ioctl.c block/deadline-iosched.c block/elevator.c block/genhd.c block/noop-iosched.c
+# git checkout HEAD block/blk-cgroup.c block/blk-core.c block/blk-exec.c block/blk-flush.c block/blk-ioc.c block/blk-map.c block/blk-merge.c block/blk-settings.c block/blk-softirq.c block/blk-sysfs.c block/blk-tag.c block/blk-throttle.c block/blk.h block/bsg.c block/cfq-iosched.c block/compat_ioctl.c block/deadline-iosched.c block/elevator.c block/genhd.c block/noop-iosched.c 

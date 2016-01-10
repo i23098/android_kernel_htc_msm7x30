@@ -17,6 +17,8 @@
 #include "blk.h"
 #include "cfq.h"
 
+extern struct percpu_mempool *blkg_stats_cpu_pool;
+
 /*
  * tunables
  */

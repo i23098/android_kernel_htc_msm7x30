@@ -12,6 +12,8 @@
 #include "blk-cgroup.h"
 #include "blk.h"
 
+extern struct percpu_mempool *blkg_stats_cpu_pool;
+
 /* Max dispatch from a group in 1 round */
 static int throtl_grp_quantum = 8;
 

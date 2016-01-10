@@ -23,6 +23,8 @@
 
 #define MAX_KEY_LEN 100
 
+extern struct percpu_mempool *blkg_stats_cpu_pool;
+
 /*
  * blkg_stats_cpu_pool parameters.  These allocations aren't frequent, can
  * be opportunistic and percpu memory is expensive.
