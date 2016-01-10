@@ -186,7 +186,6 @@ void create_io_context_slowpath(struct task_struct *task, gfp_t gfp_flags,
 
 	ioc = kmem_cache_alloc_node(iocontext_cachep, gfp_flags | __GFP_ZERO,
 				    node);
-
 	if (unlikely(!ioc))
 		return;
 
@@ -211,7 +210,6 @@ void create_io_context_slowpath(struct task_struct *task, gfp_t gfp_flags,
 		task->io_context = ioc;
 	else
 		kmem_cache_free(iocontext_cachep, ioc);
-
 	task_unlock(task);
 }
 

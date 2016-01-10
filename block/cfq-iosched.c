@@ -1306,7 +1306,6 @@ static void cfq_service_tree_add(struct cfq_data *cfqd, struct cfq_queue *cfqq,
 
 	service_tree = service_tree_for(cfqq->cfqg, cfqq_prio(cfqq),
 						cfqq_type(cfqq));
-	BUG_ON(service_tree == NULL);
 	if (cfq_class_idle(cfqq)) {
 		rb_key = CFQ_IDLE_DELAY;
 		parent = rb_last(&service_tree->rb);
@@ -2242,7 +2241,6 @@ static void choose_service_tree(struct cfq_data *cfqd, struct cfq_group *cfqg)
 	 * expiration time
 	 */
 	st = service_tree_for(cfqg, cfqd->serving_prio, cfqd->serving_type);
-	BUG_ON(st == NULL);
 	count = st->count;
 
 	/*
@@ -2279,8 +2277,7 @@ new_workload:
 		 * to have higher weight. A more accurate thing would be to
 		 * calculate system wide asnc/sync ratio.
 		 */
-		tmp = cfqd->cfq_target_latency *
-			cfqg_busy_async_queues(cfqd, cfqg);
+		tmp = cfqd->cfq_target_latency * cfqg_busy_async_queues(cfqd, cfqg);
 		tmp = tmp/cfqd->busy_queues;
 		slice = min_t(unsigned, slice, tmp);
 
@@ -2311,7 +2308,7 @@ static struct cfq_group *cfq_get_next_cfqg(struct cfq_data *cfqd)
 static void cfq_choose_cfqg(struct cfq_data *cfqd)
 {
 	struct cfq_group *cfqg = cfq_get_next_cfqg(cfqd);
-	BUG_ON(cfqg == NULL);
+
 	cfqd->serving_group = cfqg;
 
 	/* Restore the workload type data */

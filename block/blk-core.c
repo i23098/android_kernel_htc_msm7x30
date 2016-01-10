@@ -836,9 +836,7 @@ retry:
 			if (!blk_queue_full(q, is_sync)) {
 				ioc_set_batching(q, ioc);
 				blk_set_queue_full(q, is_sync);
-			}
-
-			else {
+			} else {
 /* Modified by Memory, Studio Software for Zimmer */
 #if defined(CONFIG_ZIMMER)
                 if (may_queue != ELV_MQUEUE_MUST && !ioc_batching(q, ioc) && (!(bio->bi_rw & REQ_SWAPIN_DMPG))) {
@@ -1503,15 +1501,16 @@ get_rq:
 		if (list_empty(&plug->list))
 			trace_block_plug(q);
 		else {
-			if (request_count >= BLK_MAX_REQUEST_COUNT) {
-				blk_flush_plug_list(plug, false);
-				trace_block_plug(q);
-			} else if (!plug->should_sort) {
+			if (!plug->should_sort) {
 				struct request *__rq;
 
 				__rq = list_entry_rq(plug->list.prev);
 				if (__rq->q != q)
 					plug->should_sort = 1;
+			}
+			if (request_count >= BLK_MAX_REQUEST_COUNT) {
+				blk_flush_plug_list(plug, false);
+				trace_block_plug(q);
 			}
 		}
 		list_add_tail(&req->queuelist, &plug->list);
@@ -2239,11 +2238,9 @@ bool blk_update_request(struct request *req, int error, unsigned int nr_bytes)
 			error_type = "I/O";
 			break;
 		}
-		printk_ratelimited(
-			KERN_ERR "end_request: %s error, dev %s, sector %llu\n",
-			error_type,
-			req->rq_disk ? req->rq_disk->disk_name : "?",
-			(unsigned long long)blk_rq_pos(req));
+		printk(KERN_ERR "end_request: %s error, dev %s, sector %llu\n",
+		       error_type, req->rq_disk ? req->rq_disk->disk_name : "?",
+		       (unsigned long long)blk_rq_pos(req));
 	}
 
 	blk_account_io_completion(req, nr_bytes);

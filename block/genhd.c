@@ -1182,6 +1182,18 @@ static void disk_release(struct device *dev)
 		blk_put_queue(disk->queue);
 	kfree(disk);
 }
+struct class block_class = {
+	.name		= "block",
+};
+
+static char *block_devnode(struct device *dev, mode_t *mode)
+{
+	struct gendisk *disk = dev_to_disk(dev);
+
+	if (disk->devnode)
+		return disk->devnode(disk, mode);
+	return NULL;
+}
 
 static int disk_uevent(struct device *dev, struct kobj_uevent_env *env)
 {
@@ -1196,19 +1208,6 @@ static int disk_uevent(struct device *dev, struct kobj_uevent_env *env)
 	disk_part_iter_exit(&piter);
 	add_uevent_var(env, "NPARTS=%u", cnt);
 	return 0;
-}
-
-struct class block_class = {
-	.name		= "block",
-};
-
-static char *block_devnode(struct device *dev, mode_t *mode)
-{
-	struct gendisk *disk = dev_to_disk(dev);
-
-	if (disk->devnode)
-		return disk->devnode(disk, mode);
-	return NULL;
 }
 
 static struct device_type disk_type = {

@@ -94,7 +94,7 @@ git checkout HEAD kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny
 
 ##########
 # block v3.4
-rm -rf block/blk-cgroup.h block/bsg-lib.c block/ioctl.c block/partition-generic.c block/scsi_ioctl.c fs/partitions block/partitions
-git checkout HEAD block/blk-cgroup.h block/bsg-lib.c block/ioctl.c block/partition-generic.c block/scsi_ioctl.c block/partitions
-# rm -rf block/blk-cgroup.c block/blk-core.c block/blk-exec.c block/blk-flush.c block/blk-ioc.c block/blk-map.c block/blk-merge.c block/blk-settings.c block/blk-softirq.c block/blk-sysfs.c block/blk-tag.c block/blk-throttle.c block/blk.h block/bsg.c block/cfq-iosched.c block/compat_ioctl.c block/deadline-iosched.c block/elevator.c block/genhd.c block/noop-iosched.c
-# git checkout HEAD block/blk-cgroup.c block/blk-core.c block/blk-exec.c block/blk-flush.c block/blk-ioc.c block/blk-map.c block/blk-merge.c block/blk-settings.c block/blk-softirq.c block/blk-sysfs.c block/blk-tag.c block/blk-throttle.c block/blk.h block/bsg.c block/cfq-iosched.c block/compat_ioctl.c block/deadline-iosched.c block/elevator.c block/genhd.c block/noop-iosched.c 
+rm -rf block/blk-cgroup.h block/bsg-lib.c block/ioctl.c block/partition-generic.c block/scsi_ioctl.c fs/partitions block/partitions block/blk-integrity.c block/blk-lib.c block/blk-sysfs.c block/bsg.c block/compat_ioctl.c include/linux/fd.h
+git checkout HEAD block/blk-cgroup.h block/bsg-lib.c block/ioctl.c block/partition-generic.c block/scsi_ioctl.c block/partitions block/blk-integrity.c block/blk-lib.c block/blk-sysfs.c block/bsg.c block/compat_ioctl.c include/linux/fd.h
+# rm -rf block/blk-cgroup.c block/blk-core.c block/blk-exec.c block/blk-flush.c block/blk-ioc.c block/blk-map.c block/blk-merge.c block/blk-settings.c block/blk-softirq.c block/blk-tag.c block/blk-throttle.c block/blk.h block/cfq-iosched.c block/deadline-iosched.c block/elevator.c block/genhd.c block/noop-iosched.c
+# git checkout HEAD block/blk-cgroup.c block/blk-core.c block/blk-exec.c block/blk-flush.c block/blk-ioc.c block/blk-map.c block/blk-merge.c block/blk-settings.c block/blk-softirq.c block/blk-tag.c block/blk-throttle.c block/blk.h block/cfq-iosched.c block/deadline-iosched.c block/elevator.c block/genhd.c block/noop-iosched.c 
