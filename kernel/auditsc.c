@@ -44,11 +44,11 @@
 
 #include <linux/init.h>
 #include <asm/types.h>
-#include <asm/atomic.h>
+#include <linux/atomic.h>
 #include <linux/fs.h>
 #include <linux/namei.h>
 #include <linux/mm.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/slab.h>
 #include <linux/mount.h>
 #include <linux/socket.h>
@@ -69,11 +69,6 @@
 #include <linux/fs_struct.h>
 
 #include "audit.h"
-
-/* flags stating the success for a syscall */
-#define AUDITSC_INVALID 0
-#define AUDITSC_SUCCESS 1
-#define AUDITSC_FAILURE 2
 
 /* AUDIT_NAMES is the number of slots we reserve in the audit_context
  * for saving names from getname(). */
@@ -1685,7 +1680,8 @@ void audit_finish_fork(struct task_struct *child)
 
 /**
  * audit_syscall_exit - deallocate audit context after a system call
- * @pt_regs: syscall registers
+ * @valid: success/failure flag
+ * @return_code: syscall return value
  *
  * Tear down after system call.  If the audit context has been marked as
  * auditable (either because of the AUDIT_RECORD_CONTEXT state from
@@ -1693,17 +1689,13 @@ void audit_finish_fork(struct task_struct *child)
  * message), then write out the syscall information.  In call cases,
  * free the names stored from getname().
  */
-void __audit_syscall_exit(int success, long return_code)
+void audit_syscall_exit(int valid, long return_code)
 {
 	struct task_struct *tsk = current;
 	struct audit_context *context;
 
-	if (success)
-		success = AUDITSC_SUCCESS;
-	else
-		success = AUDITSC_FAILURE;
+	context = audit_get_context(tsk, valid, return_code);
 
-	context = audit_get_context(tsk, success, return_code);
 	if (likely(!context))
 		return;
 

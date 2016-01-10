@@ -26,8 +26,9 @@
 #include <linux/init.h>
 #include <linux/sched.h>
 
-#include <asm/atomic.h>
+#include <linux/atomic.h>
 #include <asm/cacheflush.h>
+#include <asm/exception.h>
 #include <asm/system.h>
 #include <asm/unistd.h>
 #include <asm/traps.h>
@@ -50,7 +51,6 @@ unsigned int user_debug;
 static int __init user_debug_setup(char *str)
 {
 	get_option(&str, &user_debug);
-
 	return 1;
 }
 __setup("user_debug=", user_debug_setup);
@@ -287,13 +287,6 @@ void die(const char *str, struct pt_regs *regs, int err)
 	add_taint(TAINT_DIE);
 	raw_spin_unlock_irq(&die_lock);
 	oops_exit();
-
-#ifdef CONFIG_WIMAX
-	if (find_wimax_modules()) {
-	    printk(KERN_ALERT "[WIMAX] ignore this exception in %s\n", __func__);
-        return;
-    }
-#endif
 
 	if (in_interrupt())
 		panic("Fatal exception in interrupt");

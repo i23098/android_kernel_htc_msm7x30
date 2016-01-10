@@ -368,9 +368,9 @@ void kernel_restart(char *cmd)
 	disable_nonboot_cpus();
 	syscore_shutdown();
 	if (!cmd)
-		printk(KERN_EMERG "%s(parent:%s): Restarting system.\n", current->comm, current->parent->comm);
+		printk(KERN_EMERG "Restarting system.\n");
 	else
-		printk(KERN_EMERG "%s(parent:%s): Restarting system with command '%s'.\n", current->comm, current->parent->comm, cmd);
+		printk(KERN_EMERG "Restarting system with command '%s'.\n", cmd);
 	kmsg_dump(KMSG_DUMP_RESTART);
 	machine_restart(cmd);
 }

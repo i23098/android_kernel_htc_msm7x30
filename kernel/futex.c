@@ -55,7 +55,7 @@
 #include <linux/pagemap.h>
 #include <linux/syscalls.h>
 #include <linux/signal.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/magic.h>
 #include <linux/pid.h>
 #include <linux/nsproxy.h>
@@ -723,6 +723,7 @@ lookup_pi_state(u32 uval, struct futex_hash_bucket *hb,
 		out_state:
 			atomic_inc(&pi_state->refcount);
 			*ps = pi_state;
+
 			return 0;
 		}
 	}
@@ -1292,7 +1293,7 @@ void requeue_pi_wake_futex(struct futex_q *q, union futex_key *key,
  *
  * Returns:
  *  0 - failed to acquire the lock atomicly
- * >0 - acquired the lock, return value is vpid of the top_waiter
+ *  1 - acquired the lock
  * <0 - error
  */
 static int futex_proxy_trylock_atomic(u32 __user *pifutex,
@@ -1954,7 +1955,7 @@ static void futex_wait_queue_me(struct futex_hash_bucket *hb, struct futex_q *q,
  *
  * Returns:
  *  0 - uaddr contains val and hb has been locked
- * <1 - -EFAULT or -EWOULDBLOCK (uaddr does not contain val) and hb is unlcoked
+ * <1 - -EFAULT or -EWOULDBLOCK (uaddr does not contain val) and hb is unlocked
  */
 static int futex_wait_setup(u32 __user *uaddr, u32 val, unsigned int flags,
 			   struct futex_q *q, struct futex_hash_bucket **hb)
@@ -2378,11 +2379,11 @@ int handle_early_requeue_pi_wakeup(struct futex_hash_bucket *hb,
  * @uaddr2:	the pi futex we will take prior to returning to user-space
  *
  * The caller will wait on uaddr and will be requeued by futex_requeue() to
- * uaddr2 which must be PI aware and unique from uaddr.  Normal wakeup will wake
- * on uaddr2 and complete the acquisition of the rt_mutex prior to returning to
- * userspace.  This ensures the rt_mutex maintains an owner when it has waiters;
- * without one, the pi logic would not know which task to boost/deboost, if
- * there was a need to.
+ * uaddr2 which must be PI aware.  Normal wakeup will wake on uaddr2 and
+ * complete the acquisition of the rt_mutex prior to returning to userspace.
+ * This ensures the rt_mutex maintains an owner when it has waiters; without
+ * one, the pi logic wouldn't know which task to boost/deboost, if there was a
+ * need to.
  *
  * We call schedule in futex_wait_queue_me() when we enqueue and return there
  * via the following:
@@ -2790,16 +2791,6 @@ long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
 	}
 
 	switch (cmd) {
-	case FUTEX_LOCK_PI:
-	case FUTEX_UNLOCK_PI:
-	case FUTEX_TRYLOCK_PI:
-	case FUTEX_WAIT_REQUEUE_PI:
-	case FUTEX_CMP_REQUEUE_PI:
-		if (!futex_cmpxchg_enabled)
-			return -ENOSYS;
-	}
-
-	switch (cmd) {
 	case FUTEX_WAIT:
 		val3 = FUTEX_BITSET_MATCH_ANY;
 	case FUTEX_WAIT_BITSET:
@@ -2820,13 +2811,16 @@ long do_futex(u32 __user *uaddr, int op, u32 val, ktime_t *timeout,
 		ret = futex_wake_op(uaddr, flags, uaddr2, val, val2, val3);
 		break;
 	case FUTEX_LOCK_PI:
-		ret = futex_lock_pi(uaddr, flags, val, timeout, 0);
+		if (futex_cmpxchg_enabled)
+			ret = futex_lock_pi(uaddr, flags, val, timeout, 0);
 		break;
 	case FUTEX_UNLOCK_PI:
-		ret = futex_unlock_pi(uaddr, flags);
+		if (futex_cmpxchg_enabled)
+			ret = futex_unlock_pi(uaddr, flags);
 		break;
 	case FUTEX_TRYLOCK_PI:
-		ret = futex_lock_pi(uaddr, flags, 0, timeout, 1);
+		if (futex_cmpxchg_enabled)
+			ret = futex_lock_pi(uaddr, flags, 0, timeout, 1);
 		break;
 	case FUTEX_WAIT_REQUEUE_PI:
 		val3 = FUTEX_BITSET_MATCH_ANY;

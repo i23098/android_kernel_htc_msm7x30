@@ -26,7 +26,6 @@
 
 #include <linux/types.h>
 #include <linux/elf-em.h>
-#include <linux/ptrace.h>
 
 /* The netlink messages for the audit system is divided into blocks:
  * 1000 - 1099 are for commanding the audit system
@@ -409,6 +408,10 @@ struct audit_field {
 	void				*lsm_rule;
 };
 
+#define AUDITSC_INVALID 0
+#define AUDITSC_SUCCESS 1
+#define AUDITSC_FAILURE 2
+#define AUDITSC_RESULT(x) ( ((long)(x))<0?AUDITSC_FAILURE:AUDITSC_SUCCESS )
 extern int __init audit_register_class(int class, unsigned *list);
 extern int audit_classify_syscall(int abi, unsigned syscall);
 extern int audit_classify_arch(int arch);
@@ -421,7 +424,7 @@ extern void audit_free(struct task_struct *task);
 extern void audit_syscall_entry(int arch,
 				int major, unsigned long a0, unsigned long a1,
 				unsigned long a2, unsigned long a3);
-extern void __audit_syscall_exit(int ret_success, long ret_value);
+extern void audit_syscall_exit(int failed, long return_code);
 extern void __audit_getname(const char *name);
 extern void audit_putname(const char *name);
 extern void __audit_inode(const char *name, const struct dentry *dentry);
@@ -433,15 +436,6 @@ static inline int audit_dummy_context(void)
 {
 	void *p = current->audit_context;
 	return !p || *(int *)p;
-}
-static inline void audit_syscall_exit(void *pt_regs)
-{
-	if (unlikely(current->audit_context)) {
-		int success = is_syscall_success(pt_regs);
-		int return_code = regs_return_value(pt_regs);
-
-		__audit_syscall_exit(success, return_code);
-	}
 }
 static inline void audit_getname(const char *name)
 {
@@ -550,12 +544,12 @@ static inline void audit_mmap_fd(int fd, int flags)
 
 extern int audit_n_rules;
 extern int audit_signals;
-#else /* CONFIG_AUDITSYSCALL */
+#else
 #define audit_finish_fork(t)
 #define audit_alloc(t) ({ 0; })
 #define audit_free(t) do { ; } while (0)
 #define audit_syscall_entry(ta,a,b,c,d,e) do { ; } while (0)
-#define audit_syscall_exit(r) do { ; } while (0)
+#define audit_syscall_exit(f,r) do { ; } while (0)
 #define audit_dummy_context() 1
 #define audit_getname(n) do { ; } while (0)
 #define audit_putname(n) do { ; } while (0)
@@ -585,19 +579,18 @@ extern int audit_signals;
 #define audit_ptrace(t) ((void)0)
 #define audit_n_rules 0
 #define audit_signals 0
-#endif /* CONFIG_AUDITSYSCALL */
+#endif
 
 #ifdef CONFIG_AUDIT
 /* These are defined in audit.c */
 				/* Public API */
-extern void		    audit_log(struct audit_context *ctx, gfp_t gfp_mask,
-				      int type, const char *fmt, ...)
-				      __attribute__((format(printf,4,5)));
+extern __printf(4, 5)
+void audit_log(struct audit_context *ctx, gfp_t gfp_mask, int type,
+	       const char *fmt, ...);
 
 extern struct audit_buffer *audit_log_start(struct audit_context *ctx, gfp_t gfp_mask, int type);
-extern void		    audit_log_format(struct audit_buffer *ab,
-					     const char *fmt, ...)
-			    __attribute__((format(printf,2,3)));
+extern __printf(2, 3)
+void audit_log_format(struct audit_buffer *ab, const char *fmt, ...);
 extern void		    audit_log_end(struct audit_buffer *ab);
 extern int		    audit_string_contains_control(const char *string,
 							  size_t len);
@@ -619,6 +612,12 @@ extern void		    audit_log_d_path(struct audit_buffer *ab,
 extern void		    audit_log_key(struct audit_buffer *ab,
 					  char *key);
 extern void		    audit_log_lost(const char *message);
+#ifdef CONFIG_SECURITY
+extern void 		    audit_log_secctx(struct audit_buffer *ab, u32 secid);
+#else
+#define audit_log_secctx(b,s) do { ; } while (0)
+#endif
+
 extern int		    audit_update_lsm_rules(void);
 
 				/* Private API (for audit.c only) */
@@ -641,6 +640,7 @@ extern int audit_enabled;
 #define audit_log_untrustedstring(a,s) do { ; } while (0)
 #define audit_log_d_path(b, p, d) do { ; } while (0)
 #define audit_log_key(b, k) do { ; } while (0)
+#define audit_log_secctx(b,s) do { ; } while (0)
 #define audit_enabled 0
 #endif
 #endif

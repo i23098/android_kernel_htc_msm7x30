@@ -10,7 +10,7 @@
 #include <linux/sched.h>
 #include <linux/unistd.h>
 #include <linux/cpu.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/kthread.h>
 #include <linux/stop_machine.h>
 #include <linux/mutex.h>
@@ -40,7 +40,7 @@ static RAW_NOTIFIER_HEAD(cpu_chain);
 /* If set, cpu_up and cpu_down will return -EBUSY and do nothing.
  * Should always be manipulated under cpu_add_remove_lock
  */
-int cpu_hotplug_disabled;
+static int cpu_hotplug_disabled;
 
 #ifdef CONFIG_HOTPLUG_CPU
 
