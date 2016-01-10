@@ -343,13 +343,13 @@ struct io_cq *ioc_create_icq(struct request_queue *q, gfp_t gfp_mask)
 	return icq;
 }
 
-void ioc_set_changed(struct io_context *ioc, int which)
+void ioc_set_icq_flags(struct io_context *ioc, unsigned int flags)
 {
 	struct io_cq *icq;
 	struct hlist_node *n;
 
 	hlist_for_each_entry(icq, n, &ioc->icq_list, ioc_node)
-		set_bit(which, &icq->changed);
+		icq->flags |= flags;
 }
 
 /**
@@ -367,7 +367,7 @@ void ioc_ioprio_changed(struct io_context *ioc, int ioprio)
 
 	spin_lock_irqsave(&ioc->lock, flags);
 	ioc->ioprio = ioprio;
-	ioc_set_changed(ioc, ICQ_IOPRIO_CHANGED);
+	ioc_set_icq_flags(ioc, ICQ_IOPRIO_CHANGED);
 	spin_unlock_irqrestore(&ioc->lock, flags);
 }
 
@@ -384,7 +384,7 @@ void ioc_cgroup_changed(struct io_context *ioc)
 	unsigned long flags;
 
 	spin_lock_irqsave(&ioc->lock, flags);
-	ioc_set_changed(ioc, ICQ_CGROUP_CHANGED);
+	ioc_set_icq_flags(ioc, ICQ_CGROUP_CHANGED);
 	spin_unlock_irqrestore(&ioc->lock, flags);
 }
 EXPORT_SYMBOL(ioc_cgroup_changed);

@@ -2986,11 +2986,11 @@ static struct cfq_io_cq *cfq_get_cic(struct cfq_data *cfqd, gfp_t gfp_mask)
 	/* bump @ioc's refcnt and handle changed notifications */
 	get_io_context(ioc);
 
-	if (unlikely(cic->icq.changed)) {
-		if (test_and_clear_bit(ICQ_IOPRIO_CHANGED, &cic->icq.changed))
+	if (unlikely(cic->icq.flags)) {
+		if (test_and_clear_bit(ICQ_IOPRIO_CHANGED, &cic->icq.flags))
 			changed_ioprio(cic);
 #ifdef CONFIG_CFQ_GROUP_IOSCHED
-		if (test_and_clear_bit(ICQ_CGROUP_CHANGED, &cic->icq.changed))
+		if (test_and_clear_bit(ICQ_CGROUP_CHANGED, &cic->icq.flags))
 			changed_cgroup(cic);
 #endif
 	}
