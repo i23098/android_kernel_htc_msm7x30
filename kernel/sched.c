@@ -4655,11 +4655,8 @@ EXPORT_SYMBOL(schedule);
 
 static inline bool owner_running(struct mutex *lock, struct task_struct *owner)
 {
-	bool ret = false;
-
-	rcu_read_lock();
 	if (lock->owner != owner)
-		goto fail;
+		return false;
 
 	/*
 	 * Ensure we emit the owner->on_cpu, dereference _after_ checking
@@ -4669,11 +4666,7 @@ static inline bool owner_running(struct mutex *lock, struct task_struct *owner)
 	 */
 	barrier();
 
-	ret = owner->on_cpu;
-fail:
-	rcu_read_unlock();
-
-	return ret;
+	return owner->on_cpu;
 }
 
 /*
@@ -4682,46 +4675,24 @@ fail:
  */
 int mutex_spin_on_owner(struct mutex *lock, struct task_struct *owner)
 {
-	unsigned int nrun;
-
 	if (!sched_feat(OWNER_SPIN))
 		return 0;
 
-	/*
-	 * Mutex spinning should be temporarily disabled if the load on
-	 * the current CPU is high. The load is considered high if there
-	 * are 2 or more active tasks waiting to run on this CPU. On the
-	 * other hand, if there is another task waiting and the global
-	 * load (calc_load_tasks - including uninterruptible tasks) is
-	 * bigger than 2X the # of CPUs available, it is also considered
-	 * to be high load.
-	 */
-	nrun = this_rq()->nr_running;
-	if (nrun >= 3)
-		return 0;
-	else if (nrun == 2) {
-		long active = atomic_long_read(&calc_load_tasks);
-		int  ncpu   = num_online_cpus();
-
-		if (active > 2*ncpu)
-			return 0;
-	}
-
+	rcu_read_lock();
 	while (owner_running(lock, owner)) {
 		if (need_resched())
-			return 0;
+			break;
 
 		arch_mutex_cpu_relax();
 	}
+	rcu_read_unlock();
 
 	/*
-	 * If the owner changed to another task there is likely
-	 * heavy contention, stop spinning.
+	 * We break out the loop above on need_resched() and when the
+	 * owner changed, which is a sign for heavy contention. Return
+	 * success only when lock->owner is NULL.
 	 */
-	if (lock->owner)
-		return 0;
-
-	return 1;
+	return lock->owner == NULL;
 }
 #endif
 
@@ -8601,7 +8572,7 @@ void __init sched_init(void)
 	scheduler_running = 1;
 }
 
-#ifdef CONFIG_DEBUG_SPINLOCK_SLEEP
+#ifdef CONFIG_DEBUG_ATOMIC_SLEEP
 static inline int preempt_count_equals(int preempt_offset)
 {
 	int nested = (preempt_count() & ~PREEMPT_ACTIVE) + rcu_preempt_depth();
