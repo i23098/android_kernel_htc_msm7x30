@@ -2652,8 +2652,6 @@ extern void recalc_sigpending(void);
 
 extern void signal_wake_up(struct task_struct *t, int resume_stopped);
 
-extern void signal_wake_up_state(struct task_struct *t, unsigned int state);
-
 /*
  * Wrappers for p->thread_info->cpu access. No-op on UP.
  */

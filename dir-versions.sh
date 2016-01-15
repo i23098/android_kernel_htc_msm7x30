@@ -101,6 +101,6 @@ git checkout HEAD block/blk-cgroup.h block/bsg-lib.c block/ioctl.c block/partiti
 # rm -rf block/blk-cgroup.c block/blk-core.c block/blk-exec.c block/blk-flush.c block/blk-ioc.c block/blk-map.c block/blk-merge.c block/blk-settings.c block/blk-softirq.c block/blk-tag.c block/blk-throttle.c block/blk.h block/cfq-iosched.c block/deadline-iosched.c block/elevator.c block/genhd.c block/noop-iosched.c
 # git checkout HEAD block/blk-cgroup.c block/blk-core.c block/blk-exec.c block/blk-flush.c block/blk-ioc.c block/blk-map.c block/blk-merge.c block/blk-settings.c block/blk-softirq.c block/blk-tag.c block/blk-throttle.c block/blk.h block/cfq-iosched.c block/deadline-iosched.c block/elevator.c block/genhd.c block/noop-iosched.c
 
-# mm v3.3
-rm -rf mm/debug-pagealloc.c mm/failslab.c mm/huge_memory.c mm/hugetlb.c mm/init-mm.c mm/kmemleak.c mm/ksm.c mm/memory-failure.c mm/memory_hotplug.c mm/mempolicy.c mm/mmu_notifier.c mm/nobootmem.c mm/nommu.c mm/percpu-vm.c mm/slab.c mm/slob.c mm/sparse.c
-git checkout HEAD mm/debug-pagealloc.c mm/failslab.c mm/huge_memory.c mm/hugetlb.c mm/init-mm.c mm/kmemleak.c mm/ksm.c mm/memory-failure.c mm/memory_hotplug.c mm/mempolicy.c mm/mmu_notifier.c mm/nobootmem.c mm/nommu.c mm/percpu-vm.c mm/slab.c mm/slob.c mm/sparse.c
+# mm/kernel v3.3
+rm -rf include/linux/workqueue.h kernel/workqueue.c mm/debug-pagealloc.c mm/failslab.c mm/huge_memory.c mm/hugetlb.c mm/init-mm.c mm/kmemleak.c mm/ksm.c mm/memory-failure.c mm/memory_hotplug.c mm/mempolicy.c mm/mmu_notifier.c mm/nobootmem.c mm/nommu.c mm/percpu-vm.c mm/slab.c mm/slob.c mm/sparse.c
+git checkout HEAD include/linux/workqueue.h kernel/workqueue.c mm/debug-pagealloc.c mm/failslab.c mm/huge_memory.c mm/hugetlb.c mm/init-mm.c mm/kmemleak.c mm/ksm.c mm/memory-failure.c mm/memory_hotplug.c mm/mempolicy.c mm/mmu_notifier.c mm/nobootmem.c mm/nommu.c mm/percpu-vm.c mm/slab.c mm/slob.c mm/sparse.c

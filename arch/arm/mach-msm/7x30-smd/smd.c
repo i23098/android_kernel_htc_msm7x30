@@ -233,7 +233,6 @@ int smsm_check_for_modem_crash(void)
 	if (readl(SMSM_STATE_ADDR(SMSM_MODEM_STATE)) & SMSM_RESET) {
 		dump_stack();
 		show_state_filter(TASK_UNINTERRUPTIBLE);
-		print_workqueue();
 		msm_pm_flush_console();
 		handle_modem_crash();
 		return -1;
