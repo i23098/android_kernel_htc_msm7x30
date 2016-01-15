@@ -32,6 +32,7 @@
 #include <linux/poison.h>
 #include <linux/sched.h>
 #include <linux/slab.h>
+#include <linux/stat.h>
 #include <linux/spinlock.h>
 #include <linux/string.h>
 #include <linux/types.h>
@@ -59,6 +60,8 @@ struct dma_page {		/* cacheable header for 'allocation' bytes */
 	unsigned int in_use;
 	unsigned int offset;
 };
+
+#define	POOL_TIMEOUT_JIFFIES	((100 /* msec */ * HZ) / 1000)
 
 static DEFINE_MUTEX(pools_lock);
 
@@ -483,7 +486,7 @@ void dmam_pool_destroy(struct dma_pool *pool)
 {
 	struct device *dev = pool->dev;
 
-	dma_pool_destroy(pool);
 	WARN_ON(devres_destroy(dev, dmam_pool_release, dmam_pool_match, pool));
+	dma_pool_destroy(pool);
 }
 EXPORT_SYMBOL(dmam_pool_destroy);

@@ -12,8 +12,6 @@
 #include "blk-cgroup.h"
 #include "blk.h"
 
-extern struct percpu_mempool *blkg_stats_cpu_pool;
-
 /* Max dispatch from a group in 1 round */
 static int throtl_grp_quantum = 8;
 
@@ -161,7 +159,7 @@ static void throtl_free_tg(struct rcu_head *head)
 	struct throtl_grp *tg;
 
 	tg = container_of(head, struct throtl_grp, rcu_head);
-	percpu_mempool_free(tg->blkg.stats_cpu, blkg_stats_cpu_pool);
+	free_percpu(tg->blkg.stats_cpu);
 	kfree(tg);
 }
 

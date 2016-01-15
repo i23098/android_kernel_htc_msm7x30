@@ -22,3 +22,7 @@ config WANT_PAGE_DEBUG_FLAGS
 config PAGE_POISONING
 	bool
 	select WANT_PAGE_DEBUG_FLAGS
+
+config PAGE_GUARD
+	bool
+	select WANT_PAGE_DEBUG_FLAGS

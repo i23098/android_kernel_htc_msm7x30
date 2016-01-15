@@ -1625,7 +1625,7 @@ static void *get_any_partial(struct kmem_cache *s, gfp_t flags,
 }
 
 /*
- * Get a partial slab, lock it and return it.
+ * Get a partial page, lock it and return it.
  */
 static void *get_partial(struct kmem_cache *s, gfp_t flags, int node,
 		struct kmem_cache_cpu *c)

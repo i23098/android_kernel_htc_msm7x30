@@ -66,7 +66,7 @@ static void unmap_region(struct mm_struct *mm,
  * MAP_SHARED	r: (no) no	r: (yes) yes	r: (no) yes	r: (no) yes
  *		w: (no) no	w: (no) no	w: (yes) yes	w: (no) no
  *		x: (no) no	x: (no) yes	x: (no) yes	x: (yes) yes
- *
+ *		
  * MAP_PRIVATE	r: (no) no	r: (yes) yes	r: (no) yes	r: (no) yes
  *		w: (no) no	w: (no) no	w: (copy) copy	w: (no) no
  *		x: (no) no	x: (no) yes	x: (no) yes	x: (yes) yes
@@ -595,10 +595,10 @@ again:			remove_next = 1 + (end > next->vm_end);
 		if (adjust_next)
 			vma_prio_tree_remove(next, root);
 	}
+
 	vma->vm_start = start;
 	vma->vm_end = end;
 	vma->vm_pgoff = pgoff;
-
 	if (adjust_next) {
 		next->vm_start += adjust_next << PAGE_SHIFT;
 		next->vm_pgoff += adjust_next;
@@ -1443,7 +1443,7 @@ full_search:
 		addr = vma->vm_end;
 	}
 }
-#endif
+#endif	
 
 void arch_unmap_area(struct mm_struct *mm, unsigned long addr)
 {
@@ -1630,7 +1630,9 @@ struct vm_area_struct *find_vma(struct mm_struct *mm, unsigned long addr)
 
 EXPORT_SYMBOL(find_vma);
 
-/* Same as find_vma, but also return a pointer to the previous VMA in *pprev. */
+/*
+ * Same as find_vma, but also return a pointer to the previous VMA in *pprev.
+ */
 struct vm_area_struct *
 find_vma_prev(struct mm_struct *mm, unsigned long addr,
 			struct vm_area_struct **pprev)
@@ -2510,6 +2512,7 @@ int install_special_mapping(struct mm_struct *mm,
 	ret = insert_vm_struct(mm, vma);
 	if (ret)
 		goto out;
+
 	mm->total_vm += len >> PAGE_SHIFT;
 
 	perf_event_mmap(vma);

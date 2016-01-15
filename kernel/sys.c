@@ -629,6 +629,13 @@ static int set_user(struct cred *new)
 	if (!new_user)
 		return -EAGAIN;
 
+	/*
+	 * We don't fail in case of NPROC limit excess here because too many
+	 * poorly written programs don't check set*uid() return code, assuming
+	 * it never fails if called by root.  We may still enforce NPROC limit
+	 * for programs doing set*uid()+execve() by harmlessly deferring the
+	 * failure to the execve() stage.
+	 */
 	if (atomic_read(&new_user->processes) >= rlimit(RLIMIT_NPROC) &&
 			new_user != INIT_USER) {
 		free_uid(new_user);
@@ -1170,13 +1177,12 @@ DECLARE_RWSEM(uts_sem);
 static int override_release(char __user *release, size_t len)
 {
 	int ret = 0;
+	char buf[65] = {0};
 
 	if (current->personality & UNAME26) {
-		const char *rest = UTS_RELEASE;
-		char buf[65] = { 0 };
+		char *rest = UTS_RELEASE;
 		int ndots = 0;
 		unsigned v;
-		size_t copy;
 
 		while (*rest) {
 			if (*rest == '.' && ++ndots >= 3)
@@ -1186,9 +1192,8 @@ static int override_release(char __user *release, size_t len)
 			rest++;
 		}
 		v = ((LINUX_VERSION_CODE >> 8) & 0xff) + 40;
-		copy = clamp_t(size_t, len, 1, sizeof(buf));
-		copy = scnprintf(buf, copy, "2.6.%u%s", v, rest);
-		ret = copy_to_user(release, buf, copy + 1);
+		snprintf(buf, len, "2.6.%u%s", v, rest);
+		ret = copy_to_user(release, buf, len);
 	}
 	return ret;
 }
@@ -1286,6 +1291,7 @@ SYSCALL_DEFINE2(sethostname, char __user *, name, int, len)
 		memset(u->nodename + len, 0, sizeof(u->nodename) - len);
 		errno = 0;
 	}
+	uts_proc_notify(UTS_PROC_HOSTNAME);
 	up_write(&uts_sem);
 	return errno;
 }
@@ -1336,6 +1342,7 @@ SYSCALL_DEFINE2(setdomainname, char __user *, name, int, len)
 		memset(u->domainname + len, 0, sizeof(u->domainname) - len);
 		errno = 0;
 	}
+	uts_proc_notify(UTS_PROC_DOMAINNAME);
 	up_write(&uts_sem);
 	return errno;
 }

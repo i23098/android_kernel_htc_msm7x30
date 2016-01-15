@@ -670,8 +670,8 @@ int try_to_free_swap(struct page *page)
 	 * original page might be freed under memory pressure, then
 	 * later read back in from swap, now with the wrong data.
 	 *
-	 * Hibernation clears bits from gfp_allowed_mask to prevent
-	 * memory reclaim from writing to disk, so check that here.
+	 * Hibration suspends storage while it is writing the image
+	 * to disk so check that here.
 	 */
 	if (!(gfp_allowed_mask & __GFP_IO))
 		return 0;
@@ -1018,8 +1018,7 @@ static int unuse_mm(struct mm_struct *mm,
 }
 
 /*
- * Scan swap_map (or frontswap_map if frontswap parameter is true)
- * from current position to next entry still in use.
+ * Scan swap_map from current position to next entry still in use.
  * Recycle to start on reaching the end, returning 0 when empty.
  */
 static unsigned int find_next_to_unuse(struct swap_info_struct *si,
@@ -2315,7 +2314,8 @@ int swapcache_prepare(swp_entry_t entry)
 }
 
 /*
- * Return a swap cluster sized and aligned block around offset.
+ * swap_lock prevents swap_map being freed. Don't grab an extra
+ * reference on the swaphandle, it doesn't matter if it becomes unused.
  */
 void get_swap_cluster(swp_entry_t entry, unsigned long *begin,
 			unsigned long *end)

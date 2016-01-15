@@ -23,6 +23,7 @@
 #include <linux/uaccess.h>
 #include <linux/regset.h>
 #include <linux/hw_breakpoint.h>
+#include <linux/cn_proc.h>
 
 
 static int ptrace_trapping_sleep_fn(void *flags)
@@ -160,6 +161,7 @@ int ptrace_check_attach(struct task_struct *child, bool ignore_state)
 		if (ignore_state || (task_is_traced(child) &&
 				     !(child->jobctl & JOBCTL_LISTENING)))
 			ret = 0;
+		spin_unlock_irq(&child->sighand->siglock);
 	}
 	read_unlock(&tasklist_lock);
 
@@ -305,7 +307,7 @@ static int ptrace_attach(struct task_struct *task, long request,
 	 */
 	if (task_is_stopped(task) &&
 	    task_set_jobctl_pending(task, JOBCTL_TRAP_STOP | JOBCTL_TRAPPING))
-		signal_wake_up_state(task, __TASK_STOPPED);
+		signal_wake_up(task, 1);
 
 	spin_unlock(&task->sighand->siglock);
 
@@ -315,9 +317,12 @@ unlock_tasklist:
 unlock_creds:
 	mutex_unlock(&task->signal->cred_guard_mutex);
 out:
-	if (!retval)
+	if (!retval) {
 		wait_on_bit(&task->jobctl, JOBCTL_TRAPPING_BIT,
 			    ptrace_trapping_sleep_fn, TASK_UNINTERRUPTIBLE);
+		proc_ptrace_connector(task, PTRACE_ATTACH);
+	}
+
 	return retval;
 }
 
@@ -425,6 +430,7 @@ static int ptrace_detach(struct task_struct *child, unsigned int data)
 	}
 	write_unlock_irq(&tasklist_lock);
 
+	proc_ptrace_connector(child, PTRACE_DETACH);
 	if (unlikely(dead))
 		release_task(child);
 
@@ -749,20 +755,17 @@ int ptrace_request(struct task_struct *child, long request,
 			break;
 
 		si = child->last_siginfo;
-		if (unlikely(!si || si->si_code >> 8 != PTRACE_EVENT_STOP))
-			break;
-
-		child->jobctl |= JOBCTL_LISTENING;
-
-		/*
-		 * If NOTIFY is set, it means event happened between start
-		 * of this trap and now.  Trigger re-trap immediately.
-		 */
-		if (child->jobctl & JOBCTL_TRAP_NOTIFY)
-			signal_wake_up(child, true);
-
+		if (likely(si && (si->si_code >> 8) == PTRACE_EVENT_STOP)) {
+			child->jobctl |= JOBCTL_LISTENING;
+			/*
+			 * If NOTIFY is set, it means event happened between
+			 * start of this trap and now.  Trigger re-trap.
+			 */
+			if (child->jobctl & JOBCTL_TRAP_NOTIFY)
+				signal_wake_up(child, true);
+			ret = 0;
+		}
 		unlock_task_sighand(child, &flags);
-		ret = 0;
 		break;
 
 	case PTRACE_DETACH:	 /* detach a process that was attached. */

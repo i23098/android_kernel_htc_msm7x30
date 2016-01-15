@@ -283,6 +283,7 @@ void truncate_inode_pages_range(struct address_space *mapping,
 
 			if (page->index > end)
 				break;
+
 			lock_page(page);
 			wait_on_page_writeback(page);
 			truncate_inode_page(mapping, page);
@@ -337,6 +338,14 @@ unsigned long invalidate_mapping_pages(struct address_space *mapping,
 	unsigned long ret;
 	unsigned long count = 0;
 	int i;
+
+	/*
+	 * Note: this function may get called on a shmem/tmpfs mapping:
+	 * pagevec_lookup() might then return 0 prematurely (because it
+	 * got a gangful of swap entries); but it's hardly worth worrying
+	 * about - it can rarely have anything to free from such a mapping
+	 * (most pages are dirty), and already skips over any difficulties.
+	 */
 
 	pagevec_init(&pvec, 0);
 	while (next <= end &&

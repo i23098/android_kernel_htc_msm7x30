@@ -970,9 +970,9 @@ void page_move_anon_rmap(struct page *page,
 
 /**
  * __page_set_anon_rmap - set up new anonymous rmap
- * @page:	Page to add to rmap
+ * @page:	Page to add to rmap	
  * @vma:	VM area to add page to.
- * @address:	User virtual address of the mapping
+ * @address:	User virtual address of the mapping	
  * @exclusive:	the page is exclusively owned by the current process
  */
 static void __page_set_anon_rmap(struct page *page,
@@ -1175,7 +1175,7 @@ void page_remove_rmap(struct page *page)
 
 /*
  * Subfunctions of try_to_unmap: try_to_unmap_one called
- * repeatedly from either try_to_unmap_anon or try_to_unmap_file.
+ * repeatedly from try_to_unmap_ksm, try_to_unmap_anon or try_to_unmap_file.
  */
 int try_to_unmap_one(struct page *page, struct vm_area_struct *vma,
 		     unsigned long address, enum ttu_flags flags)

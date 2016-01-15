@@ -14,6 +14,7 @@
 #include <linux/init.h>
 #include <linux/hash.h>
 #include <linux/highmem.h>
+#include <linux/bootmem.h>
 #include <asm/tlbflush.h>
 
 #include <trace/events/block.h>

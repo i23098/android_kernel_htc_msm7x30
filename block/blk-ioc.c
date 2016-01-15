@@ -36,9 +36,7 @@ static void icq_free_icq_rcu(struct rcu_head *head)
 	kmem_cache_free(icq->__rcu_icq_cache, icq);
 }
 
-/*
- * Exit and free an icq.  Called with both ioc and q locked.
- */
+/* Exit an icq. Called with both ioc and q locked. */
 static void ioc_exit_icq(struct io_cq *icq)
 {
 	struct io_context *ioc = icq->ioc;

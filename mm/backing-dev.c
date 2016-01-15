@@ -406,9 +406,8 @@ static int bdi_forker_thread(void *ptr)
 		/*
 		 * In the following loop we are going to check whether we have
 		 * some work to do without any synchronization with tasks
-		 * waking us up to do work for them. So we have to set task
-		 * state already here so that we don't miss wakeups coming
-		 * after we verify some condition.
+		 * waking us up to do work for them. Set the task state here
+		 * so that we don't miss wakeups after verifying conditions.
 		 */
 		set_current_state(TASK_INTERRUPTIBLE);
 
@@ -601,9 +600,7 @@ static void bdi_wb_shutdown(struct backing_dev_info *bdi)
 
 	/*
 	 * Finally, kill the kernel thread. We don't need to be RCU
-	 * safe anymore, since the bdi is gone from visibility. Force
-	 * unfreeze of the thread before calling kthread_stop(), otherwise
-	 * it would never exet if it is currently stuck in the refrigerator.
+	 * safe anymore, since the bdi is gone from visibility.
 	 */
 	if (bdi->wb.task) {
 		__thaw_task(bdi->wb.task);

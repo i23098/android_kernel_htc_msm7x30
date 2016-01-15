@@ -33,6 +33,7 @@
 #include <linux/bit_spinlock.h>
 #include <linux/rcupdate.h>
 #include <linux/limits.h>
+#include <linux/export.h>
 #include <linux/mutex.h>
 #include <linux/rbtree.h>
 #include <linux/slab.h>
@@ -1395,7 +1396,8 @@ u64 mem_cgroup_get_limit(struct mem_cgroup *memcg)
 	limit = res_counter_read_u64(&memcg->res, RES_LIMIT);
 
 	/*
-	 * Do not consider swap space if we cannot swap due to swappiness
+	 * If memsw is finite and limits the amount of swap space available
+	 * to this memcg, return that limit.
 	 */
 	if (mem_cgroup_swappiness(memcg)) {
 		u64 memsw;
@@ -2464,7 +2466,7 @@ void mem_cgroup_split_huge_fixup(struct page *head)
 	mz = page_cgroup_zoneinfo(head_pc->mem_cgroup, head);
 	MEM_CGROUP_ZSTAT(mz, lru) -= HPAGE_PMD_NR - 1;
 }
-#endif
+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 
 /**
  * mem_cgroup_move_account - move account of the page

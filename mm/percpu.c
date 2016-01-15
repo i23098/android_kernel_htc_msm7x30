@@ -302,7 +302,7 @@ static void *pcpu_mem_alloc(size_t size)
  * @ptr: memory to free
  * @size: size of the area
  *
- * Free @ptr.  @ptr should have been allocated using pcpu_mem_alloc().
+ * Free @ptr.  @ptr should have been allocated using pcpu_mem_zalloc().
  */
 static void pcpu_mem_free(void *ptr, size_t size)
 {
@@ -976,6 +976,17 @@ bool is_kernel_percpu_address(unsigned long addr)
  * percpu access macros, this function translates it into its physical
  * address.  The caller is responsible for ensuring @addr stays valid
  * until this function finishes.
+ *
+ * percpu allocator has special setup for the first chunk, which currently
+ * supports either embedding in linear address space or vmalloc mapping,
+ * and, from the second one, the backing allocator (currently either vm or
+ * km) provides translation.
+ *
+ * The addr can be tranlated simply without checking if it falls into the
+ * first chunk. But the current code reflects better how percpu allocator
+ * actually works, and the verification can discover both bugs in percpu
+ * allocator itself and per_cpu_ptr_to_phys() callers. So we keep current
+ * code.
  *
  * RETURNS:
  * The physical address for @addr.
