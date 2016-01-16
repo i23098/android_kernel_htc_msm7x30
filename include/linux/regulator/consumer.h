@@ -128,6 +128,9 @@ struct regulator_bulk_data {
 	struct regulator *consumer;
 	int min_uV;
 	int max_uV;
+
+	/* private: Internal use */
+	int ret;
 };
 
 #if defined(CONFIG_REGULATOR)
