@@ -57,14 +57,14 @@ config CRC_ITU_T
 	  functions require M here.
 
 config CRC32
-	tristate "CRC32/CRC32c functions"
+	tristate "CRC32 functions"
 	default y
 	select BITREVERSE
 	help
 	  This option is provided for the case where no in-kernel-tree
-	  modules require CRC32/CRC32c functions, but a module built outside
-	  the kernel tree does. Such modules that use library CRC32/CRC32c
-	  functions require M here.
+	  modules require CRC32 functions, but a module built outside the
+	  kernel tree does. Such modules that use library CRC32 functions
+	  require M here.
 
 config CRC32_SELFTEST
 	bool "CRC32 perform self test on init"
@@ -129,6 +129,13 @@ config LIBCRC32C
 	  kernel tree does. Such modules that use library CRC32c functions
 	  require M here.  See Castagnoli93.
 	  Module will be libcrc32c.
+
+config CRC8
+	tristate "CRC8 function"
+	help
+	  This option provides CRC8 function. Drivers may select this
+	  when they need to do cyclic redundancy check according CRC8
+	  algorithm. Module will be called crc8.
 
 config AUDIT_GENERIC
 	bool
@@ -301,6 +308,9 @@ config CPU_RMAP
 	bool
 	depends on SMP
 
+config DQL
+	bool
+
 #
 # Netlink attribute parsing support is select'ed if needed
 #
@@ -325,5 +335,39 @@ config AVERAGE
 	  functions require Y here.
 
 	  If unsure, say N.
+
+config CLZ_TAB
+	bool
+
+config CORDIC
+	tristate "CORDIC algorithm"
+	help
+	  This option provides an implementation of the CORDIC algorithm;
+	  calculations are in fixed point. Module will be called cordic.
+
+config MPILIB
+	tristate
+	select CLZ_TAB
+	help
+	  Multiprecision maths library from GnuPG.
+	  It is used to implement RSA digital signature verification,
+	  which is used by IMA/EVM digital signature extension.
+
+config MPILIB_EXTRA
+	bool
+	depends on MPILIB
+	help
+	  Additional sources of multiprecision maths library from GnuPG.
+	  This code is unnecessary for RSA digital signature verification,
+	  but can be compiled if needed.
+
+config SIGNATURE
+	tristate
+	depends on KEYS && CRYPTO
+	select CRYPTO_SHA1
+	select MPILIB
+	help
+	  Digital signature verification. Currently only RSA is supported.
+	  Implementation is done using GnuPG MPI library
 
 endmenu

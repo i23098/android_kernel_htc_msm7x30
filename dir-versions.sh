@@ -110,3 +110,9 @@ git checkout HEAD -- include/linux/workqueue.h kernel/workqueue.c mm/debug-pagea
 # drivers/regulator 3.4 
 rm -rf include/linux/errno.h include/linux/regulator drivers/regulator 
 git checkout HEAD -- include/linux/errno.h include/linux/regulator drivers/regulator 
+
+##########
+# lib 3.3 
+rm -rf lib/raid6 lib/mpi lib/pci_iomap.c lib/zlib_deflate lib/xz lib/swiotlb.c lib/string.c lib/smp_processor_id.c lib/sha1.c lib/rwsem-spinlock.c lib/reciprocal_div.c lib/ratelimit.c lib/lcm.c lib/kstrtox.c lib/klist.c lib/iomap.c lib/hexdump.c lib/fault-inject.c lib/dynamic_queue_limits.c lib/dynamic_debug.c lib/dma-debug.c lib/digsig.c lib/devres.c lib/decompress_unlzo.c lib/dec_and_lock.c lib/debugobjects.c lib/crc8.c lib/cpumask.c lib/cordic.c lib/clz_tab.c lib/checksum.c lib/bug.c lib/btree.c lib/atomic64_test.c lib/atomic64.c include/linux/proportions.h
+git checkout HEAD -- lib/raid6 lib/mpi lib/pci_iomap.c lib/zlib_deflate lib/xz lib/swiotlb.c lib/string.c lib/smp_processor_id.c lib/sha1.c lib/rwsem-spinlock.c lib/reciprocal_div.c lib/ratelimit.c lib/lcm.c lib/kstrtox.c lib/klist.c lib/iomap.c lib/hexdump.c lib/fault-inject.c lib/dynamic_queue_limits.c lib/dynamic_debug.c lib/dma-debug.c lib/digsig.c lib/devres.c lib/decompress_unlzo.c lib/dec_and_lock.c lib/debugobjects.c lib/crc8.c lib/cpumask.c lib/cordic.c lib/clz_tab.c lib/checksum.c lib/bug.c lib/btree.c lib/atomic64_test.c lib/atomic64.c include/linux/proportions.h
+
