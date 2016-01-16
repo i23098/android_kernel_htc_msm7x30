@@ -157,6 +157,8 @@ int regulator_bulk_set_voltage(int num_consumers,
 			  struct regulator_bulk_data *consumers);
 int regulator_bulk_disable(int num_consumers,
 			   struct regulator_bulk_data *consumers);
+int regulator_bulk_force_disable(int num_consumers,
+			   struct regulator_bulk_data *consumers);
 void regulator_bulk_free(int num_consumers,
 			 struct regulator_bulk_data *consumers);
 
@@ -220,6 +222,11 @@ static inline int regulator_disable(struct regulator *regulator)
 	return 0;
 }
 
+static inline int regulator_force_disable(struct regulator *regulator)
+{
+	return 0;
+}
+
 static inline int regulator_disable_deferred(struct regulator *regulator,
 					     int ms)
 {
@@ -246,6 +253,12 @@ static inline int regulator_bulk_enable(int num_consumers,
 
 static inline int regulator_bulk_disable(int num_consumers,
 					 struct regulator_bulk_data *consumers)
+{
+	return 0;
+}
+
+static inline int regulator_bulk_force_disable(int num_consumers,
+					struct regulator_bulk_data *consumers)
 {
 	return 0;
 }
