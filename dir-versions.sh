@@ -36,8 +36,8 @@ git checkout HEAD -- include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs
 
 ##########
 # /fs/*.c 3.1
-rm -rf fs/namei.c fs/splice.c fs/stat.c
-git checkout HEAD -- fs/namei.c fs/splice.c fs/stat.c
+rm -rf fs/namei.c fs/splice.c fs/stat.c scripts/checkpatch.pl
+git checkout HEAD -- fs/namei.c fs/splice.c fs/stat.c scripts/checkpatch.pl
 
 ##########
 # drivers/base/regmap 3.2
