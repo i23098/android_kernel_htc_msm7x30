@@ -91,8 +91,8 @@ git checkout HEAD -- kernel/auditsc.c arch/arm/kernel/ptrace.c include/linux/aud
 
 ##########
 # kernel/rcu* v3.4
-rm -rf kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c
-git checkout HEAD -- kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c
+rm -rf kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c kernel/nsproxy.c include/linux/nsproxy.h
+git checkout HEAD -- kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c kernel/nsproxy.c include/linux/nsproxy.h
 
 ##########
 # block v3.4
