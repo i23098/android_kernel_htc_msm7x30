@@ -70,3 +70,4 @@ else
 obj-$(CONFIG_MSM_ROTATOR)	+= msm_rotator-legacy.o
 endif
 obj-$(CONFIG_MMC_GENERIC_CSDIO)	+= csdio.o
+obj-$(CONFIG_TILE_SROM)		+= tile-srom.o

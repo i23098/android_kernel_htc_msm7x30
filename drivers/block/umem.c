@@ -523,8 +523,6 @@ static void mm_make_request(struct request_queue *q, struct bio *bio)
 	*card->biotail = bio;
 	bio->bi_next = NULL;
 	card->biotail = &bio->bi_next;
-	if (bio->bi_rw & REQ_SYNC || !mm_check_plugged(card))
-		activate(card);
 	spin_unlock_irq(&card->lock);
 
 	return;

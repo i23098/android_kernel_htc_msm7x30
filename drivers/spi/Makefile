@@ -7,6 +7,7 @@ ccflags-$(CONFIG_SPI_DEBUG) := -DDEBUG
 # small core, mostly translating board-specific
 # config declarations into driver model code
 obj-$(CONFIG_SPI_MASTER)		+= spi.o
+obj-$(CONFIG_SPI_SPIDEV)		+= spidev.o
 
 # SPI master controller drivers (bus)
 obj-$(CONFIG_SPI_ALTERA)		+= spi_altera.o
@@ -62,20 +63,3 @@ obj-$(CONFIG_SPI_AIC3254)		+= spi_aic3254.o
 obj-$(CONFIG_SPI_CRUCIAL_OJ)	        += spi_oj.o
 obj-$(CONFIG_SPI_SP8803COM)		+= spi_sp8803com.o
 obj-$(CONFIG_SPI_SP8803COM)		+= spi_sp8803com_tty.o
-
-# special build for s3c24xx spi driver with fiq support
-spi_s3c24xx_hw-y			:= spi_s3c24xx.o
-spi_s3c24xx_hw-$(CONFIG_SPI_S3C24XX_FIQ) += spi_s3c24xx_fiq.o
-
-# 	... add above this line ...
-
-# SPI protocol drivers (device/link on bus)
-obj-$(CONFIG_SPI_SPIDEV)	+= spidev.o
-obj-$(CONFIG_SPI_TLE62X0)	+= tle62x0.o
-# 	... add above this line ...
-
-# SPI slave controller drivers (upstream link)
-# 	... add above this line ...
-
-# SPI slave drivers (protocol for that link)
-# 	... add above this line ...
