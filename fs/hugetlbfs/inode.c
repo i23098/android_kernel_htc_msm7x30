@@ -863,7 +863,7 @@ hugetlbfs_fill_super(struct super_block *sb, void *data, int silent)
 	if (!inode)
 		goto out_free;
 
-	root = d_alloc_root(inode);
+	root = d_make_root(inode);
 	if (!root) {
 		iput(inode);
 		goto out_free;

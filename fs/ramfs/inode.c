@@ -52,7 +52,7 @@ static struct backing_dev_info ramfs_backing_dev_info = {
 };
 
 struct inode *ramfs_get_inode(struct super_block *sb,
-				const struct inode *dir, int mode, dev_t dev)
+				const struct inode *dir, umode_t mode, dev_t dev)
 {
 	struct inode * inode = new_inode(sb);
 
@@ -106,7 +106,7 @@ ramfs_mknod(struct inode *dir, struct dentry *dentry, umode_t mode, dev_t dev)
 	return error;
 }
 
-static int ramfs_mkdir(struct inode * dir, struct dentry * dentry, int mode)
+static int ramfs_mkdir(struct inode * dir, struct dentry * dentry, umode_t mode)
 {
 	int retval = ramfs_mknod(dir, dentry, mode | S_IFDIR, 0);
 	if (!retval)
@@ -239,7 +239,7 @@ int ramfs_fill_super(struct super_block *sb, void *data, int silent)
 		goto fail;
 	}
 
-	root = d_alloc_root(inode);
+	root = d_make_root(inode);
 	sb->s_root = root;
 	if (!root) {
 		err = -ENOMEM;

@@ -202,7 +202,7 @@ static int mqueue_fill_super(struct super_block *sb, void *data, int silent)
 		goto out;
 	}
 
-	sb->s_root = d_alloc_root(inode);
+	sb->s_root = d_make_root(inode);
 	if (!sb->s_root) {
 		iput(inode);
 		error = -ENOMEM;

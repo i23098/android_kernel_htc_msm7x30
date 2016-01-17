@@ -1035,7 +1035,7 @@ rpc_fill_super(struct super_block *sb, void *data, int silent)
 	inode = rpc_get_inode(sb, S_IFDIR | 0755);
 	if (!inode)
 		return -ENOMEM;
-	sb->s_root = root = d_alloc_root(inode);
+	sb->s_root = root = d_make_root(inode);
 	if (!root) {
 		iput(inode);
 		return -ENOMEM;

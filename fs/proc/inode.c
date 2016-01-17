@@ -483,7 +483,7 @@ int proc_fill_super(struct super_block *s)
 		goto out_no_root;
 	root_inode->i_uid = 0;
 	root_inode->i_gid = 0;
-	s->s_root = d_alloc_root(root_inode);
+	s->s_root = d_make_root(root_inode);
 	if (!s->s_root)
 		goto out_no_root;
 	return 0;

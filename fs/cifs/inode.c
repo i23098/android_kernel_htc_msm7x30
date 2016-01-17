@@ -1264,7 +1264,7 @@ unlink_out:
 	return rc;
 }
 
-int cifs_mkdir(struct inode *inode, struct dentry *direntry, int mode)
+int cifs_mkdir(struct inode *inode, struct dentry *direntry, umode_t mode)
 {
 	int rc = 0, tmprc;
 	int xid;

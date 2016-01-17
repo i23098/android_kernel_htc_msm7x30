@@ -1007,7 +1007,7 @@ static int fuse_fill_super(struct super_block *sb, void *data, int silent)
 	if (!root)
 		goto err_put_conn;
 
-	root_dentry = d_alloc_root(root);
+	root_dentry = d_make_root(root);
 	if (!root_dentry) {
 		iput(root);
 		goto err_put_conn;

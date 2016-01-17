@@ -468,7 +468,7 @@ static int usbfs_fill_super(struct super_block *sb, void *data, int silent)
 		return -ENOMEM;
 	}
 
-	root = d_alloc_root(inode);
+	root = d_make_root(inode);
 	if (!root) {
 		dbg("%s: could not get root dentry!",__func__);
 		iput(inode);

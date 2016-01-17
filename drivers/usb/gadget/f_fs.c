@@ -1065,7 +1065,7 @@ static int ffs_sb_fill(struct super_block *sb, void *_data, int silent)
 				  &data->perms);
 	if (unlikely(!inode))
 		goto Enomem;
-	sb->s_root = d_alloc_root(inode);
+	sb->s_root = d_make_root(inode);
 	if (unlikely(!sb->s_root)) {
 		iput(inode);
 		goto Enomem;
