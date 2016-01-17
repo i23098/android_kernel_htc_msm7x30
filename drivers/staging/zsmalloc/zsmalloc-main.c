@@ -743,20 +743,24 @@ out:
 static int zs_cpu_notifier(struct notifier_block *nb, unsigned long action,
 				void *pcpu)
 {
-	int ret, cpu = (long)pcpu;
+	int cpu = (long)pcpu;
 	struct mapping_area *area;
 
 	switch (action) {
 	case CPU_UP_PREPARE:
 		area = &per_cpu(zs_map_area, cpu);
-		ret = __zs_cpu_up(area);
-		if (ret)
-			return notifier_from_errno(ret);
+		if (area->vm)
+			break;
+		area->vm = alloc_vm_area(2 * PAGE_SIZE, area->vm_ptes);
+		if (!area->vm)
+			return notifier_from_errno(-ENOMEM);
 		break;
 	case CPU_DEAD:
 	case CPU_UP_CANCELED:
 		area = &per_cpu(zs_map_area, cpu);
-		__zs_cpu_down(area);
+		if (area->vm)
+			free_vm_area(area->vm);
+		area->vm = NULL;
 		break;
 	}
 

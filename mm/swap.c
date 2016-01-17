@@ -496,7 +496,7 @@ static void lru_deactivate_fn(struct page *page, void *arg)
  * Either "cpu" is the current CPU, and preemption has already been
  * disabled; or "cpu" is being hot-unplugged, and is already dead.
  */
-static void drain_cpu_pagevecs(int cpu)
+void lru_add_drain_cpu(int cpu)
 {
 	struct pagevec *pvecs = per_cpu(lru_add_pvecs, cpu);
 	struct pagevec *pvec;
@@ -553,7 +553,7 @@ void deactivate_page(struct page *page)
 
 void lru_add_drain(void)
 {
-	drain_cpu_pagevecs(get_cpu());
+	lru_add_drain_cpu(get_cpu());
 	put_cpu();
 }
 
@@ -620,9 +620,6 @@ void release_pages(struct page **pages, int nr, int cold)
 			del_page_from_lru_list(zone, page, page_off_lru(page));
 		}
 
-		/* Clear Active bit in case of parallel mark_page_accessed */
-		ClearPageActive(page);
-
 		list_add(&page->lru, &pages_to_free);
 	}
 	if (zone)
@@ -650,6 +647,7 @@ void __pagevec_release(struct pagevec *pvec)
 }
 EXPORT_SYMBOL(__pagevec_release);
 
+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
 /* used by __split_huge_page_refcount() */
 void lru_add_page_tail(struct zone* zone,
 		       struct page *page, struct page *page_tail)
@@ -676,12 +674,29 @@ void lru_add_page_tail(struct zone* zone,
 		}
 	} else {
 		SetPageUnevictable(page_tail);
-		add_page_to_lru_list(zone, page_tail, LRU_UNEVICTABLE);
+		lru = LRU_UNEVICTABLE;
+	}
+
+	if (likely(PageLRU(page)))
+		list_add_tail(&page_tail->lru, &page->lru);
+	else {
+		struct list_head *list_head;
+		/*
+		 * Head page has not yet been counted, as an hpage,
+		 * so we must account for each subpage individually.
+		 *
+		 * Use the standard add function to put page_tail on the list,
+		 * but then correct its position so they all end up in order.
+		 */
+		add_page_to_lru_list(zone, page_tail, lru);
+		list_head = page_tail->lru.prev;
+		list_move_tail(&page_tail->lru, list_head);
 	}
 
 	if (!PageUnevictable(page))
 		update_page_reclaim_stat(zone, page_tail, file, active);
 }
+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 
 static void __pagevec_lru_add_fn(struct page *page, void *arg)
 {

@@ -13,7 +13,6 @@
 #include <linux/swapops.h>
 #include <linux/init.h>
 #include <linux/pagemap.h>
-#include <linux/buffer_head.h>
 #include <linux/backing-dev.h>
 #include <linux/pagevec.h>
 #include <linux/migrate.h>
@@ -316,22 +315,6 @@ struct page *read_swap_cache_async(swp_entry_t entry, gfp_t gfp_mask,
 		err = swapcache_prepare(entry);
 		if (err == -EEXIST) {	/* seems racy */
 			radix_tree_preload_end();
-			/*
-			 * We might race against get_swap_page() and stumble
-			 * across a SWAP_HAS_CACHE swap_map entry whose page
-			 * has not been brought into the swapcache yet, while
-			 * the other end is scheduled away waiting on discard
-			 * I/O completion at scan_swap_map().
-			 *
-			 * In order to avoid turning this transitory state
-			 * into a permanent loop around this -EEXIST case
-			 * if !CONFIG_PREEMPT and the I/O completion happens
-			 * to be waiting on the CPU waitqueue where we are now
-			 * busy looping, we just conditionally invoke the
-			 * scheduler here, if there are some more important
-			 * tasks to run.
-			 */
-			cond_resched();
 			continue;
 		}
 		if (err) {		/* swp entry is obsolete ? */
@@ -391,11 +374,16 @@ struct page *swapin_readahead(swp_entry_t entry, gfp_t gfp_mask,
 {
 	struct page *page;
 	unsigned long offset = swp_offset(entry);
-	unsigned long end_offset;
+	unsigned long start_offset, end_offset;
+	unsigned long mask = (1UL << page_cluster) - 1;
 
-	get_swap_cluster(entry, &offset, &end_offset);
+	/* Read a page_cluster sized and aligned cluster around offset. */
+	start_offset = offset & ~mask;
+	end_offset = offset | mask;
+	if (!start_offset)	/* First page is swap header. */
+		start_offset++;
 
-	for (; offset <= end_offset ; offset++) {
+	for (offset = start_offset; offset <= end_offset ; offset++) {
 		/* Ok, do the async read-ahead now */
 		page = read_swap_cache_async(swp_entry(swp_type(entry), offset),
 						gfp_mask, vma, addr);
