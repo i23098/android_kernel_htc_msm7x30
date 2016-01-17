@@ -107,9 +107,9 @@ rm -rf include/linux/workqueue.h kernel/workqueue.c mm/debug-pagealloc.c mm/fail
 git checkout HEAD -- include/linux/workqueue.h kernel/workqueue.c mm/debug-pagealloc.c mm/failslab.c mm/huge_memory.c mm/hugetlb.c mm/init-mm.c mm/kmemleak.c mm/ksm.c mm/memory-failure.c mm/memory_hotplug.c mm/mempolicy.c mm/mmu_notifier.c mm/nobootmem.c mm/nommu.c mm/percpu-vm.c mm/slab.c mm/slob.c mm/sparse.c
 
 ##########
-# drivers/regulator 3.4 
-rm -rf include/linux/errno.h include/linux/regulator drivers/regulator 
-git checkout HEAD -- include/linux/errno.h include/linux/regulator drivers/regulator 
+# drivers/regulator drivers/block 3.4 
+rm -rf include/linux/errno.h include/linux/regulator drivers/regulator drivers/block
+git checkout HEAD -- include/linux/errno.h include/linux/regulator drivers/regulator drivers/block
 
 ##########
 # lib 3.3 
