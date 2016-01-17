@@ -6,7 +6,7 @@
  *  GK 2/5/95  -  Changed to support mounting root fs via NFS
  *  Added initrd & change_root: Werner Almesberger & Hans Lermen, Feb '96
  *  Moan early if gcc is old, avoiding bogus kernels - Paul Gortmaker, May '96
- *  Simplified starting of init:  Michael A. Griffith <grif@acm.org> 
+ *  Simplified starting of init:  Michael A. Griffith <grif@acm.org>
  */
 
 #include <linux/types.h>
@@ -736,10 +736,6 @@ static char *initcall_level_names[] __initdata = {
 	"late parameters",
 };
 
-static int __init ignore_unknown_bootoption(char *param, char *val)
-{
-	return 0;
-}
 static struct initcall_state {
 	initcall_t	*next_call;
 	atomic_t	threads, waiting;

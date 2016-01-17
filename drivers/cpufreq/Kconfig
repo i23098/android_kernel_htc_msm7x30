@@ -3,8 +3,8 @@ menu "CPU Frequency scaling"
 config CPU_FREQ
 	bool "CPU Frequency scaling"
 	help
-	  CPU Frequency scaling allows you to change the clock speed of
-	  CPUs on the fly. This is a nice method to save power, because
+	  CPU Frequency scaling allows you to change the clock speed of 
+	  CPUs on the fly. This is a nice method to save power, because 
 	  the lower the CPU clock speed, the less power the CPU consumes.
 
 	  Note that this driver doesn't automatically change the CPU
@@ -67,13 +67,6 @@ config CPU_FREQ_DEFAULT_GOV_POWERSAVE
 	  the frequency statically to the lowest frequency supported by
 	  the CPU.
 
-config CPU_FREQ_DEFAULT_GOV_SMARTASS2
-	bool "smartass2"
-	select CPU_FREQ_GOV_SMARTASS2
-	select CPU_FREQ_GOV_PERFORMANCE
-	help
-	  Use the CPUFreq governor 'smartass2' as default.
-
 config CPU_FREQ_DEFAULT_GOV_USERSPACE
 	bool "userspace"
 	select CPU_FREQ_GOV_USERSPACE
@@ -107,68 +100,11 @@ config CPU_FREQ_DEFAULT_GOV_CONSERVATIVE
 	  governor. If unsure have a look at the help section of the
 	  driver. Fallback governor will be the performance governor.
 
-config CPU_FREQ_DEFAULT_GOV_INTERACTIVEX
-  	bool "interactiveX"
-  	select CPU_FREQ_GOV_INTERACTIVEX
-  	help
-    	  Use the CPUFreq governor 'interactiveX' as default.
-
 config CPU_FREQ_DEFAULT_GOV_INTERACTIVE
 	bool "interactive"
 	select CPU_FREQ_GOV_INTERACTIVE
 	help
 	  Use the CPUFreq governor 'interactive' as default. This allows
-	  you to get a full dynamic cpu frequency capable system by simply
-	  loading your cpufreq low-level hardware driver, using the
-	  'interactive' governor for latency-sensitive workloads.
-
-config CPU_FREQ_DEFAULT_GOV_WHEATLEY
-	bool "wheatley"
-	select CPU_FREQ_GOV_WHEATLEY
-	select CPU_FREQ_GOV_PERFORMANCE
-	help
-	  Use the CPUFreq governor 'wheatley' as default.
-
-config CPU_FREQ_DEFAULT_GOV_LAZY
-	bool "lazy"
-	select CPU_FREQ_GOV_LAZY
-	select CPU_FREQ_GOV_PERFORMANCE
-	help
-	  Use the CPUFreq governor 'lazy' as default.
-
-config CPU_FREQ_DEFAULT_GOV_LAGFREE
-	bool "lagfree"
-	select CPU_FREQ_GOV_LAGFREE
-	help
-	  Use the CPUFreq governor 'lagfree' as default.
-
-config CPU_FREQ_DEFAULT_GOV_GALLIMAUFRY
-	bool "gallimaufry"
-	select CPU_FREQ_GOV_GALLIMAUFRY
-	help
-	A modified ondemand governor.
-        This features earlysuspend, hotplugging, a
-        2-phase algo, and tweaks to make it more aggressive.
-
-config CPU_FREQ_DEFAULT_GOV_AGGRESSIVE
-	bool "aggressive"
-	select CPU_FREQ_GOV_AGGRESSIVE
-	help
-	A modified conservative governor.
-        This features earlysuspend, hotplugging,
-        and tweaks to make it more aggressive.
-
-config CPU_FREQ_DEFAULT_GOV_SCARY
-	bool "aggressive"
-	select CPU_FREQ_GOV_SCARY
-	help
-	A modified ondemand governor.
-
-config CPU_FREQ_DEFAULT_GOV_INTELLIACTIVE
-	bool "intelliactive"
-	select CPU_FREQ_GOV_INTELLIACTIVE
-	help
-	  Use the CPUFreq governor 'intelliactive' as default. This allows
 	  you to get a full dynamic cpu frequency capable system by simply
 	  loading your cpufreq low-level hardware driver, using the
 	  'interactive' governor for latency-sensitive workloads.
@@ -183,14 +119,6 @@ config CPU_FREQ_GOV_PERFORMANCE
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called cpufreq_performance.
-
-	  If in doubt, say Y.
-
-config CPU_FREQ_GOV_SMARTASS2
-	tristate "'smartass2' cpufreq governor"
-	depends on CPU_FREQ
-	help
-  	  smartass2' - a "slightly more agressive smart" optimized governor!
 
 	  If in doubt, say Y.
 
@@ -210,7 +138,7 @@ config CPU_FREQ_GOV_USERSPACE
 	help
 	  Enable this cpufreq governor when you either want to set the
 	  CPU frequency manually or when a userspace program shall
-	  be able to set the CPU dynamically, like on LART
+	  be able to set the CPU dynamically, like on LART 
 	  <http://www.lartmaker.nl/>.
 
 	  To compile this driver as a module, choose M here: the
@@ -225,11 +153,11 @@ config CPU_FREQ_GOV_ONDEMAND
 	select CPU_FREQ_TABLE
 	help
 	  'ondemand' - This driver adds a dynamic cpufreq policy governor.
-	  The governor does a periodic polling and
+	  The governor does a periodic polling and 
 	  changes frequency based on the CPU utilization.
 	  The support for this governor depends on CPU capability to
 	  do fast frequency switching (i.e, very low latency frequency
-	  transitions).
+	  transitions). 
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called cpufreq_ondemand.
@@ -237,14 +165,6 @@ config CPU_FREQ_GOV_ONDEMAND
 	  For details, take a look at linux/Documentation/cpu-freq.
 
 	  If in doubt, say N.
-
-config CPU_FREQ_GOV_INTERACTIVEX
-	tristate "'interactiveX' cpufreq governor"
-	depends on CPU_FREQ
-	help
-	   'interactiveX' - interactive governor with early suspend support added.
-	    This governor uses hotplug to shutdown and start up cpu1 when suspended.
-	    If in doubt, say N.
 
 config CPU_FREQ_GOV_INTERACTIVE
 	tristate "'interactive' cpufreq policy governor"
@@ -286,36 +206,6 @@ config CPU_FREQ_GOV_CONSERVATIVE
 
 	  If in doubt, say N.
 
-config CPU_FREQ_GOV_INTELLIACTIVE
-	tristate "'intelliactive' cpufreq policy governor"
-	help
-	  'intelliactive' - This driver adds a dynamic cpufreq policy governor
-	  designed for latency-sensitive workloads.
-
-	  This governor attempts to reduce the latency of clock
-	  increases so that the system is more responsive to
-	  interactive workloads.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called cpufreq_interactive.
-
-	  For details, take a look at linux/Documentation/cpu-freq.
-
-	  If in doubt, say N.
-
-config CPU_FREQ_GOV_WHEATLEY
-	tristate "'wheatley' cpufreq governor"
-	depends on CPU_FREQ
-
-config CPU_FREQ_GOV_LAZY
-	tristate "'lazy' cpufreq governor"
-	depends on CPU_FREQ
-
-config CPU_FREQ_GOV_LAGFREE
-	tristate "'lagfree' cpufreq policy governor"
-	help
-	  'lagfree' - lagfree CPU governor.
-
 config CPU_FREQ_MIN_TICKS
 	int "Ticks between governor polling interval."
 	default 10
@@ -328,27 +218,6 @@ config CPU_FREQ_SAMPLING_LATENCY_MULTIPLIER
 	help
 	  Sampling latency rate multiplied by the cpu switch latency.
 	  Affects governor polling.
-
-config CPU_FREQ_GOV_GALLIMAUFRY
-	tristate "'gallimaufry' governor"
-	depends on CPU_FREQ
-	help
-	  'gallimaufry' - this governor is a modified ondemand.
-	   If in doubt, say N.
-
-config CPU_FREQ_GOV_AGGRESSIVE
-	tristate "'aggressive' governor"
-  depends on CPU_FREQ
-	help
-	  'aggressive' - this governor is a modified conservative.
-	   If in doubt, say N.
-
-config CPU_FREQ_GOV_SCARY
-	tristate "'scary' governor"
-  depends on CPU_FREQ
-	help
-	  'scary' - this governor is a modified ondemand.
-	   If in doubt, say N.
 
 config SEC_DVFS
 	bool "DVFS job"
