@@ -91,8 +91,8 @@ git checkout HEAD -- kernel/auditsc.c arch/arm/kernel/ptrace.c include/linux/aud
 
 ##########
 # kernel/rcu* v3.4
-rm -rf kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c mm/cleancache.c include/linux/cleancache.h
-git checkout HEAD -- kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c mm/cleancache.c include/linux/cleancache.h
+rm -rf kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c
+git checkout HEAD -- kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c
 
 ##########
 # block v3.4
@@ -116,3 +116,7 @@ git checkout HEAD -- include/linux/errno.h include/linux/regulator drivers/regul
 rm -rf lib/raid6 lib/mpi lib/pci_iomap.c lib/zlib_deflate lib/xz lib/swiotlb.c lib/string.c lib/smp_processor_id.c lib/sha1.c lib/rwsem-spinlock.c lib/reciprocal_div.c lib/ratelimit.c lib/lcm.c lib/kstrtox.c lib/klist.c lib/iomap.c lib/hexdump.c lib/fault-inject.c lib/dynamic_queue_limits.c lib/dynamic_debug.c lib/dma-debug.c lib/digsig.c lib/devres.c lib/decompress_unlzo.c lib/dec_and_lock.c lib/debugobjects.c lib/crc8.c lib/cpumask.c lib/cordic.c lib/clz_tab.c lib/checksum.c lib/bug.c lib/btree.c lib/atomic64_test.c lib/atomic64.c include/linux/proportions.h
 git checkout HEAD -- lib/raid6 lib/mpi lib/pci_iomap.c lib/zlib_deflate lib/xz lib/swiotlb.c lib/string.c lib/smp_processor_id.c lib/sha1.c lib/rwsem-spinlock.c lib/reciprocal_div.c lib/ratelimit.c lib/lcm.c lib/kstrtox.c lib/klist.c lib/iomap.c lib/hexdump.c lib/fault-inject.c lib/dynamic_queue_limits.c lib/dynamic_debug.c lib/dma-debug.c lib/digsig.c lib/devres.c lib/decompress_unlzo.c lib/dec_and_lock.c lib/debugobjects.c lib/crc8.c lib/cpumask.c lib/cordic.c lib/clz_tab.c lib/checksum.c lib/bug.c lib/btree.c lib/atomic64_test.c lib/atomic64.c include/linux/proportions.h
 
+##########
+# mm 3.4
+rm -rf include/linux/shrinker.h include/linux/smp.h include/linux/vm_event_item.h include/trace/events/vmscan.h mm/backing-dev.c mm/process_vm_access.c mm/slab.c mm/slub.c mm/sparse.c mm/swap.c mm/swap_state.c mm/thrash.c mm/truncate.c mm/util.c
+git checkout HEAD -- include/linux/shrinker.h include/linux/smp.h include/linux/vm_event_item.h include/trace/events/vmscan.h mm/backing-dev.c mm/process_vm_access.c mm/slab.c mm/slub.c mm/sparse.c mm/swap.c mm/swap_state.c mm/thrash.c mm/truncate.c mm/util.c
