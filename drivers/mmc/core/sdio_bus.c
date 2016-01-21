@@ -23,10 +23,6 @@
 #include "sdio_cis.h"
 #include "sdio_bus.h"
 
-#ifdef CONFIG_MMC_EMBEDDED_SDIO
-#include <linux/mmc/host.h>
-#endif
-
 /* show configuration fields */
 #define sdio_config_attr(field, format_string)				\
 static ssize_t								\

@@ -107,16 +107,18 @@ rm -rf include/linux/workqueue.h kernel/workqueue.c mm/debug-pagealloc.c mm/fail
 git checkout HEAD -- include/linux/workqueue.h kernel/workqueue.c mm/debug-pagealloc.c mm/failslab.c mm/huge_memory.c mm/hugetlb.c mm/init-mm.c mm/kmemleak.c mm/ksm.c mm/memory-failure.c mm/memory_hotplug.c mm/mempolicy.c mm/mmu_notifier.c mm/nobootmem.c mm/nommu.c mm/percpu-vm.c mm/slab.c mm/slob.c mm/sparse.c
 
 ##########
-# drivers/regulator drivers/block 3.4 
+# drivers/regulator drivers/block 3.4
 rm -rf include/linux/errno.h include/linux/regulator drivers/regulator drivers/block
 git checkout HEAD -- include/linux/errno.h include/linux/regulator drivers/regulator drivers/block
 
 ##########
-# lib 3.3 
+# lib 3.3
 rm -rf lib/raid6 lib/mpi lib/pci_iomap.c lib/zlib_deflate lib/xz lib/swiotlb.c lib/string.c lib/smp_processor_id.c lib/sha1.c lib/rwsem-spinlock.c lib/reciprocal_div.c lib/ratelimit.c lib/lcm.c lib/kstrtox.c lib/klist.c lib/iomap.c lib/hexdump.c lib/fault-inject.c lib/dynamic_queue_limits.c lib/dynamic_debug.c lib/dma-debug.c lib/digsig.c lib/devres.c lib/decompress_unlzo.c lib/dec_and_lock.c lib/debugobjects.c lib/crc8.c lib/cpumask.c lib/cordic.c lib/clz_tab.c lib/checksum.c lib/bug.c lib/btree.c lib/atomic64_test.c lib/atomic64.c include/linux/proportions.h
 git checkout HEAD -- lib/raid6 lib/mpi lib/pci_iomap.c lib/zlib_deflate lib/xz lib/swiotlb.c lib/string.c lib/smp_processor_id.c lib/sha1.c lib/rwsem-spinlock.c lib/reciprocal_div.c lib/ratelimit.c lib/lcm.c lib/kstrtox.c lib/klist.c lib/iomap.c lib/hexdump.c lib/fault-inject.c lib/dynamic_queue_limits.c lib/dynamic_debug.c lib/dma-debug.c lib/digsig.c lib/devres.c lib/decompress_unlzo.c lib/dec_and_lock.c lib/debugobjects.c lib/crc8.c lib/cpumask.c lib/cordic.c lib/clz_tab.c lib/checksum.c lib/bug.c lib/btree.c lib/atomic64_test.c lib/atomic64.c include/linux/proportions.h
 
 ##########
 # mm 3.4
 rm -rf include/linux/shrinker.h include/linux/smp.h include/linux/vm_event_item.h include/trace/events/vmscan.h mm/backing-dev.c mm/process_vm_access.c mm/slab.c mm/slub.c mm/sparse.c mm/swap.c mm/swap_state.c mm/thrash.c mm/truncate.c mm/util.c
+rm -rf arch/arm/include/asm/exec.h include/asm-generic/mman-common.h mm/bounce.c mm/compaction.c mm/dmapool.c mm/fadvise.c mm/huge_memory.c mm/hugetlb.c mm/hwpoison-inject.c mm/ksm.c mm/memory-failure.c mm/mempolicy.c mm/mempool.c mm/mincore.c mm/mlock.c mm/nobootmem.c mm/nommu.c mm/page_cgroup.c
 git checkout HEAD -- include/linux/shrinker.h include/linux/smp.h include/linux/vm_event_item.h include/trace/events/vmscan.h mm/backing-dev.c mm/process_vm_access.c mm/slab.c mm/slub.c mm/sparse.c mm/swap.c mm/swap_state.c mm/thrash.c mm/truncate.c mm/util.c
+git checkout HEAD -- arch/arm/include/asm/exec.h include/asm-generic/mman-common.h mm/bounce.c mm/compaction.c mm/dmapool.c mm/fadvise.c mm/huge_memory.c mm/hugetlb.c mm/hwpoison-inject.c mm/ksm.c mm/memory-failure.c mm/mempolicy.c mm/mempool.c mm/mincore.c mm/mlock.c mm/nobootmem.c mm/nommu.c mm/page_cgroup.c

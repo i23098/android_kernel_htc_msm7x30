@@ -2361,12 +2361,6 @@ config WIFI_CONTROL_FUNC
 	help
 	   Enables Power/Reset/Carddetect function abstraction
 
-config TIWLAN_SDIO
-	bool "TI WLAN Enhanced SDIO Contoller support"
-	help
-	  Say Y here if you want to be able to use TI's WLAN device using the
-	  SDIO interface. If unsure, say N.
-
 config WIFI_NVS_PROC_CREATE
 	bool "Store nvs data into /proc/calibration"
 	help

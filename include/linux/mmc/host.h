@@ -222,7 +222,7 @@ struct mmc_host {
 	struct work_struct	clk_gate_work; /* delayed clock gate */
 	unsigned int		clk_old;	/* old clock value cache */
 	spinlock_t		clk_lock;	/* lock for clk fields */
-	struct mutex clk_gate_mutex; /* mutex for clock gating */
+	struct mutex		clk_gate_mutex;	/* mutex for clock gating */
 #endif
 
 	/* host specific block data */
@@ -406,12 +406,7 @@ int mmc_card_can_sleep(struct mmc_host *host);
 int mmc_host_enable(struct mmc_host *host);
 int mmc_host_disable(struct mmc_host *host);
 int mmc_host_lazy_disable(struct mmc_host *host);
-#ifdef CONFIG_PM
-int mmc_pm_notify(struct notifier_block *notify_block, unsigned long mode,
-		  void *unused);
-#else
-#define mmc_pm_notify NULL
-#endif
+int mmc_pm_notify(struct notifier_block *notify_block, unsigned long, void *);
 
 static inline void mmc_set_disable_delay(struct mmc_host *host,
 					 unsigned int disable_delay)
