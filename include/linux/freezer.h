@@ -45,7 +45,7 @@ static inline bool should_send_signal(struct task_struct *p)
 }
 
 /* Takes and releases task alloc lock using task_lock() */
-extern void __thaw_task(struct task_struct *t);
+extern int thaw_process(struct task_struct *p);
 
 extern void refrigerator(void);
 extern int freeze_processes(void);
