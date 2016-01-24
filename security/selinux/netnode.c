@@ -6,7 +6,7 @@
  * needed to reduce the lookup overhead since most of these queries happen on
  * a per-packet basis.
  *
- * Author: Paul Moore <paul.moore@hp.com>
+ * Author: Paul Moore <paul@paul-moore.com>
  *
  * This code is heavily based on the "netif" concept originally developed by
  * James Morris <jmorris@redhat.com>
@@ -237,7 +237,7 @@ static int sel_netnode_sid_slow(void *addr, u16 family, u32 *sid)
 	case PF_INET6:
 		ret = security_node_sid(PF_INET6,
 					addr, sizeof(struct in6_addr), sid);
-		ipv6_addr_copy(&new->nsec.addr.ipv6, addr);
+		new->nsec.addr.ipv6 = *(struct in6_addr *)addr;
 		break;
 	default:
 		BUG();

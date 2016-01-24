@@ -9,9 +9,10 @@
  */
 
 #include <linux/list.h>
+#include <linux/module.h>
 #include <linux/netdevice.h>
 #include <linux/phy.h>
-#include "dsa_priv.h"
+#include <net/dsa.h>
 #include "mv88e6xxx.h"
 
 static char *mv88e6123_61_65_probe(struct mii_bus *bus, int sw_addr)
@@ -20,12 +21,25 @@ static char *mv88e6123_61_65_probe(struct mii_bus *bus, int sw_addr)
 
 	ret = __mv88e6xxx_reg_read(bus, sw_addr, REG_PORT(0), 0x03);
 	if (ret >= 0) {
-		ret &= 0xfff0;
-		if (ret == 0x1210)
+		if (ret == 0x1212)
+			return "Marvell 88E6123 (A1)";
+		if (ret == 0x1213)
+			return "Marvell 88E6123 (A2)";
+		if ((ret & 0xfff0) == 0x1210)
 			return "Marvell 88E6123";
-		if (ret == 0x1610)
+
+		if (ret == 0x1612)
+			return "Marvell 88E6161 (A1)";
+		if (ret == 0x1613)
+			return "Marvell 88E6161 (A2)";
+		if ((ret & 0xfff0) == 0x1610)
 			return "Marvell 88E6161";
-		if (ret == 0x1650)
+
+		if (ret == 0x1652)
+			return "Marvell 88E6165 (A1)";
+		if (ret == 0x1653)
+			return "Marvell 88e6165 (A2)";
+		if ((ret & 0xfff0) == 0x1650)
 			return "Marvell 88E6165";
 	}
 
@@ -419,7 +433,7 @@ static int mv88e6123_61_65_get_sset_count(struct dsa_switch *ds)
 	return ARRAY_SIZE(mv88e6123_61_65_hw_stats);
 }
 
-static struct dsa_switch_driver mv88e6123_61_65_switch_driver = {
+struct dsa_switch_driver mv88e6123_61_65_switch_driver = {
 	.tag_protocol		= cpu_to_be16(ETH_P_EDSA),
 	.priv_size		= sizeof(struct mv88e6xxx_priv_state),
 	.probe			= mv88e6123_61_65_probe,
@@ -433,15 +447,6 @@ static struct dsa_switch_driver mv88e6123_61_65_switch_driver = {
 	.get_sset_count		= mv88e6123_61_65_get_sset_count,
 };
 
-static int __init mv88e6123_61_65_init(void)
-{
-	register_switch_driver(&mv88e6123_61_65_switch_driver);
-	return 0;
-}
-module_init(mv88e6123_61_65_init);
-
-static void __exit mv88e6123_61_65_cleanup(void)
-{
-	unregister_switch_driver(&mv88e6123_61_65_switch_driver);
-}
-module_exit(mv88e6123_61_65_cleanup);
+MODULE_ALIAS("platform:mv88e6123");
+MODULE_ALIAS("platform:mv88e6161");
+MODULE_ALIAS("platform:mv88e6165");

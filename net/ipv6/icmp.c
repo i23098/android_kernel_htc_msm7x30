@@ -148,11 +148,12 @@ static int is_ineligible(struct sk_buff *skb)
 	int ptr = (u8 *)(ipv6_hdr(skb) + 1) - skb->data;
 	int len = skb->len - ptr;
 	__u8 nexthdr = ipv6_hdr(skb)->nexthdr;
+	__be16 frag_off;
 
 	if (len < 0)
 		return 1;
 
-	ptr = ipv6_skip_exthdr(skb, ptr, &nexthdr);
+	ptr = ipv6_skip_exthdr(skb, ptr, &nexthdr, &frag_off);
 	if (ptr < 0)
 		return 0;
 	if (nexthdr == IPPROTO_ICMPV6) {
@@ -304,9 +305,9 @@ static void mip6_addr_swap(struct sk_buff *skb)
 		if (likely(off >= 0)) {
 			hao = (struct ipv6_destopt_hao *)
 					(skb_network_header(skb) + off);
-			ipv6_addr_copy(&tmp, &iph->saddr);
-			ipv6_addr_copy(&iph->saddr, &hao->addr);
-			ipv6_addr_copy(&hao->addr, &tmp);
+			tmp = iph->saddr;
+			iph->saddr = hao->addr;
+			hao->addr = tmp;
 		}
 	}
 }
@@ -458,9 +459,9 @@ void icmpv6_send(struct sk_buff *skb, u8 type, u8 code, __u32 info)
 
 	memset(&fl6, 0, sizeof(fl6));
 	fl6.flowi6_proto = IPPROTO_ICMPV6;
-	ipv6_addr_copy(&fl6.daddr, &hdr->saddr);
+	fl6.daddr = hdr->saddr;
 	if (saddr)
-		ipv6_addr_copy(&fl6.saddr, saddr);
+		fl6.saddr = *saddr;
 	fl6.flowi6_oif = iif;
 	fl6.fl6_icmp_type = type;
 	fl6.fl6_icmp_code = code;
@@ -552,9 +553,9 @@ static void icmpv6_echo_reply(struct sk_buff *skb)
 
 	memset(&fl6, 0, sizeof(fl6));
 	fl6.flowi6_proto = IPPROTO_ICMPV6;
-	ipv6_addr_copy(&fl6.daddr, &ipv6_hdr(skb)->saddr);
+	fl6.daddr = ipv6_hdr(skb)->saddr;
 	if (saddr)
-		ipv6_addr_copy(&fl6.saddr, saddr);
+		fl6.saddr = *saddr;
 	fl6.flowi6_oif = skb->dev->ifindex;
 	fl6.fl6_icmp_type = ICMPV6_ECHO_REPLY;
 	security_skb_classify_flow(skb, flowi6_to_flowi(&fl6));
@@ -610,6 +611,7 @@ void icmpv6_notify(struct sk_buff *skb, u8 type, u8 code, __be32 info)
 	int inner_offset;
 	int hash;
 	u8 nexthdr;
+	__be16 frag_off;
 
 	if (!pskb_may_pull(skb, sizeof(struct ipv6hdr)))
 		return;
@@ -617,7 +619,8 @@ void icmpv6_notify(struct sk_buff *skb, u8 type, u8 code, __be32 info)
 	nexthdr = ((struct ipv6hdr *)skb->data)->nexthdr;
 	if (ipv6_ext_hdr(nexthdr)) {
 		/* now skip over extension headers */
-		inner_offset = ipv6_skip_exthdr(skb, sizeof(struct ipv6hdr), &nexthdr);
+		inner_offset = ipv6_skip_exthdr(skb, sizeof(struct ipv6hdr),
+						&nexthdr, &frag_off);
 		if (inner_offset<0)
 			return;
 	} else {
@@ -800,8 +803,8 @@ void icmpv6_flow_init(struct sock *sk, struct flowi6 *fl6,
 		      int oif)
 {
 	memset(fl6, 0, sizeof(*fl6));
-	ipv6_addr_copy(&fl6->saddr, saddr);
-	ipv6_addr_copy(&fl6->daddr, daddr);
+	fl6->saddr = *saddr;
+	fl6->daddr = *daddr;
 	fl6->flowi6_proto 	= IPPROTO_ICMPV6;
 	fl6->fl6_icmp_type	= type;
 	fl6->fl6_icmp_code	= 0;
