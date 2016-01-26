@@ -1049,5 +1049,53 @@ void mdp4_mddi_overlay_blt(struct msm_fb_data_type *mfd,
 int mdp4_mddi_on(struct platform_device *pdev);
 int mdp4_mddi_off(struct platform_device *pdev);
 void mdp4_mddi_overlay(struct msm_fb_data_type *mfd);
+#else
+static inline bool mddi_use_dmap(void)
+{
+	return false;
+}
+static inline void mdp4_mddi_pipe_queue(int cndx, struct mdp4_overlay_pipe *pipe)
+{
+}
+static inline void mdp4_mddi_vsync_ctrl(struct fb_info *info, int enable)
+{
+}
+static inline void mdp4_mddi_wait4vsync(int cndx)
+{
+}
+static inline void mdp4_dmap_done_mddi(int cndx)
+{
+}
+static inline void mdp4_dmas_done_mddi(int cndx)
+{
+}
+static inline ssize_t mdp4_mddi_show_event(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return 0;
+}
+static inline void mdp4_mddi_rdptr_init(int cndx)
+{
+}
+static inline void mdp4_mddi_base_swap(int cndx, struct mdp4_overlay_pipe *pipe)
+{
+}
+static inline void mdp4_mddi_blt_start(struct msm_fb_data_type *mfd)
+{
+}
+static inline void mdp4_mddi_blt_stop(struct msm_fb_data_type *mfd)
+{
+}
+static inline int mdp4_mddi_on(struct platform_device *pdev)
+{
+	return -ENODEV;
+}
+static inline int mdp4_mddi_off(struct platform_device *pdev)
+{
+	return -ENODEV;
+}
+static inline void mdp4_mddi_overlay(struct msm_fb_data_type *mfd)
+{
+}
 #endif
 #endif /* MDP_H */
