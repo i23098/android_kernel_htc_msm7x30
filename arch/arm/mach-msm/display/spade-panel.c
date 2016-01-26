@@ -54,7 +54,7 @@ enum {
 	PANEL_UNKNOW
 };
 
-static struct vreg *vreg_lcm_1v8, *vreg_lcm_2v8;
+static struct vreg *vreg_ldo19, *vreg_ldo20;
 
 #define LCM_GPIO_CFG(gpio, func) \
 	PCOM_GPIO_CFG(gpio, func, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_4MA)
@@ -64,33 +64,30 @@ static uint32_t display_on_gpio_table[] = {
 	LCM_GPIO_CFG(SPADE_LCD_DE, 1),
 	LCM_GPIO_CFG(SPADE_LCD_VSYNC, 1),
 	LCM_GPIO_CFG(SPADE_LCD_HSYNC, 1),
-
-	LCM_GPIO_CFG(SPADE_LCD_R0, 1),
-	LCM_GPIO_CFG(SPADE_LCD_R1, 1),
-	LCM_GPIO_CFG(SPADE_LCD_R2, 1),
-	LCM_GPIO_CFG(SPADE_LCD_R3, 1),
-	LCM_GPIO_CFG(SPADE_LCD_R4, 1),
-	LCM_GPIO_CFG(SPADE_LCD_R5, 1),
-	LCM_GPIO_CFG(SPADE_LCD_R6, 1),
-	LCM_GPIO_CFG(SPADE_LCD_R7, 1),
-
 	LCM_GPIO_CFG(SPADE_LCD_G0, 1),
 	LCM_GPIO_CFG(SPADE_LCD_G1, 1),
 	LCM_GPIO_CFG(SPADE_LCD_G2, 1),
 	LCM_GPIO_CFG(SPADE_LCD_G3, 1),
 	LCM_GPIO_CFG(SPADE_LCD_G4, 1),
 	LCM_GPIO_CFG(SPADE_LCD_G5, 1),
-	LCM_GPIO_CFG(SPADE_LCD_G6, 1),
-	LCM_GPIO_CFG(SPADE_LCD_G7, 1),
-
+	//LCM_GPIO_CFG(SPADE_LCD_G6, 1),
+	//LCM_GPIO_CFG(SPADE_LCD_G7, 1),
 	LCM_GPIO_CFG(SPADE_LCD_B0, 1),
 	LCM_GPIO_CFG(SPADE_LCD_B1, 1),
 	LCM_GPIO_CFG(SPADE_LCD_B2, 1),
 	LCM_GPIO_CFG(SPADE_LCD_B3, 1),
 	LCM_GPIO_CFG(SPADE_LCD_B4, 1),
 	LCM_GPIO_CFG(SPADE_LCD_B5, 1),
-	LCM_GPIO_CFG(SPADE_LCD_B6, 1),
-	LCM_GPIO_CFG(SPADE_LCD_B7, 1),
+	//LCM_GPIO_CFG(SPADE_LCD_B6, 1),
+	//LCM_GPIO_CFG(SPADE_LCD_B7, 1),
+	LCM_GPIO_CFG(SPADE_LCD_R0, 1),
+	LCM_GPIO_CFG(SPADE_LCD_R1, 1),
+	LCM_GPIO_CFG(SPADE_LCD_R2, 1),
+	LCM_GPIO_CFG(SPADE_LCD_R3, 1),
+	LCM_GPIO_CFG(SPADE_LCD_R4, 1),
+	LCM_GPIO_CFG(SPADE_LCD_R5, 1),
+	//LCM_GPIO_CFG(SPADE_LCD_R6, 1),
+	//LCM_GPIO_CFG(SPADE_LCD_R7, 1),
 	//LCM_GPIO_CFG(SPADE_LCD_RSTz, 1),
 };
 
@@ -99,44 +96,48 @@ static uint32_t display_off_gpio_table[] = {
 	LCM_GPIO_CFG(SPADE_LCD_DE, 0),
 	LCM_GPIO_CFG(SPADE_LCD_VSYNC, 0),
 	LCM_GPIO_CFG(SPADE_LCD_HSYNC, 0),
-
-	LCM_GPIO_CFG(SPADE_LCD_R0, 0),
-	LCM_GPIO_CFG(SPADE_LCD_R1, 0),
-	LCM_GPIO_CFG(SPADE_LCD_R2, 0),
-	LCM_GPIO_CFG(SPADE_LCD_R3, 0),
-	LCM_GPIO_CFG(SPADE_LCD_R4, 0),
-	LCM_GPIO_CFG(SPADE_LCD_R5, 0),
-	LCM_GPIO_CFG(SPADE_LCD_R6, 0),
-	LCM_GPIO_CFG(SPADE_LCD_R7, 0),
-
 	LCM_GPIO_CFG(SPADE_LCD_G0, 0),
 	LCM_GPIO_CFG(SPADE_LCD_G1, 0),
 	LCM_GPIO_CFG(SPADE_LCD_G2, 0),
 	LCM_GPIO_CFG(SPADE_LCD_G3, 0),
 	LCM_GPIO_CFG(SPADE_LCD_G4, 0),
 	LCM_GPIO_CFG(SPADE_LCD_G5, 0),
-	LCM_GPIO_CFG(SPADE_LCD_G6, 0),
-	LCM_GPIO_CFG(SPADE_LCD_G7, 0),
-
+	//LCM_GPIO_CFG(SPADE_LCD_G6, 0),
+	//LCM_GPIO_CFG(SPADE_LCD_G7, 0),
 	LCM_GPIO_CFG(SPADE_LCD_B0, 0),
 	LCM_GPIO_CFG(SPADE_LCD_B1, 0),
 	LCM_GPIO_CFG(SPADE_LCD_B2, 0),
 	LCM_GPIO_CFG(SPADE_LCD_B3, 0),
 	LCM_GPIO_CFG(SPADE_LCD_B4, 0),
 	LCM_GPIO_CFG(SPADE_LCD_B5, 0),
-	LCM_GPIO_CFG(SPADE_LCD_B6, 0),
-	LCM_GPIO_CFG(SPADE_LCD_B7, 0),
+	//LCM_GPIO_CFG(SPADE_LCD_B6, 0),
+	//LCM_GPIO_CFG(SPADE_LCD_B7, 0),
+	LCM_GPIO_CFG(SPADE_LCD_R0, 0),
+	LCM_GPIO_CFG(SPADE_LCD_R1, 0),
+	LCM_GPIO_CFG(SPADE_LCD_R2, 0),
+	LCM_GPIO_CFG(SPADE_LCD_R3, 0),
+	LCM_GPIO_CFG(SPADE_LCD_R4, 0),
+	LCM_GPIO_CFG(SPADE_LCD_R5, 0),
+	//LCM_GPIO_CFG(SPADE_LCD_R6, 0),
+	//LCM_GPIO_CFG(SPADE_LCD_R7, 0),
 };
+
+static int panel_gpio_switch(int on)
+{
+	config_gpio_table(
+		!!on ? display_on_gpio_table : display_off_gpio_table,
+		!!on ? ARRAY_SIZE(display_on_gpio_table) : ARRAY_SIZE(display_off_gpio_table));
+
+	return 0;
+}
 
 static void spade_sharp_panel_power(bool on_off)
 {
 	if (!!on_off) {
 		LCMDBG("(%d):\n", on_off);
-		config_gpio_table( display_on_gpio_table,
-						   ARRAY_SIZE(display_on_gpio_table));
 		gpio_set_value(SPADE_LCD_RSTz, 0);
-		vreg_enable(vreg_lcm_2v8);
-		vreg_enable(vreg_lcm_1v8);
+		vreg_enable(vreg_ldo19);
+		vreg_enable(vreg_ldo20);
 		udelay(10);
 		gpio_set_value(SPADE_LCD_RSTz, 1);
 		msleep(20);
@@ -144,32 +145,61 @@ static void spade_sharp_panel_power(bool on_off)
 		LCMDBG("(%d):\n", on_off);
 		gpio_set_value(SPADE_LCD_RSTz, 0);
 		msleep(70);
-		vreg_disable(vreg_lcm_2v8);
-		vreg_disable(vreg_lcm_1v8);
-		config_gpio_table(display_off_gpio_table,
-						  ARRAY_SIZE(display_off_gpio_table));
+		vreg_disable(vreg_ldo19);
+		vreg_disable(vreg_ldo20);
 	}
 }
 
-static void spade_auo_panel_power(bool on_off)
+static int spade_auo_panel_power(bool on)
 {
-	if (!!on_off) {
-		LCMDBG("(%d):\n", on_off);
+	int rc = 0;
+
+	if (on)
+		rc = vreg_enable(vreg_ldo19);
+
+	if (rc) {
+		pr_err("%s: LDO19 vreg enable failed (%d)\n",
+		__func__, rc);
+		return -1;
+	}
+
+	if (on)
+		rc = vreg_enable(vreg_ldo20);
+
+	if (rc) {
+		pr_err("%s: LDO20 vreg enable failed (%d)\n",
+				__func__, rc);
+		return -1;
+	}
+
+	if (on) {
+		LCMDBG("(%d):\n", on);
+		msleep(10);
 		gpio_set_value(SPADE_LCD_RSTz, 1);
-		udelay(500);
+		msleep(10);
 		gpio_set_value(SPADE_LCD_RSTz, 0);
 		udelay(500);
 		gpio_set_value(SPADE_LCD_RSTz, 1);
-		msleep(20);
-		config_gpio_table( display_on_gpio_table,
-						   ARRAY_SIZE(display_on_gpio_table));
-	} else {
-		LCMDBG("%s(%d):\n", __func__, on_off);
+		msleep(10);
+	} else if (!on) {
+		LCMDBG("%s(%d):\n", __func__, on);
+		msleep(10);
 		gpio_set_value(SPADE_LCD_RSTz, 1);
-		msleep(70);
-		config_gpio_table( display_off_gpio_table,
-						   ARRAY_SIZE(display_off_gpio_table));
+		msleep(120);
 	}
+
+	if (!on) {
+		rc = vreg_disable(vreg_ldo19);
+		rc = vreg_disable(vreg_ldo20);
+	}
+
+	if (rc) {
+		pr_err("%s: LDO19, 20 vreg disable failed (%d)\n",
+		__func__, rc);
+		return -1;
+	}
+
+	return 0;
 }
 
 static int panel_power(int on)
@@ -177,8 +207,7 @@ static int panel_power(int on)
 	switch (board_get_panel_type()) {
 		case PANEL_AUO:
 		case PANEL_ID_SPADE_AUO_N90:
-			spade_auo_panel_power(on == 1 ? true : false);
-			return 0;
+			return(spade_auo_panel_power(on == 1 ? true : false));
 			break;
 		case PANEL_SHARP:
 		case PANEL_ID_SPADE_SHA_N90:
@@ -206,6 +235,8 @@ static void lcdc_config_gpios(int on)
 
 	if (panel_power(on))
 		printk(KERN_ERR "%s: panel_power failed!\n", __func__);
+	if (panel_gpio_switch(on))
+		printk(KERN_ERR "%s: panel_gpio_switch failed!\n", __func__);
 }
 
 static struct msm_panel_common_pdata lcdc_panel_data = {
@@ -252,12 +283,18 @@ struct msm_list_device spade_fb_devices[] = {
 
 static int panel_init_power(void)
 {
-	vreg_lcm_1v8 = vreg_get(0, "gp13");
-	if (IS_ERR(vreg_lcm_1v8))
-		return PTR_ERR(vreg_lcm_1v8);
-	vreg_lcm_2v8 = vreg_get(0, "wlan2");
-	if (IS_ERR(vreg_lcm_2v8))
-		return PTR_ERR(vreg_lcm_2v8);
+	int rc;
+
+	vreg_ldo19 = vreg_get(NULL, "wlan2");
+	if (IS_ERR(vreg_ldo19))
+		return PTR_ERR(vreg_ldo19);
+	vreg_ldo20 = vreg_get(NULL, "gp13");
+	if (IS_ERR(vreg_ldo20))
+		return PTR_ERR(vreg_ldo20);
+	rc = vreg_set_level(vreg_ldo19, 1800);
+	if (rc) {
+		return PTR_ERR(vreg_ldo19);
+	}
 	return 0;
 }
 
