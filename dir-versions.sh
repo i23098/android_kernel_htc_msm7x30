@@ -55,22 +55,22 @@ rm -rf drivers/staging/zram/
 git checkout HEAD -- drivers/staging/zram/
 
 ###########
-# fs/nfs 3.2
+# fs/nfs 3.3
 rm -rf fs/nfs fs/nfsd include/linux/sunrpc include/linux/nfs4.h include/linux/nfs_fs.h include/linux/nfs_page.h include/linux/nfs_xdr.h net/sunrpc
 git checkout HEAD -- fs/nfs fs/nfsd include/linux/sunrpc include/linux/nfs4.h include/linux/nfs_fs.h include/linux/nfs_page.h include/linux/nfs_xdr.h net/sunrpc
 
 ###########
-# kernel/power/ 3.2
+# kernel/power/ 3.3
 rm -rf kernel/power/ drivers/base/power/
 git checkout HEAD -- kernel/power/ drivers/base/power/
 
 ##########
-# /net 3.2
+# /net 3.3
 rm -rf include/linux/ieee80211.h include/net/ net/ include/linux/netfilter
 git checkout HEAD -- include/linux/ieee80211.h include/net/ net/ include/linux/netfilter
 
 ##########
-# drivers/net/ 3.2
+# drivers/net/ 3.3
 rm -rf drivers/net/
 git checkout HEAD -- drivers/net/
 
@@ -88,6 +88,11 @@ git checkout HEAD -- include/linux/module.h include/linux/moduleparam.h include/
 git checkout HEAD -- kernel/async.c kernel/audit.c kernel/audit_tree.c kernel/compat.c kernel/crash_dump.c kernel/cred.c kernel/delayacct.c kernel/futex_compat.c kernel/groups.c kernel/hung_task.c kernel/irq_work.c kernel/kfifo.c kernel/kprobes.c kernel/ksysfs.c kernel/latencytop.c kernel/lockdep_proc.c kernel/mutex-debug.c
 git checkout HEAD -- kernel/notifier.c kernel/padata.c kernel/pid.c kernel/posix-cpu-timers.c kernel/posix-timers.c kernel/profile.c kernel/range.c kernel/relay.c kernel/rtmutex-debug.c kernel/rtmutex-tester.c  kernel/rtmutex.c kernel/rwsem.c kernel/semaphore.c kernel/smp.c kernel/spinlock.c kernel/stop_machine.c kernel/sysctl_check.c kernel/taskstats.c kernel/time.c kernel/utsname_sysctl.c kernel/watchdog.c
 git checkout HEAD -- kernel/auditsc.c arch/arm/kernel/ptrace.c include/linux/audit.h kernel/sysctl_binary.c kernel/sysctl.c arch/arm/include/asm/exception.h kernel/cpu_pm.c kernel/kmod.c kernel/lockdep.c kernel/module.c kernel/mutex.c kernel/mutex.h kernel/softirq.c kernel/srcu.c
+
+##########
+# kernel 3.3
+rm -rf arch/arm/include/asm/socket.h include/asm-generic/socket.h include/linux/dynamic_queue_limits.h include/linux/errqueue.h include/linux/ethtool.h include/linux/freezer.h include/linux/if_link.h include/linux/inet_diag.h include/linux/neighbour.h include/linux/netdev_features.h include/linux/netdevice.h include/linux/nfs_fs.h include/linux/nfs_fs_sb.h include/linux/nfs_idmap.h include/linux/nfs_xdr.h include/linux/res_counter.h include/linux/skbuff.h include/linux/sock_diag.h include/linux/tcp.h kernel/acct.c kernel/cgroup_freezer.c kernel/cpuset.c kernel/freezer.c kernel/hung_task.c kernel/jump_label.c kernel/kprobes.c kernel/lockdep.c kernel/module.c kernel/pid_namespace.c
+git checkout HEAD -- arch/arm/include/asm/socket.h include/asm-generic/socket.h include/linux/dynamic_queue_limits.h include/linux/errqueue.h include/linux/ethtool.h include/linux/freezer.h include/linux/if_link.h include/linux/inet_diag.h include/linux/neighbour.h include/linux/netdev_features.h include/linux/netdevice.h include/linux/nfs_fs.h include/linux/nfs_fs_sb.h include/linux/nfs_idmap.h include/linux/nfs_xdr.h include/linux/res_counter.h include/linux/skbuff.h include/linux/sock_diag.h include/linux/tcp.h kernel/acct.c kernel/cgroup_freezer.c kernel/cpuset.c kernel/freezer.c kernel/hung_task.c kernel/jump_label.c kernel/kprobes.c kernel/lockdep.c kernel/module.c kernel/pid_namespace.c
 
 ##########
 # kernel/rcu* v3.4
