@@ -287,7 +287,7 @@ static void send_stop_cmd(struct dw_mci *host, struct mmc_data *data)
 /* DMA interface functions */
 static void dw_mci_stop_dma(struct dw_mci *host)
 {
-	if (host->use_dma) {
+	if (host->using_dma) {
 		host->dma_ops->stop(host);
 		host->dma_ops->cleanup(host);
 	} else {
@@ -435,6 +435,8 @@ static int dw_mci_submit_data_dma(struct dw_mci *host, struct mmc_data *data)
 	unsigned int i, direction, sg_len;
 	u32 temp;
 
+	host->using_dma = 0;
+
 	/* If we don't have a channel, we can't do DMA */
 	if (!host->use_dma)
 		return -ENODEV;
@@ -453,6 +455,8 @@ static int dw_mci_submit_data_dma(struct dw_mci *host, struct mmc_data *data)
 		if (sg->offset & 3 || sg->length & 3)
 			return -EINVAL;
 	}
+
+	host->using_dma = 1;
 
 	if (data->flags & MMC_DATA_READ)
 		direction = DMA_FROM_DEVICE;
@@ -492,13 +496,16 @@ static void dw_mci_submit_data(struct dw_mci *host, struct mmc_data *data)
 	host->sg = NULL;
 	host->data = data;
 
+	if (data->flags & MMC_DATA_READ)
+		host->dir_status = DW_MCI_RECV_STATUS;
+	else
+		host->dir_status = DW_MCI_SEND_STATUS;
+
 	if (dw_mci_submit_data_dma(host, data)) {
 		host->sg = data->sg;
 		host->pio_offset = 0;
-		if (data->flags & MMC_DATA_READ)
-			host->dir_status = DW_MCI_RECV_STATUS;
-		else
-			host->dir_status = DW_MCI_SEND_STATUS;
+		host->part_buf_start = 0;
+		host->part_buf_count = 0;
 
 		mci_writel(host, RINTSTS, SDMMC_INT_TXDR | SDMMC_INT_RXDR);
 		temp = mci_readl(host, INTMASK);
@@ -902,13 +909,19 @@ static void dw_mci_tasklet_func(unsigned long priv)
 
 			if (status & DW_MCI_DATA_ERROR_FLAGS) {
 				if (status & SDMMC_INT_DTO) {
-					dev_err(&host->pdev->dev,
-						"data timeout error\n");
 					data->error = -ETIMEDOUT;
 				} else if (status & SDMMC_INT_DCRC) {
-					dev_err(&host->pdev->dev,
-						"data CRC error\n");
 					data->error = -EILSEQ;
+				} else if (status & SDMMC_INT_EBE &&
+					   host->dir_status ==
+							DW_MCI_SEND_STATUS) {
+					/*
+					 * No data CRC status was returned.
+					 * The number of bytes transferred will
+					 * be exaggerated in PIO mode.
+					 */
+					data->bytes_xfered = 0;
+					data->error = -ETIMEDOUT;
 				} else {
 					dev_err(&host->pdev->dev,
 						"data FIFO error "
@@ -957,84 +970,278 @@ unlock:
 
 }
 
+/* push final bytes to part_buf, only use during push */
+static void dw_mci_set_part_bytes(struct dw_mci *host, void *buf, int cnt)
+{
+	memcpy((void *)&host->part_buf, buf, cnt);
+	host->part_buf_count = cnt;
+}
+
+/* append bytes to part_buf, only use during push */
+static int dw_mci_push_part_bytes(struct dw_mci *host, void *buf, int cnt)
+{
+	cnt = min(cnt, (1 << host->data_shift) - host->part_buf_count);
+	memcpy((void *)&host->part_buf + host->part_buf_count, buf, cnt);
+	host->part_buf_count += cnt;
+	return cnt;
+}
+
+/* pull first bytes from part_buf, only use during pull */
+static int dw_mci_pull_part_bytes(struct dw_mci *host, void *buf, int cnt)
+{
+	cnt = min(cnt, (int)host->part_buf_count);
+	if (cnt) {
+		memcpy(buf, (void *)&host->part_buf + host->part_buf_start,
+		       cnt);
+		host->part_buf_count -= cnt;
+		host->part_buf_start += cnt;
+	}
+	return cnt;
+}
+
+/* pull final bytes from the part_buf, assuming it's just been filled */
+static void dw_mci_pull_final_bytes(struct dw_mci *host, void *buf, int cnt)
+{
+	memcpy(buf, &host->part_buf, cnt);
+	host->part_buf_start = cnt;
+	host->part_buf_count = (1 << host->data_shift) - cnt;
+}
+
 static void dw_mci_push_data16(struct dw_mci *host, void *buf, int cnt)
 {
-	u16 *pdata = (u16 *)buf;
-
-	WARN_ON(cnt % 2 != 0);
-
-	cnt = cnt >> 1;
-	while (cnt > 0) {
-		mci_writew(host, DATA, *pdata++);
-		cnt--;
+	/* try and push anything in the part_buf */
+	if (unlikely(host->part_buf_count)) {
+		int len = dw_mci_push_part_bytes(host, buf, cnt);
+		buf += len;
+		cnt -= len;
+		if (!sg_next(host->sg) || host->part_buf_count == 2) {
+			mci_writew(host, DATA, host->part_buf16);
+			host->part_buf_count = 0;
+		}
+	}
+#ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+	if (unlikely((unsigned long)buf & 0x1)) {
+		while (cnt >= 2) {
+			u16 aligned_buf[64];
+			int len = min(cnt & -2, (int)sizeof(aligned_buf));
+			int items = len >> 1;
+			int i;
+			/* memcpy from input buffer into aligned buffer */
+			memcpy(aligned_buf, buf, len);
+			buf += len;
+			cnt -= len;
+			/* push data from aligned buffer into fifo */
+			for (i = 0; i < items; ++i)
+				mci_writew(host, DATA, aligned_buf[i]);
+		}
+	} else
+#endif
+	{
+		u16 *pdata = buf;
+		for (; cnt >= 2; cnt -= 2)
+			mci_writew(host, DATA, *pdata++);
+		buf = pdata;
+	}
+	/* put anything remaining in the part_buf */
+	if (cnt) {
+		dw_mci_set_part_bytes(host, buf, cnt);
+		if (!sg_next(host->sg))
+			mci_writew(host, DATA, host->part_buf16);
 	}
 }
 
 static void dw_mci_pull_data16(struct dw_mci *host, void *buf, int cnt)
 {
-	u16 *pdata = (u16 *)buf;
-
-	WARN_ON(cnt % 2 != 0);
-
-	cnt = cnt >> 1;
-	while (cnt > 0) {
-		*pdata++ = mci_readw(host, DATA);
-		cnt--;
+#ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+	if (unlikely((unsigned long)buf & 0x1)) {
+		while (cnt >= 2) {
+			/* pull data from fifo into aligned buffer */
+			u16 aligned_buf[64];
+			int len = min(cnt & -2, (int)sizeof(aligned_buf));
+			int items = len >> 1;
+			int i;
+			for (i = 0; i < items; ++i)
+				aligned_buf[i] = mci_readw(host, DATA);
+			/* memcpy from aligned buffer into output buffer */
+			memcpy(buf, aligned_buf, len);
+			buf += len;
+			cnt -= len;
+		}
+	} else
+#endif
+	{
+		u16 *pdata = buf;
+		for (; cnt >= 2; cnt -= 2)
+			*pdata++ = mci_readw(host, DATA);
+		buf = pdata;
+	}
+	if (cnt) {
+		host->part_buf16 = mci_readw(host, DATA);
+		dw_mci_pull_final_bytes(host, buf, cnt);
 	}
 }
 
 static void dw_mci_push_data32(struct dw_mci *host, void *buf, int cnt)
 {
-	u32 *pdata = (u32 *)buf;
-
-	WARN_ON(cnt % 4 != 0);
-	WARN_ON((unsigned long)pdata & 0x3);
-
-	cnt = cnt >> 2;
-	while (cnt > 0) {
-		mci_writel(host, DATA, *pdata++);
-		cnt--;
+	/* try and push anything in the part_buf */
+	if (unlikely(host->part_buf_count)) {
+		int len = dw_mci_push_part_bytes(host, buf, cnt);
+		buf += len;
+		cnt -= len;
+		if (!sg_next(host->sg) || host->part_buf_count == 4) {
+			mci_writel(host, DATA, host->part_buf32);
+			host->part_buf_count = 0;
+		}
+	}
+#ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+	if (unlikely((unsigned long)buf & 0x3)) {
+		while (cnt >= 4) {
+			u32 aligned_buf[32];
+			int len = min(cnt & -4, (int)sizeof(aligned_buf));
+			int items = len >> 2;
+			int i;
+			/* memcpy from input buffer into aligned buffer */
+			memcpy(aligned_buf, buf, len);
+			buf += len;
+			cnt -= len;
+			/* push data from aligned buffer into fifo */
+			for (i = 0; i < items; ++i)
+				mci_writel(host, DATA, aligned_buf[i]);
+		}
+	} else
+#endif
+	{
+		u32 *pdata = buf;
+		for (; cnt >= 4; cnt -= 4)
+			mci_writel(host, DATA, *pdata++);
+		buf = pdata;
+	}
+	/* put anything remaining in the part_buf */
+	if (cnt) {
+		dw_mci_set_part_bytes(host, buf, cnt);
+		if (!sg_next(host->sg))
+			mci_writel(host, DATA, host->part_buf32);
 	}
 }
 
 static void dw_mci_pull_data32(struct dw_mci *host, void *buf, int cnt)
 {
-	u32 *pdata = (u32 *)buf;
-
-	WARN_ON(cnt % 4 != 0);
-	WARN_ON((unsigned long)pdata & 0x3);
-
-	cnt = cnt >> 2;
-	while (cnt > 0) {
-		*pdata++ = mci_readl(host, DATA);
-		cnt--;
+#ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+	if (unlikely((unsigned long)buf & 0x3)) {
+		while (cnt >= 4) {
+			/* pull data from fifo into aligned buffer */
+			u32 aligned_buf[32];
+			int len = min(cnt & -4, (int)sizeof(aligned_buf));
+			int items = len >> 2;
+			int i;
+			for (i = 0; i < items; ++i)
+				aligned_buf[i] = mci_readl(host, DATA);
+			/* memcpy from aligned buffer into output buffer */
+			memcpy(buf, aligned_buf, len);
+			buf += len;
+			cnt -= len;
+		}
+	} else
+#endif
+	{
+		u32 *pdata = buf;
+		for (; cnt >= 4; cnt -= 4)
+			*pdata++ = mci_readl(host, DATA);
+		buf = pdata;
+	}
+	if (cnt) {
+		host->part_buf32 = mci_readl(host, DATA);
+		dw_mci_pull_final_bytes(host, buf, cnt);
 	}
 }
 
 static void dw_mci_push_data64(struct dw_mci *host, void *buf, int cnt)
 {
-	u64 *pdata = (u64 *)buf;
-
-	WARN_ON(cnt % 8 != 0);
-
-	cnt = cnt >> 3;
-	while (cnt > 0) {
-		mci_writeq(host, DATA, *pdata++);
-		cnt--;
+	/* try and push anything in the part_buf */
+	if (unlikely(host->part_buf_count)) {
+		int len = dw_mci_push_part_bytes(host, buf, cnt);
+		buf += len;
+		cnt -= len;
+		if (!sg_next(host->sg) || host->part_buf_count == 8) {
+			mci_writew(host, DATA, host->part_buf);
+			host->part_buf_count = 0;
+		}
+	}
+#ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+	if (unlikely((unsigned long)buf & 0x7)) {
+		while (cnt >= 8) {
+			u64 aligned_buf[16];
+			int len = min(cnt & -8, (int)sizeof(aligned_buf));
+			int items = len >> 3;
+			int i;
+			/* memcpy from input buffer into aligned buffer */
+			memcpy(aligned_buf, buf, len);
+			buf += len;
+			cnt -= len;
+			/* push data from aligned buffer into fifo */
+			for (i = 0; i < items; ++i)
+				mci_writeq(host, DATA, aligned_buf[i]);
+		}
+	} else
+#endif
+	{
+		u64 *pdata = buf;
+		for (; cnt >= 8; cnt -= 8)
+			mci_writeq(host, DATA, *pdata++);
+		buf = pdata;
+	}
+	/* put anything remaining in the part_buf */
+	if (cnt) {
+		dw_mci_set_part_bytes(host, buf, cnt);
+		if (!sg_next(host->sg))
+			mci_writeq(host, DATA, host->part_buf);
 	}
 }
 
 static void dw_mci_pull_data64(struct dw_mci *host, void *buf, int cnt)
 {
-	u64 *pdata = (u64 *)buf;
-
-	WARN_ON(cnt % 8 != 0);
-
-	cnt = cnt >> 3;
-	while (cnt > 0) {
-		*pdata++ = mci_readq(host, DATA);
-		cnt--;
+#ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+	if (unlikely((unsigned long)buf & 0x7)) {
+		while (cnt >= 8) {
+			/* pull data from fifo into aligned buffer */
+			u64 aligned_buf[16];
+			int len = min(cnt & -8, (int)sizeof(aligned_buf));
+			int items = len >> 3;
+			int i;
+			for (i = 0; i < items; ++i)
+				aligned_buf[i] = mci_readq(host, DATA);
+			/* memcpy from aligned buffer into output buffer */
+			memcpy(buf, aligned_buf, len);
+			buf += len;
+			cnt -= len;
+		}
+	} else
+#endif
+	{
+		u64 *pdata = buf;
+		for (; cnt >= 8; cnt -= 8)
+			*pdata++ = mci_readq(host, DATA);
+		buf = pdata;
 	}
+	if (cnt) {
+		host->part_buf = mci_readq(host, DATA);
+		dw_mci_pull_final_bytes(host, buf, cnt);
+	}
+}
+
+static void dw_mci_pull_data(struct dw_mci *host, void *buf, int cnt)
+{
+	int len;
+
+	/* get remaining partial bytes */
+	len = dw_mci_pull_part_bytes(host, buf, cnt);
+	if (unlikely(len == cnt))
+		return;
+	buf += len;
+	cnt -= len;
+
+	/* get the rest of the data */
+	host->pull_data(host, buf, cnt);
 }
 
 static void dw_mci_read_data_pio(struct dw_mci *host)
@@ -1048,9 +1255,10 @@ static void dw_mci_read_data_pio(struct dw_mci *host)
 	unsigned int nbytes = 0, len;
 
 	do {
-		len = SDMMC_GET_FCNT(mci_readl(host, STATUS)) << shift;
+		len = host->part_buf_count +
+			(SDMMC_GET_FCNT(mci_readl(host, STATUS)) << shift);
 		if (offset + len <= sg->length) {
-			host->pull_data(host, (void *)(buf + offset), len);
+			dw_mci_pull_data(host, (void *)(buf + offset), len);
 
 			offset += len;
 			nbytes += len;
@@ -1066,8 +1274,8 @@ static void dw_mci_read_data_pio(struct dw_mci *host)
 			}
 		} else {
 			unsigned int remaining = sg->length - offset;
-			host->pull_data(host, (void *)(buf + offset),
-					remaining);
+			dw_mci_pull_data(host, (void *)(buf + offset),
+					 remaining);
 			nbytes += remaining;
 
 			flush_dcache_page(sg_page(sg));
@@ -1077,7 +1285,7 @@ static void dw_mci_read_data_pio(struct dw_mci *host)
 
 			offset = len - remaining;
 			buf = sg_virt(sg);
-			host->pull_data(host, buf, offset);
+			dw_mci_pull_data(host, buf, offset);
 			nbytes += offset;
 		}
 
@@ -1094,7 +1302,6 @@ static void dw_mci_read_data_pio(struct dw_mci *host)
 			return;
 		}
 	} while (status & SDMMC_INT_RXDR); /*if the RXDR is ready read again*/
-	len = SDMMC_GET_FCNT(mci_readl(host, STATUS));
 	host->pio_offset = offset;
 	data->bytes_xfered += nbytes;
 	return;
@@ -1116,8 +1323,9 @@ static void dw_mci_write_data_pio(struct dw_mci *host)
 	unsigned int nbytes = 0, len;
 
 	do {
-		len = SDMMC_FIFO_SZ -
-			(SDMMC_GET_FCNT(mci_readl(host, STATUS)) << shift);
+		len = ((host->fifo_depth -
+			SDMMC_GET_FCNT(mci_readl(host, STATUS))) << shift)
+			- host->part_buf_count;
 		if (offset + len <= sg->length) {
 			host->push_data(host, (void *)(buf + offset), len);
 
@@ -1162,10 +1370,8 @@ static void dw_mci_write_data_pio(struct dw_mci *host)
 			return;
 		}
 	} while (status & SDMMC_INT_TXDR); /* if TXDR write again */
-
 	host->pio_offset = offset;
 	data->bytes_xfered += nbytes;
-
 	return;
 
 done:
@@ -1659,8 +1865,19 @@ static int dw_mci_probe(struct platform_device *pdev)
 	 * FIFO threshold settings  RxMark  = fifo_size / 2 - 1,
 	 *                          Tx Mark = fifo_size / 2 DMA Size = 8
 	 */
-	fifo_size = mci_readl(host, FIFOTH);
-	fifo_size = (fifo_size >> 16) & 0x7ff;
+	if (!host->pdata->fifo_depth) {
+		/*
+		 * Power-on value of RX_WMark is FIFO_DEPTH-1, but this may
+		 * have been overwritten by the bootloader, just like we're
+		 * about to do, so if you know the value for your hardware, you
+		 * should put it in the platform data.
+		 */
+		fifo_size = mci_readl(host, FIFOTH);
+		fifo_size = 1 + ((fifo_size >> 16) & 0x7ff);
+	} else {
+		fifo_size = host->pdata->fifo_depth;
+	}
+	host->fifo_depth = fifo_size;
 	host->fifoth_val = ((0x2 << 28) | ((fifo_size/2 - 1) << 16) |
 			((fifo_size/2) << 0));
 	mci_writel(host, FIFOTH, host->fifoth_val);
@@ -1707,7 +1924,9 @@ static int dw_mci_probe(struct platform_device *pdev)
 	mci_writel(host, CTRL, SDMMC_CTRL_INT_ENABLE); /* Enable mci interrupt */
 
 	dev_info(&pdev->dev, "DW MMC controller at irq %d, "
-		 "%d bit host data width\n", irq, width);
+		 "%d bit host data width, "
+		 "%u deep fifo\n",
+		 irq, width, fifo_size);
 	if (host->quirks & DW_MCI_QUIRK_IDMAC_DTO)
 		dev_info(&pdev->dev, "Internal DMAC interrupt fix enabled.\n");
 
