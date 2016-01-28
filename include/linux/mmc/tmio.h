@@ -21,6 +21,7 @@
 #define CTL_XFER_BLK_COUNT 0xa
 #define CTL_RESPONSE 0x0c
 #define CTL_STATUS 0x1c
+#define CTL_STATUS2 0x1e
 #define CTL_IRQ_MASK 0x20
 #define CTL_SD_CARD_CLK_CTL 0x24
 #define CTL_SD_XFER_LEN 0x26
@@ -30,6 +31,7 @@
 #define CTL_TRANSACTION_CTL 0x34
 #define CTL_SDIO_STATUS 0x36
 #define CTL_SDIO_IRQ_MASK 0x38
+#define CTL_DMA_ENABLE 0xd8
 #define CTL_RESET_SD 0xe0
 #define CTL_SDIO_REGS 0x100
 #define CTL_CLK_AND_WAIT_CTL 0x138
