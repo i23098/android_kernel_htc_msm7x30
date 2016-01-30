@@ -183,11 +183,6 @@ int swap_readpage(struct page *page)
 		goto out;
 	}
 
-/* Modified by Memory, Studio Software for Zimmer */
-#if defined(CONFIG_ZIMMER)
-	bio->bi_rw |= (REQ_SWAPIN_DMPG);
-#endif
-
 	count_vm_event(PSWPIN);
 	submit_bio(READ, bio);
 out:
