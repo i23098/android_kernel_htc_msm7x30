@@ -119,9 +119,7 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 		cmd->error = 0;
 		host->ops->request(host, mrq);
 	} else {
-#if 0          /* 2011-11-14 FIR ITS#55, may cause kernel panic */
 		led_trigger_event(host->led, LED_OFF);
-#endif
 
 		pr_debug("%s: req done (CMD%u): %d: %08x %08x %08x %08x\n",
 			mmc_hostname(host), cmd->opcode, err,
@@ -205,9 +203,7 @@ mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 		}
 	}
 	mmc_host_clk_hold(host);
-#if 0  /* 2011-11-14 FIR ITS#55, may cause kernel panic */
 	led_trigger_event(host->led, LED_FULL);
-#endif
 	host->ops->request(host, mrq);
 }
 

@@ -265,7 +265,6 @@ int vfs_fsync(struct file *file, int datasync)
 EXPORT_SYMBOL(vfs_fsync);
 
 #ifdef CONFIG_ASYNC_FSYNC
-extern int emmc_perf_degr(void);
 #define LOW_STORAGE_THRESHOLD   786432
 int async_fsync(struct file *file, int fd)
 {
@@ -274,9 +273,6 @@ int async_fsync(struct file *file, int fd)
 	struct kstatfs st;
 
 	if ((sb->fsync_flags & FLAG_ASYNC_FSYNC) == 0)
-		return 0;
-
-	if (!emmc_perf_degr())
 		return 0;
 
 	if (fd_statfs(fd, &st))

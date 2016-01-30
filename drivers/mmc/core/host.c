@@ -338,9 +338,8 @@ int mmc_add_host(struct mmc_host *host)
 	err = device_add(&host->class_dev);
 	if (err)
 		return err;
-#if 0  /* 2011-11-14 FIR ITS#55, may cause kernel panic */
+
 	led_trigger_register_simple(dev_name(&host->class_dev), &host->led);
-#endif
 
 #ifdef CONFIG_DEBUG_FS
 	mmc_add_host_debugfs(host);
@@ -381,9 +380,7 @@ void mmc_remove_host(struct mmc_host *host)
 
 
 	device_del(&host->class_dev);
-#if 0  /* 2011-11-14 FIR ITS#55, may cause kernel panic */
 	led_trigger_unregister_simple(host->led);
-#endif
 
 	mmc_host_clk_exit(host);
 }
