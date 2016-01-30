@@ -566,10 +566,7 @@ int mdp4_lcdc_on(struct platform_device *pdev)
 	fbi = mfd->fbi;
 	var = &fbi->var;
 
-	printk(KERN_INFO "%s: fbi->var.bits_per_pixel=%d\n", __func__,
-			fbi->var.bits_per_pixel);
-	//bpp = fbi->var.bits_per_pixel / 8;
-	bpp = 24 / 8; // HACK
+	bpp = fbi->var.bits_per_pixel / 8;
 	buf = (uint8 *) fbi->fix.smem_start;
 	buf_offset = calc_fb_offset(mfd, fbi, bpp);
 
