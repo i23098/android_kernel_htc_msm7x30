@@ -1286,19 +1286,11 @@ static int sd_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 			}
 			brq.data.sg_len = i;
 		}
-#ifdef CONFIG_MMC_PERF_PROFILING
-		start = ktime_get();
-#endif
 		mmc_queue_bounce_pre(mq);
 
 		mmc_wait_for_req(card->host, &brq.mrq);
 
 		mmc_queue_bounce_post(mq);
-#ifdef CONFIG_MMC_PERF_PROFILING
-		diff = ktime_sub(ktime_get(), start);
-		if (ktime_to_us(diff) > 400000)
-			printk(KERN_DEBUG "%s:(%s)finish cmd(%d) start %d, size %d, time=%lld us\n", __func__, current->comm, brq.cmd.opcode, brq.cmd.arg , blk_rq_sectors(req) , ktime_to_us(diff));
-#endif
 
 		/*
 		 * sbc.error indicates a problem with the set block count
@@ -1408,12 +1400,6 @@ static int sd_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 				i++;
 			} while (!(status & R1_READY_FOR_DATA) ||
 				(R1_CURRENT_STATE(status) == R1_STATE_PRG));
-#ifdef CONFIG_MMC_PERF_PROFILING
-			diff = ktime_sub(ktime_get(), start);
-			if (ktime_to_us(diff) > 500000)
-				printk(KERN_DEBUG "%s: ---(%s) start sector=%d, size %d, total time=%lld us\n", __func__, current->comm, brq.cmd.arg, blk_rq_sectors(req) , ktime_to_us(diff));
-
-#endif
 			if (!err)
 				card_no_ready = 0;
 		}
