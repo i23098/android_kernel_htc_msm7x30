@@ -1128,7 +1128,6 @@ static int sd_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 	int ret = 1, disable_multi = 0, retry = 0, err = 0;
 	int try_recovery = 1, do_reinit = 0, do_remove = 0;
 	int card_no_ready = 0;
-	ktime_t start, diff;
 
 	/*
 	 * Reliable writes are used to implement Forced Unit Access and
@@ -1494,50 +1493,6 @@ static int sd_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 	struct mmc_blk_data *md = mq->data;
 	struct mmc_card *card = md->queue.card;
 
-#ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
-	int err = 0, card_no_ready = 0;
-	int retries = 3;
-	mmc_claim_host(card->host);
-
-	if (mmc_bus_needs_resume(card->host)) {
-		if (/* mmc_card_sd(card) && */ card->removed == 1) {
-			printk(KERN_INFO "%s: card already removed\n",
-				mmc_hostname(card->host));
-			spin_lock_irq(&md->lock);
-			__blk_end_request_all(req, -EIO);
-			spin_unlock_irq(&md->lock);
-			mmc_release_host(card->host);
-			return 0;
-		}
-
-		do {
-			err = mmc_resume_bus(card->host);
-			retries--;
-		} while (err && retries);
-
-		if (err) {
-			/* if (mmc_card_sd(card)) */
-				remove_card(card->host);
-			spin_lock_irq(&md->lock);
-			__blk_end_request_all(req, -EIO);
-			spin_unlock_irq(&md->lock);
-			mmc_release_host(card->host);
-			return 0;
-		}
-		retries = 3;
-		mmc_blk_set_blksize(md, card);
-	}
-
-	if (mmc_bus_fails_resume(card->host) || card_no_ready ||
-		!retries || (mmc_card_sd(card) && card->removed == 1)) {
-		spin_lock_irq(&md->lock);
-		__blk_end_request_all(req, -EIO);
-		spin_unlock_irq(&md->lock);
-		mmc_release_host(card->host);
-		return 0;
-	} else
-		mmc_release_host(card->host);
-#endif
 	mmc_claim_host(card->host);
 	ret = mmc_blk_part_switch(card, md);
 	if (ret) {
@@ -1565,76 +1520,6 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 	int ret;
 	struct mmc_blk_data *md = mq->data;
 	struct mmc_card *card = md->queue.card;
-
-#ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
-	int err = 0, card_no_ready = 0;
-	int retries = 3;
-	mmc_claim_host(card->host);
-	if (mmc_bus_needs_resume(card->host)) {
-		do {
-			err = mmc_resume_bus(card->host);
-			retries--;
-		} while (err && retries);
-		if (err) {
-			spin_lock_irq(&md->lock);
-			__blk_end_request_all(req, -EIO);
-			spin_unlock_irq(&md->lock);
-			mmc_release_host(card->host);
-			return 0;
-		}
-		retries = 3;
-		mmc_blk_set_blksize(md, card);
-		if (mmc_card_mmc(card)) {
-			struct mmc_command cmd;
-
-			unsigned long delay = jiffies + HZ;
-			int j = 0;
-			do {
-				int err;
-				cmd.opcode = MMC_SEND_STATUS;
-				cmd.arg = mq->card->rca << 16;
-				cmd.flags = MMC_RSP_R1 | MMC_CMD_AC;
-
-				mmc_claim_host(mq->card->host);
-				err = mmc_wait_for_cmd(mq->card->host, &cmd, 5);
-				mmc_release_host(mq->card->host);
-
-				if (err) {
-				printk(KERN_ERR "failed to get status(%d)!!\n"
-						, err);
-					msleep(5);
-					retries--;
-					continue;
-				}
-				if (time_after(jiffies, delay) && (fls(j) > 10)) {
-					if ((cmd.resp[0] & R1_READY_FOR_DATA) &&
-						(R1_CURRENT_STATE(cmd.resp[0]) == 4)) {
-						printk(KERN_ERR "Timeout but get card ready j = %d\n", j);
-						break;
-					}
-					card_no_ready++;
-					printk(KERN_ERR
-						"Failed to get card ready %d\n",
-						card_no_ready);
-					break;
-				}
-				j++;
-			} while (retries &&
-				(!(cmd.resp[0] & R1_READY_FOR_DATA) ||
-				(R1_CURRENT_STATE(cmd.resp[0]) == 7)));
-		}
-	}
-
-	if (mmc_bus_fails_resume(card->host) || card_no_ready ||
-		!retries) {
-		spin_lock_irq(&md->lock);
-		__blk_end_request_all(req, -EIO);
-		spin_unlock_irq(&md->lock);
-		mmc_release_host(card->host);
-		return 0;
-	} else
-		mmc_release_host(card->host);
-#endif
 
 	mmc_claim_host(card->host);
 	ret = mmc_blk_part_switch(card, md);
@@ -1979,9 +1864,6 @@ static int mmc_blk_probe(struct mmc_card *card)
 	mmc_set_drvdata(card, md);
 	mmc_fixup_device(card, blk_fixups);
 	mmc_init_bus_resume_flags(card->host);
-#ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
-	mmc_set_bus_resume_policy(card->host, 1);
-#endif
 	if (mmc_add_disk(md))
 		goto out;
 
@@ -2007,9 +1889,6 @@ static void mmc_blk_remove(struct mmc_card *card)
 	mmc_release_host(card->host);
 	mmc_blk_remove_req(md);
 	mmc_set_drvdata(card, NULL);
-#ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
-	mmc_set_bus_resume_policy(card->host, 0);
-#endif
 }
 
 #ifdef CONFIG_PM
@@ -2033,9 +1912,7 @@ static int mmc_blk_resume(struct mmc_card *card)
 	struct mmc_blk_data *md = mmc_get_drvdata(card);
 
 	if (md) {
-#ifndef CONFIG_MMC_BLOCK_DEFERRED_RESUME
 		mmc_blk_set_blksize(md, card);
-#endif
 
 		/*
 		 * Resume involves the card going into idle state,
