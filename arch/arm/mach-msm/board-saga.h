@@ -37,7 +37,18 @@
 
 #define PMEM_KERNEL_EBI0_SIZE   0x00500000
 
-#define MSM_FB_SIZE    roundup((800 * ALIGN(480, 32) * 4 * 3), 4096) /* 4 bpp x 3 pages, Note: must be multiple of 4096 */
+#ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
+#define MSM_FB_PRIM_BUF_SIZE \
+				(roundup((roundup(800, 32) * roundup(480, 32) * 4), 4096) * 3)
+						/* 4 bpp x 3 pages */
+#else
+#define MSM_FB_PRIM_BUF_SIZE \
+				(roundup((roundup(800, 32) * roundup(480, 32) * 4), 4096) * 2)
+						/* 4 bpp x 2 pages */
+#endif
+
+/* Note: must be multiple of 4096 */
+#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE, 4096)
 
 #ifdef CONFIG_ION_MSM
 #define MSM_ION_CAMERA_SIZE	MSM_PMEM_ADSP_SIZE
