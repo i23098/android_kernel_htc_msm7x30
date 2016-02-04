@@ -1152,7 +1152,6 @@ static int sd_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 	do {
 		if (mmc_blk_rw_rq_prep(mq->mqrq_cur, card, disable_multi, mq) == 0)
 			return 0;
-
 		mmc_wait_for_req(card->host, &brq->mrq);
 
 		mmc_queue_bounce_post(mq->mqrq_cur);
@@ -1170,9 +1169,11 @@ static int sd_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 		if (brq->sbc.error || brq->cmd.error || brq->stop.error) {
 			switch (mmc_blk_cmd_recovery(card, req, brq)) {
 			case ERR_RETRY:
-				if (retry++ < 2)
+				if (retry++ < 5)
 					continue;
 			case ERR_ABORT:
+			case ERR_NOMEDIUM:
+				goto cmd_err;
 			case ERR_CONTINUE:
 				if (try_recovery == 1)
 					do_reinit = 1;
@@ -1180,8 +1181,6 @@ static int sd_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 					do_remove = 1;
 				try_recovery++;
 				goto recovery;
-			case ERR_NOMEDIUM:
-				goto cmd_err;
 			}
 		} else if (!brq->data.error && disable_multi == 1) {
 			disable_multi = 0;
@@ -1210,14 +1209,13 @@ static int sd_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 		 */
 		if (!mmc_host_is_spi(card->host) && rq_data_dir(req) != READ) {
 			u32 status;
-			int i = 0;
-			int sleepy = 1;
 			unsigned int msec = 0;
 			unsigned long delay = jiffies + HZ;
-			err = 0;
+			int i = 0;
+			int err = 0;
 
 			do {
-				if (sleepy && (fls(i) > 11)) {
+				if (fls(i) > 11) {
 					msec = (unsigned int)fls(i >> 11);
 					msleep(msec);
 
@@ -1294,8 +1292,7 @@ recovery:
 
 		if (brq->data.error || brq->stop.error ||
 			brq->data.error || card_no_ready) {
-			pr_err("%s: error %d transferring data, sector %u, nr %u,"
-				" cmd response %#x, card status %#x\n",
+			pr_err("%s: error %d transferring data, sector %u, nr %u, cmd response %#x, card status %#x\n",
 				req->rq_disk->disk_name, brq->data.error,
 				(unsigned)blk_rq_pos(req),
 				(unsigned)blk_rq_sectors(req),
@@ -1331,16 +1328,15 @@ recovery:
 	return 1;
 
  cmd_err:
-	/*
-	 * If this is an SD card and we're writing, we can first
-	 * mark the known good sectors as ok.
-	 *
+ 	/*
+ 	 * If this is an SD card and we're writing, we can first
+ 	 * mark the known good sectors as ok.
+ 	 *
 	 * If the card is not SD, we can still ok written sectors
 	 * as reported by the controller (which might be less than
 	 * the real number of written sectors, but never more).
 	 */
-
-/*        if (mmc_card_sd(card)) */ {
+	if (mmc_card_sd(card)) {
 		u32 blocks;
 
 		blocks = mmc_sd_num_wr_blocks(card);
@@ -1349,11 +1345,15 @@ recovery:
 			ret = __blk_end_request(req, 0, blocks << 9);
 			spin_unlock_irq(&md->lock);
 		}
+	} else {
+		spin_lock_irq(&md->lock);
+		ret = __blk_end_request(req, 0, brq->data.bytes_xfered);
+		spin_unlock_irq(&md->lock);
 	}
 
+	spin_lock_irq(&md->lock);
 	if (mmc_card_removed(card))
 		req->cmd_flags |= REQ_QUIET;
-	spin_lock_irq(&md->lock);
 	while (ret)
 		ret = __blk_end_request(req, -EIO, blk_rq_cur_bytes(req));
 	spin_unlock_irq(&md->lock);
