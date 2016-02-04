@@ -266,9 +266,6 @@ static struct mmc_blk_ioc_data *mmc_blk_ioctl_copy_from_user(
 		goto idata_err;
 	}
 
-	if (!idata->buf_bytes)
-		return idata;
-
 	idata->buf = kzalloc(idata->buf_bytes, GFP_KERNEL);
 	if (!idata->buf) {
 		err = -ENOMEM;
@@ -1200,7 +1197,6 @@ static int sd_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 	do {
 		if (mmc_blk_rw_rq_prep(mq->mqrq_cur, card, disable_multi, mq) == 0)
 			return 0;
-
 		mmc_wait_for_req(card->host, &brq->mrq);
 
 		mmc_queue_bounce_post(mq->mqrq_cur);
@@ -1218,9 +1214,11 @@ static int sd_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 		if (brq->sbc.error || brq->cmd.error || brq->stop.error) {
 			switch (mmc_blk_cmd_recovery(card, req, brq)) {
 			case ERR_RETRY:
-				if (retry++ < 2)
+				if (retry++ < 5)
 					continue;
 			case ERR_ABORT:
+			case ERR_NOMEDIUM:
+				goto cmd_err;
 			case ERR_CONTINUE:
 				if (try_recovery == 1)
 					do_reinit = 1;
@@ -1228,8 +1226,6 @@ static int sd_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 					do_remove = 1;
 				try_recovery++;
 				goto recovery;
-			case ERR_NOMEDIUM:
-				goto cmd_err;
 			}
 		} else if (!brq->data.error && disable_multi == 1) {
 			disable_multi = 0;
@@ -1258,14 +1254,13 @@ static int sd_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 		 */
 		if (!mmc_host_is_spi(card->host) && rq_data_dir(req) != READ) {
 			u32 status;
-			int i = 0;
-			int sleepy = 1;
 			unsigned int msec = 0;
 			unsigned long delay = jiffies + HZ;
-			err = 0;
+			int i = 0;
+			int err = 0;
 
 			do {
-				if (sleepy && (fls(i) > 11)) {
+				if (fls(i) > 11) {
 					msec = (unsigned int)fls(i >> 11);
 					msleep(msec);
 
@@ -1342,8 +1337,7 @@ recovery:
 
 		if (brq->data.error || brq->stop.error ||
 			brq->data.error || card_no_ready) {
-			pr_err("%s: error %d transferring data, sector %u, nr %u,"
-				" cmd response %#x, card status %#x\n",
+			pr_err("%s: error %d transferring data, sector %u, nr %u, cmd response %#x, card status %#x\n",
 				req->rq_disk->disk_name, brq->data.error,
 				(unsigned)blk_rq_pos(req),
 				(unsigned)blk_rq_sectors(req),
@@ -1379,16 +1373,15 @@ recovery:
 	return 1;
 
  cmd_err:
-	/*
-	 * If this is an SD card and we're writing, we can first
-	 * mark the known good sectors as ok.
-	 *
+ 	/*
+ 	 * If this is an SD card and we're writing, we can first
+ 	 * mark the known good sectors as ok.
+ 	 *
 	 * If the card is not SD, we can still ok written sectors
 	 * as reported by the controller (which might be less than
 	 * the real number of written sectors, but never more).
 	 */
-
-/*        if (mmc_card_sd(card)) */ {
+	if (mmc_card_sd(card)) {
 		u32 blocks;
 
 		blocks = mmc_sd_num_wr_blocks(card);
@@ -1397,44 +1390,20 @@ recovery:
 			ret = __blk_end_request(req, 0, blocks << 9);
 			spin_unlock_irq(&md->lock);
 		}
+	} else {
+		spin_lock_irq(&md->lock);
+		ret = __blk_end_request(req, 0, brq->data.bytes_xfered);
+		spin_unlock_irq(&md->lock);
 	}
 
+	spin_lock_irq(&md->lock);
 	if (mmc_card_removed(card))
 		req->cmd_flags |= REQ_QUIET;
-	spin_lock_irq(&md->lock);
 	while (ret)
 		ret = __blk_end_request(req, -EIO, blk_rq_cur_bytes(req));
 	spin_unlock_irq(&md->lock);
 
 	return 0;
-}
-
-static int sd_blk_issue_rq(struct mmc_queue *mq, struct request *req)
-{
-	int ret;
-	struct mmc_blk_data *md = mq->data;
-	struct mmc_card *card = md->queue.card;
-
-	mmc_claim_host(card->host);
-	ret = mmc_blk_part_switch(card, md);
-	if (ret) {
-		ret = 0;
-		goto out;
-	}
-
-	if (req->cmd_flags & REQ_DISCARD) {
-		if (req->cmd_flags & REQ_SECURE)
-			ret = mmc_blk_issue_secdiscard_rq(mq, req);
-		else
-			ret = mmc_blk_issue_discard_rq(mq, req);
-	} else if (req->cmd_flags & REQ_FLUSH)
-		ret = mmc_blk_issue_flush(mq, req);
-	else
-		ret = sd_blk_issue_rw_rq(mq, req);
-
-out:
-	mmc_release_host(card->host);
-	return ret;
 }
 
 static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
@@ -1458,7 +1427,10 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 	} else if (req->cmd_flags & REQ_FLUSH) {
 		ret = mmc_blk_issue_flush(mq, req);
 	} else {
-		ret = mmc_blk_issue_rw_rq(mq, req);
+		if (mmc_card_sd(card))
+			ret = sd_blk_issue_rw_rq(mq, req);
+		else
+			ret = mmc_blk_issue_rw_rq(mq, req);
 	}
 
 out:
@@ -1526,10 +1498,7 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	if (ret)
 		goto err_putdisk;
 
-	if (mmc_card_sd(card))
-		md->queue.issue_fn = sd_blk_issue_rq;
-	else
-		md->queue.issue_fn = mmc_blk_issue_rq;
+	md->queue.issue_fn = mmc_blk_issue_rq;
 	md->queue.data = md;
 
 	md->disk->major	= MMC_BLOCK_MAJOR;
@@ -1537,7 +1506,7 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	md->disk->fops = &mmc_bdops;
 	md->disk->private_data = md;
 	md->disk->queue = md->queue.queue;
-	md->disk->driverfs_dev = &card->dev;
+	md->disk->driverfs_dev = parent;
 	set_disk_ro(md->disk, md->read_only || default_ro);
 	md->disk->flags = GENHD_FL_EXT_DEVT;
 
@@ -1682,14 +1651,10 @@ static void mmc_blk_remove_req(struct mmc_blk_data *md)
 {
 	if (md) {
 		if (md->disk->flags & GENHD_FL_UP) {
-			/* Resume queue before enter del_gendisk_async.
-			 * Flush thread may be blocked by I/O and can not be stopped when queue thread is still suspended.
-			 */
-			mmc_queue_resume(&md->queue);
 			device_remove_file(disk_to_dev(md->disk), &md->force_ro);
 
 			/* Stop new requests from getting into the queue */
-			del_gendisk_async(md->disk);
+			del_gendisk(md->disk);
 		}
 
 		/* Then flush out any already in there */
