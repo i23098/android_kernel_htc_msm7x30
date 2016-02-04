@@ -255,9 +255,6 @@ static struct mmc_blk_ioc_data *mmc_blk_ioctl_copy_from_user(
 		goto idata_err;
 	}
 
-	if (!idata->buf_bytes)
-		return idata;
-
 	idata->buf = kzalloc(idata->buf_bytes, GFP_KERNEL);
 	if (!idata->buf) {
 		err = -ENOMEM;
@@ -1364,34 +1361,6 @@ recovery:
 	return 0;
 }
 
-static int sd_blk_issue_rq(struct mmc_queue *mq, struct request *req)
-{
-	int ret;
-	struct mmc_blk_data *md = mq->data;
-	struct mmc_card *card = md->queue.card;
-
-	mmc_claim_host(card->host);
-	ret = mmc_blk_part_switch(card, md);
-	if (ret) {
-		ret = 0;
-		goto out;
-	}
-
-	if (req->cmd_flags & REQ_DISCARD) {
-		if (req->cmd_flags & REQ_SECURE)
-			ret = mmc_blk_issue_secdiscard_rq(mq, req);
-		else
-			ret = mmc_blk_issue_discard_rq(mq, req);
-	} else if (req->cmd_flags & REQ_FLUSH)
-		ret = mmc_blk_issue_flush(mq, req);
-	else
-		ret = sd_blk_issue_rw_rq(mq, req);
-
-out:
-	mmc_release_host(card->host);
-	return ret;
-}
-
 static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 {
 	int ret;
@@ -1413,7 +1382,10 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 	} else if (req->cmd_flags & REQ_FLUSH) {
 		ret = mmc_blk_issue_flush(mq, req);
 	} else {
-		ret = mmc_blk_issue_rw_rq(mq, req);
+		if (mmc_card_sd(card))
+			ret = sd_blk_issue_rw_rq(mq, req);
+		else
+			ret = mmc_blk_issue_rw_rq(mq, req);
 	}
 
 out:
@@ -1481,10 +1453,7 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	if (ret)
 		goto err_putdisk;
 
-	if (mmc_card_sd(card))
-		md->queue.issue_fn = sd_blk_issue_rq;
-	else
-		md->queue.issue_fn = mmc_blk_issue_rq;
+	md->queue.issue_fn = mmc_blk_issue_rq;
 	md->queue.data = md;
 
 	md->disk->major	= MMC_BLOCK_MAJOR;
@@ -1492,7 +1461,7 @@ static struct mmc_blk_data *mmc_blk_alloc_req(struct mmc_card *card,
 	md->disk->fops = &mmc_bdops;
 	md->disk->private_data = md;
 	md->disk->queue = md->queue.queue;
-	md->disk->driverfs_dev = &card->dev;
+	md->disk->driverfs_dev = parent;
 	set_disk_ro(md->disk, md->read_only || default_ro);
 	md->disk->flags = GENHD_FL_EXT_DEVT;
 
@@ -1637,14 +1606,10 @@ static void mmc_blk_remove_req(struct mmc_blk_data *md)
 {
 	if (md) {
 		if (md->disk->flags & GENHD_FL_UP) {
-			/* Resume queue before enter del_gendisk_async.
-			 * Flush thread may be blocked by I/O and can not be stopped when queue thread is still suspended.
-			 */
-			mmc_queue_resume(&md->queue);
 			device_remove_file(disk_to_dev(md->disk), &md->force_ro);
 
 			/* Stop new requests from getting into the queue */
-			del_gendisk_async(md->disk);
+			del_gendisk(md->disk);
 		}
 
 		/* Then flush out any already in there */
