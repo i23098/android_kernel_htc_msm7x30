@@ -17,6 +17,7 @@
 
 #include <linux/module.h>
 #include <linux/init.h>
+#include <linux/kernel.h>
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #include <linux/interrupt.h>
@@ -120,6 +121,8 @@
 #define MMC_AUTOSUSPEND_DELAY	100
 #define MMC_TIMEOUT_MS		20
 #define OMAP_MMC_MASTER_CLOCK	96000000
+#define OMAP_MMC_MIN_CLOCK	400000
+#define OMAP_MMC_MAX_CLOCK	52000000
 #define DRIVER_NAME		"omap_hsmmc"
 
 /*
@@ -550,6 +553,15 @@ static void omap_hsmmc_gpio_free(struct omap_mmc_platform_data *pdata)
 }
 
 /*
+ * Start clock to the card
+ */
+static void omap_hsmmc_start_clock(struct omap_hsmmc_host *host)
+{
+	OMAP_HSMMC_WRITE(host->base, SYSCTL,
+		OMAP_HSMMC_READ(host->base, SYSCTL) | CEN);
+}
+
+/*
  * Stop clock to the card
  */
 static void omap_hsmmc_stop_clock(struct omap_hsmmc_host *host)
@@ -586,6 +598,81 @@ static void omap_hsmmc_disable_irq(struct omap_hsmmc_host *host)
 	OMAP_HSMMC_WRITE(host->base, STAT, STAT_CLEAR);
 }
 
+/* Calculate divisor for the given clock frequency */
+static u16 calc_divisor(struct mmc_ios *ios)
+{
+	u16 dsor = 0;
+
+	if (ios->clock) {
+		dsor = DIV_ROUND_UP(OMAP_MMC_MASTER_CLOCK, ios->clock);
+		if (dsor > 250)
+			dsor = 250;
+	}
+
+	return dsor;
+}
+
+static void omap_hsmmc_set_clock(struct omap_hsmmc_host *host)
+{
+	struct mmc_ios *ios = &host->mmc->ios;
+	unsigned long regval;
+	unsigned long timeout;
+
+	dev_dbg(mmc_dev(host->mmc), "Set clock to %uHz\n", ios->clock);
+
+	omap_hsmmc_stop_clock(host);
+
+	regval = OMAP_HSMMC_READ(host->base, SYSCTL);
+	regval = regval & ~(CLKD_MASK | DTO_MASK);
+	regval = regval | (calc_divisor(ios) << 6) | (DTO << 16);
+	OMAP_HSMMC_WRITE(host->base, SYSCTL, regval);
+	OMAP_HSMMC_WRITE(host->base, SYSCTL,
+		OMAP_HSMMC_READ(host->base, SYSCTL) | ICE);
+
+	/* Wait till the ICS bit is set */
+	timeout = jiffies + msecs_to_jiffies(MMC_TIMEOUT_MS);
+	while ((OMAP_HSMMC_READ(host->base, SYSCTL) & ICS) != ICS
+		&& time_before(jiffies, timeout))
+		cpu_relax();
+
+	omap_hsmmc_start_clock(host);
+}
+
+static void omap_hsmmc_set_bus_width(struct omap_hsmmc_host *host)
+{
+	struct mmc_ios *ios = &host->mmc->ios;
+	u32 con;
+
+	con = OMAP_HSMMC_READ(host->base, CON);
+	switch (ios->bus_width) {
+	case MMC_BUS_WIDTH_8:
+		OMAP_HSMMC_WRITE(host->base, CON, con | DW8);
+		break;
+	case MMC_BUS_WIDTH_4:
+		OMAP_HSMMC_WRITE(host->base, CON, con & ~DW8);
+		OMAP_HSMMC_WRITE(host->base, HCTL,
+			OMAP_HSMMC_READ(host->base, HCTL) | FOUR_BIT);
+		break;
+	case MMC_BUS_WIDTH_1:
+		OMAP_HSMMC_WRITE(host->base, CON, con & ~DW8);
+		OMAP_HSMMC_WRITE(host->base, HCTL,
+			OMAP_HSMMC_READ(host->base, HCTL) & ~FOUR_BIT);
+		break;
+	}
+}
+
+static void omap_hsmmc_set_bus_mode(struct omap_hsmmc_host *host)
+{
+	struct mmc_ios *ios = &host->mmc->ios;
+	u32 con;
+
+	con = OMAP_HSMMC_READ(host->base, CON);
+	if (ios->bus_mode == MMC_BUSMODE_OPENDRAIN)
+		OMAP_HSMMC_WRITE(host->base, CON, con | OD);
+	else
+		OMAP_HSMMC_WRITE(host->base, CON, con & ~OD);
+}
+
 #ifdef CONFIG_PM
 
 /*
@@ -597,8 +684,7 @@ static int omap_hsmmc_context_restore(struct omap_hsmmc_host *host)
 	struct mmc_ios *ios = &host->mmc->ios;
 	struct omap_mmc_platform_data *pdata = host->pdata;
 	int context_loss = 0;
-	u32 hctl, capa, con;
-	u16 dsor = 0;
+	u32 hctl, capa;
 	unsigned long timeout;
 
 	if (pdata->get_context_loss_count) {
@@ -660,54 +746,12 @@ static int omap_hsmmc_context_restore(struct omap_hsmmc_host *host)
 	if (host->power_mode == MMC_POWER_OFF)
 		goto out;
 
-	con = OMAP_HSMMC_READ(host->base, CON);
-	switch (ios->bus_width) {
-	case MMC_BUS_WIDTH_8:
-		OMAP_HSMMC_WRITE(host->base, CON, con | DW8);
-		break;
-	case MMC_BUS_WIDTH_4:
-		OMAP_HSMMC_WRITE(host->base, CON, con & ~DW8);
-		OMAP_HSMMC_WRITE(host->base, HCTL,
-			OMAP_HSMMC_READ(host->base, HCTL) | FOUR_BIT);
-		break;
-	case MMC_BUS_WIDTH_1:
-		OMAP_HSMMC_WRITE(host->base, CON, con & ~DW8);
-		OMAP_HSMMC_WRITE(host->base, HCTL,
-			OMAP_HSMMC_READ(host->base, HCTL) & ~FOUR_BIT);
-		break;
-	}
+	omap_hsmmc_set_bus_width(host);
 
-	if (ios->clock) {
-		dsor = OMAP_MMC_MASTER_CLOCK / ios->clock;
-		if (dsor < 1)
-			dsor = 1;
+	omap_hsmmc_set_clock(host);
 
-		if (OMAP_MMC_MASTER_CLOCK / dsor > ios->clock)
-			dsor++;
+	omap_hsmmc_set_bus_mode(host);
 
-		if (dsor > 250)
-			dsor = 250;
-	}
-
-	OMAP_HSMMC_WRITE(host->base, SYSCTL,
-		OMAP_HSMMC_READ(host->base, SYSCTL) & ~CEN);
-	OMAP_HSMMC_WRITE(host->base, SYSCTL, (dsor << 6) | (DTO << 16));
-	OMAP_HSMMC_WRITE(host->base, SYSCTL,
-		OMAP_HSMMC_READ(host->base, SYSCTL) | ICE);
-
-	timeout = jiffies + msecs_to_jiffies(MMC_TIMEOUT_MS);
-	while ((OMAP_HSMMC_READ(host->base, SYSCTL) & ICS) != ICS
-		&& time_before(jiffies, timeout))
-		;
-
-	OMAP_HSMMC_WRITE(host->base, SYSCTL,
-		OMAP_HSMMC_READ(host->base, SYSCTL) | CEN);
-
-	con = OMAP_HSMMC_READ(host->base, CON);
-	if (ios->bus_mode == MMC_BUSMODE_OPENDRAIN)
-		OMAP_HSMMC_WRITE(host->base, CON, con | OD);
-	else
-		OMAP_HSMMC_WRITE(host->base, CON, con & ~OD);
 out:
 	host->context_loss = context_loss;
 
@@ -975,14 +1019,14 @@ static void omap_hsmmc_dma_cleanup(struct omap_hsmmc_host *host, int errno)
  * Readable error output
  */
 #ifdef CONFIG_MMC_DEBUG
-static void omap_hsmmc_report_irq(struct omap_hsmmc_host *host, u32 status)
+static void omap_hsmmc_dbg_report_irq(struct omap_hsmmc_host *host, u32 status)
 {
 	/* --- means reserved bit without definition at documentation */
 	static const char *omap_hsmmc_status_bits[] = {
-		"CC", "TC", "BGE", "---", "BWR", "BRR", "---", "---", "CIRQ",
-		"OBI", "---", "---", "---", "---", "---", "ERRI", "CTO", "CCRC",
-		"CEB", "CIE", "DTO", "DCRC", "DEB", "---", "ACE", "---",
-		"---", "---", "---", "CERR", "CERR", "BADA", "---", "---", "---"
+		"CC"  , "TC"  , "BGE", "---", "BWR" , "BRR" , "---" , "---" ,
+		"CIRQ",	"OBI" , "---", "---", "---" , "---" , "---" , "ERRI",
+		"CTO" , "CCRC", "CEB", "CIE", "DTO" , "DCRC", "DEB" , "---" ,
+		"ACE" , "---" , "---", "---", "CERR", "BADA", "---" , "---"
 	};
 	char res[256];
 	char *buf = res;
@@ -998,6 +1042,11 @@ static void omap_hsmmc_report_irq(struct omap_hsmmc_host *host, u32 status)
 		}
 
 	dev_dbg(mmc_dev(host->mmc), "%s\n", res);
+}
+#else
+static inline void omap_hsmmc_dbg_report_irq(struct omap_hsmmc_host *host,
+					     u32 status)
+{
 }
 #endif  /* CONFIG_MMC_DEBUG */
 
@@ -1057,9 +1106,7 @@ static void omap_hsmmc_do_irq(struct omap_hsmmc_host *host, int status)
 	dev_dbg(mmc_dev(host->mmc), "IRQ Status is %x\n", status);
 
 	if (status & ERR) {
-#ifdef CONFIG_MMC_DEBUG
-		omap_hsmmc_report_irq(host, status);
-#endif
+		omap_hsmmc_dbg_report_irq(host, status);
 		if ((status & CMD_TIMEOUT) ||
 			(status & CMD_CRC)) {
 			if (host->cmd) {
@@ -1322,7 +1369,7 @@ static void omap_hsmmc_config_dma_params(struct omap_hsmmc_host *host,
 static void omap_hsmmc_dma_cb(int lch, u16 ch_status, void *cb_data)
 {
 	struct omap_hsmmc_host *host = cb_data;
-	struct mmc_data *data = host->mrq->data;
+	struct mmc_data *data;
 	int dma_ch, req_in_progress;
 
 	if (!(ch_status & OMAP_DMA_BLOCK_IRQ)) {
@@ -1337,6 +1384,7 @@ static void omap_hsmmc_dma_cb(int lch, u16 ch_status, void *cb_data)
 		return;
 	}
 
+	data = host->mrq->data;
 	host->dma_sg_idx++;
 	if (host->dma_sg_idx < host->dma_len) {
 		/* Fire up the next transfer. */
@@ -1598,10 +1646,6 @@ static void omap_hsmmc_request(struct mmc_host *mmc, struct mmc_request *req)
 static void omap_hsmmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
 	struct omap_hsmmc_host *host = mmc_priv(mmc);
-	u16 dsor = 0;
-	unsigned long regval;
-	unsigned long timeout;
-	u32 con;
 	int do_send_init_stream = 0;
 
 	pm_runtime_get_sync(host->dev);
@@ -1627,22 +1671,7 @@ static void omap_hsmmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	/* FIXME: set registers based only on changes to ios */
 
-	con = OMAP_HSMMC_READ(host->base, CON);
-	switch (mmc->ios.bus_width) {
-	case MMC_BUS_WIDTH_8:
-		OMAP_HSMMC_WRITE(host->base, CON, con | DW8);
-		break;
-	case MMC_BUS_WIDTH_4:
-		OMAP_HSMMC_WRITE(host->base, CON, con & ~DW8);
-		OMAP_HSMMC_WRITE(host->base, HCTL,
-			OMAP_HSMMC_READ(host->base, HCTL) | FOUR_BIT);
-		break;
-	case MMC_BUS_WIDTH_1:
-		OMAP_HSMMC_WRITE(host->base, CON, con & ~DW8);
-		OMAP_HSMMC_WRITE(host->base, HCTL,
-			OMAP_HSMMC_READ(host->base, HCTL) & ~FOUR_BIT);
-		break;
-	}
+	omap_hsmmc_set_bus_width(host);
 
 	if (host->pdata->controller_flags & OMAP_HSMMC_SUPPORTS_DUAL_VOLT) {
 		/* Only MMC1 can interface at 3V without some flavor
@@ -1662,42 +1691,12 @@ static void omap_hsmmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		}
 	}
 
-	if (ios->clock) {
-		dsor = OMAP_MMC_MASTER_CLOCK / ios->clock;
-		if (dsor < 1)
-			dsor = 1;
-
-		if (OMAP_MMC_MASTER_CLOCK / dsor > ios->clock)
-			dsor++;
-
-		if (dsor > 250)
-			dsor = 250;
-	}
-	omap_hsmmc_stop_clock(host);
-	regval = OMAP_HSMMC_READ(host->base, SYSCTL);
-	regval = regval & ~(CLKD_MASK);
-	regval = regval | (dsor << 6) | (DTO << 16);
-	OMAP_HSMMC_WRITE(host->base, SYSCTL, regval);
-	OMAP_HSMMC_WRITE(host->base, SYSCTL,
-		OMAP_HSMMC_READ(host->base, SYSCTL) | ICE);
-
-	/* Wait till the ICS bit is set */
-	timeout = jiffies + msecs_to_jiffies(MMC_TIMEOUT_MS);
-	while ((OMAP_HSMMC_READ(host->base, SYSCTL) & ICS) != ICS
-		&& time_before(jiffies, timeout))
-		msleep(1);
-
-	OMAP_HSMMC_WRITE(host->base, SYSCTL,
-		OMAP_HSMMC_READ(host->base, SYSCTL) | CEN);
+	omap_hsmmc_set_clock(host);
 
 	if (do_send_init_stream)
 		send_init_stream(host);
 
-	con = OMAP_HSMMC_READ(host->base, CON);
-	if (ios->bus_mode == MMC_BUSMODE_OPENDRAIN)
-		OMAP_HSMMC_WRITE(host->base, CON, con | OD);
-	else
-		OMAP_HSMMC_WRITE(host->base, CON, con & ~OD);
+	omap_hsmmc_set_bus_mode(host);
 
 	pm_runtime_put_autosuspend(host->dev);
 }
@@ -1929,8 +1928,8 @@ static int __init omap_hsmmc_probe(struct platform_device *pdev)
 	if (mmc_slot(host).vcc_aux_disable_is_sleep)
 		mmc_slot(host).no_off = 1;
 
-	mmc->f_min	= 400000;
-	mmc->f_max	= 52000000;
+	mmc->f_min	= OMAP_MMC_MIN_CLOCK;
+	mmc->f_max	= OMAP_MMC_MAX_CLOCK;
 
 	spin_lock_init(&host->irq_lock);
 
