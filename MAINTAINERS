@@ -3437,10 +3437,9 @@ S:	Maintained
 F:	drivers/net/ipg.*
 
 IPATH DRIVER
-M:	Ralph Campbell <infinipath@qlogic.com>
+M:	Mike Marciniszyn <infinipath@qlogic.com>
 L:	linux-rdma@vger.kernel.org
-T:	git git://git.qlogic.com/ipath-linux-2.6
-S:	Supported
+S:	Maintained
 F:	drivers/infiniband/hw/ipath/
 
 IPMI SUBSYSTEM
@@ -4301,8 +4300,8 @@ S:	Maintained
 F:	drivers/usb/musb/
 
 MYRICOM MYRI-10G 10GbE DRIVER (MYRI10GE)
+M:	Jon Mason <mason@myri.com>
 M:	Andrew Gallatin <gallatin@myri.com>
-M:	Brice Goglin <brice@myri.com>
 L:	netdev@vger.kernel.org
 W:	http://www.myri.com/scs/download-Myri10GE.html
 S:	Supported
@@ -5162,6 +5161,12 @@ PXA RTC DRIVER
 M:	Robert Jarzmik <robert.jarzmik@free.fr>
 L:	rtc-linux@googlegroups.com
 S:	Maintained
+
+QIB DRIVER
+M:	Mike Marciniszyn <infinipath@qlogic.com>
+L:	linux-rdma@vger.kernel.org
+S:	Supported
+F:	drivers/infiniband/hw/qib/
 
 QLOGIC QLA1280 SCSI DRIVER
 M:	Michael Reed <mdr@sgi.com>
