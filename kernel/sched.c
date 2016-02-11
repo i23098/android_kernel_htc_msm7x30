@@ -1721,9 +1721,11 @@ static unsigned long cpu_avg_load_per_task(int cpu)
 	unsigned long nr_running = ACCESS_ONCE(rq->nr_running);
 
 	if (nr_running)
-		return rq->load.weight / nr_running;
+		rq->avg_load_per_task = rq->load.weight / nr_running;
+	else
+		rq->avg_load_per_task = 0;
 
-	return 0;
+	return rq->avg_load_per_task;
 }
 
 #ifdef CONFIG_PREEMPT
@@ -8339,9 +8341,12 @@ static void init_tg_cfs_entry(struct task_group *tg, struct cfs_rq *cfs_rq,
 	struct rq *rq = cpu_rq(cpu);
 
 	cfs_rq->tg = tg;
-	init_cfs_rq_runtime(cfs_rq);
 	cfs_rq->rq = rq;
 	init_cfs_rq_runtime(cfs_rq);
+#ifdef CONFIG_SMP
+	/* allow initial update_cfs_load() to truncate */
+	cfs_rq->load_stamp = 1;
+#endif
 
 	tg->cfs_rq[cpu] = cfs_rq;
 	tg->se[cpu] = se;
