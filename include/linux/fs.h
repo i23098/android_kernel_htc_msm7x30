@@ -1564,6 +1564,7 @@ struct super_block {
 	int cleancache_poolid;
 
 	struct shrinker s_shrink;	/* per-sb shrinker handle */
+
 #ifdef CONFIG_ASYNC_FSYNC
 #define FLAG_ASYNC_FSYNC        0x1
 	unsigned int fsync_flags;
@@ -1667,11 +1668,6 @@ struct block_device_operations;
 #define HAVE_COMPAT_IOCTL 1
 #define HAVE_UNLOCKED_IOCTL 1
 
-/*
- * NOTE:
- * all file operations except setlease can be called without
- * the big kernel lock held in all filesystems.
- */
 struct file_operations {
 	struct module *owner;
 	loff_t (*llseek) (struct file *, loff_t, int);
@@ -1703,8 +1699,6 @@ struct file_operations {
 	long (*fallocate)(struct file *file, int mode, loff_t offset,
 			  loff_t len);
 };
-
-#define IPERM_FLAG_RCU	0x0001
 
 struct inode_operations {
 	struct dentry * (*lookup) (struct inode *,struct dentry *, struct nameidata *);
@@ -1777,6 +1771,8 @@ struct super_operations {
 	ssize_t (*quota_write)(struct super_block *, int, const char *, size_t, loff_t);
 #endif
 	int (*bdev_try_to_free_page)(struct super_block*, struct page*, gfp_t);
+	int (*nr_cached_objects)(struct super_block *);
+	void (*free_cached_objects)(struct super_block *, int);
 };
 
 /*
@@ -2601,6 +2597,10 @@ static inline ssize_t blockdev_direct_IO_bvec_no_locking(int rw,
 {
 	return __blockdev_direct_IO_bvec(rw, iocb, inode, bdev, bvec, offset,
 				bvec_len, get_block, end_io, NULL, 0);
+}
+#else
+static inline void inode_dio_wait(struct inode *inode)
+{
 }
 #endif
 

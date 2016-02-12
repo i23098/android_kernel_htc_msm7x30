@@ -1655,13 +1655,6 @@ struct dentry *d_add_ci(struct dentry *dentry, struct inode *inode,
 	}
 
 	/*
-	 * We are going to instantiate this dentry, unhash it and clear the
-	 * lookup flag so we can do that.
-	 */
-	if (unlikely(d_need_lookup(found)))
-		d_clear_need_lookup(found);
-
-	/*
 	 * Negative dentry: instantiate it unless the inode is a directory and
 	 * already has a dentry.
 	 */

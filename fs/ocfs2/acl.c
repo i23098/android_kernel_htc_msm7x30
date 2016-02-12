@@ -297,6 +297,9 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type)
 	struct posix_acl *acl;
 	int ret = -EAGAIN;
 
+	if (mask & MAY_NOT_BLOCK)
+		return -ECHILD;
+
 	osb = OCFS2_SB(inode->i_sb);
 	if (!(osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL))
 		return NULL;
