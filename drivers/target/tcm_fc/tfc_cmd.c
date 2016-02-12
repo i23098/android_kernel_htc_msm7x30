@@ -646,3 +646,42 @@ static void ft_send_work(struct work_struct *work)
 err:
 	ft_send_resp_code_and_free(cmd, FCP_CMND_FIELDS_INVALID);
 }
+
+/*
+ * Handle request in the command thread.
+ */
+static void ft_exec_req(struct ft_cmd *cmd)
+{
+	pr_debug("cmd state %x\n", cmd->state);
+	switch (cmd->state) {
+	case FC_CMD_ST_NEW:
+		ft_send_cmd(cmd);
+		break;
+	default:
+		break;
+	}
+}
+
+/*
+ * Processing thread.
+ * Currently one thread per tpg.
+ */
+int ft_thread(void *arg)
+{
+	struct ft_tpg *tpg = arg;
+	struct se_queue_obj *qobj = &tpg->qobj;
+	struct ft_cmd *cmd;
+
+	while (!kthread_should_stop()) {
+		schedule_timeout_interruptible(MAX_SCHEDULE_TIMEOUT);
+		if (kthread_should_stop())
+			goto out;
+
+		cmd = ft_dequeue_cmd(qobj);
+		if (cmd)
+			ft_exec_req(cmd);
+	}
+
+out:
+	return 0;
+}
