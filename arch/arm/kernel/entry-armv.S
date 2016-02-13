@@ -43,6 +43,37 @@
 9997:
 	.endm
 
+	.macro	pabt_helper
+	mov	r0, r2			@ pass address of aborted instruction.
+#ifdef MULTI_PABORT
+	ldr	ip, .LCprocfns
+	mov	lr, pc
+	ldr	pc, [ip, #PROCESSOR_PABT_FUNC]
+#else
+	bl	CPU_PABORT_HANDLER
+#endif
+	.endm
+
+	.macro	dabt_helper
+
+	@
+	@ Call the processor-specific abort handler:
+	@
+	@  r2 - aborted context pc
+	@  r3 - aborted context cpsr
+	@
+	@ The abort handler must return the aborted address in r0, and
+	@ the fault status register in r1.  r9 must be preserved.
+	@
+#ifdef MULTI_DABORT
+	ldr	ip, .LCprocfns
+	mov	lr, pc
+	ldr	pc, [ip, #PROCESSOR_DABT_FUNC]
+#else
+	bl	CPU_DABORT_HANDLER
+#endif
+	.endm
+
 #ifdef CONFIG_KPROBES
 	.section	.kprobes.text,"ax",%progbits
 #else
@@ -158,22 +189,7 @@ __dabt_svc:
 	tst	r3, #PSR_I_BIT
 	biceq	r9, r9, #PSR_I_BIT
 
-	@
-	@ Call the processor-specific abort handler:
-	@
-	@  r2 - aborted context pc
-	@  r3 - aborted context cpsr
-	@
-	@ The abort handler must return the aborted address in r0, and
-	@ the fault status register in r1.  r9 must be preserved.
-	@
-#ifdef MULTI_DABORT
-	ldr	r4, .LCprocfns
-	mov	lr, pc
-	ldr	pc, [r4, #PROCESSOR_DABT_FUNC]
-#else
-	bl	CPU_DABORT_HANDLER
-#endif
+	dabt_helper
 
 	@
 	@ set desired IRQ state, then call main handler
@@ -217,8 +233,9 @@ __irq_svc:
 #endif
 	ldr	r4, [sp, #S_PSR]		@ irqs are already disabled
 #ifdef CONFIG_TRACE_IRQFLAGS
-	tst	r4, #PSR_I_BIT
-	bleq	trace_hardirqs_on
+	@ The parent context IRQs must have been enabled to get here in
+	@ the first place, so there's no point checking the PSR I bit.
+	bl	trace_hardirqs_on
 #endif
 	svc_exit r4				@ return from exception
  UNWIND(.fnend		)
@@ -293,14 +310,7 @@ __pabt_svc:
 	tst	r3, #PSR_I_BIT
 	biceq	r9, r9, #PSR_I_BIT
 
-	mov	r0, r2			@ pass address of aborted instruction.
-#ifdef MULTI_PABORT
-	ldr	r4, .LCprocfns
-	mov	lr, pc
-	ldr	pc, [r4, #PROCESSOR_PABT_FUNC]
-#else
-	bl	CPU_PABORT_HANDLER
-#endif
+	pabt_helper
 	debug_entry r1
 	msr	cpsr_c, r9			@ Maybe enable interrupts
 	mov	r2, sp				@ regs
@@ -396,23 +406,7 @@ ENDPROC(__pabt_svc)
 __dabt_usr:
 	usr_entry
 	kuser_cmpxchg_check
-
-	@
-	@ Call the processor-specific abort handler:
-	@
-	@  r2 - aborted context pc
-	@  r3 - aborted context cpsr
-	@
-	@ The abort handler must return the aborted address in r0, and
-	@ the fault status register in r1.
-	@
-#ifdef MULTI_DABORT
-	ldr	r4, .LCprocfns
-	mov	lr, pc
-	ldr	pc, [r4, #PROCESSOR_DABT_FUNC]
-#else
-	bl	CPU_DABORT_HANDLER
-#endif
+	dabt_helper
 
 	@
 	@ IRQs on, then call the main handler
@@ -662,15 +656,7 @@ ENDPROC(__und_usr_unknown)
 	.align	5
 __pabt_usr:
 	usr_entry
-
-	mov	r0, r2			@ pass address of aborted instruction.
-#ifdef MULTI_PABORT
-	ldr	r4, .LCprocfns
-	mov	lr, pc
-	ldr	pc, [r4, #PROCESSOR_PABT_FUNC]
-#else
-	bl	CPU_PABORT_HANDLER
-#endif
+	pabt_helper
 	debug_entry r1
 	enable_irq				@ Enable interrupts
 	mov	r2, sp				@ regs
