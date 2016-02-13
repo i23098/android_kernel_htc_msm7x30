@@ -56,14 +56,13 @@
 	.endm
 
 	.macro	dabt_helper
-	mov	r2, r4
-	mov	r3, r5
 
 	@
 	@ Call the processor-specific abort handler:
 	@
-	@  r2 - aborted context pc
-	@  r3 - aborted context cpsr
+	@  r2 - pt_regs
+	@  r4 - aborted context pc
+	@  r5 - aborted context psr
 	@
 	@ The abort handler must return the aborted address in r0, and
 	@ the fault status register in r1.  r9 must be preserved.
@@ -188,23 +187,14 @@ ENDPROC(__und_invalid)
 	.align	5
 __dabt_svc:
 	svc_entry
-	dabt_helper
-
-	@
-	@ call main handler
-	@
 	mov	r2, sp
-	bl	do_DataAbort
+	dabt_helper
 
 	@
 	@ IRQs off again before pulling preserved data off the stack
 	@
 	disable_irq_notrace
 
-	@
-	@ restore SPSR and restart the instruction
-	@
-	ldr	r5, [sp, #S_PSR]
 #ifdef CONFIG_TRACE_IRQFLAGS
 	tst	r5, #PSR_I_BIT
 	bleq	trace_hardirqs_on
@@ -229,7 +219,7 @@ __irq_svc:
 	tst	r0, #_TIF_NEED_RESCHED
 	blne	svc_preempt
 #endif
-	ldr	r5, [sp, #S_PSR]
+
 #ifdef CONFIG_TRACE_IRQFLAGS
 	@ The parent context IRQs must have been enabled to get here in
 	@ the first place, so there's no point checking the PSR I bit.
@@ -314,10 +304,6 @@ __pabt_svc:
 	@
 	disable_irq_notrace
 
-	@
-	@ restore SPSR and restart the instruction
-	@
-	ldr	r5, [sp, #S_PSR]
 #ifdef CONFIG_TRACE_IRQFLAGS
 	tst	r5, #PSR_I_BIT
 	bleq	trace_hardirqs_on
@@ -409,11 +395,9 @@ ENDPROC(__pabt_svc)
 __dabt_usr:
 	usr_entry
 	kuser_cmpxchg_check
-	dabt_helper
-
 	mov	r2, sp
-	adr	lr, BSYM(ret_from_exception)
-	b	do_DataAbort
+	dabt_helper
+	b	ret_from_exception
  UNWIND(.fnend		)
 ENDPROC(__dabt_usr)
 
