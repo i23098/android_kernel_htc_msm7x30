@@ -296,7 +296,7 @@ __v7_ca9mp_setup:
 	mov	r10, #(1 << 0)			@ TLB ops broadcasting
 	b	1f
 __v7_ca15mp_setup:
-	mov     r10, #0
+	mov	r10, #0
 1:
 #ifdef CONFIG_SMP
 	ALT_SMP(mrc	p15, 0, r0, c1, c0, 1)
