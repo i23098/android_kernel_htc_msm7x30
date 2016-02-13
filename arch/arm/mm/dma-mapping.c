@@ -30,12 +30,10 @@
 #include <asm/tlbflush.h>
 #include <asm/sizes.h>
 #include <asm/mach/arch.h>
+#include <asm/dma-iommu.h>
 #include <asm/mach/map.h>
 #include <asm/system_info.h>
 #include <asm/dma-contiguous.h>
-#include <asm/dma-iommu.h>
-
-#include "mm.h"
 
 /*
  * The DMA API is built upon the notion of "buffer ownership".  A buffer
@@ -135,6 +133,8 @@ struct dma_map_ops arm_dma_ops = {
 	.set_dma_mask		= arm_dma_set_mask,
 };
 EXPORT_SYMBOL(arm_dma_ops);
+
+#include "mm.h"
 
 static u64 get_coherent_dma_mask(struct device *dev)
 {
@@ -664,13 +664,13 @@ static inline pgprot_t __get_dma_pgprot(struct dma_attrs *attrs, pgprot_t prot)
 
 #define nommu() 1
 
+#define __get_dma_pgprot(attrs, prot)	__pgprot(0)
 #define __alloc_remap_buffer(dev, size, gfp, prot, ret, c)	NULL
 #define __alloc_from_pool(dev, size, ret_page, c)		NULL
 #define __alloc_from_contiguous(dev, size, prot, ret, w)	NULL
 #define __free_from_pool(cpu_addr, size)			0
 #define __free_from_contiguous(dev, page, size)			do { } while (0)
 #define __dma_free_remap(cpu_addr, size)			do { } while (0)
-#define __get_dma_pgprot(attrs, prot)				__pgprot(0)
 
 #endif	/* CONFIG_MMU */
 
@@ -818,7 +818,6 @@ static void dma_cache_maint_page(struct page *page, unsigned long offset,
 	void (*op)(const void *, size_t, int))
 {
 	unsigned long pfn;
-	size_t left = size;
 
 	pfn = page_to_pfn(page) + offset / PAGE_SIZE;
 	offset %= PAGE_SIZE;
@@ -829,6 +828,7 @@ static void dma_cache_maint_page(struct page *page, unsigned long offset,
 	 * If highmem is not configured then the bulk of this loop gets
 	 * optimized out.
 	 */
+	size_t left = size;
 	do {
 		size_t len = left;
 		void *vaddr;

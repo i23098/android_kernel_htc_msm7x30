@@ -307,4 +307,12 @@
 #endif
 	.endm
 
+/* Utility macro for declaring string literals */
+	.macro	string name:req, string
+	.type \name , #object
+\name:
+	.asciz "\string"
+	.size \name , . - \name
+	.endm
+
 #endif /* __ASM_ASSEMBLER_H__ */

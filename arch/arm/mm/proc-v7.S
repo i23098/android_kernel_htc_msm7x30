@@ -59,16 +59,19 @@ ENDPROC(cpu_v7_proc_fin)
  *	to what would be the reset vector.
  *
  *	- loc   - location to jump to for soft reset
+ *
+ *	This code must be executed using a flat identity mapping with
+ *      caches disabled.
  */
 	.align	5
 ENTRY(cpu_v7_reset)
-	mrc     p15, 0, r1, c1, c0, 0           @ ctrl register
-	bic     r1, r1, #0x0001                 @ ...............m
-        mcr     p15, 0, r1, c1, c0, 0           @ Turn off MMU
-        mcr     p15, 0, ip, c8, c7, 0           @ invalidate I & D,flush TLB
-        mcr     p15, 0, ip, c7, c5, 6           @ flush BTC
-        dsb
-        isb
+	mrc	p15, 0, r1, c1, c0, 0		@ ctrl register
+	bic	r1, r1, #0x0001			@ ...............m
+	mcr	p15, 0, r1, c1, c0, 0		@ Turn off MMU
+	mcr	p15, 0, ip, c8, c7, 0		@ invalidate I & D,flush TLB
+	mcr	p15, 0, ip, c7, c5, 6		@ flush BTC
+	dsb
+	isb
 	mov     pc,r0
 ENDPROC(cpu_v7_reset)
 
@@ -186,8 +189,7 @@ ENTRY(cpu_v7_set_pte_ext)
 	mov	pc, lr
 ENDPROC(cpu_v7_set_pte_ext)
 
-cpu_v7_name:
-	.ascii	"ARMv7 Processor"
+	string	cpu_v7_name, "ARMv7 Processor"
 	.align
 
 	/*
@@ -274,9 +276,6 @@ ENDPROC(cpu_v7_do_resume)
 cpu_resume_l1_flags:
 	ALT_SMP(.long PMD_TYPE_SECT | PMD_SECT_AP_WRITE | PMD_FLAGS_SMP)
 	ALT_UP(.long  PMD_TYPE_SECT | PMD_SECT_AP_WRITE | PMD_FLAGS_UP)
-#else
-#define cpu_v7_do_suspend	0
-#define cpu_v7_do_resume	0
 #endif
 
 	__CPUINIT
@@ -294,18 +293,18 @@ cpu_resume_l1_flags:
  */
 __v7_ca5mp_setup:
 __v7_ca9mp_setup:
-	mov     r10, #(1 << 0)                  @ TLB ops broadcasting
-	b       1f
+	mov	r10, #(1 << 0)			@ TLB ops broadcasting
+	b	1f
 __v7_ca15mp_setup:
 	mov     r10, #0
 1:
 #ifdef CONFIG_SMP
-	ALT_SMP(mrc     p15, 0, r0, c1, c0, 1)
-	ALT_UP(mov      r0, #(1 << 6))          @ fake it for UP
+	ALT_SMP(mrc	p15, 0, r0, c1, c0, 1)
+	ALT_UP(mov	r0, #(1 << 6))		@ fake it for UP
 	tst	r0, #(1 << 6)			@ SMP/nAMP mode enabled?
-	orreq   r0, r0, #(1 << 6)               @ Enable SMP/nAMP mode
-	orreq   r0, r0, r10                     @ Enable CPU-specific SMP bits
-	mcreq   p15, 0, r0, c1, c0, 1
+	orreq	r0, r0, #(1 << 6)		@ Enable SMP/nAMP mode
+	orreq	r0, r0, r10			@ Enable CPU-specific SMP bits
+	mcreq	p15, 0, r0, c1, c0, 1
 #endif
 __v7_setup:
 	adr	r12, __v7_setup_stack		@ the local stack
@@ -468,33 +467,13 @@ __v7_setup_stack:
 
 	__INITDATA
 
-	.type	v7_processor_functions, #object
-ENTRY(v7_processor_functions)
-	.word	v7_early_abort
-	.word	v7_pabort
-	.word	cpu_v7_proc_init
-	.word	cpu_v7_proc_fin
-	.word	cpu_v7_reset
-	.word	cpu_v7_do_idle
-	.word	cpu_v7_dcache_clean_area
-	.word	cpu_v7_switch_mm
-	.word	cpu_v7_set_pte_ext
-	.word	cpu_v7_suspend_size
-	.word	cpu_v7_do_suspend
-	.word	cpu_v7_do_resume
-	.size	v7_processor_functions, . - v7_processor_functions
+	@ define struct processor (see <asm/proc-fns.h> and proc-macros.S)
+	define_processor_functions v7, dabort=v7_early_abort, pabort=v7_pabort, suspend=1
 
 	.section ".rodata"
 
-	.type	cpu_arch_name, #object
-cpu_arch_name:
-	.asciz	"armv7"
-	.size	cpu_arch_name, . - cpu_arch_name
-
-	.type	cpu_elf_name, #object
-cpu_elf_name:
-	.asciz	"v7"
-	.size	cpu_elf_name, . - cpu_elf_name
+	string	cpu_arch_name, "armv7"
+	string	cpu_elf_name, "v7"
 	.align
 
 	.section ".proc.info.init", #alloc, #execinstr
@@ -541,15 +520,15 @@ __v7_ca9mp_proc_info:
 	__v7_proc __v7_ca9mp_setup
 	.size	__v7_ca9mp_proc_info, . - __v7_ca9mp_proc_info
 
-        /*
+	/*
 	 * ARM Ltd. Cortex A15 processor.
 	 */
-	.type   __v7_ca15mp_proc_info, #object
+	.type	__v7_ca15mp_proc_info, #object
 __v7_ca15mp_proc_info:
-	.long   0x410fc0f0
-	.long   0xff0ffff0
+	.long	0x410fc0f0
+	.long	0xff0ffff0
 	__v7_proc __v7_ca15mp_setup, hwcaps = HWCAP_IDIV
-	.size   __v7_ca15mp_proc_info, . - __v7_ca15mp_proc_info
+	.size	__v7_ca15mp_proc_info, . - __v7_ca15mp_proc_info
 
 	/*
 	 * Match any ARMv7 processor core.
