@@ -369,3 +369,7 @@ ENTRY(v7_cache_fns)
 	.long	v7_dma_clean_range
 	.long	v7_dma_flush_range
 	.size	v7_cache_fns, . - v7_cache_fns
+#if 0
+	@ define struct cpu_cache_fns (see <asm/cacheflush.h> and proc-macros.S)
+	define_cache_functions v7
+#endif
