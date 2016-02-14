@@ -8,7 +8,6 @@
 #include <linux/blkdev.h>
 #include <linux/interrupt.h>
 #include <linux/cpu.h>
-#include <linux/sched.h>
 
 #include "blk.h"
 
