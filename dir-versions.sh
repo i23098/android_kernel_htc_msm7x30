@@ -132,5 +132,6 @@ git checkout HEAD -- arch/arm/include/asm/exec.h include/asm-generic/mman-common
 git checkout HEAD arch/arm/include/asm/dma-mapping.h arch/arm/mm/dma-mapping.c arch/arm/common/dmabounce.c
 
 ####v3.1
-rm -rf drivers/gpu/drm/
-git checkout HEAD scripts/kconfig/confdata.c drivers/tty/serial/sh-sci.c arch/arm/mach-imx/mach-mx31_3ds.c drivers/gpu/drm/
+rm -rf drivers/gpu/drm/ arch/arm/mach-exynos4 arch/arm/mach-davinci arch/arm/mach-mx5 arch/arm/mach-imx
+git checkout HEAD -- scripts/kconfig/confdata.c drivers/tty/serial/sh-sci.c arch/arm/mach-imx/mach-mx31_3ds.c drivers/gpu/drm/ arch/arm/mach-exynos4 arch/arm/mach-davinci arch/arm/mach-mx5 arch/arm/mach-imx
+
