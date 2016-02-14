@@ -132,4 +132,4 @@ git checkout HEAD -- arch/arm/include/asm/exec.h include/asm-generic/mman-common
 git checkout HEAD arch/arm/include/asm/dma-mapping.h arch/arm/mm/dma-mapping.c arch/arm/common/dmabounce.c
 
 ####v3.1
-git checkout HEAD scripts/kconfig/confdata.c drivers/tty/serial/sh-sci.c
+git checkout HEAD scripts/kconfig/confdata.c drivers/tty/serial/sh-sci.c arch/arm/mach-imx/mach-mx31_3ds.c
