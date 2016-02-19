@@ -67,9 +67,8 @@ void vpa_init(int cpu)
 	ret = register_vpa(hwcpu, addr);
 
 	if (ret) {
-		printk(KERN_ERR "WARNING: vpa_init: VPA registration for "
-				"cpu %d (hw %d) of area %lx returns %ld\n",
-				cpu, hwcpu, addr, ret);
+		pr_err("WARNING: VPA registration for cpu %d (hw %d) of area "
+		       "%lx failed with %ld\n", cpu, hwcpu, addr, ret);
 		return;
 	}
 	/*
@@ -80,10 +79,9 @@ void vpa_init(int cpu)
 	if (firmware_has_feature(FW_FEATURE_SPLPAR)) {
 		ret = register_slb_shadow(hwcpu, addr);
 		if (ret)
-			printk(KERN_ERR
-			       "WARNING: vpa_init: SLB shadow buffer "
-			       "registration for cpu %d (hw %d) of area %lx "
-			       "returns %ld\n", cpu, hwcpu, addr, ret);
+			pr_err("WARNING: SLB shadow buffer registration for "
+			       "cpu %d (hw %d) of area %lx failed with %ld\n",
+			       cpu, hwcpu, addr, ret);
 	}
 
 	/*
@@ -100,8 +98,9 @@ void vpa_init(int cpu)
 		dtl->enqueue_to_dispatch_time = DISPATCH_LOG_BYTES;
 		ret = register_dtl(hwcpu, __pa(dtl));
 		if (ret)
-			pr_warn("DTL registration failed for cpu %d (%ld)\n",
-				cpu, ret);
+			pr_err("WARNING: DTL registration of cpu %d (hw %d) "
+			       "failed with %ld\n", smp_processor_id(),
+			       hwcpu, ret);
 		lppaca_of(cpu).dtl_enable_mask = 2;
 	}
 }
@@ -186,13 +185,7 @@ static long pSeries_lpar_hpte_remove(unsigned long hpte_group)
 					   (0x1UL << 4), &dummy1, &dummy2);
 		if (lpar_rc == H_SUCCESS)
 			return i;
-
-		/*
-		 * The test for adjunct partition is performed before the
-		 * ANDCOND test.  H_RESOURCE may be returned, so we need to
-		 * check for that as well.
-		 */
-		BUG_ON(lpar_rc != H_NOT_FOUND && lpar_rc != H_RESOURCE);
+		BUG_ON(lpar_rc != H_NOT_FOUND);
 
 		slot_offset++;
 		slot_offset &= 0x7;
@@ -560,7 +553,6 @@ void __trace_hcall_entry(unsigned long opcode, unsigned long *args)
 		goto out;
 
 	(*depth)++;
-	preempt_disable();
 	trace_hcall_entry(opcode, args);
 	(*depth)--;
 
@@ -583,7 +575,6 @@ void __trace_hcall_exit(long opcode, unsigned long retval,
 
 	(*depth)++;
 	trace_hcall_exit(opcode, retval, retbuf);
-	preempt_enable();
 	(*depth)--;
 
 out:

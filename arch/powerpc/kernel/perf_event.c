@@ -865,7 +865,6 @@ static void power_pmu_start(struct perf_event *event, int ef_flags)
 {
 	unsigned long flags;
 	s64 left;
-	unsigned long val;
 
 	if (!event->hw.idx || !event->hw.sample_period)
 		return;
@@ -881,12 +880,7 @@ static void power_pmu_start(struct perf_event *event, int ef_flags)
 
 	event->hw.state = 0;
 	left = local64_read(&event->hw.period_left);
-
-	val = 0;
-	if (left < 0x80000000L)
-		val = 0x80000000L - left;
-
-	write_pmc(event->hw.idx, val);
+	write_pmc(event->hw.idx, left);
 
 	perf_event_update_userpage(event);
 	perf_pmu_enable(event->pmu);
@@ -1414,7 +1408,7 @@ power_pmu_notifier(struct notifier_block *self, unsigned long action, void *hcpu
 	return NOTIFY_OK;
 }
 
-int register_power_pmu(struct power_pmu *pmu)
+int __cpuinit register_power_pmu(struct power_pmu *pmu)
 {
 	if (ppmu)
 		return -EBUSY;		/* something's already registered */
