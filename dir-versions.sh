@@ -140,7 +140,7 @@ git checkout HEAD -- drivers/target/iscsi drivers/md arch/sparc drivers/watchdog
 
 ####v3.2
 rm -rf fs/ceph include/linux/ceph
-git checkout HEAD -- include/linux/blkdev.h fs/ext3/fsync.c fs/ceph include/linux/ceph
+git checkout HEAD -- include/linux/blkdev.h fs/ext3/fsync.c fs/ceph include/linux/ceph include/linux/irqdomain.h
 
 ####v3.4
 git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c include/linux/filter.h include/linux/mmzone.h include/linux/swap.h lib/crc32.c
