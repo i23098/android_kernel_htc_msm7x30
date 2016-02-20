@@ -142,6 +142,7 @@ git checkout HEAD -- drivers/scsi/qla2xxx tools/power/cpupower
 ####v3.2
 rm -rf fs/ceph include/linux/ceph
 git checkout HEAD -- include/linux/blkdev.h fs/ext3/fsync.c fs/ceph include/linux/ceph include/linux/irqdomain.h include/linux/mm_types.h
+git checkout HEAD -- fs/pstore/inode.c fs/pstore/platform.c include/linux/pstore.h
 
 ####v3.4
 git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c include/linux/filter.h include/linux/mmzone.h include/linux/swap.h lib/crc32.c include/linux/kconfig.h 
