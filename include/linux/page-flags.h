@@ -227,10 +227,10 @@ CLEARPAGEFLAG(KsmScan0, ksm_scan0) TESTSETFLAG(KsmScan0, ksm_scan0)
 CLEARPAGEFLAG(KsmScan1, ksm_scan1) TESTSETFLAG(KsmScan1, ksm_scan1)
 #endif
 
-
 #ifdef CONFIG_CLEANCACHE
 PAGEFLAG(WasActive, was_active)
 #endif
+
 /*
  * Private page markings that may be used by the filesystem that owns the page
  * for its own purposes.
