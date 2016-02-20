@@ -180,9 +180,6 @@ struct mapped_device {
 	/* forced geometry settings */
 	struct hd_geometry geometry;
 
-	/* For saving the address of __make_request for request based dm */
-	make_request_fn *saved_make_request_fn;
-
 	/* sysfs handle */
 	struct kobject kobj;
 
@@ -1043,8 +1040,14 @@ static struct bio *split_bvec(struct bio *bio, sector_t sector,
 {
 	struct bio *clone;
 	struct bio_vec *bv = bio->bi_io_vec + idx;
+	int rc;
 
 	clone = bio_alloc_bioset(GFP_NOIO, 1, bs);
+	if (!clone) {
+		printk(KERN_WARNING "%s : %s() failed\n", __FILE__, __func__);
+		BUG_ON(1);
+	}
+
 	clone->bi_destructor = dm_bio_destructor;
 	*clone->bi_io_vec = *bv;
 
@@ -1058,7 +1061,7 @@ static struct bio *split_bvec(struct bio *bio, sector_t sector,
 	clone->bi_flags |= 1 << BIO_CLONED;
 
 	if (bio_integrity(bio)) {
-		bio_integrity_clone(clone, bio, GFP_NOIO, bs);
+		rc = bio_integrity_clone(clone, bio, GFP_NOIO, bs);
 		bio_integrity_trim(clone,
 				   bio_sector_offset(bio, idx, offset), len);
 	}
@@ -1074,8 +1077,13 @@ static struct bio *clone_bio(struct bio *bio, sector_t sector,
 			     unsigned int len, struct bio_set *bs)
 {
 	struct bio *clone;
+	int rc;
 
 	clone = bio_alloc_bioset(GFP_NOIO, bio->bi_max_vecs, bs);
+	if (!clone) {
+		printk(KERN_WARNING "%s : %s() failed\n", __FILE__, __func__);
+		BUG_ON(1);
+	}
 	__bio_clone(clone, bio);
 	clone->bi_destructor = dm_bio_destructor;
 	clone->bi_sector = sector;
@@ -1085,7 +1093,7 @@ static struct bio *clone_bio(struct bio *bio, sector_t sector,
 	clone->bi_flags &= ~(1 << BIO_SEG_VALID);
 
 	if (bio_integrity(bio)) {
-		bio_integrity_clone(clone, bio, GFP_NOIO, bs);
+		rc = bio_integrity_clone(clone, bio, GFP_NOIO, bs);
 
 		if (idx != bio->bi_idx || clone->bi_size < bio->bi_size)
 			bio_integrity_trim(clone,
@@ -1121,6 +1129,10 @@ static void __issue_target_request(struct clone_info *ci, struct dm_target *ti,
 	 * and discard, so no need for concern about wasted bvec allocations.
 	 */
 	clone = bio_alloc_bioset(GFP_NOIO, ci->bio->bi_max_vecs, ci->md->bs);
+	if (!clone) {
+		printk(KERN_WARNING "%s : %s() failed\n", __FILE__, __func__);
+		BUG_ON(1);
+	}
 	__bio_clone(clone, ci->bio);
 	clone->bi_destructor = dm_bio_destructor;
 	if (len) {
@@ -1391,7 +1403,7 @@ out:
  * The request function that just remaps the bio built up by
  * dm_merge_bvec.
  */
-static int _dm_request(struct request_queue *q, struct bio *bio)
+static void _dm_request(struct request_queue *q, struct bio *bio)
 {
 	int rw = bio_data_dir(bio);
 	struct mapped_device *md = q->queuedata;
@@ -1412,19 +1424,12 @@ static int _dm_request(struct request_queue *q, struct bio *bio)
 			queue_io(md, bio);
 		else
 			bio_io_error(bio);
-		return 0;
+		return;
 	}
 
 	__split_and_process_bio(md, bio);
 	up_read(&md->io_lock);
-	return 0;
-}
-
-static int dm_make_request(struct request_queue *q, struct bio *bio)
-{
-	struct mapped_device *md = q->queuedata;
-
-	return md->saved_make_request_fn(q, bio); /* call __make_request() */
+	return;
 }
 
 static int dm_request_based(struct mapped_device *md)
@@ -1432,14 +1437,14 @@ static int dm_request_based(struct mapped_device *md)
 	return blk_queue_stackable(md->queue);
 }
 
-static int dm_request(struct request_queue *q, struct bio *bio)
+static void dm_request(struct request_queue *q, struct bio *bio)
 {
 	struct mapped_device *md = q->queuedata;
 
 	if (dm_request_based(md))
-		return dm_make_request(q, bio);
-
-	return _dm_request(q, bio);
+		blk_queue_bio(q, bio);
+	else
+		_dm_request(q, bio);
 }
 
 void dm_dispatch_request(struct request *rq)
@@ -2172,7 +2177,6 @@ static int dm_init_request_based_queue(struct mapped_device *md)
 		return 0;
 
 	md->queue = q;
-	md->saved_make_request_fn = md->queue->make_request_fn;
 	dm_init_md_queue(md);
 	blk_queue_softirq_done(md->queue, dm_softirq_done);
 	blk_queue_prep_rq(md->queue, dm_prep_fn);
