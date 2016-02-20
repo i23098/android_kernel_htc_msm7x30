@@ -55,7 +55,6 @@ static void bdev_inode_switch_bdi(struct inode *inode,
 			struct backing_dev_info *dst)
 {
 	struct backing_dev_info *old = inode->i_data.backing_dev_info;
-	bool wakeup_bdi = false;
 
 	if (unlikely(dst == old))		/* deadlock avoidance */
 		return;
@@ -67,9 +66,6 @@ static void bdev_inode_switch_bdi(struct inode *inode,
 	spin_unlock(&inode->i_lock);
 	spin_unlock(&old->wb.list_lock);
 	spin_unlock(&dst->wb.list_lock);
-
-	if (wakeup_bdi)
-		bdi_wakeup_thread_delayed(dst);
 }
 
 static sector_t max_block(struct block_device *bdev)
@@ -92,7 +88,7 @@ static void kill_bdev(struct block_device *bdev)
 		return;
 	invalidate_bh_lrus();
 	truncate_inode_pages(bdev->bd_inode->i_mapping, 0);
-}
+}	
 
 int set_blocksize(struct block_device *bdev, int size)
 {
@@ -261,7 +257,6 @@ struct super_block *freeze_bdev(struct block_device *bdev)
 		 * thaw_bdev drops it.
 		 */
 		sb = get_super(bdev);
-		BUG_ON(sb == NULL);
 		drop_super(sb);
 		mutex_unlock(&bdev->bd_fsfreeze_mutex);
 		return sb;
@@ -386,17 +381,13 @@ out:
 	mutex_unlock(&bd_inode->i_mutex);
 	return retval;
 }
-
+	
 int blkdev_fsync(struct file *filp, loff_t start, loff_t end, int datasync)
 {
 	struct inode *bd_inode = filp->f_mapping->host;
 	struct block_device *bdev = I_BDEV(bd_inode);
 	int error;
 	
-	error = filemap_write_and_wait_range(filp->f_mapping, start, end);
-	if (error)
-		return error;
-
 	error = filemap_write_and_wait_range(filp->f_mapping, start, end);
 	if (error)
 		return error;
@@ -613,7 +604,7 @@ void bdput(struct block_device *bdev)
 }
 
 EXPORT_SYMBOL(bdput);
-
+ 
 static struct block_device *bd_acquire(struct inode *inode)
 {
 	struct block_device *bdev;

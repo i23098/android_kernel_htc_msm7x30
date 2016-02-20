@@ -14,6 +14,15 @@ DECLARE_PER_CPU(int, dirty_throttle_leaks);
  *
  *	(thresh - thresh/DIRTY_FULL_SCOPE, thresh)
  *
+ * The 1/16 region above the global dirty limit will be put to maximum pauses:
+ *
+ *	(limit, limit + limit/DIRTY_MAXPAUSE_AREA)
+ *
+ * The 1/16 region above the max-pause region, dirty exceeded bdi's will be put
+ * to loops:
+ *
+ *	(limit + limit/DIRTY_MAXPAUSE_AREA, limit + limit/DIRTY_PASSGOOD_AREA)
+ *
  * Further beyond, all dirtier tasks will enter a loop waiting (possibly long
  * time) for the dirty pages to drop, unless written enough pages.
  *
@@ -24,6 +33,13 @@ DECLARE_PER_CPU(int, dirty_throttle_leaks);
  */
 #define DIRTY_SCOPE		8
 #define DIRTY_FULL_SCOPE	(DIRTY_SCOPE / 2)
+#define DIRTY_MAXPAUSE_AREA		16
+#define DIRTY_PASSGOOD_AREA		8
+
+/*
+ * 4MB minimal write chunk size
+ */
+#define MIN_WRITEBACK_PAGES	(4096UL >> (PAGE_CACHE_SHIFT - 10))
 
 struct backing_dev_info;
 
@@ -71,8 +87,6 @@ struct writeback_control {
 	loff_t range_start;
 	loff_t range_end;
 
-	unsigned nonblocking:1;		/* Don't get stuck on request queues */
-	unsigned encountered_congestion:1; /* An output: a queue is full */
 	unsigned for_kupdate:1;		/* A kupdate writeback */
 	unsigned for_background:1;	/* A background writeback */
 	unsigned tagged_writepages:1;	/* tag-and-write to avoid livelock */

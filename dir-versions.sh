@@ -143,4 +143,4 @@ git checkout HEAD -- include/linux/blkdev.h
 git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c
 
 ####v3.3
-git checkout HEAD include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c
+git checkout HEAD include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c mm/backing-dev.c include/trace/events/writeback.h
