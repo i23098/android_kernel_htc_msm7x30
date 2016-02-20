@@ -134,14 +134,14 @@ git checkout HEAD arch/arm/include/asm/dma-mapping.h arch/arm/mm/dma-mapping.c a
 ####v3.1
 rm -rf drivers/gpu/drm/ arch/arm/mach-exynos4 arch/arm/mach-davinci arch/arm/mach-mx5 arch/arm/mach-imx arch/arm/mach-s5pv210 arch/arm/mach-ep93xx drivers/staging arch/powerpc
 git checkout HEAD -- scripts/kconfig/confdata.c drivers/tty/serial/sh-sci.c arch/arm/mach-imx/mach-mx31_3ds.c drivers/gpu/drm/ arch/arm/mach-exynos4 arch/arm/mach-davinci arch/arm/mach-mx5 arch/arm/mach-imx arch/arm/mach-s5pv210 block/blk-softirq.c arch/arm/mach-ep93xx drivers/staging arch/powerpc scripts/checkpatch.pl drivers/rtc/rtc-s3c.c
-git checkout HEAD -- include/linux/mfd/pm8xxx/rtc.h
+git checkout HEAD -- include/linux/mfd/pm8xxx/rtc.h drivers/char/ramoops.c
 
 ####v3.2
 rm -rf fs/ceph include/linux/ceph
 git checkout HEAD -- include/linux/blkdev.h fs/ext3/fsync.c fs/ceph include/linux/ceph
 
 ####v3.4
-git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c
+git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c include/linux/filter.h include/linux/mmzone.h include/linux/swap.h lib/crc32.c
 
 ####v3.3
-git checkout HEAD include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c mm/backing-dev.c include/trace/events/writeback.h
+git checkout HEAD include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c mm/backing-dev.c include/trace/events/writeback.h mm/memcontrol.c mm/vmscan.c

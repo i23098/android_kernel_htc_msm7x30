@@ -46,6 +46,16 @@ extern unsigned long mem_cgroup_isolate_pages(unsigned long nr_to_scan,
 					struct mem_cgroup *mem_cont,
 					int active, int file);
 
+struct memcg_scanrecord {
+	struct mem_cgroup *mem; /* scanend memory cgroup */
+	struct mem_cgroup *root; /* scan target hierarchy root */
+	int context;		/* scanning context (see memcontrol.c) */
+	unsigned long nr_scanned[2]; /* the number of scanned pages */
+	unsigned long nr_rotated[2]; /* the number of rotated pages */
+	unsigned long nr_freed[2]; /* the number of freed pages */
+	unsigned long elapsed; /* nsec of time elapsed while scanning */
+};
+
 #ifdef CONFIG_CGROUP_MEM_RES_CTLR
 /*
  * All "charge" functions with gfp_mask should use GFP_KERNEL or
