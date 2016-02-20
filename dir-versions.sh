@@ -143,7 +143,7 @@ rm -rf fs/ceph include/linux/ceph
 git checkout HEAD -- include/linux/blkdev.h fs/ext3/fsync.c fs/ceph include/linux/ceph include/linux/irqdomain.h
 
 ####v3.4
-git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c include/linux/filter.h include/linux/mmzone.h include/linux/swap.h lib/crc32.c
+git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c include/linux/filter.h include/linux/mmzone.h include/linux/swap.h lib/crc32.c include/linux/kconfig.h
 
 ####v3.3
 git checkout HEAD include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c mm/backing-dev.c include/trace/events/writeback.h mm/memcontrol.c mm/vmscan.c
