@@ -139,7 +139,7 @@ git checkout HEAD -- scripts/kconfig/confdata.c drivers/tty/serial/sh-sci.c arch
 git checkout HEAD -- include/linux/blkdev.h
 
 ####v3.4
-git checkout HEAD -- block/blk-core.c block/cfq-iosched.c
+git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c
 
 ####v3.3
 git checkout HEAD include/linux/iocontext.h block/blk-ioc.c
