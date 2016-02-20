@@ -137,7 +137,8 @@ git checkout HEAD -- scripts/kconfig/confdata.c drivers/tty/serial/sh-sci.c arch
 git checkout HEAD -- include/linux/mfd/pm8xxx/rtc.h
 
 ####v3.2
-git checkout HEAD -- include/linux/blkdev.h fs/ext3/fsync.c
+rm -rf fs/ceph include/linux/ceph
+git checkout HEAD -- include/linux/blkdev.h fs/ext3/fsync.c fs/ceph include/linux/ceph
 
 ####v3.4
 git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c
