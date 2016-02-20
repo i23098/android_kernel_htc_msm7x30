@@ -416,13 +416,5 @@ struct quota_module_name {
 	{QFMT_VFS_V1, "quota_v2"},\
 	{0, NULL}}
 
-#else
-
-# /* nodep */ include <sys/cdefs.h>
-
-__BEGIN_DECLS
-long quotactl __P ((unsigned int, const char *, int, caddr_t));
-__END_DECLS
-
 #endif /* __KERNEL__ */
 #endif /* _QUOTA_ */
