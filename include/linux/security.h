@@ -1372,7 +1372,7 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
  * @inode_getsecctx:
  * 	Returns a string containing all relavent security context information
  *
- * 	@inode we wish to set the security context of.
+ * 	@inode we wish to get the security context of.
  *	@ctx is a pointer in which to place the allocated security context.
  *	@ctxlen points to the place to put the length of @ctx.
  * This is the main security structure.
@@ -1665,6 +1665,8 @@ struct security_operations {
 extern int security_init(void);
 extern int security_module_enable(struct security_operations *ops);
 extern int register_security(struct security_operations *ops);
+extern void __init security_fixup_ops(struct security_operations *ops);
+
 
 /* Security operations */
 int security_binder_set_context_mgr(struct task_struct *mgr);
@@ -2074,7 +2076,16 @@ static inline int security_inode_init_security(struct inode *inode,
 						initxattrs initxattrs,
 						void *fs_data)
 {
-	return -EOPNOTSUPP;
+	return 0;
+}
+
+static inline int security_old_inode_init_security(struct inode *inode,
+						   struct inode *dir,
+						   const struct qstr *qstr,
+						   char **name, void **value,
+						   size_t *len)
+{
+	return 0;
 }
 
 static inline int security_inode_create(struct inode *dir,
