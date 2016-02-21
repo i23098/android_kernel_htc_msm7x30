@@ -188,7 +188,6 @@ struct dentry_operations {
 #define DCACHE_OP_PRUNE         0x0010
 
 #define	DCACHE_DISCONNECTED	0x0020
-
      /* This dentry is possibly not currently connected to the dcache tree, in
       * which case its parent will either be itself, or will have this flag as
       * well.  nfsd will not use a dentry with this bit set, but will first
