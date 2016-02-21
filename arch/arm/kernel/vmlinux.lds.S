@@ -28,8 +28,10 @@
 #if (defined(CONFIG_SMP_ON_UP) && !defined(CONFIG_DEBUG_SPINLOCK)) || \
 	defined(CONFIG_GENERIC_BUG)
 #define ARM_EXIT_KEEP(x)	x
+#define ARM_EXIT_DISCARD(x)
 #else
 #define ARM_EXIT_KEEP(x)
+#define ARM_EXIT_DISCARD(x)	x
 #endif
 
 OUTPUT_ARCH(arm)
@@ -44,6 +46,11 @@ jiffies = jiffies_64 + 4;
 SECTIONS
 {
 	/*
+	 * XXX: The linker does not define how output sections are
+	 * assigned to input sections when there are multiple statements
+	 * matching the same input section name.  There is no documented
+	 * order of matching.
+	 *
 	 * unwind exit sections must be discarded before the rest of the
 	 * unwind sections get included.
 	 */
@@ -52,6 +59,9 @@ SECTIONS
 		*(.ARM.extab.exit.text)
 		ARM_CPU_DISCARD(*(.ARM.exidx.cpuexit.text))
 		ARM_CPU_DISCARD(*(.ARM.extab.cpuexit.text))
+		ARM_EXIT_DISCARD(EXIT_TEXT)
+		ARM_EXIT_DISCARD(EXIT_DATA)
+		EXIT_CALL
 #ifndef CONFIG_HOTPLUG
 		*(.ARM.exidx.devexit.text)
 		*(.ARM.extab.devexit.text)
@@ -63,6 +73,8 @@ SECTIONS
 #ifndef CONFIG_SMP_ON_UP
 		*(.alt.smp.init)
 #endif
+		*(.discard)
+		*(.discard.*)
 	}
 
 #ifdef CONFIG_XIP_KERNEL
@@ -284,9 +296,6 @@ SECTIONS
 
 	STABS_DEBUG
 	.comment 0 : { *(.comment) }
-
-	/* Default discards */
-	DISCARDS
 }
 
 /*
