@@ -150,4 +150,4 @@ git checkout HEAD -- drivers/of/gpio.c drivers/of/gpio.c drivers/regulator/dummy
 git checkout HEAD -- drivers/regulator/twl-regulator.c include/linux/regulator/driver.h include/linux/genalloc.h lib/genalloc.c
 
 ####v3.3
-git checkout HEAD include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c mm/backing-dev.c include/trace/events/writeback.h mm/memcontrol.c mm/vmscan.c
+git checkout HEAD include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c mm/backing-dev.c include/trace/events/writeback.h mm/memcontrol.c mm/vmscan.c include/linux/memcontrol.h
