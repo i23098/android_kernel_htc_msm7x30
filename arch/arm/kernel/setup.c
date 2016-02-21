@@ -44,6 +44,7 @@
 #include <asm/cacheflush.h>
 #include <asm/cachetype.h>
 #include <asm/tlbflush.h>
+#include <asm/system.h>
 
 #include <asm/prom.h>
 #include <asm/mach/arch.h>
@@ -927,7 +928,7 @@ static struct machine_desc * __init setup_machine_tags(unsigned int nr)
 	}
 
 	if (mdesc->fixup)
-		mdesc->fixup(mdesc, tags, &from, &meminfo);
+		mdesc->fixup(tags, &from, &meminfo);
 
 	if (tags->hdr.tag == ATAG_CORE) {
 		if (meminfo.nr_banks != 0)

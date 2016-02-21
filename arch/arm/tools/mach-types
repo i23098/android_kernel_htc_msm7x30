@@ -1,3 +1,4 @@
+# Database of machine macros and numbers
 #
 # This file is linux/arch/arm/tools/mach-types
 #
@@ -11,7 +12,11 @@
 #
 #   http://www.arm.linux.org.uk/developer/machines/?action=new
 #
-# Last update: Fri Oct 14 09:52:40 2011
+# This is a cut-down version of the file; it contains only machines that
+# are merged into mainline or have been edited in the machine database
+# within the last 12 months.  References to machine_is_NAME() do not count!
+#
+# Last update: Sat May 7 08:48:24 2011
 #
 # machine_is_xxx	CONFIG_xxxx		MACH_TYPE_xxx		number
 #
