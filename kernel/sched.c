@@ -3295,7 +3295,7 @@ static void finish_task_switch(struct rq *rq, struct task_struct *prev)
 #ifdef __ARCH_WANT_INTERRUPTS_ON_CTXSW
 	local_irq_disable();
 #endif /* __ARCH_WANT_INTERRUPTS_ON_CTXSW */
-	perf_event_task_sched_in(current);
+	perf_event_task_sched_in(prev, current);
 #ifdef __ARCH_WANT_INTERRUPTS_ON_CTXSW
 	local_irq_enable();
 #endif /* __ARCH_WANT_INTERRUPTS_ON_CTXSW */
@@ -7828,19 +7828,12 @@ static void __sdt_free(const struct cpumask *cpu_map)
 		struct sd_data *sdd = &tl->data;
 
 		for_each_cpu(j, cpu_map) {
-			struct sched_domain *sd;
-
-			if (sdd->sd) {
-				sd = *per_cpu_ptr(sdd->sd, j);
-				if (sd && (sd->flags & SD_OVERLAP))
-					free_sched_groups(sd->groups, 0);
-				kfree(*per_cpu_ptr(sdd->sd, j));
-			}
-
-			if (sdd->sg)
-				kfree(*per_cpu_ptr(sdd->sg, j));
-			if (sdd->sgp)
-				kfree(*per_cpu_ptr(sdd->sgp, j));
+			struct sched_domain *sd = *per_cpu_ptr(sdd->sd, j);
+			if (sd && (sd->flags & SD_OVERLAP))
+				free_sched_groups(sd->groups, 0);
+			kfree(*per_cpu_ptr(sdd->sd, j));
+			kfree(*per_cpu_ptr(sdd->sg, j));
+			kfree(*per_cpu_ptr(sdd->sgp, j));
 		}
 		free_percpu(sdd->sd);
 		sdd->sd = NULL;
@@ -7860,6 +7853,7 @@ struct sched_domain *build_sched_domain(struct sched_domain_topology_level *tl,
 	if (!sd)
 		return child;
 
+	set_domain_attribute(sd, attr);
 	cpumask_and(sched_domain_span(sd), cpu_map, tl->mask(cpu));
 	if (child) {
 		sd->level = child->level + 1;
@@ -7867,7 +7861,6 @@ struct sched_domain *build_sched_domain(struct sched_domain_topology_level *tl,
 		child->parent = sd;
 	}
 	sd->child = child;
-	set_domain_attribute(sd, attr);
 
 	return sd;
 }
