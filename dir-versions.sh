@@ -35,11 +35,6 @@ rm -rf include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/ex
 git checkout HEAD -- include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/exofs fs/gfs2 fs/compat.c
 
 ##########
-# /fs/*.c 3.1
-rm -rf fs/namei.c fs/splice.c fs/stat.c scripts/checkpatch.pl
-git checkout HEAD -- fs/namei.c fs/splice.c fs/stat.c scripts/checkpatch.pl
-
-##########
 # drivers/base/regmap 3.2
 rm -rf drivers/base/regmap include/linux/regmap.h include/trace/events/regmap.h
 git checkout HEAD -- drivers/base/regmap include/linux/regmap.h include/trace/events/regmap.h
@@ -130,14 +125,6 @@ git checkout HEAD -- arch/arm/include/asm/exec.h include/asm-generic/mman-common
 
 ####v3.5
 git checkout HEAD arch/arm/include/asm/dma-mapping.h arch/arm/mm/dma-mapping.c arch/arm/common/dmabounce.c
-
-####v3.1
-rm -rf drivers/gpu/drm/ arch/arm/mach-exynos4 arch/arm/mach-davinci arch/arm/mach-mx5 arch/arm/mach-imx arch/arm/mach-s5pv210 arch/arm/mach-ep93xx drivers/staging arch/powerpc
-rm -rf drivers/target/iscsi drivers/md arch/sparc drivers/watchdog drivers/scsi/qla2xxx tools/power/cpupower arch/x86 drivers/acpi drivers/pci
-git checkout HEAD -- scripts/kconfig/confdata.c drivers/tty/serial/sh-sci.c arch/arm/mach-imx/mach-mx31_3ds.c drivers/gpu/drm/ arch/arm/mach-exynos4 arch/arm/mach-davinci arch/arm/mach-mx5 arch/arm/mach-imx arch/arm/mach-s5pv210 block/blk-softirq.c arch/arm/mach-ep93xx drivers/staging arch/powerpc scripts/checkpatch.pl drivers/rtc/rtc-s3c.c
-git checkout HEAD -- include/linux/mfd/pm8xxx/rtc.h drivers/char/ramoops.c drivers/input/keyboard/gpio_keys.c drivers/input/misc/kxtj9.c drivers/input/misc/mma8450.c drivers/input/misc/mpu3050.c drivers/input/tablet/wacom_wac.c
-git checkout HEAD -- drivers/target/iscsi drivers/md arch/sparc drivers/watchdog drivers/hwmon/coretemp.c drivers/hwmon/ntc_thermistor.c drivers/hwmon/pmbus/lm25066.c drivers/hwmon/pmbus/pmbus.h drivers/hwmon/pmbus/pmbus_core.c
-git checkout HEAD -- drivers/scsi/qla2xxx tools/power/cpupower arch/x86 drivers/acpi drivers/pci
 
 ####v3.2
 rm -rf fs/ceph include/linux/ceph fs/9p
