@@ -441,9 +441,12 @@ struct input_keymap_entry {
 #define KEY_WIMAX		246
 #define KEY_RFKILL		247	/* Key that controls all radios */
 
-#define KEY_CAMCORDER		248	/* key that control Camera recorder */
-#define KEY_APP_SWITCH		249	/* key for list app*/
-#define KEY_WEIBO		250	/* key for weibo, customize*/
+#define KEY_MICMUTE		248	/* Mute / unmute the microphone */
+
+#define KEY_CAMCORDER		249	/* key that control Camera recorder */
+#define KEY_APP_SWITCH		248	/* key for list app*/
+#define KEY_WEIBO		251	/* key for weibo, customize*/
+
 /* Code 255 is reserved for special needs of AT keyboard driver */
 
 #define BTN_MISC		0x100
