@@ -32,8 +32,8 @@
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/mtd/physmap.h>
-#include <video/vga.h>
 #include <linux/clk.h>
+#include <video/vga.h>
 
 #include <mach/hardware.h>
 #include <mach/platform.h>
@@ -54,7 +54,7 @@
 
 #include "common.h"
 
-/* 
+/*
  * All IO addresses are mapped onto VA 0xFFFx.xxxx, where x.xxxx
  * is the (PA >> 12).
  *
