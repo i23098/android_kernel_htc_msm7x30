@@ -227,7 +227,6 @@ config ARM_PATCH_PHYS_VIRT
 	  this feature (eg, building a kernel for a single machine) and
 	  you need to shrink the kernel to the minimal size.
 
-
 config GENERIC_BUG
 	def_bool y
 	depends on BUG
