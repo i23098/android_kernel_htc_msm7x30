@@ -292,14 +292,7 @@ static inline int cpu_is_msm8627(void)
 
 static inline int cpu_is_fsm9xxx(void)
 {
-#ifdef CONFIG_ARCH_FSM9XXX
-	enum msm_cpu cpu = socinfo_get_msm_cpu();
-
-	BUG_ON(cpu == MSM_CPU_UNKNOWN);
-	return cpu == FSM_CPU_9XXX;
-#else
 	return 0;
-#endif
 }
 
 static inline int cpu_is_msm9615(void)

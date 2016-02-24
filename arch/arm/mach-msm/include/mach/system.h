@@ -17,7 +17,7 @@
 
 void arch_idle(void);
 
-#if defined(CONFIG_MSM_NATIVE_RESTART) || defined(CONFIG_ARCH_FSM9XXX)
+#if defined(CONFIG_MSM_NATIVE_RESTART)
 void arch_reset(char mode, const char *cmd);
 #else
 static inline void arch_reset(char mode, const char *cmd)

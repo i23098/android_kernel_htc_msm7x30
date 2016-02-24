@@ -20,10 +20,6 @@
 #include <linux/list.h>
 #include <mach/msm_iomap.h>
 
-#if defined(CONFIG_ARCH_FSM9XXX)
-#include <mach/dma-fsm9xxx.h>
-#endif
-
 struct msm_dmov_errdata {
 	uint32_t flush[6];
 };
@@ -246,9 +242,6 @@ int msm_dmov_exec_cmd(unsigned id, unsigned int cmdptr);
 #define DMOV_NAND_CHAN        3
 #define DMOV_NAND_CRCI_CMD    15
 #define DMOV_NAND_CRCI_DATA   3
-
-#elif defined(CONFIG_ARCH_FSM9XXX)
-/* defined in dma-fsm9xxx.h */
 
 #else
 #define DMOV_GP_CHAN          4

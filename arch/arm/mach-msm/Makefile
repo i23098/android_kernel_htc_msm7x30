@@ -33,9 +33,7 @@ obj-$(CONFIG_MSM_PROC_COMM) += proc_comm.o clock-pcom.o vreg.o
 ifndef CONFIG_ARCH_MSM8X60
 	obj-$(CONFIG_MSM_PROC_COMM) += mpp.o
 	ifdef CONFIG_MSM_PROC_COMM
-ifndef CONFIG_ARCH_FSM9XXX
 		obj-$(CONFIG_REGULATOR) += footswitch-pcom.o
-endif
 		obj-$(CONFIG_DEBUG_FS) += pmic_debugfs.o
 	endif
 endif
@@ -90,7 +88,6 @@ obj-$(CONFIG_ARCH_MSM8X60) += peripheral-reset.o
 obj-$(CONFIG_ARCH_MSM8960) += peripheral-reset-8960.o
 endif
 obj-$(CONFIG_ARCH_QSD8X50) += sirc.o
-obj-$(CONFIG_ARCH_FSM9XXX) += sirc-fsm9xxx.o
 obj-$(CONFIG_MSM_FIQ_SUPPORT) += fiq_glue.o
 obj-$(CONFIG_MACH_TROUT) += board-trout-rfkill.o
 obj-$(CONFIG_MSM_BAM_DMUX) += bam_dmux.o
@@ -225,11 +222,6 @@ ifdef CONFIG_CPU_IDLE
 	obj-$(CONFIG_ARCH_MSM8X60) += cpuidle.o
 	obj-$(CONFIG_ARCH_MSM9615) += cpuidle.o
 endif
-
-obj-$(CONFIG_ARCH_FSM9XXX) += devices-fsm9xxx.o
-obj-$(CONFIG_ARCH_FSM9XXX) += clock-fsm9xxx.o clock-local.o acpuclock-fsm9xxx.o
-obj-$(CONFIG_ARCH_FSM9XXX) += dfe-fsm9xxx.o rfic-fsm9xxx.o
-obj-$(CONFIG_ARCH_FSM9XXX) += restart-fsm9xxx.o xo-fsm9xxx.o
 
 obj-$(CONFIG_MSM_WATCHDOG) += msm_watchdog.o
 obj-$(CONFIG_MSM_WATCHDOG) += htc_watchdog_monitor.o
@@ -519,8 +511,6 @@ obj-$(CONFIG_ARCH_MSM_FLASHLIGHT) += msm_flashlight.o
 obj-$(CONFIG_MACH_KINGDOM) += htc_bdaddress.o board-kingdom-rfkill.o
 
 CFLAGS_msm_vibrator.o += -Idrivers/staging/android
-
-obj-$(CONFIG_ARCH_FSM9XXX) += board-fsm9xxx.o
 
 obj-$(CONFIG_HTC_BATTCHG) += htc_battery.o
 obj-$(CONFIG_HTC_BATT_CORE) += htc_battery_core.o

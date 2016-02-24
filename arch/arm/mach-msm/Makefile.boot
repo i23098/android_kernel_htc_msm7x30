@@ -112,8 +112,3 @@ endif
 
 # MSM9615
    zreladdr-$(CONFIG_ARCH_MSM9615)	:= 0x40808000
-
-# FSM9XXX
-   zreladdr-$(CONFIG_ARCH_FSM9XXX)	:= 0x10008000
-params_phys-$(CONFIG_ARCH_FSM9XXX)	:= 0x10000100
-initrd_phys-$(CONFIG_ARCH_FSM9XXX)	:= 0x12000000

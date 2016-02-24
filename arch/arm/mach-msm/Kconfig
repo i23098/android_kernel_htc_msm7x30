@@ -160,15 +160,6 @@ config ARCH_MSMCOPPER
 	select MSM_GPIOMUX
 	select HAS_MSM_DEBUG_UART_PHYS
 
-config ARCH_FSM9XXX
-	bool "FSM9XXX"
-	select ARCH_MSM_SCORPION
-	select MSM_VIC
-	select CPU_V7
-	select MSM_REMOTE_SPINLOCK_LDREX
-	select FSM9XXX_TLMM
-	select HAS_MSM_DEBUG_UART_PHYS
-
 config ARCH_MSM9615
 	bool "MSM9615"
 	select ARM_GIC
@@ -863,16 +854,6 @@ config MACH_APQ8064_RUMI3
 	help
 	  Support for the Qualcomm APQ8064 RUMI3 emulator.
 
-config MACH_FSM9XXX_SURF
-	depends on ARCH_FSM9XXX
-	depends on !MSM_STACKED_MEMORY
-	default y
-	bool "FSM9XXX SURF"
-	help
-	  Support for the Qualcomm FSM9xxx femtocell
-	  chipset based SURF evaluation board and
-	  FFA board.
-
 config MACH_VILLE
 	depends on ARCH_MSM8960
 	bool "Ville"
@@ -998,7 +979,6 @@ config PHYS_OFFSET
 	default "0x80200000" if ARCH_APQ8064
 	default "0x80400000" if ARCH_MSM8960
 	default "0x80200000" if ARCH_MSMCOPPER
-	default "0x10000000" if ARCH_FSM9XXX
 	default "0x00200000" if !MSM_STACKED_MEMORY
 	default "0x00000000" if ARCH_QSD8X50 && MSM_SOC_REV_A
 	default "0x20000000" if ARCH_QSD8X50

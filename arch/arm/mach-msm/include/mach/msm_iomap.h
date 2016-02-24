@@ -99,8 +99,6 @@
 #include "msm_iomap-8x50.h"
 #elif defined(CONFIG_ARCH_MSM8X60)
 #include "msm_iomap-8x60.h"
-#elif defined(CONFIG_ARCH_FSM9XXX)
-#include "msm_iomap-fsm9xxx.h"
 #else
 #include "msm_iomap-7xxx.h"
 #endif

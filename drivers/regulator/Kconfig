@@ -83,8 +83,8 @@ config REGULATOR_AD5398
 
 config REGULATOR_PMIC8058
         tristate "PMIC8058 regulator driver"
-        depends on PMIC8058 && (ARCH_MSM8X60 || ARCH_FSM9XXX)
-        default y if PMIC8058 && (ARCH_MSM8X60 || ARCH_FSM9XXX)
+        depends on PMIC8058 && ARCH_MSM8X60
+        default y if PMIC8058 && ARCH_MSM8X60
         help
          Say Y here to support the voltage regulators on PMIC8058
 

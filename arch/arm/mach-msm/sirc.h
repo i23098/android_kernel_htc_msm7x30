@@ -23,7 +23,7 @@ void sirc_fiq_select(int irq, bool enable);
 static inline void sirc_fiq_select(int irq, bool enable) {}
 #endif
 
-#if defined(CONFIG_ARCH_QSD8X50) || defined(CONFIG_ARCH_FSM9XXX)
+#if defined(CONFIG_ARCH_QSD8X50)
 void __init msm_init_sirc(void);
 void msm_sirc_enter_sleep(void);
 void msm_sirc_exit_sleep(void);
