@@ -1421,44 +1421,6 @@ out_unlock:
 }
 EXPORT_SYMBOL_GPL(kill_pid_info_as_cred);
 
-/* like kill_pid_info(), but doesn't use uid/euid of "current" */
-int kill_pid_info_as_cred(int sig, struct siginfo *info, struct pid *pid,
-			 const struct cred *cred, u32 secid)
-{
-	int ret = -EINVAL;
-	struct task_struct *p;
-	unsigned long flags;
-
-	if (!valid_signal(sig))
-		return ret;
-
-	rcu_read_lock();
-	p = pid_task(pid, PIDTYPE_PID);
-	if (!p) {
-		ret = -ESRCH;
-		goto out_unlock;
-	}
-	if (si_fromuser(info) && !kill_as_cred_perm(cred, p)) {
-		ret = -EPERM;
-		goto out_unlock;
-	}
-	ret = security_task_kill(p, info, sig, secid);
-	if (ret)
-		goto out_unlock;
-
-	if (sig) {
-		if (lock_task_sighand(p, &flags)) {
-			ret = __send_signal(sig, info, p, 1, 0);
-			unlock_task_sighand(p, &flags);
-		} else
-			ret = -ESRCH;
-	}
-out_unlock:
-	rcu_read_unlock();
-	return ret;
-}
-EXPORT_SYMBOL_GPL(kill_pid_info_as_cred);
-
 /*
  * kill_something_info() interprets pid in interesting ways just like kill(2).
  *
@@ -1821,10 +1783,6 @@ static inline int may_ptrace_stop(void)
 	 * If SIGKILL was already sent before the caller unlocked
 	 * ->siglock we must see ->core_state != NULL. Otherwise it
 	 * is safe to enter schedule().
-	 *
-	 * This is almost outdated, a task with the pending SIGKILL can't
-	 * block in TASK_TRACED. But PTRACE_EVENT_EXIT can be reported
-	 * after SIGKILL was already dequeued.
 	 */
 	if (unlikely(current->mm->core_state) &&
 	    unlikely(current->mm == current->parent->mm))
@@ -2999,7 +2957,7 @@ int do_sigaction(int sig, struct k_sigaction *act, struct k_sigaction *oact)
 	return 0;
 }
 
-int
+int 
 do_sigaltstack (const stack_t __user *uss, stack_t __user *uoss, unsigned long sp)
 {
 	stack_t oss;
