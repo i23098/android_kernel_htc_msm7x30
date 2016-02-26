@@ -16,7 +16,6 @@
 #include <linux/cache.h>
 #include <linux/profile.h>
 #include <linux/errno.h>
-#include <linux/ftrace.h>
 #include <linux/mm.h>
 #include <linux/err.h>
 #include <linux/cpu.h>
@@ -31,6 +30,7 @@
 #include <asm/cacheflush.h>
 #include <asm/cpu.h>
 #include <asm/cputype.h>
+#include <asm/exception.h>
 #include <asm/topology.h>
 #include <asm/mmu_context.h>
 #include <asm/pgtable.h>
@@ -40,6 +40,7 @@
 #include <asm/tlbflush.h>
 #include <asm/ptrace.h>
 #include <asm/localtimer.h>
+#include <asm/smp_plat.h>
 
 /*
  * as from 2.5, kernels no longer have an init_tasks structure
@@ -254,6 +255,20 @@ void __ref cpu_die(void)
 }
 #endif /* CONFIG_HOTPLUG_CPU */
 
+int __cpu_logical_map[NR_CPUS];
+
+void __init smp_setup_processor_id(void)
+{
+	int i;
+	u32 cpu = is_smp() ? read_cpuid_mpidr() & 0xff : 0;
+
+	cpu_logical_map(0) = cpu;
+	for (i = 1; i < NR_CPUS; ++i)
+		cpu_logical_map(i) = i == cpu ? 0 : i;
+
+	printk(KERN_INFO "Booting Linux on physical CPU %d\n", cpu);
+}
+
 /*
  * Called by both boot and secondaries to move global data into
  * per-processor storage.
@@ -467,6 +482,11 @@ static void ipi_timer(void)
 #ifdef CONFIG_LOCAL_TIMERS
 asmlinkage void __exception_irq_entry do_local_timer(struct pt_regs *regs)
 {
+	handle_local_timer(regs);
+}
+
+void handle_local_timer(struct pt_regs *regs)
+{
 	struct pt_regs *old_regs = set_irq_regs(regs);
 	int cpu = smp_processor_id();
 
@@ -575,6 +595,11 @@ static void ipi_cpu_stop(unsigned int cpu)
  * Main handler for inter-processor interrupts
  */
 asmlinkage void __exception_irq_entry do_IPI(int ipinr, struct pt_regs *regs)
+{
+	handle_IPI(ipinr, regs);
+}
+
+void handle_IPI(int ipinr, struct pt_regs *regs)
 {
 	unsigned int cpu = smp_processor_id();
 	struct pt_regs *old_regs = set_irq_regs(regs);
