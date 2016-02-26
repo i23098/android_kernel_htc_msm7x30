@@ -2,7 +2,8 @@ config ARM
 	bool
 	default y
 	select HAVE_AOUT
-	select HAVE_IDE
+	select HAVE_IDE if PCI || ISA || PCMCIA
+	select HAVE_DMA_API_DEBUG
 	select HAVE_DMA_ATTRS
 	select HAVE_MEMBLOCK
 	select RTC_LIB
@@ -400,6 +401,7 @@ config ARCH_FOOTBRIDGE
 	select CPU_SA110
 	select FOOTBRIDGE
 	select GENERIC_CLOCKEVENTS
+	select HAVE_IDE
 	help
 	  Support for systems based on the DC21285 companion chip
 	  ("FootBridge"), such as the Simtec CATS and the Rebel NetWinder.
@@ -646,6 +648,8 @@ config ARCH_PXA
 	select SPARSE_IRQ
 	select AUTO_ZRELADDR
 	select MULTI_IRQ_HANDLER
+	select ARM_CPU_SUSPEND if PM
+	select HAVE_IDE
 	help
 	  Support for Intel/Marvell's PXA2xx/PXA3xx processor line.
 
@@ -691,6 +695,7 @@ config ARCH_RPC
 	select NO_IOPORT
 	select ARCH_SPARSEMEM_ENABLE
 	select ARCH_USES_GETTIMEOFFSET
+	select HAVE_IDE
 	help
 	  On the Acorn Risc-PC, Linux can support the internal IDE disk and
 	  CD-ROM interface, serial and parallel port, and the floppy drive.
@@ -709,6 +714,7 @@ config ARCH_SA1100
 	select HAVE_SCHED_CLOCK
 	select TICK_ONESHOT
 	select ARCH_REQUIRE_GPIOLIB
+	select HAVE_IDE
 	help
 	  Support for StrongARM 11x0 based boards.
 
@@ -1451,6 +1457,7 @@ config SMP
 		 MACH_REALVIEW_PB11MP || MACH_REALVIEW_PBX || ARCH_OMAP4 || \
 		 ARCH_EXYNOS4 || ARCH_TEGRA || ARCH_U8500 || ARCH_VEXPRESS_CA9X4 || \
 		 MSM_SMP || ARCH_SHMOBILE
+	depends on MMU
 	select USE_GENERIC_SMP_HELPERS
 	select HAVE_ARM_SCU
 	help
@@ -1591,6 +1598,7 @@ config THUMB2_KERNEL
 	depends on CPU_V7 && !CPU_V6 && !CPU_V6K && EXPERIMENTAL
 	select AEABI
 	select ARM_ASM_UNIFIED
+	select ARM_UNWIND
 	help
 	  By enabling this option, the kernel will be compiled in
 	  Thumb-2 mode. A compiler/assembler that understand the unified
@@ -2334,6 +2342,9 @@ config ARCH_SUSPEND_POSSIBLE
 	depends on CPU_ARM920T || CPU_ARM926T || CPU_SA1100 || \
 		CPU_V6 || CPU_V6K || CPU_V7 || CPU_XSC3 || CPU_XSCALE
 	def_bool y
+
+config ARM_CPU_SUSPEND
+	def_bool PM_SLEEP
 
 endmenu
 
