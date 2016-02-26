@@ -2136,6 +2136,14 @@ M:	Matthew Garrett <mjg59@srcf.ucam.org>
 S:	Maintained
 F:	drivers/platform/x86/dell-wmi.c
 
+DESIGNWARE USB3 DRD IP DRIVER
+M:	Felipe Balbi <balbi@ti.com>
+L:	linux-usb@vger.kernel.org
+L:	linux-omap@vger.kernel.org
+T:	git git://git.kernel.org/pub/scm/linux/kernel/git/balbi/usb.git
+S:	Maintained
+F:	drivers/usb/dwc3/
+
 DEVICE NUMBER REGISTRY
 M:	Torben Mathiasen <device@lanana.org>
 W:	http://lanana.org/docs/device-list/index.html
@@ -2293,6 +2301,12 @@ M:	Francois Romieu <romieu@fr.zoreil.com>
 L:	netdev@vger.kernel.org
 S:	Maintained
 F:	drivers/net/wan/dscc4.c
+
+DYNAMIC DEBUG
+M:	Jason Baron <jbaron@redhat.com>
+S:	Maintained
+F:	lib/dynamic_debug.c
+F:	include/linux/dynamic_debug.h
 
 DZ DECSTATION DZ11 SERIAL DRIVER
 M:	"Maciej W. Rozycki" <macro@linux-mips.org>
