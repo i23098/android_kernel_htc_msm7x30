@@ -461,10 +461,6 @@ u64 smp_irq_stat_cpu(unsigned int cpu)
 	for (i = 0; i < NR_IPI; i++)
 		sum += __get_irq_stat(cpu, ipi_irqs[i]);
 
-#ifdef CONFIG_LOCAL_TIMERS
-	sum += __get_irq_stat(cpu, local_timer_irqs);
-#endif
-
 	return sum;
 }
 
@@ -563,7 +559,7 @@ static void percpu_timer_stop(void)
 	unsigned int cpu = smp_processor_id();
 	struct clock_event_device *evt = &per_cpu(percpu_clockevent, cpu);
 
-	evt->set_mode(CLOCK_EVT_MODE_UNUSED, evt);
+	local_timer_stop(evt);
 }
 #endif
 

@@ -42,6 +42,7 @@
 #include <linux/leds.h>
 #include <linux/input/sh_keysc.h>
 #include <linux/usb/r8a66597.h>
+#include <linux/pm_clock.h>
 #include <linux/dma-mapping.h>
 
 #include <media/sh_mobile_ceu.h>
@@ -1411,10 +1412,16 @@ static void __init ap4evb_init(void)
 	sh7372_add_device_to_domain(&sh7372_a4lc, &lcdc_device);
 	sh7372_add_device_to_domain(&sh7372_a4mp, &fsi_device);
 
+	sh7372_add_device_to_domain(&sh7372_a3sp, &sh_mmcif_device);
+	sh7372_add_device_to_domain(&sh7372_a3sp, &sdhi0_device);
+	sh7372_add_device_to_domain(&sh7372_a3sp, &sdhi1_device);
+	sh7372_add_device_to_domain(&sh7372_a4r, &ceu_device);
+
 	hdmi_init_pm_clock();
 	fsi_init_pm_clock();
 	sh7372_pm_init();
 	pm_clk_add(&fsi_device.dev, "spu2");
+	pm_clk_add(&lcdc1_device.dev, "hdmi");
 }
 
 static void __init ap4evb_timer_init(void)

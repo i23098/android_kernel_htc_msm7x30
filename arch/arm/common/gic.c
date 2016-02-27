@@ -353,7 +353,12 @@ static void __init gic_dist_init(struct gic_chip_data *gic)
 	unsigned int gic_irqs = gic->gic_irqs;
 	struct irq_domain *domain = &gic->domain;
 	void __iomem *base = gic_data_dist_base(gic);
-	u32 cpu = cpu_logical_map(smp_processor_id());
+	u32 cpu = 0;
+	u32 nrppis = 0, ppi_base = 0;
+
+#ifdef CONFIG_SMP
+	cpu = cpu_logical_map(smp_processor_id());
+#endif
 
 	cpumask = 1 << cpu;
 	cpumask |= cpumask << 8;
@@ -620,8 +625,7 @@ static void __init gic_pm_init(struct gic_chip_data *gic)
 		sizeof(u32));
 	BUG_ON(!gic->saved_ppi_conf);
 
-	if (gic == &gic_data[0])
-		cpu_pm_register_notifier(&gic_notifier_block);
+	cpu_pm_register_notifier(&gic_notifier_block);
 }
 #else
 static void __init gic_pm_init(struct gic_chip_data *gic)
