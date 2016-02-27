@@ -32,7 +32,7 @@
 #include <linux/elan_ktf2k.h>
 #include <mach/atmega_microp.h>
 #include <linux/akm8975.h>
-#include <linux/bma150.h>
+#include <linux/bma150_spi.h>
 #include <linux/isl29028.h>
 #include <linux/power_supply.h>
 #include <linux/leds-pm8058.h>

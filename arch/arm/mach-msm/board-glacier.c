@@ -34,7 +34,7 @@
 #include <linux/atmel_qt602240.h>
 #include <mach/atmega_microp.h>
 #include <linux/akm8975.h>
-#include <linux/bma150.h>
+#include <linux/bma150_spi.h>
 #include <linux/a1026.h>
 #include <linux/power_supply.h>
 #include <linux/leds-pm8058.h>

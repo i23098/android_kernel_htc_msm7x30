@@ -30,7 +30,7 @@
 #include <linux/spi/spi.h>
 #include <mach/qdsp5v2/msm_lpa.h>
 #include <linux/akm8975.h>
-#include <linux/bma150.h>
+#include <linux/bma150_spi.h>
 #include <linux/capella_cm3602.h>
 #include <linux/cm3628.h>
 #include <linux/lightsensor.h>

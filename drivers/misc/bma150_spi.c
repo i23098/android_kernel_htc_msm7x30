@@ -18,7 +18,7 @@
 #include <asm/uaccess.h>
 #include <linux/delay.h>
 #include <linux/input.h>
-#include <linux/bma150.h>
+#include <linux/bma150_spi.h>
 #include <asm/gpio.h>
 #include <linux/earlysuspend.h>
 #include <linux/platform_device.h>

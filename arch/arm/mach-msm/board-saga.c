@@ -102,7 +102,7 @@
 #endif
 #include <mach/sdio_al.h>
 #include "smd_private.h"
-#include <linux/bma150.h>
+#include <linux/bma150_spi.h>
 #include "board-saga.h"
 #include <linux/tpa2051d3.h>
 #include "board-msm7x30-regulator.h"
