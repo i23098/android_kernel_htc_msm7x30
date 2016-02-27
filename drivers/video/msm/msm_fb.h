@@ -28,7 +28,7 @@
 
 #include <asm/system.h>
 #include <asm/mach-types.h>
-#include <mach/memory.h>
+#include <mach/msm_mem.h>
 #include <linux/semaphore.h>
 #include <linux/spinlock.h>
 #include <linux/workqueue.h>

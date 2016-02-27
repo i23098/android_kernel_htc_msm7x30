@@ -17,7 +17,7 @@
 #ifndef __ASM_ARCH_MSM_MEMTYPES_H
 #define __ASM_ARCH_MSM_MEMTYPES_H
 
-#include <mach/memory.h>
+#include <mach/msm_mem.h>
 #include <linux/init.h>
 
 int __init meminfo_init(unsigned int, unsigned int);

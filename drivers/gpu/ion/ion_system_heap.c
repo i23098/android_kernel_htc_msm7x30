@@ -25,7 +25,7 @@
 #include <linux/seq_file.h>
 #include <mach/iommu_domains.h>
 #include "ion_priv.h"
-#include <mach/memory.h>
+#include <mach/msm_mem.h>
 #include <asm/cacheflush.h>
 #include <linux/msm_ion.h>
 #include <linux/dma-mapping.h>

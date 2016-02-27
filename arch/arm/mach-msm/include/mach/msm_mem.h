@@ -143,11 +143,6 @@ extern char *__compat_exports_start[];
 extern char *__compat_exports_end[];
 
 #endif
-
-#if defined CONFIG_ARCH_MSM_SCORPION || defined CONFIG_ARCH_MSM_KRAIT
-#define arch_has_speculative_dfetch()	1
-#endif
-
 #endif
 
 /* these correspond to values known by the modem */

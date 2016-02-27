@@ -22,7 +22,7 @@
 
 #include <asm/memory.h>
 #include <mach/vmalloc.h>
-#include <mach/memory.h>
+#include <mach/msm_mem.h>
 #include <asm/pgtable-hwdef.h>
 #include <asm/tlbflush.h>
 

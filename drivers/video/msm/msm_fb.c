@@ -15,7 +15,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/kernel.h>
@@ -2914,6 +2913,36 @@ static inline void msm_dma_fromdevice_wb_pre(void *start, size_t size)
 static inline void msm_dma_nc_post(void)
 {
 	dmb();
+}
+
+/**
+ * dma_cache_post_ops - clean or invalidate cache after dma transfer is
+ *                     initiated and perform a barrier operation.
+ * @virtual_addr: A kernel logical or kernel virtual address
+ * @size: size of buffer to map
+ * @dir: DMA transfer direction
+ *
+ * Ensure that any data held in the cache is appropriately discarded
+ * or written back.
+ *
+ */
+static inline void dma_cache_post_ops(void *virtual_addr,
+		size_t size, enum dma_data_direction dir)
+{
+	extern void ___dma_single_cpu_to_dev(const void *, size_t,
+		enum dma_data_direction);
+
+	BUG_ON(!valid_dma_direction(dir));
+	
+#if defined CONFIG_ARCH_MSM_SCORPION || defined CONFIG_ARCH_MSM_KRAIT
+	if (!arch_is_coherent() && dir != DMA_TO_DEVICE)
+		/*
+		 * Treat DMA_BIDIRECTIONAL and DMA_FROM_DEVICE
+		 * identically: invalidate
+		 */
+		___dma_single_cpu_to_dev(virtual_addr,
+					 size, DMA_FROM_DEVICE);
+#endif
 }
 
 static inline void msm_dma_fromdevice_wt_post(void *start, size_t size)

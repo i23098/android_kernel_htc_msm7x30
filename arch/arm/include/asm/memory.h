@@ -16,7 +16,6 @@
 #include <linux/compiler.h>
 #include <linux/const.h>
 #include <linux/types.h>
-#include <mach/memory.h>
 #include <asm/sizes.h>
 
 #ifdef CONFIG_NEED_MACH_MEMORY_H
@@ -188,7 +187,11 @@ static inline unsigned long __phys_to_virt(unsigned long x)
 #endif
 
 #ifndef PHYS_OFFSET
+#ifdef PLAT_PHYS_OFFSET
 #define PHYS_OFFSET	PLAT_PHYS_OFFSET
+#else
+#define PHYS_OFFSET	UL(CONFIG_PHYS_OFFSET)
+#endif
 #endif
 
 /*
@@ -273,13 +276,6 @@ static inline __deprecated void *bus_to_virt(unsigned long x)
  */
 #ifndef arch_is_coherent
 #define arch_is_coherent()		0
-#endif
-
-/*
- * Set if the architecture speculatively fetches data into cache.
- */
-#ifndef arch_has_speculative_dfetch
-#define arch_has_speculative_dfetch()	0
 #endif
 
 #endif

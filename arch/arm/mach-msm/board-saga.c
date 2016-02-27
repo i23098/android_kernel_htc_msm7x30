@@ -50,7 +50,7 @@
 #include <mach/mpp.h>
 #include <mach/board.h>
 #include <mach/camera-7x30.h>
-#include <mach/memory.h>
+#include <mach/msm_mem.h>
 #include <mach/msm_iomap.h>
 #ifdef CONFIG_USB_MSM_OTG_72K
 #include <mach/msm_hsusb.h>
