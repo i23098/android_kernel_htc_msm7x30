@@ -92,7 +92,7 @@ git checkout HEAD -- kernel/debug kernel/events arch/arm/include/asm/socket.h in
 ##########
 # kernel/rcu* v3.4
 rm -rf kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c kernel/nsproxy.c include/linux/nsproxy.h
-git checkout HEAD -- kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c kernel/nsproxy.c include/linux/nsproxy.h
+git checkout HEAD -- kernel/rcu.h kernel/rcupdate.c kernel/rcutiny.c kernel/rcutiny_plugin.h kernel/rcutorture.c kernel/rcutree.c kernel/rcutree_plugin.h  kernel/rcutree_trace.c kernel/nsproxy.c include/linux/nsproxy.h include/trace/events/rcu.h include/linux/rcupdate.h
 
 ##########
 # block v3.4
