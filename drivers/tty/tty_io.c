@@ -198,8 +198,7 @@ static inline struct tty_struct *file_tty(struct file *file)
 	return ((struct tty_file_private *)file->private_data)->tty;
 }
 
-/* Associate a new file with the tty structure */
-int tty_add_file(struct tty_struct *tty, struct file *file)
+int tty_alloc_file(struct file *file)
 {
 	struct tty_file_private *priv;
 
@@ -207,15 +206,36 @@ int tty_add_file(struct tty_struct *tty, struct file *file)
 	if (!priv)
 		return -ENOMEM;
 
+	file->private_data = priv;
+
+	return 0;
+}
+
+/* Associate a new file with the tty structure */
+void tty_add_file(struct tty_struct *tty, struct file *file)
+{
+	struct tty_file_private *priv = file->private_data;
+
 	priv->tty = tty;
 	priv->file = file;
-	file->private_data = priv;
 
 	spin_lock(&tty_files_lock);
 	list_add(&priv->list, &tty->tty_files);
 	spin_unlock(&tty_files_lock);
+}
 
-	return 0;
+/**
+ * tty_free_file - free file->private_data
+ *
+ * This shall be used only for fail path handling when tty_add_file was not
+ * called yet.
+ */
+void tty_free_file(struct file *file)
+{
+	struct tty_file_private *priv = file->private_data;
+
+	file->private_data = NULL;
+	kfree(priv);
 }
 
 /* Delete file from its tty */
@@ -226,8 +246,7 @@ void tty_del_file(struct file *file)
 	spin_lock(&tty_files_lock);
 	list_del(&priv->list);
 	spin_unlock(&tty_files_lock);
-	file->private_data = NULL;
-	kfree(priv);
+	tty_free_file(file);
 }
 
 
@@ -1815,6 +1834,10 @@ static int tty_open(struct inode *inode, struct file *filp)
 	nonseekable_open(inode, filp);
 
 retry_open:
+	retval = tty_alloc_file(filp);
+	if (retval)
+		return -ENOMEM;
+
 	noctty = filp->f_flags & O_NOCTTY;
 	index  = -1;
 	retval = 0;
@@ -1827,6 +1850,7 @@ retry_open:
 		if (!tty) {
 			tty_unlock();
 			mutex_unlock(&tty_mutex);
+			tty_free_file(filp);
 			return -ENXIO;
 		}
 		driver = tty_driver_kref_get(tty->driver);
@@ -1859,6 +1883,7 @@ retry_open:
 		}
 		tty_unlock();
 		mutex_unlock(&tty_mutex);
+		tty_free_file(filp);
 		return -ENODEV;
 	}
 
@@ -1866,6 +1891,7 @@ retry_open:
 	if (!driver) {
 		tty_unlock();
 		mutex_unlock(&tty_mutex);
+		tty_free_file(filp);
 		return -ENODEV;
 	}
 got_driver:
@@ -1876,6 +1902,8 @@ got_driver:
 		if (IS_ERR(tty)) {
 			tty_unlock();
 			mutex_unlock(&tty_mutex);
+			tty_driver_kref_put(driver);
+			tty_free_file(filp);
 			return PTR_ERR(tty);
 		}
 	}
@@ -1891,15 +1919,11 @@ got_driver:
 	tty_driver_kref_put(driver);
 	if (IS_ERR(tty)) {
 		tty_unlock();
+		tty_free_file(filp);
 		return PTR_ERR(tty);
 	}
 
-	retval = tty_add_file(tty, filp);
-	if (retval) {
-		tty_unlock();
-		tty_release(inode, filp);
-		return retval;
-	}
+	tty_add_file(tty, filp);
 
 	check_tty_count(tty, "tty_open");
 	if (tty->driver->type == TTY_DRIVER_TYPE_PTY &&
@@ -2723,6 +2747,8 @@ static long tty_compat_ioctl(struct file *file, unsigned int cmd,
 	ld = tty_ldisc_ref_wait(tty);
 	if (ld->ops->compat_ioctl)
 		retval = ld->ops->compat_ioctl(tty, file, cmd, arg);
+	else
+		retval = n_tty_compat_ioctl_helper(tty, file, cmd, arg);
 	tty_ldisc_deref(ld);
 
 	return retval;
