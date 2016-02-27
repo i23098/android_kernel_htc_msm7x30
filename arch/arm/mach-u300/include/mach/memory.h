@@ -34,9 +34,4 @@
 #endif
 #endif
 
-/*
- * We enable a real big DMA buffer if need be.
- */
-#define CONSISTENT_DMA_SIZE SZ_4M
-
 #endif
