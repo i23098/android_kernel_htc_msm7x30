@@ -394,8 +394,8 @@ struct inodes_stat_t {
 #include <linux/semaphore.h>
 #include <linux/fiemap.h>
 #include <linux/rculist_bl.h>
-#include <linux/atomic.h>
 #include <linux/shrinker.h>
+#include <linux/atomic.h>
 #include <linux/migrate_mode.h>
 
 #include <asm/byteorder.h>
@@ -614,10 +614,7 @@ struct address_space_operations {
 			loff_t offset, unsigned long bvec_len);
 	int (*get_xip_mem)(struct address_space *, pgoff_t, int,
 						void **, unsigned long *);
-	/*
-	 * migrate the contents of a page to the specified target. If sync
-	 * is false, it must not block.
-	 */
+	/* migrate the contents of a page to the specified target */
 	int (*migratepage) (struct address_space *,
 			struct page *, struct page *, enum migrate_mode);
 	int (*launder_page) (struct page *);
@@ -778,7 +775,17 @@ struct inode {
 
 	/* Stat data, not accessed from path walking */
 	unsigned long		i_ino;
-	unsigned int		i_nlink;
+	/*
+	 * Filesystems may only read i_nlink directly.  They shall use the
+	 * following functions for modification:
+	 *
+	 *    (set|clear|inc|drop)_nlink
+	 *    inode_(inc|dec)_link_count
+	 */
+	union {
+		const unsigned int i_nlink;
+		unsigned int __i_nlink;
+	};
 	dev_t			i_rdev;
 	struct timespec		i_atime;
 	struct timespec		i_mtime;
@@ -1482,7 +1489,6 @@ struct super_block {
 	int cleancache_poolid;
 
 	struct shrinker s_shrink;	/* per-sb shrinker handle */
-
 };
 
 /* superblock cache pruning functions */
@@ -1778,7 +1784,7 @@ static inline void mark_inode_dirty_sync(struct inode *inode)
  */
 static inline void set_nlink(struct inode *inode, unsigned int nlink)
 {
-	inode->i_nlink = nlink;
+	inode->__i_nlink = nlink;
 }
 
 /**
@@ -1791,7 +1797,7 @@ static inline void set_nlink(struct inode *inode, unsigned int nlink)
  */
 static inline void inc_nlink(struct inode *inode)
 {
-	inode->i_nlink++;
+	inode->__i_nlink++;
 }
 
 static inline void inode_inc_link_count(struct inode *inode)
@@ -1813,7 +1819,7 @@ static inline void inode_inc_link_count(struct inode *inode)
  */
 static inline void drop_nlink(struct inode *inode)
 {
-	inode->i_nlink--;
+	inode->__i_nlink--;
 }
 
 /**
@@ -1826,7 +1832,7 @@ static inline void drop_nlink(struct inode *inode)
  */
 static inline void clear_nlink(struct inode *inode)
 {
-	inode->i_nlink = 0;
+	inode->__i_nlink = 0;
 }
 
 static inline void inode_dec_link_count(struct inode *inode)
@@ -2306,7 +2312,6 @@ static inline void i_readcount_inc(struct inode *inode)
 {
 	atomic_inc(&inode->i_readcount);
 }
-
 #else
 static inline void i_readcount_dec(struct inode *inode)
 {
