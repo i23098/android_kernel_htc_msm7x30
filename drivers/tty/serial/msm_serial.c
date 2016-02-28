@@ -1,9 +1,9 @@
 /*
- * drivers/serial/msm_serial.c - driver for msm7k serial device and console
+ * Driver for msm7k serial device and console
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
  * Author: Robert Love <rlove@google.com>
+ * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -19,13 +19,13 @@
 # define SUPPORT_SYSRQ
 #endif
 
+#include <linux/atomic.h>
 #include <linux/hrtimer.h>
 #include <linux/module.h>
 #include <linux/io.h>
 #include <linux/ioport.h>
 #include <linux/irq.h>
 #include <linux/init.h>
-#include <linux/delay.h>
 #include <linux/console.h>
 #include <linux/tty.h>
 #include <linux/tty_flip.h>
@@ -37,6 +37,10 @@
 #include <linux/pm_runtime.h>
 #include <mach/msm_serial_pdata.h>
 #include <mach/board_htc.h>
+#include <linux/delay.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
+
 #include "msm_serial.h"
 
 
@@ -739,13 +743,13 @@ static const char *msm_type(struct uart_port *port)
 static void msm_release_port(struct uart_port *port)
 {
 	struct platform_device *pdev = to_platform_device(port->dev);
-	struct resource *resource;
+	struct resource *uart_resource;
 	resource_size_t size;
 
-	resource = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (unlikely(!resource))
+	uart_resource = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (unlikely(!uart_resource))
 		return;
-	size = resource->end - resource->start + 1;
+	size = resource_size(uart_resource);
 
 	release_mem_region(port->mapbase, size);
 	iounmap(port->membase);
@@ -863,7 +867,7 @@ static struct msm_port msm_uart_ports[] = {
 
 #define UART_NR	ARRAY_SIZE(msm_uart_ports)
 
-static inline struct uart_port * get_port_from_line(unsigned int line)
+static inline struct uart_port *get_port_from_line(unsigned int line)
 {
 	return &msm_uart_ports[line].uart;
 }
@@ -1149,11 +1153,17 @@ static struct dev_pm_ops msm_serial_dev_pm_ops = {
 	.runtime_resume = msm_serial_runtime_resume,
 };
 
+static struct of_device_id msm_match_table[] = {
+	{ .compatible = "qcom,msm-uart" },
+	{}
+};
+
 static struct platform_driver msm_platform_driver = {
 	.remove = msm_serial_remove,
 	.driver = {
 		.name = "msm_serial",
 		.owner = THIS_MODULE,
+		.of_match_table = msm_match_table,
 		.pm = &msm_serial_dev_pm_ops,
 	},
 };
@@ -1196,4 +1206,4 @@ module_exit(msm_serial_exit);
 
 MODULE_AUTHOR("Robert Love <rlove@google.com>");
 MODULE_DESCRIPTION("Driver for msm7x serial device");
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");

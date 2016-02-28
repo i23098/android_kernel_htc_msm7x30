@@ -237,7 +237,7 @@ static int gic_set_affinity(struct irq_data *d, const struct cpumask *mask_val,
 			    bool force)
 {
 	void __iomem *reg = gic_dist_base(d) + GIC_DIST_TARGET + (gic_irq(d) & ~3);
-	unsigned int shift = (d->irq % 4) * 8;
+	unsigned int shift = (gic_irq(d) % 4) * 8;
 	unsigned int cpu = cpumask_any_and(mask_val, cpu_online_mask);
 	u32 val, mask, bit;
 
@@ -354,7 +354,6 @@ static void __init gic_dist_init(struct gic_chip_data *gic)
 	struct irq_domain *domain = &gic->domain;
 	void __iomem *base = gic_data_dist_base(gic);
 	u32 cpu = 0;
-	u32 nrppis = 0, ppi_base = 0;
 
 #ifdef CONFIG_SMP
 	cpu = cpu_logical_map(smp_processor_id());
@@ -708,14 +707,13 @@ void __init gic_init(unsigned int gic_nr, int irq_start,
 	 * For primary GICs, skip over SGIs.
 	 * For secondary GICs, skip over PPIs, too.
 	 */
-	domain->hwirq_base = 32;
 	if (gic_nr == 0) {
-		if ((irq_start & 31) > 0) {
-			domain->hwirq_base = 16;
-			if (irq_start != -1)
-				irq_start = (irq_start & ~31) + 16;
-		}
-	}
+		gic_cpu_base_addr = cpu_base;
+		domain->hwirq_base = 16;
+		if (irq_start > 0)
+			irq_start = (irq_start & ~31) + 16;
+	} else
+		domain->hwirq_base = 32;
 
 	/*
 	 * Find out how many interrupts are supported.
@@ -770,6 +768,38 @@ void gic_raise_softirq(const struct cpumask *mask, unsigned int irq)
 
 	/* this always happens on GIC0 */
 	writel_relaxed(map << 16 | irq, gic_data_dist_base(&gic_data[0]) + GIC_DIST_SOFTINT);
+}
+#endif
+
+#ifdef CONFIG_OF
+static int gic_cnt __initdata = 0;
+
+int __init gic_of_init(struct device_node *node, struct device_node *parent)
+{
+	void __iomem *cpu_base;
+	void __iomem *dist_base;
+	int irq;
+	struct irq_domain *domain = &gic_data[gic_cnt].domain;
+
+	if (WARN_ON(!node))
+		return -ENODEV;
+
+	dist_base = of_iomap(node, 0);
+	WARN(!dist_base, "unable to map gic dist registers\n");
+
+	cpu_base = of_iomap(node, 1);
+	WARN(!cpu_base, "unable to map gic cpu registers\n");
+
+	domain->of_node = of_node_get(node);
+
+	gic_init(gic_cnt, -1, dist_base, cpu_base);
+
+	if (parent) {
+		irq = irq_of_parse_and_map(node, 0);
+		gic_cascade_irq(gic_cnt, irq);
+	}
+	gic_cnt++;
+	return 0;
 }
 #endif
 
