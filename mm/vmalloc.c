@@ -2315,6 +2315,12 @@ static unsigned long pvm_determine_end(struct vmap_area **pnext,
 	}
 
 	return addr;
+
+fail:
+	warn_alloc_failed(gfp_mask, 0,
+			  "vmalloc: allocation failure: %lu bytes\n",
+			  real_size);
+	return NULL;
 }
 
 /**
