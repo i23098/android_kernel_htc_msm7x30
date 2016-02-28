@@ -831,10 +831,9 @@ static int msmsdcc_config_dma(struct msmsdcc_host *host, struct mmc_data *data)
 
 	n = dma_map_sg(mmc_dev(host->mmc), host->dma.sg,
 			host->dma.num_ents, host->dma.dir);
-
 	if (n != host->dma.num_ents) {
 		pr_err("%s: Unable to map in all sg elements\n",
-		       mmc_hostname(host->mmc));
+			mmc_hostname(host->mmc));
 		host->dma.sg = NULL;
 		host->dma.num_ents = 0;
 		return -ENOMEM;
@@ -978,7 +977,7 @@ msmsdcc_start_command_deferred(struct msmsdcc_host *host,
 
 	if (host->curr.cmd != NULL) {
 		pr_err("%s: Overlapping command requests\n",
-		       mmc_hostname(host->mmc));
+			mmc_hostname(host->mmc));
 	}
 	host->curr.cmd = cmd;
 
@@ -3375,7 +3374,7 @@ msmsdcc_platform_status_irq(int irq, void *dev_id)
 static irqreturn_t
 msmsdcc_platform_sdiowakeup_irq(int irq, void *dev_id)
 {
-	struct msmsdcc_host	*host = dev_id;
+	struct msmsdcc_host *host = dev_id;
 
 	pr_debug("%s: SDIO Wake up IRQ : %d\n", mmc_hostname(host->mmc), irq);
 	spin_lock(&host->lock);
