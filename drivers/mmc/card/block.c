@@ -804,7 +804,7 @@ static int mmc_blk_issue_secdiscard_rq(struct mmc_queue *mq,
 {
 	struct mmc_blk_data *md = mq->data;
 	struct mmc_card *card = md->queue.card;
-	unsigned int from, nr, arg;
+	unsigned int from = 0, nr = 0, arg = 0;
 	int err = 0, type = MMC_BLK_SECDISCARD;
 
 	if (!(mmc_can_secure_erase_trim(card) || mmc_can_sanitize(card))) {
@@ -1521,6 +1521,7 @@ static struct mmc_blk_data *mmc_blk_alloc(struct mmc_card *card)
 	md = mmc_blk_alloc_req(card, &card->dev, size, false, NULL);
 	return md;
 }
+
 #if 0
 static int mmc_blk_alloc_part(struct mmc_card *card,
 			      struct mmc_blk_data *md,
@@ -1575,6 +1576,7 @@ static int mmc_blk_alloc_parts(struct mmc_card *card, struct mmc_blk_data *md)
 	return ret;
 }
 #endif
+
 static int
 mmc_blk_set_blksize(struct mmc_blk_data *md, struct mmc_card *card)
 {
@@ -1700,6 +1702,7 @@ static int mmc_blk_probe(struct mmc_card *card)
 	mmc_set_drvdata(card, md);
 	mmc_fixup_device(card, blk_fixups);
 	mmc_init_bus_resume_flags(card->host);
+
 	if (mmc_add_disk(md))
 		goto out;
 
