@@ -287,14 +287,7 @@ static int __init init_ramfs_fs(void)
 {
 	return register_filesystem(&ramfs_fs_type);
 }
-
-static void __exit exit_ramfs_fs(void)
-{
-	unregister_filesystem(&ramfs_fs_type);
-}
-
 module_init(init_ramfs_fs)
-module_exit(exit_ramfs_fs)
 
 int __init init_rootfs(void)
 {
