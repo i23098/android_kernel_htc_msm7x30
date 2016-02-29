@@ -1218,7 +1218,7 @@ void blk_throtl_drain(struct request_queue *q)
 	struct bio_list bl;
 	struct bio *bio;
 
-	queue_lockdep_assert_held(q);
+	WARN_ON_ONCE(!queue_is_locked(q));
 
 	bio_list_init(&bl);
 

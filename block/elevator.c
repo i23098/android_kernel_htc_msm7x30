@@ -367,9 +367,7 @@ void elv_dispatch_sort(struct request_queue *q, struct request *rq)
 	q->nr_sorted--;
 
 	boundary = q->end_sector;
-
 	stop_flags = REQ_SOFTBARRIER | REQ_STARTED;
-
 	list_for_each_prev(entry, &q->queue_head) {
 		struct request *pos = list_entry_rq(entry);
 
@@ -640,10 +638,6 @@ void __elv_add_request(struct request_queue *q, struct request *rq, int where)
 
 	switch (where) {
 	case ELEVATOR_INSERT_REQUEUE:
-		rq->cmd_flags |= REQ_SOFTBARRIER;
-		list_add(&rq->queuelist, &q->queue_head);
-		break;
-
 	case ELEVATOR_INSERT_FRONT:
 		rq->cmd_flags |= REQ_SOFTBARRIER;
 		list_add(&rq->queuelist, &q->queue_head);

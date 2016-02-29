@@ -131,13 +131,14 @@ rm -rf fs/ceph include/linux/ceph fs/9p drivers/xen
 git checkout HEAD -- include/linux/blkdev.h fs/ext3/fsync.c fs/ceph include/linux/ceph include/linux/irqdomain.h include/linux/mm_types.h
 git checkout HEAD -- fs/pstore/inode.c fs/pstore/platform.c include/linux/pstore.h lib/llist.c include/linux/llist.h fs/9p kernel/sched.c kernel/sched_clock.c kernel/sched_fair.c
 git checkout HEAD -- drivers/md/faulty.c drivers/md/linear.c drivers/md/md.c drivers/md/md.h drivers/md/multipath.c drivers/md/raid0.c drivers/md/raid1.c drivers/md/raid10.c drivers/md/raid5.c
-git checkout HEAD -- fs/udf/udfdecl.h drivers/xen
+git checkout HEAD -- fs/udf/udfdecl.h drivers/xen include/linux/aio_abi.h fs/aio.c
 
 ####v3.4
-git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c include/linux/filter.h include/linux/mmzone.h include/linux/swap.h lib/crc32.c include/linux/kconfig.h 
-git checkout HEAD -- drivers/of/gpio.c drivers/of/gpio.c drivers/regulator/dummy.c drivers/regulator/tps65910-regulator.c 
+git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c include/linux/filter.h include/linux/mmzone.h include/linux/swap.h lib/crc32.c include/linux/kconfig.h
+git checkout HEAD -- drivers/of/gpio.c drivers/of/gpio.c drivers/regulator/dummy.c drivers/regulator/tps65910-regulator.c
 git checkout HEAD -- drivers/regulator/twl-regulator.c include/linux/regulator/driver.h include/linux/genalloc.h lib/genalloc.c fs/binfmt_elf.c
 
 ####v3.3
-git checkout HEAD include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c mm/backing-dev.c include/trace/events/writeback.h
-git checkout HEAD mm/memcontrol.c mm/vmscan.c include/linux/memcontrol.h arch/sh/kernel/idle.c block/bsg-lib.c fs/direct-io.c
+git checkout HEAD -- include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c mm/backing-dev.c include/trace/events/writeback.h
+git checkout HEAD -- mm/memcontrol.c mm/vmscan.c include/linux/memcontrol.h arch/sh/kernel/idle.c block/bsg-lib.c fs/direct-io.c
+git checkout HEAD -- block/blk.h block/blk-tag.c block/blk-throttle.c block/genhd.c block/elevator.c
