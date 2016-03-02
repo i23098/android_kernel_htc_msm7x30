@@ -25,6 +25,7 @@
 #include <mach/htc_fast_clk.h>
 #include <linux/gpio.h>
 #include <linux/io.h>
+#include <linux/export.h>
 
 #include <mach/vreg.h>
 #include <mach/htc_pwrsink.h>

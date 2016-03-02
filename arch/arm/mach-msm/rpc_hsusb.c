@@ -22,6 +22,7 @@
 #include <linux/slab.h>
 #include <mach/rpc_hsusb.h>
 #include <asm/mach-types.h>
+#include <linux/export.h>
 
 static struct msm_rpc_endpoint *usb_ep;
 static struct msm_rpc_endpoint *chg_ep;

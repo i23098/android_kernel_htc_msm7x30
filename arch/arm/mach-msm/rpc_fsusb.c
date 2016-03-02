@@ -15,6 +15,7 @@
 #include <mach/msm_hsusb.h>
 #include <mach/msm_rpcrouter.h>
 #include <mach/board.h>
+#include <linux/export.h>
 
 #define PM_APP_OTG_PROG		0x30000080
 #define PM_APP_OTG_VERS		0x00010001

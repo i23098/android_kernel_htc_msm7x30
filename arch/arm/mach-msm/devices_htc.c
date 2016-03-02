@@ -16,6 +16,7 @@
 #include <mach/board.h>
 #include <asm/setup.h>
 #include <linux/mtd/nand.h>
+#include <linux/export.h>
 
 #define MFG_GPIO_TABLE_MAX_SIZE        0x400
 static unsigned char mfg_gpio_table[MFG_GPIO_TABLE_MAX_SIZE];

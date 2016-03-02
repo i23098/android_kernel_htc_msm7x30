@@ -19,6 +19,7 @@ GNU General Public License for more details.
 #include <linux/platform_device.h>
 #include <linux/proc_fs.h>
 #include <asm/setup.h>
+#include <linux/export.h>
 
 /* for outputing file to filesystem : /data/awb_calibration_data_hboot.txt */
 #include <linux/fs.h>

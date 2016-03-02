@@ -22,6 +22,7 @@
 #include <mach/rpc_pmapp.h>
 #include <mach/msm_rpcrouter.h>
 #include <mach/vreg.h>
+#include <linux/export.h>
 
 #define PMAPP_RPC_PROG			0x30000060
 #define PMAPP_RPC_VER_1_1		0x00010001
