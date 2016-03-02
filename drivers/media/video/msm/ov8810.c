@@ -68,6 +68,7 @@
 #include <mach/camera-7x30.h>
 #include <mach/vreg.h>
 #include <asm/mach-types.h>
+#include <linux/module.h>
 #include "ov8810.h"
 
 
@@ -114,8 +115,8 @@ const int ov8810_ver_qtr_blk_lines_array[] = {44, 44, 365};
 /* Registers*/
 /* PLL Registers */
 #define REG_PRE_PLL_CLK_DIV		0x3011 /*0x0305*/
-#define REG_PLL_MULTIPLIER		0x3010	
-#define REG_VT_CLK_DIV			0x300E	/*[7:4]VT_SYS_DIV, [3-0]VT_PIX_DIV*/	
+#define REG_PLL_MULTIPLIER		0x3010
+#define REG_VT_CLK_DIV			0x300E	/*[7:4]VT_SYS_DIV, [3-0]VT_PIX_DIV*/
 #define REG_OP_CLK_DIV			0x300F	/*[7:4]OP_SYS_DIV, [3-0]OP_PIX_DIV*/
 
 /* ISP Enable Control */
@@ -2053,7 +2054,7 @@ static int ov8810_sensor_open_init(struct msm_camera_sensor_info *data)
 	pr_info("[CAM]doing clk switch (ov8810)\n");
 	if(data->camera_clk_switch != NULL)
 		data->camera_clk_switch();
-	
+
 	/* enable mclk first */
 	msm_camio_clk_rate_set(OV8810_DEFAULT_CLOCK_RATE);
 	msleep(20);
@@ -2099,7 +2100,7 @@ static int ov8810_sensor_open_init(struct msm_camera_sensor_info *data)
 	/* enable AF actuator */
 	rc = vreg_enable(vreg_af_actuator);
 	if (!rc) {
-		
+
 		rc = vreg_set_level(vreg_af_actuator, 2800); /*2v8*/
 		if (rc)
 		{
@@ -2109,7 +2110,7 @@ static int ov8810_sensor_open_init(struct msm_camera_sensor_info *data)
 		}
 	else {
 		pr_err("[CAM]vreg_af_actuator vreg_enable failed!\n");
-		goto init_fail;	
+		goto init_fail;
 	}
 
 	msleep(20);
@@ -2762,7 +2763,7 @@ static int ov8810_vreg_disable(struct platform_device *pdev)
 
 static int __ov8810_probe(struct platform_device *pdev)
 {
-	
+
 	struct msm_camera_sensor_info *sdata = pdev->dev.platform_data;
 	printk("[CAM]__ov8810_probe\n");
 	ov8810_pdev = pdev;

@@ -23,6 +23,7 @@
 #include <linux/platform_device.h>
 #include <linux/rtc.h>
 #include <linux/slab.h>
+#include <linux/module.h>
 
 #include <linux/mfd/pm8xxx/core.h>
 

@@ -21,6 +21,7 @@
 #include <linux/platform_device.h>
 #include <linux/rtc.h>
 #include <linux/slab.h>
+#include <linux/module.h>
 
 #include <mach/atmega_microp.h>
 

@@ -28,6 +28,7 @@
 #include <linux/irq.h>
 #include <linux/slab.h>
 #include <asm/uaccess.h>
+#include <linux/module.h>
 #include "proc_comm.h"
 
 

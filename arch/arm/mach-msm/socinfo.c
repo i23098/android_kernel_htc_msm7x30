@@ -19,7 +19,8 @@
 #include <linux/sysdev.h>
 #include <asm/mach-types.h>
 #include <mach/socinfo.h>
-
+#include <linux/export.h>
+#include <linux/mm.h>
 #include "smd_private.h"
 
 #define BUILD_ID_LENGTH 32

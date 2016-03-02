@@ -20,6 +20,7 @@
 #include <linux/mm.h>
 #include <linux/delay.h>
 #include <linux/firmware.h>
+#include <linux/module.h>
 
 #include <mach/msm_smd.h>
 #include <mach/msm_iomap.h>

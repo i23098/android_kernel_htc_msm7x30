@@ -24,6 +24,7 @@
 #include <linux/debug_by_vibrator.h>
 #include <linux/wakelock.h>
 #include <mach/msm_rpcrouter.h>
+#include <linux/module.h>
 #define VIB_INFO_LOG(fmt, ...) \
 		printk(KERN_INFO "[VIB]" fmt, ##__VA_ARGS__)
 #define VIB_ERR_LOG(fmt, ...) \

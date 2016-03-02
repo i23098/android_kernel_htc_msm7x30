@@ -63,6 +63,7 @@
 #include <linux/earlysuspend.h>
 #include <linux/wakelock.h>
 #include <linux/slab.h>
+#include <linux/module.h>
 
 #include <media/msm_camera-7x30.h>
 #ifdef CONFIG_MSM_CAMERA_8X60

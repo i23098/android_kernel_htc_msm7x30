@@ -18,6 +18,7 @@
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
 #include <linux/clk.h>
+#include <linux/module.h>
 #include "footswitch.h"
 #include "proc_comm.h"
 

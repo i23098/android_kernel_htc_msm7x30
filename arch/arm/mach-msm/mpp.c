@@ -17,6 +17,7 @@
 #include <linux/device.h>
 #include <linux/init.h>
 #include <linux/debugfs.h>
+#include <linux/export.h>
 
 #include <mach/mpp.h>
 

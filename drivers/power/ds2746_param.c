@@ -45,6 +45,7 @@ Original Auther:
 #include <linux/wrapper_types.h>
 #include <linux/time.h>
 #include <asm/setup.h>
+#include <linux/string.h>
 
 /*========================================================================================
 

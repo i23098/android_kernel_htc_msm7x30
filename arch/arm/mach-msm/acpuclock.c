@@ -11,6 +11,7 @@
  */
 
 #include <linux/cpu.h>
+#include <linux/smp.h>
 #include "acpuclock.h"
 
 static struct acpuclk_data *acpuclk_data;

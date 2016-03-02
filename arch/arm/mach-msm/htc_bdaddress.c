@@ -14,6 +14,8 @@
 #include <linux/platform_device.h>
 #include <asm/setup.h>
 #include <mach/htc_bdaddress.h>
+#include <linux/module.h>
+#include <linux/string.h>
 
 /* configuration tags specific to Bluetooth*/
 #define MAX_BT_SIZE 0x8U

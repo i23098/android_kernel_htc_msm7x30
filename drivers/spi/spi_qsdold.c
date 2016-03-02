@@ -1,10 +1,11 @@
-/* linux/driver/spi/spi_qsd.c 
+/* linux/driver/spi/spi_qsd.c
  *
  * Copyright (C) 2009 Solomon Chiu <solomon_chiu@htc.com>
  *
  * 	This is a temporary solution to substitute Qualcomm's SPI.
  *	Should be replaced by formal SPI driver in the future.
  */
+#include <linux/module.h>
 #include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/init.h>

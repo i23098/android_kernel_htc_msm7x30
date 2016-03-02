@@ -25,6 +25,7 @@
 #include <linux/workqueue.h>
 #include <linux/freezer.h>
 #include <linux/a1026.h>
+#include <linux/module.h>
 
 #define DEBUG			(0)
 #define ENABLE_DIAG_IOCTLS	(1)

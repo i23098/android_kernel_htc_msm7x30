@@ -14,6 +14,8 @@
 #include <linux/platform_device.h>
 #include <linux/memory.h>
 #include <linux/memory_hotplug.h>
+#include <linux/export.h>
+#include <linux/module.h>
 #include <mach/msm_migrate_pages.h>
 
 static unsigned long unstable_memory_state;

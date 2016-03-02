@@ -29,6 +29,7 @@
 #include <linux/hrtimer.h>
 #include <linux/wakelock.h>
 #include <linux/slab.h>
+#include <linux/module.h>
 
 #define FLT_DBG_LOG(fmt, ...) \
 		printk(KERN_DEBUG "[FLT]" fmt, ##__VA_ARGS__)

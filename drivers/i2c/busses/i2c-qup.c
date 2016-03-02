@@ -34,6 +34,7 @@
 #include <linux/pm_runtime.h>
 #include <linux/gpio.h>
 #include <mach/socinfo.h>
+#include <linux/module.h>
 #include "../../../arch/arm/mach-msm/devices-msm8x60.h"
 
 MODULE_LICENSE("GPL v2");

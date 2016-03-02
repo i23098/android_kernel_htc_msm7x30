@@ -27,6 +27,7 @@
 #include <linux/freezer.h>
 #include <linux/tpa2051d3.h>
 #include <linux/mutex.h>
+#include <linux/module.h>
 
 #include <linux/gpio.h>
 #include <linux/mfd/pm8xxx/pm8921.h>

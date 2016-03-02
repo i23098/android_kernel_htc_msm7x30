@@ -171,12 +171,11 @@ DEFINE_EVENT(wbc_class, name, \
 	TP_ARGS(wbc, bdi))
 DEFINE_WBC_EVENT(wbc_writepage);
 
-#if 0
 TRACE_EVENT(writeback_queue_io,
 	TP_PROTO(struct bdi_writeback *wb,
-		 unsigned long *older_than_this,
+		 struct wb_writeback_work *work,
 		 int moved),
-	TP_ARGS(wb, older_than_this, moved),
+	TP_ARGS(wb, work, moved),
 	TP_STRUCT__entry(
 		__array(char,		name, 32)
 		__field(unsigned long,	older)
@@ -185,6 +184,7 @@ TRACE_EVENT(writeback_queue_io,
 		__field(int,		reason)
 	),
 	TP_fast_assign(
+		unsigned long *older_than_this = work->older_than_this;
 		strncpy(__entry->name, dev_name(wb->bdi->dev), 32);
 		__entry->older	= older_than_this ?  *older_than_this : 0;
 		__entry->age	= older_than_this ?
@@ -197,10 +197,8 @@ TRACE_EVENT(writeback_queue_io,
 		__entry->older,	/* older_than_this in jiffies */
 		__entry->age,	/* older_than_this in relative milliseconds */
 		__entry->moved,
-		__print_symbolic(__entry->reason, WB_WORK_REASON)
-	)
+		wb_reason_name[__entry->reason])
 );
-#endif
 
 TRACE_EVENT(global_dirty_state,
 

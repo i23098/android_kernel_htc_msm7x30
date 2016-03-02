@@ -22,6 +22,7 @@
 #include <linux/gpio_event.h>
 #include <linux/rtc.h>
 #include <linux/slab.h>
+#include <linux/module.h>
 
 #include <mach/htc_headset_mgr.h>
 

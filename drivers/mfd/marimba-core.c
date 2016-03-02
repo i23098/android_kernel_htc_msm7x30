@@ -19,6 +19,7 @@
 #include <linux/mutex.h>
 #include <linux/platform_device.h>
 #include <linux/err.h>
+#include <linux/module.h>
 
 #include <linux/i2c.h>
 #include <linux/mfd/marimba.h>

@@ -27,6 +27,7 @@
 #include <linux/slab.h>
 #include <mach/clk.h>
 #include <asm/div64.h>
+#include <linux/module.h>
 
 static int vpe_update_scaler(struct video_crop_t *pcrop);
 static struct vpe_device_type  vpe_device_data;

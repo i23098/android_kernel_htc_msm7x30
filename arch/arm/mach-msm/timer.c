@@ -23,6 +23,8 @@
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/percpu.h>
+#include <linux/moduleparam.h>
+#include <linux/stat.h>
 
 #include <asm/mach/time.h>
 #include <asm/hardware/gic.h>

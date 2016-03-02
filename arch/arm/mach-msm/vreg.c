@@ -21,6 +21,7 @@
 #include <linux/debugfs.h>
 #include <linux/string.h>
 #include <mach/vreg.h>
+#include <linux/export.h>
 
 #include "proc_comm.h"
 

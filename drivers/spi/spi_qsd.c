@@ -14,6 +14,7 @@
  * SPI driver for Qualcomm MSM platforms
  *
  */
+#include <linux/module.h>
 #include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/init.h>

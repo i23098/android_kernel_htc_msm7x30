@@ -14,6 +14,7 @@
  */
 
 #include <linux/platform_device.h>
+#include <linux/module.h>
 #include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/gpio_event.h>

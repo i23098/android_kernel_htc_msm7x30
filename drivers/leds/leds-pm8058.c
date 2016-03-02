@@ -22,6 +22,7 @@
 #include <linux/pmic8058-pwm.h>
 #include <linux/leds-pm8058.h>
 #include <linux/wakelock.h>
+#include <linux/module.h>
 
 #ifdef CONFIG_TOUCHSCREEN_SAGA_SWEEP2WAKE
 #include <linux/atmel_qt602240.h>
