@@ -128,20 +128,23 @@ extern struct cred init_cred;
 extern struct task_group root_task_group;
 
 #ifdef CONFIG_CGROUP_SCHED
-# define INIT_CGROUP_SCHED(tsk)						\
+# define INIT_CGROUP_SCHED(tsk)									\
 	.sched_task_group = &root_task_group,
 #else
 # define INIT_CGROUP_SCHED(tsk)
 #endif
 
+
 #ifdef CONFIG_PERF_EVENTS
-# define INIT_PERF_EVENTS(tsk)						\
+# define INIT_PERF_EVENTS(tsk)					\
 	.perf_event_mutex = 						\
 		 __MUTEX_INITIALIZER(tsk.perf_event_mutex),		\
 	.perf_event_list = LIST_HEAD_INIT(tsk.perf_event_list),
 #else
 # define INIT_PERF_EVENTS(tsk)
 #endif
+
+#define INIT_TASK_COMM "swapper"
 
 /*
  *  INIT_TASK is used to set up the first task table, touch at
@@ -180,7 +183,7 @@ extern struct task_group root_task_group;
 	.group_leader	= &tsk,						\
 	RCU_INIT_POINTER(.real_cred, &init_cred),			\
 	RCU_INIT_POINTER(.cred, &init_cred),				\
-	.comm		= "swapper",					\
+	.comm		= INIT_TASK_COMM,				\
 	.thread		= INIT_THREAD,					\
 	.fs		= &init_fs,					\
 	.files		= &init_files,					\

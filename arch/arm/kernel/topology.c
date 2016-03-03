@@ -245,7 +245,6 @@ int arch_sd_sibling_asym_packing(void)
 /*
  * default topology function
  */
-
 const struct cpumask *cpu_coregroup_mask(int cpu)
 {
 	return &cpu_topology[cpu].core_sibling;
