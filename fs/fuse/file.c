@@ -1646,8 +1646,8 @@ static loff_t fuse_file_llseek(struct file *file, loff_t offset, int origin)
 	retval = fuse_update_attributes(inode, NULL, file, NULL);
 	if (!retval)
 		retval = generic_file_llseek(file, offset, origin);
-	mutex_unlock(&inode->i_mutex);
 
+	mutex_unlock(&inode->i_mutex);
 	return retval;
 }
 

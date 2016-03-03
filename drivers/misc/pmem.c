@@ -35,6 +35,7 @@
 #include <asm/sizes.h>
 #include <asm/mach/map.h>
 #include <asm/page.h>
+#include <linux/export.h>
 
 #define PMEM_MAX_DEVICES (10)
 

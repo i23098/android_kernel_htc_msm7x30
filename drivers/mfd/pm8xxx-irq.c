@@ -21,6 +21,7 @@
 #include <linux/mfd/pm8xxx/irq.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
+#include <linux/export.h>
 
 /* PMIC8xxx IRQ */
 
