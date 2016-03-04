@@ -1391,6 +1391,7 @@ enum nl80211_commands {
  * @NL80211_ATTR_FEATURE_FLAGS: This u32 attribute contains flags from
  *	&enum nl80211_feature_flags and is advertised in wiphy information.
  * @NL80211_ATTR_PROBE_RESP_OFFLOAD: Indicates that the HW responds to probe
+ *
  *	requests while operating in AP-mode.
  *	This attribute holds a bitmap of the supported protocols for
  *	offloading (see &enum nl80211_probe_resp_offload_support_attr).
@@ -2533,9 +2534,9 @@ enum nl80211_reg_rule_flags {
  * enum nl80211_dfs_regions - regulatory DFS regions
  *
  * @NL80211_DFS_UNSET: Country has no DFS master region specified
- * @NL80211_DFS_FCC: Country follows DFS master rules from FCC
- * @NL80211_DFS_ETSI: Country follows DFS master rules from ETSI
- * @NL80211_DFS_JP: Country follows DFS master rules from JP/MKK/Telec
+ * @NL80211_DFS_FCC_: Country follows DFS master rules from FCC
+ * @NL80211_DFS_FCC_: Country follows DFS master rules from ETSI
+ * @NL80211_DFS_JP_: Country follows DFS master rules from JP/MKK/Telec
  */
 enum nl80211_dfs_regions {
 	NL80211_DFS_UNSET	= 0,
@@ -2671,62 +2672,59 @@ enum nl80211_mesh_power_mode {
  * @__NL80211_MESHCONF_INVALID: internal use
  *
  * @NL80211_MESHCONF_RETRY_TIMEOUT: specifies the initial retry timeout in
- *	millisecond units, used by the Peer Link Open message
+ * millisecond units, used by the Peer Link Open message
  *
  * @NL80211_MESHCONF_CONFIRM_TIMEOUT: specifies the initial confirm timeout, in
- *	millisecond units, used by the peer link management to close a peer link
+ * millisecond units, used by the peer link management to close a peer link
  *
  * @NL80211_MESHCONF_HOLDING_TIMEOUT: specifies the holding timeout, in
- *	millisecond units
+ * millisecond units
  *
  * @NL80211_MESHCONF_MAX_PEER_LINKS: maximum number of peer links allowed
- *	on this mesh interface
+ * on this mesh interface
  *
  * @NL80211_MESHCONF_MAX_RETRIES: specifies the maximum number of peer link
- *	open retries that can be sent to establish a new peer link instance in a
- *	mesh
+ * open retries that can be sent to establish a new peer link instance in a
+ * mesh
  *
  * @NL80211_MESHCONF_TTL: specifies the value of TTL field set at a source mesh
- *	point.
+ * point.
  *
- * @NL80211_MESHCONF_AUTO_OPEN_PLINKS: whether we should automatically open
- *	peer links when we detect compatible mesh peers. Disabled if
- *	@NL80211_MESH_SETUP_USERSPACE_MPM or @NL80211_MESH_SETUP_USERSPACE_AMPE are
- *	set.
+ * @NL80211_MESHCONF_AUTO_OPEN_PLINKS: whether we should automatically
+ * open peer links when we detect compatible mesh peers.
  *
  * @NL80211_MESHCONF_HWMP_MAX_PREQ_RETRIES: the number of action frames
- *	containing a PREQ that an MP can send to a particular destination (path
- *	target)
+ * containing a PREQ that an MP can send to a particular destination (path
+ * target)
  *
  * @NL80211_MESHCONF_PATH_REFRESH_TIME: how frequently to refresh mesh paths
- *	(in milliseconds)
+ * (in milliseconds)
  *
  * @NL80211_MESHCONF_MIN_DISCOVERY_TIMEOUT: minimum length of time to wait
- *	until giving up on a path discovery (in milliseconds)
+ * until giving up on a path discovery (in milliseconds)
  *
  * @NL80211_MESHCONF_HWMP_ACTIVE_PATH_TIMEOUT: The time (in TUs) for which mesh
- *	points receiving a PREQ shall consider the forwarding information from
- *	the root to be valid. (TU = time unit)
+ * points receiving a PREQ shall consider the forwarding information from the
+ * root to be valid. (TU = time unit)
  *
  * @NL80211_MESHCONF_HWMP_PREQ_MIN_INTERVAL: The minimum interval of time (in
- *	TUs) during which an MP can send only one action frame containing a PREQ
- *	reference element
+ * TUs) during which an MP can send only one action frame containing a PREQ
+ * reference element
  *
  * @NL80211_MESHCONF_HWMP_NET_DIAM_TRVS_TIME: The interval of time (in TUs)
- *	that it takes for an HWMP information element to propagate across the
- *	mesh
+ * that it takes for an HWMP information element to propagate across the mesh
  *
  * @NL80211_MESHCONF_HWMP_ROOTMODE: whether root mode is enabled or not
  *
  * @NL80211_MESHCONF_ELEMENT_TTL: specifies the value of TTL field set at a
- *	source mesh point for path selection elements.
+ * source mesh point for path selection elements.
  *
  * @NL80211_MESHCONF_HWMP_RANN_INTERVAL:  The interval of time (in TUs) between
- *	root announcements are transmitted.
+ * root announcements are transmitted.
  *
  * @NL80211_MESHCONF_GATE_ANNOUNCEMENTS: Advertise that this mesh station has
- *	access to a broader network beyond the MBSS.  This is done via Root
- *	Announcement frames.
+ * access to a broader network beyond the MBSS.  This is done via Root
+ * Announcement frames.
  *
  * @NL80211_MESHCONF_HWMP_PERR_MIN_INTERVAL: The minimum interval of time (in
  *	TUs) during which a mesh STA can send only one Action frame containing a
@@ -2744,6 +2742,10 @@ enum nl80211_mesh_power_mode {
  *	(see 11C.12.2.2)
  *
  * @NL80211_MESHCONF_HT_OPMODE: set mesh HT protection mode.
+ *
+ * @NL80211_MESHCONF_HWMP_PERR_MIN_INTERVAL: The minimum interval of time (in
+ * TUs) during which a mesh STA can send only one Action frame containing a
+ * PERR element.
  *
  * @NL80211_MESHCONF_ATTR_MAX: highest possible mesh configuration attribute
  *
@@ -2809,30 +2811,29 @@ enum nl80211_meshconf_params {
  * @__NL80211_MESH_SETUP_INVALID: Internal use
  *
  * @NL80211_MESH_SETUP_ENABLE_VENDOR_PATH_SEL: Enable this option to use a
- *	vendor specific path selection algorithm or disable it to use the
- *	default HWMP.
+ * vendor specific path selection algorithm or disable it to use the default
+ * HWMP.
  *
  * @NL80211_MESH_SETUP_ENABLE_VENDOR_METRIC: Enable this option to use a
- *	vendor specific path metric or disable it to use the default Airtime
- *	metric.
+ * vendor specific path metric or disable it to use the default Airtime
+ * metric.
  *
  * @NL80211_MESH_SETUP_IE: Information elements for this mesh, for instance, a
- *	robust security network ie, or a vendor specific information element
- *	that vendors will use to identify the path selection methods and
- *	metrics in use.
+ * robust security network ie, or a vendor specific information element that
+ * vendors will use to identify the path selection methods and metrics in use.
  *
  * @NL80211_MESH_SETUP_USERSPACE_AUTH: Enable this option if an authentication
- *	daemon will be authenticating mesh candidates.
+ * daemon will be authenticating mesh candidates.
  *
  * @NL80211_MESH_SETUP_USERSPACE_AMPE: Enable this option if an authentication
- *	daemon will be securing peer link frames.  AMPE is a secured version of
- *	Mesh Peering Management (MPM) and is implemented with the assistance of
- *	a userspace daemon.  When this flag is set, the kernel will send peer
- *	management frames to a userspace daemon that will implement AMPE
- *	functionality (security capabilities selection, key confirmation, and
- *	key management).  When the flag is unset (default), the kernel can
- *	autonomously complete (unsecured) mesh peering without the need of a
- *	userspace daemon.
+ * daemon will be securing peer link frames.  AMPE is a secured version of Mesh
+ * Peering Management (MPM) and is implemented with the assistance of a
+ * userspace daemon.  When this flag is set, the kernel will send peer
+ * management frames to a userspace daemon that will implement AMPE
+ * functionality (security capabilities selection, key confirmation, and
+ * key management).  When the flag is unset (default), the kernel can
+ * autonomously complete (unsecured) mesh peering without the need of a
+ * userspace daemon.
  *
  * @NL80211_MESH_SETUP_ENABLE_VENDOR_SYNC: Enable this option to use a
  *	vendor specific synchronization method or disable it to use the default
@@ -3321,10 +3322,9 @@ struct nl80211_wowlan_pattern_support {
  * @NL80211_WOWLAN_TRIG_PKT_PATTERN: wake up on the specified packet patterns
  *	which are passed in an array of nested attributes, each nested attribute
  *	defining a with attributes from &struct nl80211_wowlan_trig_pkt_pattern.
- *	Each pattern defines a wakeup packet. Packet offset is associated with
- *	each pattern which is used while matching the pattern. The matching is
- *	done on the MSDU, i.e. as though the packet was an 802.3 packet, so the
- *	pattern matching is done after the packet is converted to the MSDU.
+ *	Each pattern defines a wakeup packet. The matching is done on the MSDU,
+ *	i.e. as though the packet was an 802.3 packet, so the pattern matching
+ *	is done after the packet is converted to the MSDU.
  *
  *	In %NL80211_ATTR_WOWLAN_TRIGGERS_SUPPORTED, it is a binary attribute
  *	carrying a &struct nl80211_wowlan_pattern_support.
