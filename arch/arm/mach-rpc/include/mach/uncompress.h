@@ -8,7 +8,7 @@
  * published by the Free Software Foundation.
  */
 #define VIDMEM ((char *)SCREEN_START)
-
+ 
 #include <linux/io.h>
 #include <mach/hardware.h>
 #include <asm/setup.h>
@@ -65,6 +65,7 @@ static const unsigned long palette_4[16] = {
 extern __attribute__((pure)) struct param_struct *params(void);
 #define params (params())
 
+#ifndef STANDALONE_DEBUG 
 unsigned long video_num_cols;
 unsigned long video_num_rows;
 unsigned long video_x;
@@ -151,7 +152,7 @@ static void arch_decomp_setup(void)
 	}
 
 	video_size_row = video_num_cols * bytes_per_char_h;
-
+	
 	if (bytes_per_char_h == 4)
 		for (i = 0; i < 256; i++)
 			con_charconvtable[i] =
@@ -187,6 +188,7 @@ static void arch_decomp_setup(void)
 
 	if (nr_pages * page_size < 4096*1024) error("<4M of mem\n");
 }
+#endif
 
 /*
  * nothing to do

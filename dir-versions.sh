@@ -24,21 +24,6 @@ git checkout HEAD -- arch/arm/boot/compressed/ scripts/kconfig/
 rm -rf arch/arm/boot/dts/
 git checkout HEAD -- arch/arm/boot/dts/
 
-###########
-# pm 3.2
-rm -rf drivers/base/power/generic_ops.c drivers/base/power/sysfs.c drivers/base/power/trace.c include/linux/pm.h
-git checkout HEAD -- drivers/base/power/generic_ops.c drivers/base/power/sysfs.c drivers/base/power/trace.c include/linux/pm.h
-
-###########
-# fs/ext4 3.2
-rm -rf include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/exofs fs/gfs2 fs/compat.c
-git checkout HEAD -- include/trace/events/ext4.h fs/ext4/ fs/btrfs fs/fat fs/xfs fs/cifs fs/exofs fs/gfs2 fs/compat.c
-
-##########
-# drivers/base/regmap 3.2
-rm -rf drivers/base/regmap include/linux/regmap.h include/trace/events/regmap.h
-git checkout HEAD -- drivers/base/regmap include/linux/regmap.h include/trace/events/regmap.h
-
 ##########
 # drivers/bluetooth 3.3
 rm -rf drivers/bluetooth
@@ -68,21 +53,6 @@ git checkout HEAD -- include/linux/ieee80211.h include/net/ net/ include/linux/n
 # drivers/net/ 3.3
 rm -rf drivers/net/
 git checkout HEAD -- drivers/net/
-
-##########
-# kernel 3.2
-rm -rf kernel/debug kernel/events kernel/events kernel/gcov include/linux/timex.h include/linux/clockchips.h include/linux/ring_buffer.h include/linux/stacktrace.h include/linux/trace_clock.h kernel/rcutiny.c kernel/stacktrace.c kernel/irq kernel/time kernel/trace
-rm -rf include/linux/module.h include/linux/moduleparam.h include/linux/tracepoint.h include/linux/utsname.h kernel/capability.c kernel/configs.c kernel/dma.c kernel/kexec.c kernel/params.c kernel/sched_autogroup.c kernel/sched_autogroup.h kernel/sched_cpupri.c kernel/sched_cpupri.h kernel/sched_stats.h  kernel/tracepoint.c
-rm -rf kernel/async.c kernel/audit.c kernel/audit_tree.c kernel/compat.c kernel/crash_dump.c kernel/cred.c kernel/delayacct.c kernel/futex_compat.c kernel/groups.c kernel/hung_task.c kernel/irq_work.c kernel/kfifo.c kernel/kprobes.c kernel/ksysfs.c kernel/latencytop.c kernel/lockdep_proc.c kernel/mutex-debug.c
-rm -rf kernel/notifier.c kernel/padata.c kernel/pid.c kernel/posix-cpu-timers.c kernel/posix-timers.c kernel/profile.c kernel/range.c kernel/relay.c kernel/rtmutex-debug.c kernel/rtmutex-tester.c  kernel/rtmutex.c kernel/rwsem.c kernel/semaphore.c kernel/smp.c kernel/spinlock.c kernel/stop_machine.c kernel/sysctl_check.c kernel/taskstats.c kernel/time.c kernel/utsname_sysctl.c kernel/watchdog.c
-rm -rf kernel/auditsc.c arch/arm/kernel/ptrace.c include/linux/audit.h kernel/sysctl_binary.c kernel/sysctl.c arch/arm/include/asm/exception.h kernel/cpu_pm.c kernel/kmod.c kernel/lockdep.c kernel/module.c kernel/mutex.c kernel/mutex.h kernel/softirq.c kernel/srcu.c
-rm -rf drivers/connector/cn_proc.c kernel/ptrace.c include/linux/cn_proc.h include/linux/freezer.h kernel/freezer.c
-git checkout HEAD -- drivers/connector/cn_proc.c kernel/ptrace.c include/linux/cn_proc.h include/linux/freezer.h kernel/freezer.c
-git checkout HEAD -- kernel/debug  kernel/events kernel/events kernel/gcov include/linux/timex.h include/linux/clockchips.h include/linux/ring_buffer.h include/linux/stacktrace.h include/linux/trace_clock.h kernel/rcutiny.c kernel/stacktrace.c kernel/irq kernel/time kernel/trace
-git checkout HEAD -- include/linux/module.h include/linux/moduleparam.h include/linux/tracepoint.h include/linux/utsname.h kernel/capability.c kernel/configs.c kernel/dma.c kernel/kexec.c kernel/params.c kernel/sched_autogroup.c kernel/sched_autogroup.h kernel/sched_cpupri.c kernel/sched_cpupri.h kernel/sched_stats.h  kernel/tracepoint.c
-git checkout HEAD -- kernel/async.c kernel/audit.c kernel/audit_tree.c kernel/compat.c kernel/crash_dump.c kernel/cred.c kernel/delayacct.c kernel/futex_compat.c kernel/groups.c kernel/hung_task.c kernel/irq_work.c kernel/kfifo.c kernel/kprobes.c kernel/ksysfs.c kernel/latencytop.c kernel/lockdep_proc.c kernel/mutex-debug.c
-git checkout HEAD -- kernel/notifier.c kernel/padata.c kernel/pid.c kernel/posix-cpu-timers.c kernel/posix-timers.c kernel/profile.c kernel/range.c kernel/relay.c kernel/rtmutex-debug.c kernel/rtmutex-tester.c  kernel/rtmutex.c kernel/rwsem.c kernel/semaphore.c kernel/smp.c kernel/spinlock.c kernel/stop_machine.c kernel/sysctl_check.c kernel/taskstats.c kernel/time.c kernel/utsname_sysctl.c kernel/watchdog.c
-git checkout HEAD -- kernel/auditsc.c arch/arm/kernel/ptrace.c include/linux/audit.h kernel/sysctl_binary.c kernel/sysctl.c arch/arm/include/asm/exception.h kernel/cpu_pm.c kernel/kmod.c kernel/lockdep.c kernel/module.c kernel/mutex.c kernel/mutex.h kernel/softirq.c kernel/srcu.c
 
 ##########
 # kernel 3.3
@@ -125,13 +95,6 @@ git checkout HEAD -- arch/arm/include/asm/exec.h include/asm-generic/mman-common
 
 ####v3.5
 git checkout HEAD arch/arm/include/asm/dma-mapping.h arch/arm/mm/dma-mapping.c arch/arm/common/dmabounce.c
-
-####v3.2
-rm -rf fs/ceph include/linux/ceph fs/9p drivers/xen
-git checkout HEAD -- include/linux/blkdev.h fs/ext3/fsync.c fs/ceph include/linux/ceph include/linux/irqdomain.h include/linux/mm_types.h
-git checkout HEAD -- fs/pstore/inode.c fs/pstore/platform.c include/linux/pstore.h lib/llist.c include/linux/llist.h fs/9p kernel/sched.c kernel/sched_clock.c kernel/sched_fair.c
-git checkout HEAD -- drivers/md/faulty.c drivers/md/linear.c drivers/md/md.c drivers/md/md.h drivers/md/multipath.c drivers/md/raid0.c drivers/md/raid1.c drivers/md/raid10.c drivers/md/raid5.c
-git checkout HEAD -- fs/udf/udfdecl.h drivers/xen include/linux/aio_abi.h fs/aio.c
 
 ####v3.4
 git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c include/linux/filter.h include/linux/mmzone.h include/linux/swap.h lib/crc32.c include/linux/kconfig.h

@@ -680,6 +680,7 @@ static int __init omap2_init_devices(void)
 	 * in alphabetical order so they're easier to sort through.
 	 */
 	omap_init_audio();
+	omap_init_mcpdm();
 	omap_init_camera();
 	omap_init_mbox();
 	omap_init_mcspi();

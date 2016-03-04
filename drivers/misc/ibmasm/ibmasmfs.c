@@ -129,7 +129,7 @@ static int ibmasmfs_fill_super (struct super_block *sb, void *data, int silent)
 	root->i_op = &simple_dir_inode_operations;
 	root->i_fop = ibmasmfs_dir_ops;
 
-	root_dentry = d_make_root(root);
+	root_dentry = d_alloc_root(root);
 	if (!root_dentry) {
 		iput(root);
 		return -ENOMEM;
