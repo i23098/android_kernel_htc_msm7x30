@@ -21,7 +21,13 @@
 #else
 
 #include <asm/memory.h>
-#include <mach/vmalloc.h>
+
+#ifdef CONFIG_VMSPLIT_2G
+#define VMALLOC_END	  (PAGE_OFFSET + 0x7A000000)
+#else
+#define VMALLOC_END	  (PAGE_OFFSET + 0x3E000000)
+#endif
+
 #include <mach/msm_mem.h>
 #include <asm/pgtable-hwdef.h>
 #include <asm/tlbflush.h>
