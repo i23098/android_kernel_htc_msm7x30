@@ -632,7 +632,7 @@ static void synaptics_ts_work_func(struct work_struct *work)
 				/* DT2W */
 				if (scr_suspended && dt2w_switch) {
 					cputime64_t now = ktime_to_ns(ktime_get());
-					cputime64_t diff = cputime64_sub(now, dt2w_start);
+					cputime64_t diff = (unsigned int) (now - dt2w_start);
 					cputime64_t min = dt2w_min_duration * 1000 * 1000;
 					cputime64_t max = dt2w_max_duration * 1000 * 1000;
 
