@@ -12,9 +12,6 @@
  * GNU General Public License for more details.
  *
  */
-
-#include <mach/hardware.h>
-
 void arch_idle(void);
 
 #if defined(CONFIG_MSM_NATIVE_RESTART)
