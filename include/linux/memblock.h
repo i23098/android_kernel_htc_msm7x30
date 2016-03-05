@@ -233,10 +233,6 @@ static inline unsigned long memblock_region_reserved_end_pfn(const struct memblo
 
 
 #ifdef CONFIG_ARCH_DISCARD_MEMBLOCK
-#if 0
-#define __init_memblock __init
-#define __initdata_memblock __initdata
-#endif
 #define __init_memblock __meminit
 #define __initdata_memblock __meminitdata
 #else
