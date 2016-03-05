@@ -662,8 +662,9 @@ const struct irq_domain_ops gic_irq_domain_ops = {
 #endif
 };
 
-void __init gic_init(unsigned int gic_nr, int irq_start,
-	void __iomem *dist_base, void __iomem *cpu_base)
+void __init gic_init_bases(unsigned int gic_nr, int irq_start,
+			   void __iomem *dist_base, void __iomem *cpu_base,
+			   u32 percpu_offset)
 {
 	struct gic_chip_data *gic;
 	struct irq_domain *domain;
@@ -717,7 +718,8 @@ void __init gic_init(unsigned int gic_nr, int irq_start,
 			if (irq_start != -1)
 				irq_start = (irq_start & ~31) + 16;
 		}
-	}
+	} else
+		domain->hwirq_base = 32;
 
 	/*
 	 * Find out how many interrupts are supported.
@@ -782,6 +784,7 @@ int __init gic_of_init(struct device_node *node, struct device_node *parent)
 {
 	void __iomem *cpu_base;
 	void __iomem *dist_base;
+	u32 percpu_offset;
 	int irq;
 	struct irq_domain *domain = &gic_data[gic_cnt].domain;
 
@@ -794,41 +797,12 @@ int __init gic_of_init(struct device_node *node, struct device_node *parent)
 	cpu_base = of_iomap(node, 1);
 	WARN(!cpu_base, "unable to map gic cpu registers\n");
 
-	domain->of_node = of_node_get(node);
-
-	gic_init(gic_cnt, -1, dist_base, cpu_base);
-
-	if (parent) {
-		irq = irq_of_parse_and_map(node, 0);
-		gic_cascade_irq(gic_cnt, irq);
-	}
-	gic_cnt++;
-	return 0;
-}
-#endif
-
-#ifdef CONFIG_OF
-static int gic_cnt __initdata = 0;
-
-int __init gic_of_init(struct device_node *node, struct device_node *parent)
-{
-	void __iomem *cpu_base;
-	void __iomem *dist_base;
-	int irq;
-	struct irq_domain *domain = &gic_data[gic_cnt].domain;
-
-	if (WARN_ON(!node))
-		return -ENODEV;
-
-	dist_base = of_iomap(node, 0);
-	WARN(!dist_base, "unable to map gic dist registers\n");
-
-	cpu_base = of_iomap(node, 1);
-	WARN(!cpu_base, "unable to map gic cpu registers\n");
+	if (of_property_read_u32(node, "cpu-offset", &percpu_offset))
+		percpu_offset = 0;
 
 	domain->of_node = of_node_get(node);
 
-	gic_init(gic_cnt, -1, dist_base, cpu_base);
+	gic_init_bases(gic_cnt, -1, dist_base, cpu_base, percpu_offset);
 
 	if (parent) {
 		irq = irq_of_parse_and_map(node, 0);
