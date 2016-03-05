@@ -275,6 +275,7 @@ config ARCH_INTEGRATOR
 	select ARCH_HAS_CPUFREQ
 	select CLKDEV_LOOKUP
 	select HAVE_MACH_CLKDEV
+	select HAVE_TCM
 	select ICST
 	select GENERIC_CLOCKEVENTS
 	select PLAT_VERSATILE
@@ -1156,6 +1157,11 @@ config RESERVE_FIRST_PAGE
 	  boot operations. Reserve this page so that it is
 	  not allocated by the kernel.
 
+config ARM_NR_BANKS
+	int
+	default 16 if ARCH_EP93XX
+	default 8
+
 config IWMMXT
 	bool "Enable iWMMXt support"
 	depends on CPU_XSCALE || CPU_XSC3 || CPU_MOHAWK || CPU_PJ4
@@ -1645,6 +1651,16 @@ config LOCAL_TIMERS
 	  legacy IPI broadcast method.  Local timers allows the system
 	  accounting to be spread across the timer interval, preventing a
 	  "thundering herd" at every timer tick.
+
+config ARCH_NR_GPIO
+	int
+	default 1024 if ARCH_SHMOBILE || ARCH_TEGRA
+	default 350 if ARCH_U8500
+	default 0
+	help
+	  Maximum number of GPIOs in the system.
+
+	  If unsure, leave the default value.
 
 source kernel/Kconfig.preempt
 
