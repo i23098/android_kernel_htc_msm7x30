@@ -83,6 +83,27 @@ static struct snd_soc_card db1550_ac97_machine = {
 	.num_links	= 1,
 };
 
+static struct snd_soc_dai_link db1300_ac97_dai = {
+	.name		= "AC97",
+	.stream_name	= "AC97 HiFi",
+	.codec_dai_name	= "wm9712-hifi",
+	.cpu_dai_name	= "au1xpsc_ac97.1",
+	.platform_name	= "au1xpsc-pcm.1",
+	.codec_name	= "wm9712-codec.1",
+};
+
+static struct snd_soc_card db1300_ac97_machine = {
+	.name		= "DB1300_AC97",
+	.dai_link	= &db1300_ac97_dai,
+	.num_links	= 1,
+};
+
+static struct snd_soc_card db1550_ac97_machine = {
+	.name		= "DB1550_AC97",
+	.dai_link	= &db1200_ac97_dai,
+	.num_links	= 1,
+};
+
 /*-------------------------  I2S PART  ---------------------------*/
 
 static int db1200_i2s_startup(struct snd_pcm_substream *substream)
