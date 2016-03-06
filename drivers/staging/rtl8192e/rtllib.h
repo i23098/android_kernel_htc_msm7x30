@@ -36,6 +36,7 @@
 #include <linux/delay.h>
 #include <linux/wireless.h>
 
+#include "rtllib_debug.h"
 #include "rtl819x_HT.h"
 #include "rtl819x_BA.h"
 #include "rtl819x_TS.h"
@@ -2804,7 +2805,7 @@ extern int rtllib_wx_set_gen_ie(struct rtllib_device *ieee, u8 *ie, size_t len);
 
 /* rtllib_softmac.c */
 extern short rtllib_is_54g(struct rtllib_network *net);
-extern short rtllib_is_shortslot(struct rtllib_network net);
+extern short rtllib_is_shortslot(const struct rtllib_network *net);
 extern int rtllib_rx_frame_softmac(struct rtllib_device *ieee,
 				   struct sk_buff *skb,
 				   struct rtllib_rx_stats *rx_stats, u16 type,
