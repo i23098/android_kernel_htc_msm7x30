@@ -360,7 +360,7 @@ void __iounmap(volatile void __iomem *io_addr)
 			read_unlock(&vmlist_lock);
 			return;
 		}
-#ifndef CONFIG_SMP
+#if !defined(CONFIG_SMP) && !defined(CONFIG_ARM_LPAE)
 		/*
 		 * If this is a section based mapping we need to handle it
 		 * specially as the VM subsystem does not know how to handle
