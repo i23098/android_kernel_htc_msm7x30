@@ -30,6 +30,7 @@
 #include <linux/io.h>
 #include <linux/memory.h>
 #include <linux/rmt_storage_client.h>
+#include <linux/rtc-msm.h>
 #include <mach/msm_iomap.h>
 #include <mach/system.h>
 #ifdef CONFIG_CPU_V7
@@ -56,7 +57,6 @@
 #include "idle.h"
 #include "irq.h"
 #include "gpio.h"
-#include "timer.h"
 #include "pm.h"
 #include "spm.h"
 #include "sirc.h"

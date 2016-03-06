@@ -47,6 +47,7 @@
 #include <asm/mach/arch.h>
 #include <asm/setup.h>
 #include <mach/panel_id.h>
+#include <linux/rtc-msm.h>
 
 #include <mach/system.h>
 #include <mach/mpp.h>
@@ -65,7 +66,6 @@
 #include <mach/dma.h>
 #include <linux/android_pmem.h>
 #include <linux/input/msm_ts.h>
-//#include <mach/pmic.h>
 #include <mach/rpc_pmapp.h>
 #include <mach/qdsp5v2/aux_pcm.h>
 #include <mach/qdsp5v2/mi2s.h>
@@ -87,7 +87,6 @@
 #include <mach/htc_headset_microp.h>
 
 #include "devices.h"
-#include "timer.h"
 #ifdef CONFIG_USB_G_ANDROID
 #include <mach/htc_usb.h>
 #include <linux/usb/android_composite.h>

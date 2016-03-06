@@ -25,6 +25,7 @@
 #include <linux/percpu.h>
 #include <linux/moduleparam.h>
 #include <linux/stat.h>
+#include <linux/rtc-msm.h>
 
 #include <asm/mach/time.h>
 #include <asm/hardware/gic.h>
@@ -38,7 +39,6 @@
 #if defined(CONFIG_MSM_SMD)
 #include "smd_private.h"
 #endif
-#include "timer.h"
 
 enum {
 	MSM_TIMER_DEBUG_SYNC = 1U << 0,
