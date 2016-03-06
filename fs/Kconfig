@@ -227,6 +227,8 @@ source "fs/f2fs/Kconfig"
 
 endif # MISC_FILESYSTEMS
 
+source "fs/exofs/Kconfig.ore"
+
 menuconfig NETWORK_FILESYSTEMS
 	bool "Network File Systems"
 	default y
