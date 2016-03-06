@@ -26,6 +26,7 @@
 
 #include <linux/file.h>
 #include <linux/err.h>
+#include <linux/device.h>
 #include <linux/scatterlist.h>
 #include <linux/list.h>
 #include <linux/dma-mapping.h>
@@ -50,21 +51,6 @@ struct dma_buf_attachment;
  * @unmap_dma_buf: decreases usecount of buffer, might deallocate scatter
  *		   pages.
  * @release: release this buffer; to be called after the last dma_buf_put.
- * @begin_cpu_access: [optional] called before cpu access to invalidate cpu
- * 		      caches and allocate backing storage (if not yet done)
- * 		      respectively pin the objet into memory.
- * @end_cpu_access: [optional] called after cpu access to flush cashes.
- * @kmap_atomic: maps a page from the buffer into kernel address
- * 		 space, users may not block until the subsequent unmap call.
- * 		 This callback must not sleep.
- * @kunmap_atomic: [optional] unmaps a atomically mapped page from the buffer.
- * 		   This Callback must not sleep.
- * @kmap: maps a page from the buffer into kernel address space.
- * @kunmap: [optional] unmaps a page from the buffer.
- * @mmap: used to expose the backing storage to userspace. Note that the
- * 	  mapping needs to be coherent - if the exporter doesn't directly
- * 	  support this, it needs to fake coherency by shooting down any ptes
- * 	  when transitioning away from the cpu domain.
  */
 struct dma_buf_ops {
 	int (*attach)(struct dma_buf *, struct device *,
@@ -113,7 +99,7 @@ struct dma_buf {
 	struct file *file;
 	struct list_head attachments;
 	const struct dma_buf_ops *ops;
-	/* mutex to serialize list manipulation and attach/detach */
+	/* mutex to serialize list manipulation and other ops */
 	struct mutex lock;
 	void *priv;
 };
@@ -156,7 +142,7 @@ struct dma_buf_attachment *dma_buf_attach(struct dma_buf *dmabuf,
 void dma_buf_detach(struct dma_buf *dmabuf,
 				struct dma_buf_attachment *dmabuf_attach);
 struct dma_buf *dma_buf_export(void *priv, const struct dma_buf_ops *ops,
-			       size_t size, int flags);
+			size_t size, int flags);
 int dma_buf_fd(struct dma_buf *dmabuf, int flags);
 struct dma_buf *dma_buf_get(int fd);
 void dma_buf_put(struct dma_buf *dmabuf);
@@ -191,8 +177,8 @@ static inline void dma_buf_detach(struct dma_buf *dmabuf,
 }
 
 static inline struct dma_buf *dma_buf_export(void *priv,
-					     const struct dma_buf_ops *ops,
-					     size_t size, int flags)
+					const struct dma_buf_ops *ops,
+						size_t size, int flags)
 {
 	return ERR_PTR(-ENODEV);
 }
@@ -219,7 +205,7 @@ static inline struct sg_table *dma_buf_map_attachment(
 }
 
 static inline void dma_buf_unmap_attachment(struct dma_buf_attachment *attach,
-			struct sg_table *sg, enum dma_data_direction dir)
+						struct sg_table *sg, enum dma_data_direction dir)
 {
 	return;
 }
