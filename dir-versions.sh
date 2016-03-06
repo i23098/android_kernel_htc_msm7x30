@@ -102,8 +102,8 @@ git checkout HEAD -- drivers/of/gpio.c drivers/of/gpio.c drivers/regulator/dummy
 git checkout HEAD -- drivers/regulator/twl-regulator.c include/linux/regulator/driver.h include/linux/genalloc.h lib/genalloc.c fs/binfmt_elf.c
 
 ####v3.3
+rm arch/arm/mach-tegra arch/x86/ -rf
 git checkout HEAD -- include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c mm/backing-dev.c include/trace/events/writeback.h
 git checkout HEAD -- mm/memcontrol.c mm/vmscan.c include/linux/memcontrol.h arch/sh/kernel/idle.c block/bsg-lib.c fs/direct-io.c
 git checkout HEAD -- block/blk.h block/blk-tag.c block/blk-throttle.c block/genhd.c block/elevator.c mm/page-writeback.c mm/vmalloc.c
-git checkout HEAD -- drivers/base/regmap/regcache.c drivers/base/regmap/regmap.c
-
+git checkout HEAD -- drivers/base/regmap/regcache.c drivers/base/regmap/regmap.c arch/arm/mach-tegra arch/x86/
