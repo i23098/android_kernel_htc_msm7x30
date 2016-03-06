@@ -53,6 +53,7 @@
 #include <linux/device.h>
 #include <linux/wakelock.h>
 #include <linux/workqueue.h>
+#include <linux/tty_flip.h>
 
 #include <linux/atomic.h>
 #include <linux/irq.h>

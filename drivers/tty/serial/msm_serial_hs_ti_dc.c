@@ -53,6 +53,7 @@
 #include <linux/device.h>
 #include <linux/wakelock.h>
 #include <linux/debugfs.h>
+#include <linux/tty_flip.h>
 #include <asm/atomic.h>
 #include <asm/irq.h>
 #include <asm/system.h>

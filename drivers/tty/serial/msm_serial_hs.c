@@ -50,6 +50,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/dmapool.h>
 #include <linux/wait.h>
+#include <linux/tty_flip.h>
 #include <linux/sysfs.h>
 #include <linux/stat.h>
 #include <linux/device.h>
@@ -890,6 +891,9 @@ static void msm_hs_submit_tx_locked(struct uart_port *uport)
 				   sizeof(dmov_box), DMA_TO_DEVICE);
 
 	*tx->command_ptr_ptr = CMD_PTR_LP | DMOV_CMD_ADDR(tx->mapped_cmd_ptr);
+
+	dma_sync_single_for_device(uport->dev, tx->mapped_cmd_ptr_ptr,
+				   sizeof(u32), DMA_TO_DEVICE);
 
 	/* Save tx_count to use in Callback */
 	tx->tx_count = tx_count;
@@ -1858,9 +1862,9 @@ exit_tasket_init:
 	tasklet_kill(&msm_uport->tx.tlet);
 	tasklet_kill(&msm_uport->rx.tlet);
 	dma_unmap_single(uport->dev, msm_uport->tx.mapped_cmd_ptr_ptr,
-			sizeof(u32), DMA_TO_DEVICE);
+				sizeof(u32), DMA_TO_DEVICE);
 	dma_unmap_single(uport->dev, msm_uport->tx.mapped_cmd_ptr,
-			sizeof(dmov_box), DMA_TO_DEVICE);
+				sizeof(dmov_box), DMA_TO_DEVICE);
 	kfree(msm_uport->tx.command_ptr_ptr);
 
 free_tx_command_ptr:
@@ -1925,6 +1929,7 @@ static int __init msm_hs_probe(struct platform_device *pdev)
 						"uartdm_channels");
 	if (unlikely(!resource))
 		return -ENXIO;
+
 	msm_uport->dma_tx_channel = resource->start;
 	msm_uport->dma_rx_channel = resource->end;
 
@@ -1932,6 +1937,7 @@ static int __init msm_hs_probe(struct platform_device *pdev)
 						"uartdm_crci");
 	if (unlikely(!resource))
 		return -ENXIO;
+
 	msm_uport->dma_tx_crci = resource->start;
 	msm_uport->dma_rx_crci = resource->end;
 
@@ -1991,8 +1997,7 @@ static int __init msm_hs_probe(struct platform_device *pdev)
 
 static int __init msm_serial_hs_init(void)
 {
-	int ret;
-	int i;
+	int ret, i;
 
 	/* Init all UARTS as non-configured */
 	for (i = 0; i < UARTDM_NR; i++)
