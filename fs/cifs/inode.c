@@ -1275,7 +1275,7 @@ int cifs_mkdir(struct inode *inode, struct dentry *direntry, umode_t mode)
 	struct inode *newinode = NULL;
 	struct cifs_fattr fattr;
 
-	cFYI(1, "In cifs_mkdir, mode = 0x%x inode = 0x%p", mode, inode);
+	cFYI(1, "In cifs_mkdir, mode = 0x%hx inode = 0x%p", mode, inode);
 
 	cifs_sb = CIFS_SB(inode->i_sb);
 	tlink = cifs_sb_tlink(cifs_sb);

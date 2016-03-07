@@ -108,7 +108,7 @@ static struct ipc_namespace *get_ns_from_inode(struct inode *inode)
 }
 
 static struct inode *mqueue_get_inode(struct super_block *sb,
-		struct ipc_namespace *ipc_ns, int mode,
+		struct ipc_namespace *ipc_ns, umode_t mode,
 		struct mq_attr *attr)
 {
 	struct user_struct *u = current_user();
@@ -679,7 +679,7 @@ err:
 	return ERR_PTR(ret);
 }
 
-SYSCALL_DEFINE4(mq_open, const char __user *, u_name, int, oflag, mode_t, mode,
+SYSCALL_DEFINE4(mq_open, const char __user *, u_name, int, oflag, umode_t, mode,
 		struct mq_attr __user *, u_attr)
 {
 	struct dentry *dentry;
