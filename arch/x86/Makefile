@@ -118,12 +118,6 @@ KBUILD_CFLAGS += $(mflags-y)
 KBUILD_AFLAGS += $(mflags-y)
 
 ###
-# Syscall table generation
-
-archheaders:
-	$(Q)$(MAKE) $(build)=arch/x86/syscalls all
-
-###
 # Kernel objects
 
 head-y := arch/x86/kernel/head_$(BITS).o

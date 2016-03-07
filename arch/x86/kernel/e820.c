@@ -19,7 +19,6 @@
 #include <linux/acpi.h>
 #include <linux/firmware-map.h>
 #include <linux/memblock.h>
-#include <linux/sort.h>
 
 #include <asm/e820.h>
 #include <asm/proto.h>
@@ -228,38 +227,22 @@ void __init e820_print_map(char *who)
  *	   ____________________33__
  *	   ______________________4_
  */
-struct change_member {
-	struct e820entry *pbios; /* pointer to original bios entry */
-	unsigned long long addr; /* address for this change point */
-};
-
-static int __init cpcompare(const void *a, const void *b)
-{
-	struct change_member * const *app = a, * const *bpp = b;
-	const struct change_member *ap = *app, *bp = *bpp;
-
-	/*
-	 * Inputs are pointers to two elements of change_point[].  If their
-	 * addresses are unequal, their difference dominates.  If the addresses
-	 * are equal, then consider one that represents the end of its region
-	 * to be greater than one that does not.
-	 */
-	if (ap->addr != bp->addr)
-		return ap->addr > bp->addr ? 1 : -1;
-
-	return (ap->addr != ap->pbios->addr) - (bp->addr != bp->pbios->addr);
-}
 
 int __init sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
 			     u32 *pnr_map)
 {
+	struct change_member {
+		struct e820entry *pbios; /* pointer to original bios entry */
+		unsigned long long addr; /* address for this change point */
+	};
 	static struct change_member change_point_list[2*E820_X_MAX] __initdata;
 	static struct change_member *change_point[2*E820_X_MAX] __initdata;
 	static struct e820entry *overlap_list[E820_X_MAX] __initdata;
 	static struct e820entry new_bios[E820_X_MAX] __initdata;
+	struct change_member *change_tmp;
 	unsigned long current_type, last_type;
 	unsigned long long last_addr;
-	int chgidx;
+	int chgidx, still_changing;
 	int overlap_entries;
 	int new_bios_entry;
 	int old_nr, new_nr, chg_nr;
@@ -296,7 +279,35 @@ int __init sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
 	chg_nr = chgidx;
 
 	/* sort change-point list by memory addresses (low -> high) */
-	sort(change_point, chg_nr, sizeof *change_point, cpcompare, NULL);
+	still_changing = 1;
+	while (still_changing)	{
+		still_changing = 0;
+		for (i = 1; i < chg_nr; i++)  {
+			unsigned long long curaddr, lastaddr;
+			unsigned long long curpbaddr, lastpbaddr;
+
+			curaddr = change_point[i]->addr;
+			lastaddr = change_point[i - 1]->addr;
+			curpbaddr = change_point[i]->pbios->addr;
+			lastpbaddr = change_point[i - 1]->pbios->addr;
+
+			/*
+			 * swap entries, when:
+			 *
+			 * curaddr > lastaddr or
+			 * curaddr == lastaddr and curaddr == curpbaddr and
+			 * lastaddr != lastpbaddr
+			 */
+			if (curaddr < lastaddr ||
+			    (curaddr == lastaddr && curaddr == curpbaddr &&
+			     lastaddr != lastpbaddr)) {
+				change_tmp = change_point[i];
+				change_point[i] = change_point[i-1];
+				change_point[i-1] = change_tmp;
+				still_changing = 1;
+			}
+		}
+	}
 
 	/* create a new bios memory map, removing overlaps */
 	overlap_entries = 0;	 /* number of entries in the overlap table */
@@ -703,7 +714,7 @@ void __init e820_mark_nosave_regions(unsigned long limit_pfn)
 }
 #endif
 
-#ifdef CONFIG_ACPI
+#ifdef CONFIG_HIBERNATION
 /**
  * Mark ACPI NVS memory region, so that we can save/restore it during
  * hibernation and the subsequent resume.
@@ -716,7 +727,7 @@ static int __init e820_mark_nvs_memory(void)
 		struct e820entry *ei = &e820.map[i];
 
 		if (ei->type == E820_NVS)
-			acpi_nvs_register(ei->addr, ei->size);
+			suspend_nvs_register(ei->addr, ei->size);
 	}
 
 	return 0;

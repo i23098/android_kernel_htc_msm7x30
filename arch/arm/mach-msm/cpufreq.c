@@ -3,7 +3,7 @@
  * MSM architecture cpufreq driver
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2007-2010, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2007-2013, The Linux Foundation. All rights reserved.
  * Author: Mike A. Chan <mikechan@google.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -27,6 +27,7 @@
 #include <linux/cpumask.h>
 #include <linux/sched.h>
 #include <linux/suspend.h>
+#include <trace/events/power.h>
 #include <mach/socinfo.h>
 #include <mach/cpufreq.h>
 
@@ -366,8 +367,8 @@ static int msm_cpufreq_resume(struct cpufreq_policy *policy)
 	return 0;
 }
 
-static ssize_t store_mfreq(struct sysdev_class *class,
-			struct sysdev_class_attribute *attr,
+static ssize_t store_mfreq(struct device *dev,
+			struct device_attribute *attr,
 			const char *buf, size_t count)
 {
 	u64 val;
@@ -383,7 +384,7 @@ static ssize_t store_mfreq(struct sysdev_class *class,
 	return count;
 }
 
-static SYSDEV_CLASS_ATTR(mfreq, 0200, NULL, store_mfreq);
+static DEVICE_ATTR(mfreq, 0200, NULL, store_mfreq);
 
 static struct freq_attr *msm_freq_attr[] = {
 	&cpufreq_freq_attr_scaling_available_freqs,
@@ -396,9 +397,9 @@ static struct cpufreq_driver msm_cpufreq_driver = {
 	.init		= msm_cpufreq_init,
 	.verify		= msm_cpufreq_verify,
 	.target		= msm_cpufreq_target,
+	.get		= msm_cpufreq_get_freq,
 	.suspend	= msm_cpufreq_suspend,
 	.resume		= msm_cpufreq_resume,
-	.get		= msm_cpufreq_get_freq,
 	.name		= "msm",
 	.attr		= msm_freq_attr,
 };
@@ -407,8 +408,8 @@ static int __init msm_cpufreq_register(void)
 {
 	int cpu;
 
-	int err = sysfs_create_file(&cpu_sysdev_class.kset.kobj,
-			&attr_mfreq.attr);
+	int err = device_create_file(cpu_subsys.dev_root,
+			&dev_attr_mfreq);
 	if (err)
 		pr_err("Failed to create sysfs mfreq\n");
 

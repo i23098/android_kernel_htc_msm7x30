@@ -749,7 +749,12 @@ void __init setup_arch(char **cmdline_p)
 #endif
 #ifdef CONFIG_EFI
 	if (!strncmp((char *)&boot_params.efi_info.efi_loader_signature,
-		     EFI_LOADER_SIGNATURE, 4)) {
+#ifdef CONFIG_X86_32
+		     "EL32",
+#else
+		     "EL64",
+#endif
+	 4)) {
 		efi_enabled = 1;
 		efi_memblock_x86_reserve_range();
 	}
