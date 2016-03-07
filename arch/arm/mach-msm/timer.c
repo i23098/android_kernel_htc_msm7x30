@@ -941,31 +941,11 @@ int __init msm_timer_init_time_sync(void (*timeout)(void))
 
 #endif
 
-static DEFINE_CLOCK_DATA(cd);
-
-/*
- * Store the most recent timestamp read from hardware
- * in last_ns. This is useful for debugging crashes.
- */
-static atomic64_t last_ns;
-
-unsigned long long notrace sched_clock(void)
+static u32 notrace msm_update_sched_clock(void)
 {
 	struct msm_clock *clock = &msm_clocks[msm_global_timer];
 	struct clocksource *cs = &clock->clocksource;
-	u64 cyc = cs->read(cs);
-	u64 last_ns_local;
-	last_ns_local = cyc_to_sched_clock(&cd, cyc, ((u32)~0 >> clock->shift));
-	atomic64_set(&last_ns, last_ns_local);
-	return last_ns_local;
-}
-
-static void notrace msm_update_sched_clock(void)
-{
-	struct msm_clock *clock = &msm_clocks[msm_global_timer];
-	struct clocksource *cs = &clock->clocksource;
-	u32 cyc = cs->read(cs);
-	update_sched_clock(&cd, cyc, ((u32)~0) >> clock->shift);
+	return cs->read(cs);
 }
 
 int read_current_timer(unsigned long *timer_val)
@@ -979,7 +959,7 @@ static void __init msm_sched_clock_init(void)
 {
 	struct msm_clock *clock = &msm_clocks[msm_global_timer];
 
-	init_sched_clock(&cd, msm_update_sched_clock, 32 - clock->shift,
+	setup_sched_clock(msm_update_sched_clock, 32 - clock->shift,
 			 clock->freq);
 }
 
