@@ -216,6 +216,7 @@ config  ARCH_MSM_SCORPIONMP
 	select ARCH_MSM_SCORPION
 	select MSM_SMP
 	bool
+	select HAVE_SMP
 
 config  ARCH_MSM_KRAITMP
 	select ARCH_MSM_KRAIT
