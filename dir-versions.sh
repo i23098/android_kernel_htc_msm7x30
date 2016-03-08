@@ -105,4 +105,5 @@ git checkout HEAD -- drivers/regulator/twl-regulator.c include/linux/regulator/d
 git checkout HEAD -- include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c mm/backing-dev.c include/trace/events/writeback.h
 git checkout HEAD -- mm/memcontrol.c mm/vmscan.c include/linux/memcontrol.h arch/sh/kernel/idle.c block/bsg-lib.c fs/direct-io.c
 git checkout HEAD -- block/blk.h block/blk-tag.c block/blk-throttle.c block/genhd.c block/elevator.c mm/page-writeback.c mm/vmalloc.c
-git checkout HEAD -- drivers/base/regmap/regcache.c drivers/base/regmap/regmap.c drivers/staging/iio/adc/ad799x_core.c include/linux/migrate.h include/linux/prctl.h
+git checkout HEAD -- drivers/base/regmap/regcache.c drivers/base/regmap/regmap.c drivers/staging/iio/adc/ad799x_core.c
+git checkout HEAD -- include/linux/migrate.h include/linux/prctl.h drivers/block/rbd.c
