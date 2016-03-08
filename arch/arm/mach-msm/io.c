@@ -69,7 +69,8 @@ static struct map_desc msm_io_desc[] __initdata = {
 	MSM_DEVICE(CLK_CTL),
 	MSM_DEVICE(AD5),
 	MSM_DEVICE(MDC),
-#ifdef CONFIG_MSM_DEBUG_UART
+#if defined(CONFIG_MSM_DEBUG_UART) || defined(CONFIG_DEBUG_MSM_UART1) || defined(CONFIG_DEBUG_MSM_UART2) || \
+	defined(CONFIG_DEBUG_MSM_UART3)
 	MSM_DEVICE(DEBUG_UART),
 #endif
 #ifdef CONFIG_CACHE_L2X0
@@ -116,7 +117,8 @@ static struct map_desc qsd8x50_io_desc[] __initdata = {
 	MSM_DEVICE(AD5),
 	MSM_DEVICE(MDC),
 	MSM_DEVICE(TCSR),
-#ifdef CONFIG_MSM_DEBUG_UART
+#if defined(CONFIG_MSM_DEBUG_UART) || defined(CONFIG_DEBUG_MSM_UART1) || defined(CONFIG_DEBUG_MSM_UART2) || \
+	defined(CONFIG_DEBUG_MSM_UART3)
 	MSM_DEVICE(DEBUG_UART),
 #endif
 	{
@@ -166,6 +168,9 @@ static struct map_desc msm8x60_io_desc[] __initdata = {
 	MSM_DEVICE(QFPROM),
 	MSM_DEVICE(EBI1_CH0),
 	MSM_DEVICE(HTC_DEBUG_INFO),
+#ifdef CONFIG_DEBUG_MSM8660_UART
+	MSM_DEVICE(DEBUG_UART),
+#endif
 };
 
 void __init msm_map_msm8x60_io(void)
@@ -205,6 +210,9 @@ static struct map_desc msm8960_io_desc[] __initdata = {
 	MSM_DEVICE(DEBUG_UART),
 #endif
 	MSM_CHIP_DEVICE(QFPROM, MSM8960),
+#ifdef CONFIG_DEBUG_MSM8960_UART
+	MSM_DEVICE(DEBUG_UART),
+#endif
 };
 
 void __init msm_map_msm8960_io(void)
@@ -300,7 +308,7 @@ void __init msm_map_copper_io(void)
 #ifdef CONFIG_ARCH_MSM7X30
 static struct map_desc msm7x30_io_desc[] __initdata = {
 	MSM_DEVICE(VIC),
-	MSM_DEVICE(CSR),
+	MSM_CHIP_DEVICE(CSR, MSM7X30),
 	MSM_DEVICE(TMR),
 	MSM_CHIP_DEVICE(GPIO1, MSM7X30),
 	MSM_CHIP_DEVICE(GPIO2, MSM7X30),
@@ -312,7 +320,8 @@ static struct map_desc msm7x30_io_desc[] __initdata = {
 	MSM_DEVICE(SAW),
 	MSM_DEVICE(GCC),
 	MSM_DEVICE(TCSR),
-#ifdef CONFIG_MSM_DEBUG_UART
+#if defined(CONFIG_DEBUG_MSM_UART1) || defined(CONFIG_DEBUG_MSM_UART2) || \
+	defined(CONFIG_DEBUG_MSM_UART3)
 	MSM_DEVICE(DEBUG_UART),
 #endif
 	{

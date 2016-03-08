@@ -232,9 +232,6 @@ config ARCH_MSM7X27A
 	select MSM_DALRPC
 	select MSM_PROC_COMM_REGULATOR
 
-config HAS_MSM_DEBUG_UART_PHYS
-	bool
-
 config  MSM_VIC
 	bool
 
@@ -924,6 +921,12 @@ config IOMMU_PGTABLES_L2
 	 However, with large multimedia buffers, the TLB should mostly contain
 	 section mappings and TLB misses should be quite infrequent.
 	 Most people can probably say Y here.
+
+config MSM_HAS_DEBUG_UART_HS
+	bool
+
+config HAS_MSM_DEBUG_UART_PHYS
+	bool
 
 config MSM_DEBUG_UART
 	int
