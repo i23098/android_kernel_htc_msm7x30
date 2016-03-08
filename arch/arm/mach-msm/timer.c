@@ -1,4 +1,4 @@
-/* linux/arch/arm/mach-msm/timer.c
+/*
  *
  * Copyright (C) 2007 Google, Inc.
  * Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
@@ -14,13 +14,11 @@
  *
  */
 
+#include <linux/clocksource.h>
+#include <linux/clockchips.h>
 #include <linux/init.h>
-#include <linux/time.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
-#include <linux/clk.h>
-#include <linux/clockchips.h>
-#include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/percpu.h>
 #include <linux/moduleparam.h>
@@ -29,12 +27,14 @@
 
 #include <asm/mach/time.h>
 #include <asm/hardware/gic.h>
+#include <asm/localtimer.h>
 
 #include <asm/sched_clock.h>
 #include <asm/smp_plat.h>
 #include <mach/msm_iomap.h>
 #include <mach/irqs.h>
 #include <mach/socinfo.h>
+#include <linux/delay.h>
 
 #if defined(CONFIG_MSM_SMD)
 #include "smd_private.h"
@@ -61,16 +61,11 @@ module_param_named(debug_mask, msm_timer_debug_mask, int, S_IRUGO | S_IWUSR | S_
 #define TIMER_MATCH_VAL         0x0000
 #define TIMER_COUNT_VAL         0x0004
 #define TIMER_ENABLE            0x0008
-#define TIMER_ENABLE_CLR_ON_MATCH_EN    2
-#define TIMER_ENABLE_EN                 1
+#define TIMER_ENABLE_CLR_ON_MATCH_EN    BIT(1)
+#define TIMER_ENABLE_EN                 BIT(0)
 #define TIMER_CLEAR             0x000C
 #define DGT_CLK_CTL             0x0034
-enum {
-	DGT_CLK_CTL_DIV_1 = 0,
-	DGT_CLK_CTL_DIV_2 = 1,
-	DGT_CLK_CTL_DIV_3 = 2,
-	DGT_CLK_CTL_DIV_4 = 3,
-};
+#define DGT_CLK_CTL_DIV_4	0x3
 
 #define LOCAL_TIMER 0
 #define GLOBAL_TIMER 1
@@ -336,7 +331,7 @@ static int msm_timer_set_next_event(unsigned long cycles,
 }
 
 static void msm_timer_set_mode(enum clock_event_mode mode,
-			       struct clock_event_device *evt)
+			      struct clock_event_device *evt)
 {
 	struct msm_clock *clock;
 	struct msm_clock_percpu_data *clock_state, *gpt_state;
@@ -1143,8 +1138,7 @@ static void __init msm_timer_init(void)
 	}
 }
 
-#ifdef CONFIG_SMP
-
+#ifdef CONFIG_LOCAL_TIMERS
 int __cpuinit local_timer_setup(struct clock_event_device *evt)
 {
 	unsigned long flags;
@@ -1192,8 +1186,7 @@ inline int local_timer_ack(void)
 {
 	return 1;
 }
-
-#endif
+#endif /* CONFIG_LOCAL_TIMERS */
 
 struct sys_timer msm_timer = {
 	.init = msm_timer_init
