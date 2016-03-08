@@ -68,8 +68,6 @@ source "drivers/staging/phison/Kconfig"
 
 source "drivers/staging/line6/Kconfig"
 
-source "drivers/staging/lttng/Kconfig"
-
 source "drivers/gpu/drm/nouveau/Kconfig"
 
 source "drivers/staging/octeon/Kconfig"
@@ -121,8 +119,6 @@ source "drivers/staging/keucr/Kconfig"
 source "drivers/staging/bcm/Kconfig"
 
 source "drivers/staging/ft1000/Kconfig"
-
-source "drivers/staging/intel_sst/Kconfig"
 
 source "drivers/staging/speakup/Kconfig"
 

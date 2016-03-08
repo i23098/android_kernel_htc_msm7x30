@@ -299,7 +299,6 @@ struct vb_device_info {
 	unsigned short   NewFlickerMode;
 	unsigned short   SelectCRT2Rate;
 
-	unsigned char *ROMAddr;
 	void __iomem *FBAddr;
 	unsigned long BaseAddr;
 	unsigned long RelIO;
@@ -376,7 +375,6 @@ struct vb_device_info {
 	unsigned char   *pXGINew_CR97 ;
 
 	struct XGI330_LCDCapStruct  *LCDCapList;
-	struct XGI21_LVDSCapStruct  *XG21_LVDSCapList;
 
 	struct XGI_TimingHStruct  *TimingH;
 	struct XGI_TimingVStruct  *TimingV;

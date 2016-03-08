@@ -110,6 +110,10 @@ enum iio_endian {
  * @extend_name:	Allows labeling of channel attributes with an
  *			informative name. Note this has no effect codes etc,
  *			unlike modifiers.
+ * @datasheet_name:	A name used in in kernel mapping of channels. It should
+ *			corrspond to the first name that the channel is referred
+ *			to by in the datasheet (e.g. IND), or the nearest
+ *			possible compound name (e.g. IND-INC).
  * @processed_val:	Flag to specify the data access attribute should be
  *			*_input rather than *_raw.
  * @modified:		Does a modifier apply to this channel. What these are
@@ -138,6 +142,7 @@ struct iio_chan_spec {
 	long			info_mask;
 	long			event_mask;
 	char			*extend_name;
+	const char		*datasheet_name;
 	unsigned		processed_val:1;
 	unsigned		modified:1;
 	unsigned		indexed:1;
@@ -262,7 +267,23 @@ struct iio_info {
 				 int val);
 	int (*validate_trigger)(struct iio_dev *indio_dev,
 				struct iio_trigger *trig);
+	int (*update_scan_mode)(struct iio_dev *indio_dev,
+				const unsigned long *scan_mask);
+};
 
+/**
+ * struct iio_buffer_setup_ops - buffer setup related callbacks
+ * @preenable:		[DRIVER] function to run prior to marking buffer enabled
+ * @postenable:		[DRIVER] function to run after marking buffer enabled
+ * @predisable:		[DRIVER] function to run prior to marking buffer
+ *			disabled
+ * @postdisable:	[DRIVER] function to run after marking buffer disabled
+ */
+struct iio_buffer_setup_ops {
+	int				(*preenable)(struct iio_dev *);
+	int				(*postenable)(struct iio_dev *);
+	int				(*predisable)(struct iio_dev *);
+	int				(*postdisable)(struct iio_dev *);
 };
 
 /**
@@ -279,6 +300,7 @@ struct iio_info {
  * @available_scan_masks: [DRIVER] optional array of allowed bitmasks
  * @masklength:		[INTERN] the length of the mask established from
  *			channels
+ * @active_scan_mask:	[INTERN] union of all scan masks requested by buffers
  * @trig:		[INTERN] current device trigger (buffer modes)
  * @pollfunc:		[DRIVER] function run on trigger being received
  * @channels:		[DRIVER] channel specification structure table
@@ -291,6 +313,7 @@ struct iio_info {
  * @chrdev:		[INTERN] associated character device
  * @groups:		[INTERN] attribute groups
  * @groupcounter:	[INTERN] index of next attribute group
+ * @flags:		[INTERN] file ops related flags including busy flag.
  **/
 struct iio_dev {
 	int				id;
@@ -306,6 +329,7 @@ struct iio_dev {
 
 	unsigned long			*available_scan_masks;
 	unsigned			masklength;
+	unsigned long			*active_scan_mask;
 	struct iio_trigger		*trig;
 	struct iio_poll_func		*pollfunc;
 
@@ -316,11 +340,22 @@ struct iio_dev {
 	struct attribute_group		chan_attr_group;
 	const char			*name;
 	const struct iio_info		*info;
+	const struct iio_buffer_setup_ops	*setup_ops;
 	struct cdev			chrdev;
 #define IIO_MAX_GROUPS 6
 	const struct attribute_group	*groups[IIO_MAX_GROUPS + 1];
 	int				groupcounter;
+
+	unsigned long			flags;
 };
+
+/**
+ * iio_find_channel_from_si() - get channel from its scan index
+ * @indio_dev:		device
+ * @si:			scan index to match
+ */
+const struct iio_chan_spec
+*iio_find_channel_from_si(struct iio_dev *indio_dev, int si);
 
 /**
  * iio_device_register() - register a device with the IIO subsystem

@@ -45,7 +45,7 @@ static int ad7887_read_raw(struct iio_dev *indio_dev,
 	case 0:
 		mutex_lock(&indio_dev->mlock);
 		if (iio_buffer_enabled(indio_dev))
-			ret = ad7887_scan_from_ring(st, 1 << chan->address);
+			ret = -EBUSY;
 		else
 			ret = ad7887_scan_direct(st, chan->address);
 		mutex_unlock(&indio_dev->mlock);
@@ -251,7 +251,6 @@ MODULE_DEVICE_TABLE(spi, ad7887_id);
 static struct spi_driver ad7887_driver = {
 	.driver = {
 		.name	= "ad7887",
-		.bus	= &spi_bus_type,
 		.owner	= THIS_MODULE,
 	},
 	.probe		= ad7887_probe,

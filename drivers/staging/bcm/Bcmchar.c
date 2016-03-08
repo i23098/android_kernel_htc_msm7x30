@@ -235,8 +235,10 @@ static long bcm_char_ioctl(struct file *filp, UINT cmd, ULONG arg)
 				(PUINT)temp_buff, Bufflen);
 		if (bytes > 0) {
 			Status = STATUS_SUCCESS;
-			if (copy_to_user(IoBuffer.OutputBuffer, temp_buff, bytes))
-				Status = -EFAULT;
+			if (copy_to_user(IoBuffer.OutputBuffer, temp_buff, bytes)) {
+				kfree(temp_buff);
+				return -EFAULT;
+			}
 		} else {
 			Status = bytes;
 		}
@@ -330,8 +332,10 @@ static long bcm_char_ioctl(struct file *filp, UINT cmd, ULONG arg)
 
 		if (bytes > 0) {
 			Status = STATUS_SUCCESS;
-			if (copy_to_user(IoBuffer.OutputBuffer, temp_buff, bytes))
-				Status = -EFAULT;
+			if (copy_to_user(IoBuffer.OutputBuffer, temp_buff, bytes)) {
+				kfree(temp_buff);
+				return -EFAULT;
+			}
 		} else {
 			Status = bytes;
 		}
@@ -625,7 +629,7 @@ static long bcm_char_ioctl(struct file *filp, UINT cmd, ULONG arg)
 		if (Status) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0,
 					"Failed while copying Content to IOBufer for user space err:%d", Status);
-			break;
+			return -EFAULT;
 		}
 	}
 	break;
@@ -701,7 +705,7 @@ static long bcm_char_ioctl(struct file *filp, UINT cmd, ULONG arg)
 		if (Status) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0,
 					"Failed while copying Content to IOBufer for user space err:%d", Status);
-			break;
+			return -EFAULT;
 		}
 	}
 	break;
@@ -729,9 +733,8 @@ static long bcm_char_ioctl(struct file *filp, UINT cmd, ULONG arg)
 			return -ENOMEM;
 
 		if (copy_from_user(pvBuffer, IoBuffer.InputBuffer, IoBuffer.InputLength)) {
-			Status = -EFAULT;
 			kfree(pvBuffer);
-			break;
+			return -EFAULT;
 		}
 
 		down(&Adapter->LowPowerModeSync);
@@ -996,11 +999,15 @@ cntrlEnd:
 	}
 
 	case IOCTL_BCM_GET_DRIVER_VERSION: {
+		ulong len;
+
 		/* Copy Ioctl Buffer structure */
 		if (copy_from_user(&IoBuffer, argp, sizeof(IOCTL_BUFFER)))
 			return -EFAULT;
 
-		if (copy_to_user(IoBuffer.OutputBuffer, VER_FILEVERSION_STR, IoBuffer.OutputLength))
+		len = min_t(ulong, IoBuffer.OutputLength, strlen(VER_FILEVERSION_STR) + 1);
+
+		if (copy_to_user(IoBuffer.OutputBuffer, VER_FILEVERSION_STR, len))
 			return -EFAULT;
 		Status = STATUS_SUCCESS;
 		break;
@@ -1012,8 +1019,7 @@ cntrlEnd:
 		/* Copy Ioctl Buffer structure */
 		if (copy_from_user(&IoBuffer, argp, sizeof(IOCTL_BUFFER))) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "copy_from_user failed..\n");
-			Status = -EFAULT;
-			break;
+			return -EFAULT;
 		}
 
 		if (IoBuffer.OutputLength != sizeof(link_state)) {
@@ -1028,8 +1034,7 @@ cntrlEnd:
 
 		if (copy_to_user(IoBuffer.OutputBuffer, &link_state, min_t(size_t, sizeof(link_state), IoBuffer.OutputLength))) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "Copy_to_user Failed..\n");
-			Status = -EFAULT;
-			break;
+			return -EFAULT;
 		}
 		Status = STATUS_SUCCESS;
 		break;
@@ -1095,8 +1100,10 @@ cntrlEnd:
 		GetDroppedAppCntrlPktMibs(temp_buff, pTarang);
 
 		if (Status != STATUS_FAILURE)
-			if (copy_to_user(IoBuffer.OutputBuffer, temp_buff, sizeof(S_MIBS_HOST_STATS_MIBS)))
-				Status = -EFAULT;
+			if (copy_to_user(IoBuffer.OutputBuffer, temp_buff, sizeof(S_MIBS_HOST_STATS_MIBS))) {
+				kfree(temp_buff);
+				return -EFAULT;
+			}
 
 		kfree(temp_buff);
 		break;
@@ -1130,7 +1137,9 @@ cntrlEnd:
 		if (copy_from_user(&IoBuffer, argp, sizeof(IOCTL_BUFFER)))
 			return -EFAULT;
 
-		/* FIXME: restrict length */
+		if (IoBuffer.InputLength < sizeof(ULONG) * 2)
+			return -EINVAL;
+
 		pvBuffer = kmalloc(IoBuffer.InputLength, GFP_KERNEL);
 		if (!pvBuffer)
 			return -ENOMEM;
@@ -1138,8 +1147,7 @@ cntrlEnd:
 		/* Get WrmBuffer structure */
 		if (copy_from_user(pvBuffer, IoBuffer.InputBuffer, IoBuffer.InputLength)) {
 			kfree(pvBuffer);
-			Status = -EFAULT;
-			break;
+			return -EFAULT;
 		}
 
 		pBulkBuffer = (PBULKWRM_BUFFER)pvBuffer;
@@ -1269,8 +1277,7 @@ cntrlEnd:
 		memset(&tv1, 0, sizeof(struct timeval));
 		if ((Adapter->eNVMType == NVM_FLASH) && (Adapter->uiFlashLayoutMajorVersion == 0)) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "The Flash Control Section is Corrupted. Hence Rejection on NVM Read/Write\n");
-			Status = -EFAULT;
-			break;
+			return -EFAULT;
 		}
 
 		if (IsFlash2x(Adapter)) {
@@ -1279,7 +1286,7 @@ cntrlEnd:
 				(Adapter->eActiveDSD != DSD2)) {
 
 				BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "No DSD is active..hence NVM Command is blocked");
-				return STATUS_FAILURE ;
+				return STATUS_FAILURE;
 			}
 		}
 
@@ -1298,8 +1305,7 @@ cntrlEnd:
 
 		if ((stNVMReadWrite.uiOffset + stNVMReadWrite.uiNumBytes) > Adapter->uiNVMDSDSize) {
 			/* BCM_DEBUG_PRINT(Adapter,DBG_TYPE_PRINTK, 0, 0,"Can't allow access beyond NVM Size: 0x%x 0x%x\n", stNVMReadWrite.uiOffset, stNVMReadWrite.uiNumBytes); */
-			Status = STATUS_FAILURE;
-			break;
+			return STATUS_FAILURE;
 		}
 
 		pReadData = kzalloc(stNVMReadWrite.uiNumBytes, GFP_KERNEL);
@@ -1307,9 +1313,8 @@ cntrlEnd:
 			return -ENOMEM;
 
 		if (copy_from_user(pReadData, stNVMReadWrite.pBuffer, stNVMReadWrite.uiNumBytes)) {
-			Status = -EFAULT;
 			kfree(pReadData);
-			break;
+			return -EFAULT;
 		}
 
 		do_gettimeofday(&tv0);
@@ -1336,7 +1341,7 @@ cntrlEnd:
 
 			if (copy_to_user(stNVMReadWrite.pBuffer, pReadData, stNVMReadWrite.uiNumBytes)) {
 				kfree(pReadData);
-				Status = -EFAULT;
+				return -EFAULT;
 			}
 		} else {
 			down(&Adapter->NVMRdmWrmLock);
@@ -1404,9 +1409,8 @@ cntrlEnd:
 		BCM_DEBUG_PRINT(Adapter, DBG_TYPE_OTHERS, OSAL_DBG, DBG_LVL_ALL, " timetaken by Write/read :%ld msec\n", (tv1.tv_sec - tv0.tv_sec)*1000 + (tv1.tv_usec - tv0.tv_usec)/1000);
 
 		kfree(pReadData);
-		Status = STATUS_SUCCESS;
+		return STATUS_SUCCESS;
 	}
-	break;
 
 	case IOCTL_BCM_FLASH2X_SECTION_READ: {
 		FLASH2X_READWRITE sFlash2xRead = {0};
@@ -1483,7 +1487,9 @@ cntrlEnd:
 			Status = copy_to_user(OutPutBuff, pReadBuff, ReadBytes);
 			if (Status) {
 				BCM_DEBUG_PRINT(Adapter, DBG_TYPE_OTHERS, OSAL_DBG, DBG_LVL_ALL, "Copy to use failed with status :%d", Status);
-				break;
+				up(&Adapter->NVMRdmWrmLock);
+				kfree(pReadBuff);
+				return -EFAULT;
 			}
 			NOB = NOB - ReadBytes;
 			if (NOB) {
@@ -1575,7 +1581,9 @@ cntrlEnd:
 			Status = copy_from_user(pWriteBuff, InputAddr, WriteBytes);
 			if (Status) {
 				BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "Copy to user failed with status :%d", Status);
-				break;
+				up(&Adapter->NVMRdmWrmLock);
+				kfree(pWriteBuff);
+				return -EFAULT;
 			}
 			BCM_DEBUG_PRINT_BUFFER(Adapter, DBG_TYPE_OTHERS, OSAL_DBG, DBG_LVL_ALL, pWriteBuff, WriteBytes);
 
@@ -1635,8 +1643,10 @@ cntrlEnd:
 
 		BcmGetFlash2xSectionalBitMap(Adapter, psFlash2xBitMap);
 		up(&Adapter->NVMRdmWrmLock);
-		if (copy_to_user(IoBuffer.OutputBuffer, psFlash2xBitMap, sizeof(FLASH2X_BITMAP)))
-			Status = -EFAULT;
+		if (copy_to_user(IoBuffer.OutputBuffer, psFlash2xBitMap, sizeof(FLASH2X_BITMAP))) {
+			kfree(psFlash2xBitMap);
+			return -EFAULT;
+		}
 
 		kfree(psFlash2xBitMap);
 	}
@@ -1654,13 +1664,13 @@ cntrlEnd:
 		Status = copy_from_user(&IoBuffer, argp, sizeof(IOCTL_BUFFER));
 		if (Status) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "Copy of IOCTL BUFFER failed");
-			return Status;
+			return -EFAULT;
 		}
 
 		Status = copy_from_user(&eFlash2xSectionVal, IoBuffer.InputBuffer, sizeof(INT));
 		if (Status) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "Copy of flash section val failed");
-			return Status;
+			return -EFAULT;
 		}
 
 		down(&Adapter->NVMRdmWrmLock);
@@ -1704,13 +1714,13 @@ cntrlEnd:
 		Status = copy_from_user(&IoBuffer, argp, sizeof(IOCTL_BUFFER));
 		if (Status) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "Copy of IOCTL BUFFER failed Status :%d", Status);
-			return Status;
+			return -EFAULT;
 		}
 
 		Status = copy_from_user(&sCopySectStrut, IoBuffer.InputBuffer, sizeof(FLASH2X_COPY_SECTION));
 		if (Status) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "Copy of Copy_Section_Struct failed with Status :%d", Status);
-			return Status;
+			return -EFAULT;
 		}
 
 		BCM_DEBUG_PRINT(Adapter, DBG_TYPE_OTHERS, OSAL_DBG, DBG_LVL_ALL, "Source SEction :%x", sCopySectStrut.SrcSection);
@@ -1771,7 +1781,7 @@ cntrlEnd:
 		Status = copy_from_user(&IoBuffer, argp, sizeof(IOCTL_BUFFER));
 		if (Status) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "Copy of IOCTL BUFFER failed");
-			break;
+			return -EFAULT;
 		}
 
 		if (Adapter->eNVMType != NVM_FLASH) {
@@ -1810,12 +1820,12 @@ cntrlEnd:
 		Status = copy_from_user(&IoBuffer, argp, sizeof(IOCTL_BUFFER));
 		if (Status) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "Copy of IOCTL BUFFER failed");
-			return Status;
+			return -EFAULT;
 		}
 		Status = copy_from_user(&eFlash2xSectionVal, IoBuffer.InputBuffer, sizeof(INT));
 		if (Status) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "Copy of flash section val failed");
-			return Status;
+			return -EFAULT;
 		}
 
 		BCM_DEBUG_PRINT(Adapter, DBG_TYPE_OTHERS, OSAL_DBG, DBG_LVL_ALL, "Read Section :%d", eFlash2xSectionVal);
@@ -1857,8 +1867,7 @@ cntrlEnd:
 		/* Copy Ioctl Buffer structure */
 		if (copy_from_user(&IoBuffer, argp, sizeof(IOCTL_BUFFER))) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "copy_from_user 1 failed\n");
-			Status = -EFAULT;
-			break;
+			return -EFAULT;
 		}
 
 		if (copy_from_user(&stNVMRead, IoBuffer.OutputBuffer, sizeof(NVM_READWRITE)))
@@ -1913,7 +1922,9 @@ cntrlEnd:
 			Status = copy_to_user(OutPutBuff, pReadBuff, ReadBytes);
 			if (Status) {
 				BCM_DEBUG_PRINT(Adapter, DBG_TYPE_PRINTK, 0, 0, "Copy to use failed with status :%d", Status);
-				break;
+				up(&Adapter->NVMRdmWrmLock);
+				kfree(pReadBuff);
+				return -EFAULT;
 			}
 			NOB = NOB - ReadBytes;
 			if (NOB) {
@@ -1934,8 +1945,7 @@ cntrlEnd:
 		Status = copy_from_user(&IoBuffer, argp, sizeof(IOCTL_BUFFER));
 		if (Status) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_OTHERS, OSAL_DBG, DBG_LVL_ALL, "copy of Ioctl buffer is failed from user space");
-			Status = -EFAULT;
-			break;
+			return -EFAULT;
 		}
 
 		if (IoBuffer.InputLength != sizeof(unsigned long)) {
@@ -1946,8 +1956,7 @@ cntrlEnd:
 		Status = copy_from_user(&RxCntrlMsgBitMask, IoBuffer.InputBuffer, IoBuffer.InputLength);
 		if (Status) {
 			BCM_DEBUG_PRINT(Adapter, DBG_TYPE_OTHERS, OSAL_DBG, DBG_LVL_ALL, "copy of control bit mask failed from user space");
-			Status = -EFAULT;
-			break;
+			return -EFAULT;
 		}
 		BCM_DEBUG_PRINT(Adapter, DBG_TYPE_OTHERS, OSAL_DBG, DBG_LVL_ALL, "\n Got user defined cntrl msg bit mask :%lx", RxCntrlMsgBitMask);
 		pTarang->RxCntrlMsgBitMask = RxCntrlMsgBitMask;

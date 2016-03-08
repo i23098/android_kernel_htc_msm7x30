@@ -382,13 +382,17 @@ sca3000_store_measurement_mode(struct device *dev,
 	struct iio_dev *indio_dev = dev_get_drvdata(dev);
 	struct sca3000_state *st = iio_priv(indio_dev);
 	int ret;
-	int mask = 0x03;
+	u8 mask = 0x03;
 	u8 val;
 
 	mutex_lock(&st->lock);
 	ret = kstrtou8(buf, 10, &val);
 	if (ret)
 		goto error_ret;
+	if (val > 3) {
+		ret = -EINVAL;
+		goto error_ret;
+	}
 	ret = sca3000_read_data_short(st, SCA3000_REG_ADDR_MODE, 1);
 	if (ret)
 		goto error_ret;
@@ -1162,9 +1166,9 @@ static int __devinit sca3000_probe(struct spi_device *spi)
 	if (ret < 0)
 		goto error_unregister_dev;
 	if (indio_dev->buffer) {
-		iio_scan_mask_set(indio_dev->buffer, 0);
-		iio_scan_mask_set(indio_dev->buffer, 1);
-		iio_scan_mask_set(indio_dev->buffer, 2);
+		iio_scan_mask_set(indio_dev, indio_dev->buffer, 0);
+		iio_scan_mask_set(indio_dev, indio_dev->buffer, 1);
+		iio_scan_mask_set(indio_dev, indio_dev->buffer, 2);
 	}
 
 	if (spi->irq) {

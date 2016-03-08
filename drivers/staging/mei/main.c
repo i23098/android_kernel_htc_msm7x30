@@ -317,8 +317,7 @@ static int mei_release(struct inode *inode, struct file *file)
 		    cl->me_client_id);
 
 		if (dev->open_handle_count > 0) {
-			clear_bit(cl->host_client_id,
-				  dev->host_clients_map);
+			clear_bit(cl->host_client_id, dev->host_clients_map);
 			dev->open_handle_count--;
 		}
 		mei_remove_client_from_file_list(dev, cl->host_client_id);
@@ -379,7 +378,7 @@ static int mei_release(struct inode *inode, struct file *file)
  * returns >=0 data length on success , <0 on error
  */
 static ssize_t mei_read(struct file *file, char __user *ubuf,
-			 size_t length, loff_t *offset)
+			size_t length, loff_t *offset)
 {
 	struct mei_cl *cl = file->private_data;
 	struct mei_cl_cb *cb_pos = NULL;
@@ -498,9 +497,7 @@ copy_buffer:
 	/* information size may be longer */
 	length = min_t(size_t, length, (cb->information - *offset));
 
-	if (copy_to_user(ubuf,
-			 cb->response_buffer.data + *offset,
-			 length)) {
+	if (copy_to_user(ubuf, cb->response_buffer.data + *offset, length)) {
 		rets = -EFAULT;
 		goto free;
 	}
@@ -536,7 +533,7 @@ out:
  * returns >=0 data length on success , <0 on error
  */
 static ssize_t mei_write(struct file *file, const char __user *ubuf,
-			  size_t length, loff_t *offset)
+			 size_t length, loff_t *offset)
 {
 	struct mei_cl *cl = file->private_data;
 	struct mei_cl_cb *write_cb = NULL;
@@ -587,8 +584,7 @@ static ssize_t mei_write(struct file *file, const char __user *ubuf,
 			cl->read_cb = NULL;
 			cl->read_pending = 0;
 		}
-	} else if (cl->reading_state == MEI_IDLE &&
-		   !cl->read_pending)
+	} else if (cl->reading_state == MEI_IDLE && !cl->read_pending)
 		*offset = 0;
 
 
@@ -859,7 +855,7 @@ out:
  */
 #ifdef CONFIG_COMPAT
 static long mei_compat_ioctl(struct file *file,
-		      unsigned int cmd, unsigned long data)
+			unsigned int cmd, unsigned long data)
 {
 	return mei_ioctl(file, cmd, (unsigned long)compat_ptr(data));
 }
@@ -1086,8 +1082,7 @@ static void __devexit mei_remove(struct pci_dev *pdev)
 	}
 
 	/* Unregistering watchdog device */
-	if (dev->wd_interface_reg)
-		watchdog_unregister_device(&amt_wd_dev);
+	mei_watchdog_unregister(dev);
 
 	/* remove entry if already in list */
 	dev_dbg(&pdev->dev, "list del iamthif and wd file list.\n");

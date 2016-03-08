@@ -152,6 +152,12 @@ config ANDROID_EVENTS_LOG_SIZE
 	help
 		Determine the size of events log - kbytes
 
+config ANDROID_PMEM
+	bool "Android pmem allocator"
+	depends on ARM
+
+source "drivers/staging/android/switch/Kconfig"
+
 endif # if ANDROID
 
 endmenu

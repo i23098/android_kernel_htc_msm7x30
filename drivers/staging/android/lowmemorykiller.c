@@ -2,16 +2,15 @@
  *
  * The lowmemorykiller driver lets user-space specify a set of memory thresholds
  * where processes with a range of oom_score_adj values will get killed. Specify
- * the minimum oom_score_adj values in
- * /sys/module/lowmemorykiller/parameters/adj and the number of free pages in
- * /sys/module/lowmemorykiller/parameters/minfree. Both files take a comma
- * separated list of numbers in ascending order.
+ * the minimum oom_score_adj values in /sys/module/lowmemorykiller/parameters/adj and the
+ * number of free pages in /sys/module/lowmemorykiller/parameters/minfree. Both
+ * files take a comma separated list of numbers in ascending order.
  *
  * For example, write "0,8" to /sys/module/lowmemorykiller/parameters/adj and
  * "1024,4096" to /sys/module/lowmemorykiller/parameters/minfree to kill
  * processes with a oom_score_adj value of 8 or higher when the free memory
- * drops below 4096 pages and kill processes with a oom_score_adj value of 0 or
- * higher when the free memory drops below 1024 pages.
+ * drops below 4096 pages and kill processes with a oom_score_adj value of 0 or higher
+ * when the free memory drops below 1024 pages.
  *
  * The driver considers memory used for caches to be free, but if a large
  * percentage of the cached memory is locked this can be very inaccurate
@@ -63,7 +62,6 @@ static size_t lowmem_minfree[6] = {
 };
 static int lowmem_minfree_size = 4;
 
-static struct task_struct *lowmem_deathpending;
 static unsigned long lowmem_deathpending_timeout;
 
 #define lowmem_print(level, x...)			\

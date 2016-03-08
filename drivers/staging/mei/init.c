@@ -48,11 +48,11 @@ void mei_io_list_init(struct mei_io_list *list)
  */
 void mei_io_list_flush(struct mei_io_list *list, struct mei_cl *cl)
 {
-	struct mei_cl_cb *pos = NULL;
-	struct mei_cl_cb *next = NULL;
+	struct mei_cl_cb *pos;
+	struct mei_cl_cb *next;
 
 	list_for_each_entry_safe(pos, next, &list->mei_cb.cb_list, cb_list) {
-		if (pos) {
+		if (pos->file_private) {
 			struct mei_cl *cl_tmp;
 			cl_tmp = (struct mei_cl *)pos->file_private;
 			if (mei_cl_cmp_id(cl, cl_tmp))
@@ -332,11 +332,8 @@ void mei_reset(struct mei_device *dev, int interrupts_enabled)
 	/* remove all waiting requests */
 	list_for_each_entry_safe(cb_pos, cb_next,
 			&dev->write_list.mei_cb.cb_list, cb_list) {
-		if (cb_pos) {
-			list_del(&cb_pos->cb_list);
-			mei_free_cb_private(cb_pos);
-			cb_pos = NULL;
-		}
+		list_del(&cb_pos->cb_list);
+		mei_free_cb_private(cb_pos);
 	}
 }
 
@@ -369,8 +366,7 @@ void mei_host_start_message(struct mei_device *dev)
 	host_start_req->host_version.major_version = HBM_MAJOR_VERSION;
 	host_start_req->host_version.minor_version = HBM_MINOR_VERSION;
 	dev->recvd_msg = false;
-	if (!mei_write_message(dev, mei_hdr,
-				       (unsigned char *) (host_start_req),
+	if (!mei_write_message(dev, mei_hdr, (unsigned char *)host_start_req,
 				       mei_hdr->length)) {
 		dev_dbg(&dev->pdev->dev, "write send version message to FW fail.\n");
 		dev->mei_state = MEI_RESETING;
@@ -403,8 +399,7 @@ void mei_host_enum_clients_message(struct mei_device *dev)
 	host_enum_req = (struct hbm_host_enum_request *) &dev->wr_msg_buf[1];
 	memset(host_enum_req, 0, sizeof(struct hbm_host_enum_request));
 	host_enum_req->cmd.cmd = HOST_ENUM_REQ_CMD;
-	if (!mei_write_message(dev, mei_hdr,
-			       (unsigned char *) (host_enum_req),
+	if (!mei_write_message(dev, mei_hdr, (unsigned char *)host_enum_req,
 				mei_hdr->length)) {
 		dev->mei_state = MEI_RESETING;
 		dev_dbg(&dev->pdev->dev, "write send enumeration request message to FW fail.\n");
@@ -594,15 +589,10 @@ void mei_host_init_iamthif(struct mei_device *dev)
 		return;
 	}
 
-	/* Do not render the system unusable when iamthif_mtu is not equal to
-	the value received from ME.
-	Assign iamthif_mtu to the value received from ME in order to solve the
-	hardware macro incompatibility. */
+	/* Assign iamthif_mtu to the value received from ME  */
 
-	dev_dbg(&dev->pdev->dev, "[DEFAULT] IAMTHIF = %d\n", dev->iamthif_mtu);
 	dev->iamthif_mtu = dev->me_clients[i].props.max_msg_length;
-	dev_dbg(&dev->pdev->dev,
-			"IAMTHIF = %d\n",
+	dev_dbg(&dev->pdev->dev, "IAMTHIF_MTU = %d\n",
 			dev->me_clients[i].props.max_msg_length);
 
 	kfree(dev->iamthif_msg_buf);

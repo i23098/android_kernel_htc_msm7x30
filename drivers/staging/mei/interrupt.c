@@ -386,24 +386,10 @@ static void mei_client_connect_response(struct mei_device *dev,
 	/* if WD or iamthif client treat specially */
 
 	if (is_treat_specially_client(&(dev->wd_cl), rs)) {
-		dev_dbg(&dev->pdev->dev, "dev->wd_timeout =%d.\n",
-				dev->wd_timeout);
-
-		dev->wd_due_counter = (dev->wd_timeout) ? 1 : 0;
-
 		dev_dbg(&dev->pdev->dev, "successfully connected to WD client.\n");
+		mei_watchdog_register(dev);
 
-		/* Registering watchdog interface device once we got connection
-		   to the WD Client
-		*/
-		if (watchdog_register_device(&amt_wd_dev)) {
-			printk(KERN_ERR "mei: unable to register watchdog device.\n");
-			dev->wd_interface_reg = false;
-		} else {
-			dev_dbg(&dev->pdev->dev, "successfully register watchdog interface.\n");
-			dev->wd_interface_reg = true;
-		}
-
+		/* next step in the state maching */
 		mei_host_init_iamthif(dev);
 		return;
 	}
@@ -709,7 +695,7 @@ static void mei_irq_thread_read_bus_message(struct mei_device *dev,
 	case CLIENT_DISCONNECT_RES_CMD:
 		disconnect_res =
 			(struct hbm_client_connect_response *) mei_msg;
-		mei_client_disconnect_response(dev,	 disconnect_res);
+		mei_client_disconnect_response(dev, disconnect_res);
 		dev_dbg(&dev->pdev->dev, "client disconnect response message received.\n");
 		wake_up(&dev->wait_recvd_msg);
 		break;
@@ -727,7 +713,7 @@ static void mei_irq_thread_read_bus_message(struct mei_device *dev,
 			mei_reset(dev, 1);
 			return;
 		}
-	       if (dev->me_clients[dev->me_client_presentation_num]
+		if (dev->me_clients[dev->me_client_presentation_num]
 					.client_id == props_res->address) {
 
 			dev->me_clients[dev->me_client_presentation_num].props
@@ -1328,7 +1314,7 @@ static int mei_irq_thread_write_handler(struct mei_io_list *cmpl_list,
 			break;
 		case MEI_IOCTL:
 			/* connect message */
-			if (!mei_other_client_is_connecting(dev, cl))
+			if (mei_other_client_is_connecting(dev, cl))
 				continue;
 			ret = _mei_irq_thread_ioctl(dev, slots, pos, cl, cmpl_list);
 			if (ret)
@@ -1495,8 +1481,8 @@ void mei_timer(struct work_struct *work)
 		}
 	}
 out:
-	 schedule_delayed_work(&dev->timer_work, 2 * HZ);
-	 mutex_unlock(&dev->device_lock);
+	schedule_delayed_work(&dev->timer_work, 2 * HZ);
+	mutex_unlock(&dev->device_lock);
 }
 
 /**

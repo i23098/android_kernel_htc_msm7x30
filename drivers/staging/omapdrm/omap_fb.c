@@ -53,11 +53,9 @@ static void omap_framebuffer_destroy(struct drm_framebuffer *fb)
 
 	drm_framebuffer_cleanup(fb);
 
-	if (omap_gem_put_paddr(omap_fb->bo)) {
-		dev_err(dev->dev, "could not unmap!\n");
-	}
-
 	if (omap_fb->bo) {
+		if (omap_fb->paddr && omap_gem_put_paddr(omap_fb->bo))
+			dev_err(dev->dev, "could not unmap!\n");
 		drm_gem_object_unreference_unlocked(omap_fb->bo);
 	}
 
@@ -102,7 +100,7 @@ int omap_framebuffer_get_buffer(struct drm_framebuffer *fb, int x, int y,
 		 * dma_alloc_coherent()).  But this should be ok because it
 		 * is only used by legacy fbdev
 		 */
-		BUG_ON(!bo_vaddr);
+		BUG_ON(IS_ERR_OR_NULL(bo_vaddr));
 		*vaddr = bo_vaddr + offset;
 	}
 
@@ -220,25 +218,9 @@ struct drm_framebuffer *omap_framebuffer_init(struct drm_device *dev,
 
 	size = PAGE_ALIGN(mode_cmd->pitch * mode_cmd->height);
 
-	if (bo) {
-		DBG("using existing %d byte buffer (needed %d)", bo->size, size);
-		if (size > bo->size) {
-			dev_err(dev->dev, "provided buffer object is too small!\n");
-			goto fail;
-		}
-	} else {
-		/* for convenience of all the various callers who don't want
-		 * to be bothered to allocate their own buffer..
-		 */
-		union omap_gem_size gsize = {
-				.bytes = size,
-		};
-		DBG("allocating %d bytes for fb %d", size, dev->primary->index);
-		bo = omap_gem_new(dev, gsize, OMAP_BO_SCANOUT | OMAP_BO_WC);
-		if (!bo) {
-			dev_err(dev->dev, "failed to allocate buffer object\n");
-			goto fail;
-		}
+	if (size > bo->size) {
+		dev_err(dev->dev, "provided buffer object is too small!\n");
+		goto fail;
 	}
 
 	omap_fb->bo = bo;

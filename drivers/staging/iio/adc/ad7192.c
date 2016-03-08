@@ -453,25 +453,6 @@ out:
 	return ret;
 }
 
-static int ad7192_scan_from_ring(struct ad7192_state *st, unsigned ch, int *val)
-{
-	struct iio_buffer *ring = iio_priv_to_dev(st)->buffer;
-	int ret;
-	s64 dat64[2];
-	u32 *dat32 = (u32 *)dat64;
-
-	if (!(test_bit(ch, ring->scan_mask)))
-		return  -EBUSY;
-
-	ret = ring->access->read_last(ring, (u8 *) &dat64);
-	if (ret)
-		return ret;
-
-	*val = *dat32;
-
-	return 0;
-}
-
 static int ad7192_ring_preenable(struct iio_dev *indio_dev)
 {
 	struct ad7192_state *st = iio_priv(indio_dev);
@@ -479,12 +460,14 @@ static int ad7192_ring_preenable(struct iio_dev *indio_dev)
 	size_t d_size;
 	unsigned channel;
 
-	if (!ring->scan_count)
+	if (bitmap_empty(indio_dev->active_scan_mask, indio_dev->masklength))
 		return -EINVAL;
 
-	channel = find_first_bit(ring->scan_mask, indio_dev->masklength);
+	channel = find_first_bit(indio_dev->active_scan_mask,
+				 indio_dev->masklength);
 
-	d_size = ring->scan_count *
+	d_size = bitmap_weight(indio_dev->active_scan_mask,
+			       indio_dev->masklength) *
 		 indio_dev->channels[0].scan_type.storagebits / 8;
 
 	if (ring->scan_timestamp) {
@@ -544,7 +527,7 @@ static irqreturn_t ad7192_trigger_handler(int irq, void *p)
 	s64 dat64[2];
 	s32 *dat32 = (s32 *)dat64;
 
-	if (ring->scan_count)
+	if (!bitmap_empty(indio_dev->active_scan_mask, indio_dev->masklength))
 		__ad7192_read_reg(st, 1, 1, AD7192_REG_DATA,
 				  dat32,
 				  indio_dev->channels[0].scan_type.realbits/8);
@@ -592,7 +575,7 @@ static int ad7192_register_ring_funcs_and_init(struct iio_dev *indio_dev)
 	}
 
 	/* Ring buffer functions - here trigger setup related */
-	indio_dev->buffer->setup_ops = &ad7192_ring_setup_ops;
+	indio_dev->setup_ops = &ad7192_ring_setup_ops;
 
 	/* Flag that polled ring buffering is possible */
 	indio_dev->modes |= INDIO_BUFFER_TRIGGERED;
@@ -626,6 +609,10 @@ static irqreturn_t ad7192_data_rdy_trig_poll(int irq, void *private)
 	return IRQ_HANDLED;
 }
 
+static struct iio_trigger_ops ad7192_trigger_ops = {
+	.owner = THIS_MODULE,
+};
+
 static int ad7192_probe_trigger(struct iio_dev *indio_dev)
 {
 	struct ad7192_state *st = iio_priv(indio_dev);
@@ -638,7 +625,7 @@ static int ad7192_probe_trigger(struct iio_dev *indio_dev)
 		ret = -ENOMEM;
 		goto error_ret;
 	}
-
+	st->trig->ops = &ad7192_trigger_ops;
 	ret = request_irq(st->spi->irq,
 			  ad7192_data_rdy_trig_poll,
 			  IRQF_TRIGGER_LOW,
@@ -650,7 +637,6 @@ static int ad7192_probe_trigger(struct iio_dev *indio_dev)
 	disable_irq_nosync(st->spi->irq);
 	st->irq_dis = true;
 	st->trig->dev.parent = &st->spi->dev;
-	st->trig->owner = THIS_MODULE;
 	st->trig->private_data = indio_dev;
 
 	ret = iio_trigger_register(st->trig);
@@ -873,8 +859,7 @@ static int ad7192_read_raw(struct iio_dev *indio_dev,
 	case 0:
 		mutex_lock(&indio_dev->mlock);
 		if (iio_buffer_enabled(indio_dev))
-			ret = ad7192_scan_from_ring(st,
-					chan->scan_index, &smpl);
+			ret = -EBUSY;
 		else
 			ret = ad7192_read(st, chan->address,
 					chan->scan_type.realbits / 8, &smpl);

@@ -290,6 +290,7 @@ static unsigned int detect_connectors(struct drm_device *dev)
 static int omap_modeset_init(struct drm_device *dev)
 {
 	const struct omap_drm_platform_data *pdata = dev->dev->platform_data;
+	struct omap_kms_platform_data *kms_pdata = NULL;
 	struct omap_drm_private *priv = dev->dev_private;
 	struct omap_dss_device *dssdev = NULL;
 	int i, j;
@@ -297,23 +298,27 @@ static int omap_modeset_init(struct drm_device *dev)
 
 	drm_mode_config_init(dev);
 
-	if (pdata) {
+	if (pdata && pdata->kms_pdata) {
+		kms_pdata = pdata->kms_pdata;
+
 		/* if platform data is provided by the board file, use it to
 		 * control which overlays, managers, and devices we own.
 		 */
-		for (i = 0; i < pdata->mgr_cnt; i++) {
+		for (i = 0; i < kms_pdata->mgr_cnt; i++) {
 			struct omap_overlay_manager *mgr =
-					omap_dss_get_overlay_manager(pdata->mgr_ids[i]);
+				omap_dss_get_overlay_manager(
+						kms_pdata->mgr_ids[i]);
 			create_encoder(dev, mgr);
 		}
 
-		for (i = 0; i < pdata->dev_cnt; i++) {
+		for (i = 0; i < kms_pdata->dev_cnt; i++) {
 			struct omap_dss_device *dssdev =
 				omap_dss_find_device(
-					(void *)pdata->dev_names[i], match_dev_name);
+					(void *)kms_pdata->dev_names[i],
+					match_dev_name);
 			if (!dssdev) {
 				dev_warn(dev->dev, "no such dssdev: %s\n",
-						pdata->dev_names[i]);
+						kms_pdata->dev_names[i]);
 				continue;
 			}
 			create_connector(dev, dssdev);
@@ -322,9 +327,9 @@ static int omap_modeset_init(struct drm_device *dev)
 		connected_connectors = detect_connectors(dev);
 
 		j = 0;
-		for (i = 0; i < pdata->ovl_cnt; i++) {
+		for (i = 0; i < kms_pdata->ovl_cnt; i++) {
 			struct omap_overlay *ovl =
-					omap_dss_get_overlay(pdata->ovl_ids[i]);
+				omap_dss_get_overlay(kms_pdata->ovl_ids[i]);
 			create_crtc(dev, ovl, &j, connected_connectors);
 		}
 	} else {
@@ -504,7 +509,7 @@ static int ioctl_gem_info(struct drm_device *dev, void *data,
 		return -ENOENT;
 	}
 
-	args->size = obj->size;  /* for now */
+	args->size = omap_gem_mmap_size(obj);
 	args->offset = omap_gem_mmap_offset(obj);
 
 	drm_gem_object_unreference_unlocked(obj);
@@ -552,6 +557,8 @@ static int dev_load(struct drm_device *dev, unsigned long flags)
 
 	dev->dev_private = priv;
 
+	omap_gem_init(dev);
+
 	ret = omap_modeset_init(dev);
 	if (ret) {
 		dev_err(dev->dev, "omap_modeset_init failed: ret=%d\n", ret);
@@ -584,8 +591,8 @@ static int dev_unload(struct drm_device *dev)
 	drm_kms_helper_poll_fini(dev);
 
 	omap_fbdev_free(dev);
-
 	omap_modeset_free(dev);
+	omap_gem_deinit(dev);
 
 	kfree(dev->dev_private);
 	dev->dev_private = NULL;
@@ -719,6 +726,10 @@ static struct drm_driver omap_drm_driver = {
 		.irq_uninstall = dev_irq_uninstall,
 		.irq_handler = dev_irq_handler,
 		.reclaim_buffers = drm_core_reclaim_buffers,
+#ifdef CONFIG_DEBUG_FS
+		.debugfs_init = omap_debugfs_init,
+		.debugfs_cleanup = omap_debugfs_cleanup,
+#endif
 		.gem_init_object = omap_gem_init_object,
 		.gem_free_object = omap_gem_free_object,
 		.gem_vm_ops = &omap_gem_vm_ops,

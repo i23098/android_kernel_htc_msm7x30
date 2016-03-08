@@ -89,6 +89,17 @@ static const char * const iio_chan_info_postfix[] = {
 	= "filter_low_pass_3db_frequency",
 };
 
+const struct iio_chan_spec
+*iio_find_channel_from_si(struct iio_dev *indio_dev, int si)
+{
+	int i;
+
+	for (i = 0; i < indio_dev->num_channels; i++)
+		if (indio_dev->channels[i].scan_index == si)
+			return &indio_dev->channels[i];
+	return NULL;
+}
+
 /**
  * struct iio_detected_event_list - list element for events that have occurred
  * @list:		linked list header
@@ -1072,9 +1083,13 @@ static int iio_chrdev_open(struct inode *inode, struct file *filp)
 {
 	struct iio_dev *indio_dev = container_of(inode->i_cdev,
 						struct iio_dev, chrdev);
+
+	if (test_and_set_bit(IIO_BUSY_BIT_POS, &indio_dev->flags))
+		return -EBUSY;
+
 	filp->private_data = indio_dev;
 
-	return iio_chrdev_buffer_open(indio_dev);
+	return 0;
 }
 
 /**
@@ -1082,8 +1097,9 @@ static int iio_chrdev_open(struct inode *inode, struct file *filp)
  **/
 static int iio_chrdev_release(struct inode *inode, struct file *filp)
 {
-	iio_chrdev_buffer_release(container_of(inode->i_cdev,
-					     struct iio_dev, chrdev));
+	struct iio_dev *indio_dev = container_of(inode->i_cdev,
+						struct iio_dev, chrdev);
+	clear_bit(IIO_BUSY_BIT_POS, &indio_dev->flags);
 	return 0;
 }
 
