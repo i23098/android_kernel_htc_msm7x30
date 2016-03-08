@@ -36,6 +36,7 @@
 #include <linux/oom.h>
 #include <linux/sched.h>
 #include <linux/rcupdate.h>
+#include <linux/profile.h>
 #include <linux/notifier.h>
 #include <linux/swap.h>
 #include <linux/mutex.h>
@@ -62,12 +63,13 @@ static size_t lowmem_minfree[6] = {
 };
 static int lowmem_minfree_size = 4;
 
+static struct task_struct *lowmem_deathpending;
 static unsigned long lowmem_deathpending_timeout;
 
 #define lowmem_print(level, x...)			\
 	do {						\
 		if (lowmem_debug_level >= (level))	\
-			pr_info(x);			\
+			printk(x);			\
 	} while (0)
 
 static atomic_t shift_adj = ATOMIC_INIT(0);
