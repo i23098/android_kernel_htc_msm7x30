@@ -99,7 +99,7 @@ git checkout HEAD arch/arm/include/asm/dma-mapping.h arch/arm/mm/dma-mapping.c a
 ####v3.4
 git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c include/linux/filter.h include/linux/mmzone.h include/linux/swap.h lib/crc32.c include/linux/kconfig.h
 git checkout HEAD -- drivers/of/gpio.c drivers/of/gpio.c drivers/regulator/dummy.c drivers/regulator/tps65910-regulator.c
-git checkout HEAD -- drivers/regulator/twl-regulator.c include/linux/regulator/driver.h include/linux/genalloc.h lib/genalloc.c fs/binfmt_elf.c
+git checkout HEAD -- drivers/regulator/twl-regulator.c include/linux/regulator/driver.h include/linux/genalloc.h lib/genalloc.c fs/binfmt_elf.c lib/crc32.c
 
 ####v3.3
 git checkout HEAD -- include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c mm/backing-dev.c include/trace/events/writeback.h
