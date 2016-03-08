@@ -98,11 +98,11 @@ git checkout HEAD arch/arm/include/asm/dma-mapping.h arch/arm/mm/dma-mapping.c a
 
 ####v3.4
 git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c include/linux/filter.h include/linux/mmzone.h include/linux/swap.h lib/crc32.c include/linux/kconfig.h
-git checkout HEAD -- drivers/of/gpio.c drivers/of/gpio.c drivers/regulator/dummy.c drivers/regulator/tps65910-regulator.c
+git checkout HEAD -- drivers/of/gpio.c drivers/of/gpio.c drivers/regulator/dummy.c drivers/regulator/tps65910-regulator.c mm/oom_kill.c
 git checkout HEAD -- drivers/regulator/twl-regulator.c include/linux/regulator/driver.h include/linux/genalloc.h lib/genalloc.c fs/binfmt_elf.c lib/crc32.c
 
 ####v3.3
 git checkout HEAD -- include/linux/iocontext.h block/blk-ioc.c lib/kstrtox.c mm/backing-dev.c include/trace/events/writeback.h
 git checkout HEAD -- mm/memcontrol.c mm/vmscan.c include/linux/memcontrol.h arch/sh/kernel/idle.c block/bsg-lib.c fs/direct-io.c
 git checkout HEAD -- block/blk.h block/blk-tag.c block/blk-throttle.c block/genhd.c block/elevator.c mm/page-writeback.c mm/vmalloc.c
-git checkout HEAD -- drivers/base/regmap/regcache.c drivers/base/regmap/regmap.c drivers/staging/iio/adc/ad799x_core.c
+git checkout HEAD -- drivers/base/regmap/regcache.c drivers/base/regmap/regmap.c drivers/staging/iio/adc/ad799x_core.c include/linux/migrate.h include/linux/prctl.h
