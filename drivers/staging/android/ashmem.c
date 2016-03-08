@@ -224,11 +224,11 @@ static ssize_t ashmem_read(struct file *file, char __user *buf,
 
 	/* If size is not set, or set to 0, always return EOF. */
 	if (asma->size == 0)
-		goto out_unlock;
+		goto out;
 
 	if (!asma->file) {
 		ret = -EBADF;
-		goto out_unlock;
+		goto out;
 	}
 
 	mutex_unlock(&ashmem_mutex);
@@ -246,7 +246,7 @@ static ssize_t ashmem_read(struct file *file, char __user *buf,
 	}
 	return ret;
 
-out_unlock:
+out:
 	mutex_unlock(&ashmem_mutex);
 	return ret;
 }

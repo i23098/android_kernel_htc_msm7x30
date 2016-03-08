@@ -66,11 +66,7 @@ struct logger_reader {
 };
 
 /* logger_offset - returns index 'n' into the log via (optimized) modulus */
-size_t logger_offset(struct logger_log *log, size_t n)
-{
-	return n & (log->size-1);
-}
-
+#define logger_offset(n)	((n) & (log->size - 1))
 
 /*
  * file_get_log - Given a file structure, return the associated log
@@ -252,7 +248,7 @@ static size_t get_next_entry_by_uid(struct logger_log *log,
  *	- If there are no log entries to read, blocks until log is written to
  *	- Atomically reads exactly one log entry
  *
- * Will set errno to EINVAL if read
+ * Optimal read size is LOGGER_ENTRY_MAX_LEN. Will set errno to EINVAL if read
  * buffer is insufficient to hold next entry.
  */
 static ssize_t logger_read(struct file *file, char __user *buf,
@@ -265,9 +261,9 @@ static ssize_t logger_read(struct file *file, char __user *buf,
 
 start:
 	while (1) {
-		mutex_lock(&log->mutex);
-
 		prepare_to_wait(&log->wq, &wait, TASK_INTERRUPTIBLE);
+
+		mutex_lock(&log->mutex);
 
 		ret = (log->w_off == reader->r_off);
 		mutex_unlock(&log->mutex);
@@ -306,6 +302,7 @@ start:
 	/* get the size of the next entry */
 	ret = get_user_hdr_len(reader->r_ver) +
 		get_entry_msg_len(log, reader->r_off);
+
 	if (count < ret) {
 		ret = -EINVAL;
 		goto out;
@@ -363,6 +360,7 @@ static inline int is_between(size_t a, size_t b, size_t c)
 	} else {
 		/* is c outside of b through a? */
 		if (c <= b || a < c)
+
 			return 1;
 	}
 
@@ -654,7 +652,6 @@ static long logger_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			break;
 		}
 		reader = file->private_data;
-
 		if (!reader->r_all)
 			reader->r_off = get_next_entry_by_uid(log,
 				reader->r_off, current_euid());
@@ -662,6 +659,7 @@ static long logger_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		if (log->w_off != reader->r_off)
 			ret = get_user_hdr_len(reader->r_ver) +
 				get_entry_msg_len(log, reader->r_off);
+
 		else
 			ret = 0;
 		break;
