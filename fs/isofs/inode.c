@@ -947,9 +947,12 @@ root_found:
 	s->s_d_op = &isofs_dentry_ops[table];
 
 	/* get the root dentry */
-	s->s_root = d_make_root(inode);
-	if (!(s->s_root))
-		goto out_no_root;
+	s->s_root = d_alloc_root(inode);
+	if (!(s->s_root)) {
+		iput(inode);
+		error = -ENOMEM;
+		goto out_no_inode;
+	}
 
 	kfree(opt.iocharset);
 
