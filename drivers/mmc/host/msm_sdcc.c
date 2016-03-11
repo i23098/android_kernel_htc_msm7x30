@@ -56,10 +56,6 @@
 #include <mach/sdio_al.h>
 #include <linux/rtc.h>
 
-#ifdef CONFIG_PERFLOCK
-#include <mach/perflock.h>
-#endif
-
 #include "msm_sdcc.h"
 #include "msm_sdcc_dml.h"
 
@@ -88,13 +84,6 @@ static int msmsdcc_runtime_resume(struct device *dev);
 #define SPS_SDCC_CONSUMER_PIPE_INDEX	2
 #define SPS_CONS_PERIPHERAL		0
 #define SPS_PROD_PERIPHERAL		1
-
-#if defined(CONFIG_DEBUG_FS)
-static void msmsdcc_dbg_createhost(struct msmsdcc_host *);
-static struct dentry *debugfs_dir;
-static struct dentry *debugfs_file;
-static int  msmsdcc_dbg_init(void);
-#endif
 
 static u64 dma_mask = DMA_BIT_MASK(32);
 
@@ -128,15 +117,6 @@ static const u32 cmd19_tuning_block[16] = {
 static int msmsdcc_runtime_resume(struct device *dev);
 
 /* --------------------- */
-
-/* HTC_CSP_START */
-int wlan_ioprio_idle=0;
-EXPORT_SYMBOL(wlan_ioprio_idle);
-#ifdef CONFIG_PERFLOCK
-struct perf_lock wlan_perf_lock;
-EXPORT_SYMBOL(wlan_perf_lock);
-#endif
-/* HTC_CSP_END */
 
 #if IRQ_DEBUG == 1
 static char *irq_status_bits[] = { "cmdcrcfail", "datcrcfail", "cmdtimeout",
@@ -4150,9 +4130,6 @@ msmsdcc_probe(struct platform_device *pdev)
 	} else
 		pr_info("%s: PIO transfer enabled\n", mmc_hostname(mmc));
 
-#if defined(CONFIG_DEBUG_FS)
-	msmsdcc_dbg_createhost(host);
-#endif
 	if (!plat->status_irq) {
 		ret = sysfs_create_group(&pdev->dev.kobj, &dev_attr_grp);
 		if (ret)
@@ -4726,103 +4703,13 @@ static struct platform_driver msmsdcc_driver = {
 
 static int __init msmsdcc_init(void)
 {
-#if defined(CONFIG_DEBUG_FS)
-	int ret = 0;
-	ret = msmsdcc_dbg_init();
-	if (ret) {
-		pr_err("Failed to create debug fs dir \n");
-		return ret;
-	}
-#endif
-		/*HTC_CSP_START*/
-#ifdef CONFIG_PERFLOCK
-		perf_lock_init(&wlan_perf_lock, PERF_LOCK_HIGHEST, "bcm4329");
-#endif
-		/*HTC_CSP_END*/
 	return platform_driver_register(&msmsdcc_driver);
 }
 
 static void __exit msmsdcc_exit(void)
 {
 	platform_driver_unregister(&msmsdcc_driver);
-
-#if defined(CONFIG_DEBUG_FS)
-	debugfs_remove(debugfs_file);
-	debugfs_remove(debugfs_dir);
-#endif
 }
-
-#if defined(CONFIG_DEBUG_FS)
-
-static int
-msmsdcc_dbg_state_open(struct inode *inode, struct file *file)
-{
-	file->private_data = inode->i_private;
-	return 0;
-}
-
-static ssize_t
-msmsdcc_dbg_state_read(struct file *file, char __user *ubuf,
-		       size_t count, loff_t *ppos)
-{
-	struct msmsdcc_host *host = (struct msmsdcc_host *) file->private_data;
-	char buf[200];
-	int max, i;
-
-	i = 0;
-	max = sizeof(buf) - 1;
-
-	i += scnprintf(buf + i, max - i, "STAT: %p %p %p\n", host->curr.mrq,
-		       host->curr.cmd, host->curr.data);
-	if (host->curr.cmd) {
-		struct mmc_command *cmd = host->curr.cmd;
-
-		i += scnprintf(buf + i, max - i, "CMD : %.8x %.8x %.8x\n",
-			      cmd->opcode, cmd->arg, cmd->flags);
-	}
-	if (host->curr.data) {
-		struct mmc_data *data = host->curr.data;
-		i += scnprintf(buf + i, max - i,
-			      "DAT0: %.8x %.8x %.8x %.8x %.8x %.8x\n",
-			      data->timeout_ns, data->timeout_clks,
-			      data->blksz, data->blocks, data->error,
-			      data->flags);
-		i += scnprintf(buf + i, max - i, "DAT1: %.8x %.8x %.8x %p\n",
-			      host->curr.xfer_size, host->curr.xfer_remain,
-			      host->curr.data_xfered, host->dma.sg);
-	}
-
-	return simple_read_from_buffer(ubuf, count, ppos, buf, i);
-}
-
-static const struct file_operations msmsdcc_dbg_state_ops = {
-	.read	= msmsdcc_dbg_state_read,
-	.open	= msmsdcc_dbg_state_open,
-};
-
-static void msmsdcc_dbg_createhost(struct msmsdcc_host *host)
-{
-	if (debugfs_dir) {
-		debugfs_file = debugfs_create_file(mmc_hostname(host->mmc),
-							0644, debugfs_dir, host,
-							&msmsdcc_dbg_state_ops);
-	}
-}
-
-static int __init msmsdcc_dbg_init(void)
-{
-	int err;
-
-	debugfs_dir = debugfs_create_dir("msmsdcc", 0);
-	if (IS_ERR(debugfs_dir)) {
-		err = PTR_ERR(debugfs_dir);
-		debugfs_dir = NULL;
-		return err;
-	}
-
-	return 0;
-}
-#endif
 
 module_init(msmsdcc_init);
 module_exit(msmsdcc_exit);
