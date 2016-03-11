@@ -3155,7 +3155,7 @@ static int find_most_appropriate_phase(struct msmsdcc_host *host,
 	return ret;
 }
 
-static int msmsdcc_execute_tuning(struct mmc_host *mmc)
+static int msmsdcc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 {
 	int rc = 0;
 	struct msmsdcc_host *host = mmc_priv(mmc);
@@ -3205,7 +3205,7 @@ static int msmsdcc_execute_tuning(struct mmc_host *mmc)
 		if (rc)
 			goto kfree;
 
-		cmd.opcode = MMC_SEND_TUNING_BLOCK;
+		cmd.opcode = opcode;
 		cmd.flags = MMC_RSP_R1 | MMC_CMD_ADTC;
 
 		data.blksz = 64;

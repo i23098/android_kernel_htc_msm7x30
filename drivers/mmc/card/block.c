@@ -123,7 +123,6 @@ enum mmc_blk_status {
 	MMC_BLK_CMD_ERR,
 	MMC_BLK_RETRY,
 	MMC_BLK_ABORT,
-	MMC_BLK_NOMEDIUM,
 	MMC_BLK_DATA_ERR,
 	MMC_BLK_ECC_ERR,
 	MMC_BLK_NOMEDIUM,
@@ -1330,7 +1329,6 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 				break;
 			/* Fall through */
 		case MMC_BLK_ABORT:
-		case MMC_BLK_NOMEDIUM:
 			if (!mmc_blk_reset(md, card->host, type))
 				break;
 			goto cmd_abort;
