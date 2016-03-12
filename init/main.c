@@ -752,7 +752,7 @@ void initcall_lock(struct mutex *mutex)
 	wake_up(&initcall.queue);
 }
 
-static int init_caller(void *vtnum)
+static int __init init_caller(void *vtnum)
 {
 	unsigned long tnum = (unsigned long)vtnum;
 

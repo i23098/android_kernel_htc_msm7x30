@@ -1177,7 +1177,7 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 	return rc;
 bail:
 	if (pmic->irq_chip) {
-		pm8xxx_irq_exit(pmic->irq_chip);
+		//pm8xxx_irq_exit(pmic->irq_chip);
 		pmic->irq_chip = NULL;
 	}
 	return rc;

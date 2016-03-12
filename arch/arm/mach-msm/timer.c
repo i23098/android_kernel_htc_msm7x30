@@ -84,6 +84,7 @@ unsigned int sclk_hz = 32768;
 
 static struct msm_clock *clockevent_to_clock(struct clock_event_device *evt);
 static irqreturn_t msm_timer_interrupt(int irq, void *dev_id);
+static cycle_t msm_gpt_read(struct clocksource *cs);
 static cycle_t msm_dgt_read(struct clocksource *cs);
 static void msm_timer_set_mode(enum clock_event_mode mode,
 			       struct clock_event_device *evt);
@@ -144,6 +145,14 @@ static struct msm_clock msm_clocks[] = {
 			.set_next_event = msm_timer_set_next_event,
 			.set_mode       = msm_timer_set_mode,
 		},
+		.clocksource = {
+			.name           = "gp_timer",
+			.rating         = 200,
+			.read           = msm_gpt_read,
+			.mask           = CLOCKSOURCE_MASK(32),
+			.shift          = 17,
+			.flags          = CLOCK_SOURCE_IS_CONTINUOUS,
+		},
 		.irq = {
 			.name    = "gp_timer",
 			.flags   = IRQF_DISABLED | IRQF_TIMER |
@@ -158,6 +167,14 @@ static struct msm_clock msm_clocks[] = {
 		.write_delay = 9,
 	},
 	[MSM_CLOCK_DGT] = {
+		.clockevent = {
+			.name           = "dg_timer",
+			.features       = CLOCK_EVT_FEAT_ONESHOT,
+			.shift          = 32,
+			.rating         = DG_TIMER_RATING,
+			.set_next_event = msm_timer_set_next_event,
+			.set_mode       = msm_timer_set_mode,
+		},
 		.clocksource = {
 			.name           = "dg_timer",
 			.rating         = DG_TIMER_RATING,
@@ -234,6 +251,19 @@ static uint32_t msm_read_timer_count(struct msm_clock *clock, int global)
 			return t3;
 		}
 	}
+}
+
+static cycle_t msm_gpt_read(struct clocksource *cs)
+{
+	struct msm_clock *clock = &msm_clocks[MSM_CLOCK_GPT];
+	struct msm_clock_percpu_data *clock_state =
+		&per_cpu(msm_clocks_percpu, 0)[MSM_CLOCK_GPT];
+
+	if (clock_state->stopped)
+		return clock_state->stopped_tick;
+
+	return msm_read_timer_count(clock, GLOBAL_TIMER) +
+		clock_state->sleep_offset;
 }
 
 static cycle_t msm_dgt_read(struct clocksource *cs)
@@ -924,7 +954,7 @@ static void __init msm_sched_clock_init(void)
 {
 	struct msm_clock *clock = &msm_clocks[msm_global_timer];
 
-	setup_sched_clock(msm_update_sched_clock, 32 - clock->shift,
+	setup_sched_clock(msm_update_sched_clock, 32,
 			 clock->freq);
 }
 
@@ -993,14 +1023,11 @@ u32 msm_read_fast_timer(void)
 
 static void __init msm_timer_init(void)
 {
-	struct msm_clock *clock;
-	struct clock_event_device *ce = &msm_clocks[MSM_CLOCK_GPT].clockevent;
-	struct clocksource *cs = &msm_clocks[MSM_CLOCK_DGT].clocksource;
+	int i;
 	int res;
 	struct irq_chip *chip;
 	struct msm_clock *dgt = &msm_clocks[MSM_CLOCK_DGT];
 	struct msm_clock *gpt = &msm_clocks[MSM_CLOCK_GPT];
-
 
 	if (cpu_is_msm7x01() || cpu_is_msm7x25() || cpu_is_msm7x27() ||
 	    cpu_is_msm7x25a() || cpu_is_msm7x27a() || cpu_is_msm7x25aa() ||
@@ -1054,51 +1081,54 @@ static void __init msm_timer_init(void)
 	else
 		msm_global_timer = MSM_CLOCK_DGT;
 
-	clock = &msm_clocks[MSM_CLOCK_GPT];
+	for (i = 0; i < ARRAY_SIZE(msm_clocks); i++) {
+		struct msm_clock *clock = &msm_clocks[i];
+		struct clock_event_device *ce = &clock->clockevent;
+		struct clocksource *cs = &clock->clocksource;
 
-	__raw_writel(0, clock->regbase + TIMER_ENABLE);
-	__raw_writel(1, clock->regbase + TIMER_CLEAR);
-	__raw_writel(0, clock->regbase + TIMER_COUNT_VAL);
-	__raw_writel(~0, clock->regbase + TIMER_MATCH_VAL);
+		__raw_writel(0, clock->regbase + TIMER_ENABLE);
+		__raw_writel(1, clock->regbase + TIMER_CLEAR);
+		__raw_writel(0, clock->regbase + TIMER_COUNT_VAL);
+		__raw_writel(~0, clock->regbase + TIMER_MATCH_VAL);
 
-	if ((clock->freq << clock->shift) == gpt_hz) {
-		clock->rollover_offset = 0;
-	} else {
-		uint64_t temp;
+		if ((clock->freq << clock->shift) == gpt_hz) {
+			clock->rollover_offset = 0;
+		} else {
+			uint64_t temp;
 
-		temp = clock->freq << clock->shift;
-		temp <<= 32;
-		do_div(temp, gpt_hz);
+			temp = clock->freq << clock->shift;
+			temp <<= 32;
+			do_div(temp, gpt_hz);
 
-		clock->rollover_offset = (uint32_t) temp;
+			clock->rollover_offset = (uint32_t) temp;
+		}
+
+		ce->mult = div_sc(clock->freq, NSEC_PER_SEC, ce->shift);
+		/* allow at least 10 seconds to notice that the timer wrapped */
+		ce->max_delta_ns =
+			clockevent_delta2ns(0xf0000000 >> clock->shift, ce);
+		/* ticks gets rounded down by one */
+		ce->min_delta_ns =
+			clockevent_delta2ns(clock->write_delay + 4, ce);
+		ce->cpumask = cpumask_of(0);
+
+		cs->mult = clocksource_hz2mult(clock->freq, cs->shift);
+		res = clocksource_register(cs);
+		if (res)
+			printk(KERN_ERR "msm_timer_init: clocksource_register "
+			       "failed for %s\n", cs->name);
+
+		res = setup_irq(clock->irq.irq, &clock->irq);
+		if (res)
+			printk(KERN_ERR "msm_timer_init: setup_irq "
+			       "failed for %s\n", cs->name);
+
+		chip = irq_get_chip(clock->irq.irq);
+		if (chip && chip->irq_mask)
+			chip->irq_mask(irq_get_irq_data(clock->irq.irq));
+
+		clockevents_register_device(ce);
 	}
-
-	ce->mult = div_sc(clock->freq, NSEC_PER_SEC, ce->shift);
-	/* allow at least 10 seconds to notice that the timer wrapped */
-	ce->max_delta_ns =
-		clockevent_delta2ns(0xf0000000 >> clock->shift, ce);
-	/* ticks gets rounded down by one */
-	ce->min_delta_ns =
-		clockevent_delta2ns(clock->write_delay + 4, ce);
-	ce->cpumask = cpumask_of(0);
-
-	cs->mult = clocksource_hz2mult(clock->freq, cs->shift);
-	res = clocksource_register(cs);
-	if (res)
-		printk(KERN_ERR "msm_timer_init: clocksource_register "
-		       "failed for %s\n", cs->name);
-
-	res = setup_irq(clock->irq.irq, &clock->irq);
-	if (res)
-		printk(KERN_ERR "msm_timer_init: setup_irq "
-		       "failed for %s\n", cs->name);
-
-	chip = irq_get_chip(clock->irq.irq);
-	if (chip && chip->irq_mask)
-		chip->irq_mask(irq_get_irq_data(clock->irq.irq));
-
-	clockevents_register_device(ce);
-
 	msm_sched_clock_init();
 
 	if (is_smp()) {
