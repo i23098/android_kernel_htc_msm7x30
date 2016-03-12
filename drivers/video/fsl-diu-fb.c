@@ -352,7 +352,6 @@ struct mfb_info {
  * @fsl_diu_info: fb_info objects, one per AOI
  * @dev_attr: sysfs structure
  * @irq: IRQ
- * @fb_enabled: TRUE if the DIU is enabled, FALSE if not
  * @monitor_port: the monitor port this DIU is connected to
  * @diu_reg: pointer to the DIU hardware registers
  * @reg_lock: spinlock for register access
@@ -371,7 +370,6 @@ struct fsl_diu_data {
 	struct mfb_info mfb[NUM_AOIS];
 	struct device_attribute dev_attr;
 	unsigned int irq;
-	int fb_enabled;
 	enum fsl_diu_monitor_port monitor_port;
 	struct diu __iomem *diu_reg;
 	spinlock_t reg_lock;
@@ -461,37 +459,6 @@ static enum fsl_diu_monitor_port fsl_diu_name_to_port(const char *s)
 	}
 
 	return diu_ops.valid_monitor_port(port);
-}
-
-/**
- * fsl_diu_alloc - allocate memory for the DIU
- * @size: number of bytes to allocate
- * @param: returned physical address of memory
- *
- * This function allocates a physically-contiguous block of memory.
- */
-static void *fsl_diu_alloc(size_t size, phys_addr_t *phys)
-{
-	void *virt;
-
-	virt = alloc_pages_exact(size, GFP_DMA | __GFP_ZERO);
-	if (virt)
-		*phys = virt_to_phys(virt);
-
-	return virt;
-}
-
-/**
- * fsl_diu_free - release DIU memory
- * @virt: pointer returned by fsl_diu_alloc()
- * @size: number of bytes allocated by fsl_diu_alloc()
- *
- * This function releases memory allocated by fsl_diu_alloc().
- */
-static void fsl_diu_free(void *virt, size_t size)
-{
-	if (virt && size)
-		free_pages_exact(virt, size);
 }
 
 /*
@@ -619,10 +586,7 @@ static void enable_lcdc(struct fb_info *info)
 	struct fsl_diu_data *data = mfbi->parent;
 	struct diu __iomem *hw = data->diu_reg;
 
-	if (!data->fb_enabled) {
-		out_be32(&hw->diu_mode, MFB_MODE1);
-		data->fb_enabled++;
-	}
+	out_be32(&hw->diu_mode, MFB_MODE1);
 }
 
 static void disable_lcdc(struct fb_info *info)
@@ -631,10 +595,7 @@ static void disable_lcdc(struct fb_info *info)
 	struct fsl_diu_data *data = mfbi->parent;
 	struct diu __iomem *hw = data->diu_reg;
 
-	if (data->fb_enabled) {
-		out_be32(&hw->diu_mode, 0);
-		data->fb_enabled = 0;
-	}
+	out_be32(&hw->diu_mode, 0);
 }
 
 static void adjust_aoi_size_position(struct fb_var_screeninfo *var,
@@ -840,7 +801,8 @@ static void update_lcdc(struct fb_info *info)
 		for (j = 0; j <= 255; j++)
 			*gamma_table_base++ = j;
 
-	diu_ops.set_gamma_table(data->monitor_port, data->gamma);
+	if (diu_ops.set_gamma_table)
+		diu_ops.set_gamma_table(data->monitor_port, data->gamma);
 
 	disable_lcdc(info);
 
@@ -882,16 +844,17 @@ static void update_lcdc(struct fb_info *info)
 
 static int map_video_memory(struct fb_info *info)
 {
-	phys_addr_t phys;
 	u32 smem_len = info->fix.line_length * info->var.yres_virtual;
+	void *p;
 
-	info->screen_base = fsl_diu_alloc(smem_len, &phys);
-	if (info->screen_base == NULL) {
+	p = alloc_pages_exact(smem_len, GFP_DMA | __GFP_ZERO);
+	if (!p) {
 		dev_err(info->dev, "unable to allocate fb memory\n");
 		return -ENOMEM;
 	}
 	mutex_lock(&info->mm_lock);
-	info->fix.smem_start = (unsigned long) phys;
+	info->screen_base = p;
+	info->fix.smem_start = virt_to_phys(info->screen_base);
 	info->fix.smem_len = smem_len;
 	mutex_unlock(&info->mm_lock);
 	info->screen_size = info->fix.smem_len;
@@ -901,12 +864,17 @@ static int map_video_memory(struct fb_info *info)
 
 static void unmap_video_memory(struct fb_info *info)
 {
-	fsl_diu_free(info->screen_base, info->fix.smem_len);
+	void *p = info->screen_base;
+	size_t l = info->fix.smem_len;
+
 	mutex_lock(&info->mm_lock);
 	info->screen_base = NULL;
 	info->fix.smem_start = 0;
 	info->fix.smem_len = 0;
 	mutex_unlock(&info->mm_lock);
+
+	if (p)
+		free_pages_exact(p, l);
 }
 
 /*
@@ -923,6 +891,59 @@ static int fsl_diu_set_aoi(struct fb_info *info)
 	ad->offset_xyi = cpu_to_le32((var->yoffset << 16) | var->xoffset);
 	ad->offset_xyd = cpu_to_le32((mfbi->y_aoi_d << 16) | mfbi->x_aoi_d);
 	return 0;
+}
+
+/**
+ * fsl_diu_get_pixel_format: return the pixel format for a given color depth
+ *
+ * The pixel format is a 32-bit value that determine which bits in each
+ * pixel are to be used for each color.  This is the default function used
+ * if the platform does not define its own version.
+ */
+static u32 fsl_diu_get_pixel_format(unsigned int bits_per_pixel)
+{
+#define PF_BYTE_F		0x10000000
+#define PF_ALPHA_C_MASK		0x0E000000
+#define PF_ALPHA_C_SHIFT	25
+#define PF_BLUE_C_MASK		0x01800000
+#define PF_BLUE_C_SHIFT		23
+#define PF_GREEN_C_MASK		0x00600000
+#define PF_GREEN_C_SHIFT	21
+#define PF_RED_C_MASK		0x00180000
+#define PF_RED_C_SHIFT		19
+#define PF_PALETTE		0x00040000
+#define PF_PIXEL_S_MASK		0x00030000
+#define PF_PIXEL_S_SHIFT	16
+#define PF_COMP_3_MASK		0x0000F000
+#define PF_COMP_3_SHIFT		12
+#define PF_COMP_2_MASK		0x00000F00
+#define PF_COMP_2_SHIFT		8
+#define PF_COMP_1_MASK		0x000000F0
+#define PF_COMP_1_SHIFT		4
+#define PF_COMP_0_MASK		0x0000000F
+#define PF_COMP_0_SHIFT		0
+
+#define MAKE_PF(alpha, red, blue, green, size, c0, c1, c2, c3) \
+	cpu_to_le32(PF_BYTE_F | (alpha << PF_ALPHA_C_SHIFT) | \
+	(blue << PF_BLUE_C_SHIFT) | (green << PF_GREEN_C_SHIFT) | \
+	(red << PF_RED_C_SHIFT) | (c3 << PF_COMP_3_SHIFT) | \
+	(c2 << PF_COMP_2_SHIFT) | (c1 << PF_COMP_1_SHIFT) | \
+	(c0 << PF_COMP_0_SHIFT) | (size << PF_PIXEL_S_SHIFT))
+
+	switch (bits_per_pixel) {
+	case 32:
+		/* 0x88883316 */
+		return MAKE_PF(3, 2, 0, 1, 3, 8, 8, 8, 8);
+	case 24:
+		/* 0x88082219 */
+		return MAKE_PF(4, 0, 1, 2, 2, 0, 8, 8, 8);
+	case 16:
+		/* 0x65053118 */
+		return MAKE_PF(4, 2, 1, 0, 1, 5, 6, 5, 0);
+	default:
+		pr_err("fsl-diu: unsupported color depth %u\n", bits_per_pixel);
+		return 0;
+	}
 }
 
 /*
@@ -960,8 +981,12 @@ static int fsl_diu_set_par(struct fb_info *info)
 		}
 	}
 
-	ad->pix_fmt = diu_ops.get_pixel_format(data->monitor_port,
-					       var->bits_per_pixel);
+	if (diu_ops.get_pixel_format)
+		ad->pix_fmt = diu_ops.get_pixel_format(data->monitor_port,
+						       var->bits_per_pixel);
+	else
+		ad->pix_fmt = fsl_diu_get_pixel_format(var->bits_per_pixel);
+
 	ad->addr    = cpu_to_le32(info->fix.smem_start);
 	ad->src_size_g_alpha = cpu_to_le32((var->yres_virtual << 12) |
 				var->xres_virtual) | mfbi->g_alpha;
@@ -1220,21 +1245,6 @@ static struct fb_ops fsl_diu_ops = {
 	.fb_release = fsl_diu_release,
 };
 
-static int init_fbinfo(struct fb_info *info)
-{
-	struct mfb_info *mfbi = info->par;
-
-	info->device = NULL;
-	info->var.activate = FB_ACTIVATE_NOW;
-	info->fbops = &fsl_diu_ops;
-	info->flags = FBINFO_FLAG_DEFAULT;
-	info->pseudo_palette = &mfbi->pseudo_palette;
-
-	/* Allocate colormap */
-	fb_alloc_cmap(&info->cmap, 16, 0);
-	return 0;
-}
-
 static int __devinit install_fb(struct fb_info *info)
 {
 	int rc;
@@ -1244,8 +1254,15 @@ static int __devinit install_fb(struct fb_info *info)
 	unsigned int dbsize = ARRAY_SIZE(fsl_diu_mode_db);
 	int has_default_mode = 1;
 
-	if (init_fbinfo(info))
-		return -EINVAL;
+	info->var.activate = FB_ACTIVATE_NOW;
+	info->fbops = &fsl_diu_ops;
+	info->flags = FBINFO_DEFAULT | FBINFO_VIRTFB | FBINFO_PARTIAL_PAN_OK |
+		FBINFO_READS_FAST;
+	info->pseudo_palette = mfbi->pseudo_palette;
+
+	rc = fb_alloc_cmap(&info->cmap, 16, 0);
+	if (rc)
+		return rc;
 
 	if (mfbi->index == PLANE0) {
 		if (mfbi->edid_data) {
