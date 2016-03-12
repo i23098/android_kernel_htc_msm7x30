@@ -66,19 +66,33 @@ static int __init detect_board(void)
 {
 	int bid;
 
-	/* try the PB1200 first */
+	/* try the DB1200 first */
+	bcsr_init(DB1200_BCSR_PHYS_ADDR,
+		  DB1200_BCSR_PHYS_ADDR + DB1200_BCSR_HEXLED_OFS);
+	if (BCSR_WHOAMI_DB1200 == BCSR_WHOAMI_BOARD(bcsr_read(BCSR_WHOAMI))) {
+		unsigned short t = bcsr_read(BCSR_HEXLEDS);
+		bcsr_write(BCSR_HEXLEDS, ~t);
+		if (bcsr_read(BCSR_HEXLEDS) != t) {
+			bcsr_write(BCSR_HEXLEDS, t);
+			return 0;
+		}
+	}
+
+	/* okay, try the PB1200 then */
 	bcsr_init(PB1200_BCSR_PHYS_ADDR,
 		  PB1200_BCSR_PHYS_ADDR + PB1200_BCSR_HEXLED_OFS);
 	bid = BCSR_WHOAMI_BOARD(bcsr_read(BCSR_WHOAMI));
 	if ((bid == BCSR_WHOAMI_PB1200_DDR1) ||
-	    (bid == BCSR_WHOAMI_PB1200_DDR2))
-		return 0;
+	    (bid == BCSR_WHOAMI_PB1200_DDR2)) {
+		unsigned short t = bcsr_read(BCSR_HEXLEDS);
+		bcsr_write(BCSR_HEXLEDS, ~t);
+		if (bcsr_read(BCSR_HEXLEDS) != t) {
+			bcsr_write(BCSR_HEXLEDS, t);
+			return 0;
+		}
+	}
 
-	/* okay, try the DB1200 then */
-	bcsr_init(DB1200_BCSR_PHYS_ADDR,
-		  DB1200_BCSR_PHYS_ADDR + DB1200_BCSR_HEXLED_OFS);
-	bid = BCSR_WHOAMI_BOARD(bcsr_read(BCSR_WHOAMI));
-	return bid == BCSR_WHOAMI_DB1200 ? 0 : 1;
+	return 1;	/* it's neither */
 }
 
 void __init board_setup(void)
@@ -345,12 +359,12 @@ static int db1200_mmc_cd_setup(void *mmc_host, int en)
 
 	if (en) {
 		ret = request_irq(DB1200_SD0_INSERT_INT, db1200_mmc_cd,
-				  IRQF_DISABLED, "sd_insert", mmc_host);
+				  0, "sd_insert", mmc_host);
 		if (ret)
 			goto out;
 
 		ret = request_irq(DB1200_SD0_EJECT_INT, db1200_mmc_cd,
-				  IRQF_DISABLED, "sd_eject", mmc_host);
+				  0, "sd_eject", mmc_host);
 		if (ret) {
 			free_irq(DB1200_SD0_INSERT_INT, mmc_host);
 			goto out;
