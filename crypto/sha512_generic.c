@@ -243,7 +243,7 @@ static int sha384_final(struct shash_desc *desc, u8 *hash)
 	return 0;
 }
 
-static struct shash_alg sha512 = {
+static struct shash_alg sha512_algs[2] = { {
 	.digestsize	=	SHA512_DIGEST_SIZE,
 	.init		=	sha512_init,
 	.update		=	crypto_sha512_update,
@@ -251,13 +251,12 @@ static struct shash_alg sha512 = {
 	.descsize	=	sizeof(struct sha512_state),
 	.base		=	{
 		.cra_name	=	"sha512",
+		.cra_driver_name =	"sha512-generic",
 		.cra_flags	=	CRYPTO_ALG_TYPE_SHASH,
 		.cra_blocksize	=	SHA512_BLOCK_SIZE,
 		.cra_module	=	THIS_MODULE,
 	}
-};
-
-static struct shash_alg sha384 = {
+}, {
 	.digestsize	=	SHA384_DIGEST_SIZE,
 	.init		=	sha384_init,
 	.update		=	crypto_sha512_update,
@@ -265,28 +264,21 @@ static struct shash_alg sha384 = {
 	.descsize	=	sizeof(struct sha512_state),
 	.base		=	{
 		.cra_name	=	"sha384",
+		.cra_driver_name =	"sha384-generic",
 		.cra_flags	=	CRYPTO_ALG_TYPE_SHASH,
 		.cra_blocksize	=	SHA384_BLOCK_SIZE,
 		.cra_module	=	THIS_MODULE,
 	}
-};
+} };
 
 static int __init sha512_generic_mod_init(void)
 {
-        int ret = 0;
-
-        if ((ret = crypto_register_shash(&sha384)) < 0)
-                goto out;
-        if ((ret = crypto_register_shash(&sha512)) < 0)
-                crypto_unregister_shash(&sha384);
-out:
-        return ret;
+	return crypto_register_shashes(sha512_algs, ARRAY_SIZE(sha512_algs));
 }
 
 static void __exit sha512_generic_mod_fini(void)
 {
-        crypto_unregister_shash(&sha384);
-        crypto_unregister_shash(&sha512);
+	crypto_unregister_shashes(sha512_algs, ARRAY_SIZE(sha512_algs));
 }
 
 module_init(sha512_generic_mod_init);
@@ -295,5 +287,5 @@ module_exit(sha512_generic_mod_fini);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("SHA-512 and SHA-384 Secure Hash Algorithms");
 
-MODULE_ALIAS_CRYPTO("sha384");
-MODULE_ALIAS_CRYPTO("sha512");
+MODULE_ALIAS("sha384");
+MODULE_ALIAS("sha512");
