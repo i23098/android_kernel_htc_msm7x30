@@ -42,6 +42,8 @@
 
 #include <asm-generic/io-64-nonatomic-lo-hi.h>
 
+#include <asm-generic/io-64-nonatomic-lo-hi.h>
+
 #define NVME_Q_DEPTH 1024
 #define SQ_SIZE(depth)		(depth * sizeof(struct nvme_command))
 #define CQ_SIZE(depth)		(depth * sizeof(struct nvme_completion))
