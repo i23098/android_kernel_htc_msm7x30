@@ -1530,7 +1530,6 @@ static bool __zone_watermark_ok(struct zone *z, int order, unsigned long mark,
 {
 	/* free_pages my go negative - that's OK */
 	long min = mark;
-	long lowmem_reserve = z->lowmem_reserve[classzone_idx];
 	int o;
 
 	free_pages -= (1 << order) - 1;
@@ -1539,7 +1538,7 @@ static bool __zone_watermark_ok(struct zone *z, int order, unsigned long mark,
 	if (alloc_flags & ALLOC_HARDER)
 		min -= min / 4;
 
-	if (free_pages <= min + lowmem_reserve)
+	if (free_pages <= min + z->lowmem_reserve[classzone_idx])
 		return false;
 	for (o = 0; o < order; o++) {
 		/* At the next order, this order's pages become unavailable */
@@ -5281,6 +5280,7 @@ void *__init alloc_large_system_hash(const char *tablename,
 		max = ((unsigned long long)nr_all_pages << PAGE_SHIFT) >> 4;
 		do_div(max, bucketsize);
 	}
+	max = min(max, 0x80000000ULL);
 
 	if (numentries > max)
 		numentries = max;
@@ -5458,8 +5458,8 @@ __count_immobile_pages(struct zone *zone, struct page *page, int count)
 
 bool is_pageblock_removable_nolock(struct page *page)
 {
-	struct zone *zone = page_zone(page);
-	unsigned long pfn = page_to_pfn(page);
+	struct zone *zone;
+	unsigned long pfn;
 
 	/*
 	 * We have to be careful here because we are iterating over memory
