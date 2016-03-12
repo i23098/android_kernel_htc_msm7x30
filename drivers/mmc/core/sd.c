@@ -454,9 +454,11 @@ static int sd_select_driver_type(struct mmc_card *card, u8 *status)
 	 * information and let the hardware specific code
 	 * return what is possible given the options
 	 */
+	mmc_host_clk_hold(card->host);
 	drive_strength = card->host->ops->select_drive_strength(
 		card->sw_caps.uhs_max_dtr,
 		host_drv_type, card_drv_type);
+	mmc_host_clk_release(card->host);
 
 	err = mmc_sd_switch(card, 1, 2, drive_strength, status);
 	if (err)
@@ -879,9 +881,9 @@ int mmc_sd_setup_card(struct mmc_host *host, struct mmc_card *card,
 		int ro = -1;
 
 		if (host->ops->get_ro) {
-			mmc_host_clk_hold(host);
+			mmc_host_clk_hold(card->host);
 			ro = host->ops->get_ro(host);
-			mmc_host_clk_release(host);
+			mmc_host_clk_release(card->host);
 		}
 
 		if (ro < 0) {
@@ -999,9 +1001,9 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 		 * value registers for UHS-I cards.
 		 */
 		if (host->ops->enable_preset_value) {
-			mmc_host_clk_hold(host);
+			mmc_host_clk_hold(card->host);
 			host->ops->enable_preset_value(host, true);
-			mmc_host_clk_release(host);
+			mmc_host_clk_release(card->host);
 		}
 	} else {
 		/*
