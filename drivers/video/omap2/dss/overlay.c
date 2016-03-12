@@ -595,3 +595,81 @@ void dss_uninit_overlays(struct platform_device *pdev)
 	num_overlays = 0;
 }
 
+int dss_ovl_simple_check(struct omap_overlay *ovl,
+		const struct omap_overlay_info *info)
+{
+	if (info->paddr == 0) {
+		DSSERR("check_overlay: paddr cannot be 0\n");
+		return -EINVAL;
+	}
+
+	if ((ovl->caps & OMAP_DSS_OVL_CAP_SCALE) == 0) {
+		if (info->out_width != 0 && info->width != info->out_width) {
+			DSSERR("check_overlay: overlay %d doesn't support "
+					"scaling\n", ovl->id);
+			return -EINVAL;
+		}
+
+		if (info->out_height != 0 && info->height != info->out_height) {
+			DSSERR("check_overlay: overlay %d doesn't support "
+					"scaling\n", ovl->id);
+			return -EINVAL;
+		}
+	}
+
+	if ((ovl->supported_modes & info->color_mode) == 0) {
+		DSSERR("check_overlay: overlay %d doesn't support mode %d\n",
+				ovl->id, info->color_mode);
+		return -EINVAL;
+	}
+
+	if (info->zorder >= omap_dss_get_num_overlays()) {
+		DSSERR("check_overlay: zorder %d too high\n", info->zorder);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+int dss_ovl_check(struct omap_overlay *ovl,
+		struct omap_overlay_info *info, struct omap_dss_device *dssdev)
+{
+	u16 outw, outh;
+	u16 dw, dh;
+
+	if (dssdev == NULL)
+		return 0;
+
+	dssdev->driver->get_resolution(dssdev, &dw, &dh);
+
+	if ((ovl->caps & OMAP_DSS_OVL_CAP_SCALE) == 0) {
+		outw = info->width;
+		outh = info->height;
+	} else {
+		if (info->out_width == 0)
+			outw = info->width;
+		else
+			outw = info->out_width;
+
+		if (info->out_height == 0)
+			outh = info->height;
+		else
+			outh = info->out_height;
+	}
+
+	if (dw < info->pos_x + outw) {
+		DSSERR("overlay %d horizontally not inside the display area "
+				"(%d + %d >= %d)\n",
+				ovl->id, info->pos_x, outw, dw);
+		return -EINVAL;
+	}
+
+	if (dh < info->pos_y + outh) {
+		DSSERR("overlay %d vertically not inside the display area "
+				"(%d + %d >= %d)\n",
+				ovl->id, info->pos_y, outh, dh);
+		return -EINVAL;
+	}
+
+	return 0;
+}

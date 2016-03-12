@@ -172,116 +172,6 @@ static bool mgr_manual_update(struct omap_overlay_manager *mgr)
 	return mgr->device->caps & OMAP_DSS_DISPLAY_CAP_MANUAL_UPDATE;
 }
 
-/* Check if overlay parameters are compatible with display */
-static int dss_ovl_check(struct omap_overlay *ovl,
-		struct omap_overlay_info *info, struct omap_dss_device *dssdev)
-{
-	u16 outw, outh;
-	u16 dw, dh;
-
-	if (dssdev == NULL)
-		return 0;
-
-	dssdev->driver->get_resolution(dssdev, &dw, &dh);
-
-	if ((ovl->caps & OMAP_DSS_OVL_CAP_SCALE) == 0) {
-		outw = info->width;
-		outh = info->height;
-	} else {
-		if (info->out_width == 0)
-			outw = info->width;
-		else
-			outw = info->out_width;
-
-		if (info->out_height == 0)
-			outh = info->height;
-		else
-			outh = info->out_height;
-	}
-
-	if (dw < info->pos_x + outw) {
-		DSSERR("overlay %d horizontally not inside the display area "
-				"(%d + %d >= %d)\n",
-				ovl->id, info->pos_x, outw, dw);
-		return -EINVAL;
-	}
-
-	if (dh < info->pos_y + outh) {
-		DSSERR("overlay %d vertically not inside the display area "
-				"(%d + %d >= %d)\n",
-				ovl->id, info->pos_y, outh, dh);
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-static int dss_mgr_check_zorder(struct omap_overlay_manager *mgr,
-		struct omap_overlay_info **overlay_infos)
-{
-	struct omap_overlay *ovl1, *ovl2;
-	struct ovl_priv_data *op1, *op2;
-	struct omap_overlay_info *info1, *info2;
-
-	list_for_each_entry(ovl1, &mgr->overlays, list) {
-		op1 = get_ovl_priv(ovl1);
-		info1 = overlay_infos[ovl1->id];
-
-		if (info1 == NULL)
-			continue;
-
-		list_for_each_entry(ovl2, &mgr->overlays, list) {
-			if (ovl1 == ovl2)
-				continue;
-
-			op2 = get_ovl_priv(ovl2);
-			info2 = overlay_infos[ovl2->id];
-
-			if (info2 == NULL)
-				continue;
-
-			if (info1->zorder == info2->zorder) {
-				DSSERR("overlays %d and %d have the same "
-						"zorder %d\n",
-					ovl1->id, ovl2->id, info1->zorder);
-				return -EINVAL;
-			}
-		}
-	}
-
-	return 0;
-}
-
-static int dss_mgr_check(struct omap_overlay_manager *mgr,
-		struct omap_dss_device *dssdev,
-		struct omap_overlay_manager_info *info,
-		struct omap_overlay_info **overlay_infos)
-{
-	struct omap_overlay *ovl;
-	int r;
-
-	if (dss_has_feature(FEAT_ALPHA_FREE_ZORDER)) {
-		r = dss_mgr_check_zorder(mgr, overlay_infos);
-		if (r)
-			return r;
-	}
-
-	list_for_each_entry(ovl, &mgr->overlays, list) {
-		struct omap_overlay_info *oi;
-		int r;
-
-		oi = overlay_infos[ovl->id];
-
-		if (oi == NULL)
-			continue;
-
-		r = dss_ovl_check(ovl, oi, dssdev);
-		if (r)
-			return r;
-	}
-
-	return 0;
-}
 static int dss_check_settings_low(struct omap_overlay_manager *mgr,
 		struct omap_dss_device *dssdev, bool applying)
 {
@@ -436,6 +326,9 @@ static bool extra_info_update_ongoing(void)
 	for (i = 0; i < num_ovls; ++i) {
 		ovl = omap_dss_get_overlay(i);
 		op = get_ovl_priv(ovl);
+
+		if (!ovl->manager)
+			continue;
 
 		mp = get_mgr_priv(ovl->manager);
 
@@ -1101,25 +994,6 @@ out:
 	mutex_unlock(&apply_lock);
 }
 
-static int dss_mgr_simple_check(struct omap_overlay_manager *mgr,
-		const struct omap_overlay_manager_info *info)
-{
-	if (dss_has_feature(FEAT_ALPHA_FIXED_ZORDER)) {
-		/*
-		 * OMAP3 supports only graphics source transparency color key
-		 * and alpha blending simultaneously. See TRM 15.4.2.4.2.2
-		 * Alpha Mode.
-		 */
-		if (info->partial_alpha_enabled && info->trans_enabled
-			&& info->trans_key_type != OMAP_DSS_COLOR_KEY_GFX_DST) {
-			DSSERR("check_manager: illegal transparency key\n");
-			return -EINVAL;
-		}
-	}
-
-	return 0;
-}
-
 int dss_mgr_set_info(struct omap_overlay_manager *mgr,
 		struct omap_overlay_manager_info *info)
 {
@@ -1218,42 +1092,6 @@ err:
 	return r;
 }
 
-
-static int dss_ovl_simple_check(struct omap_overlay *ovl,
-		const struct omap_overlay_info *info)
-{
-	if (info->paddr == 0) {
-		DSSERR("check_overlay: paddr cannot be 0\n");
-		return -EINVAL;
-	}
-
-	if ((ovl->caps & OMAP_DSS_OVL_CAP_SCALE) == 0) {
-		if (info->out_width != 0 && info->width != info->out_width) {
-			DSSERR("check_overlay: overlay %d doesn't support "
-					"scaling\n", ovl->id);
-			return -EINVAL;
-		}
-
-		if (info->out_height != 0 && info->height != info->out_height) {
-			DSSERR("check_overlay: overlay %d doesn't support "
-					"scaling\n", ovl->id);
-			return -EINVAL;
-		}
-	}
-
-	if ((ovl->supported_modes & info->color_mode) == 0) {
-		DSSERR("check_overlay: overlay %d doesn't support mode %d\n",
-				ovl->id, info->color_mode);
-		return -EINVAL;
-	}
-
-	if (info->zorder >= omap_dss_get_num_overlays()) {
-		DSSERR("check_overlay: zorder %d too high\n", info->zorder);
-		return -EINVAL;
-	}
-
-	return 0;
-}
 
 int dss_ovl_set_info(struct omap_overlay *ovl,
 		struct omap_overlay_info *info)
