@@ -17,7 +17,6 @@
 #include <linux/proc_fs.h>
 #include <linux/kernel_stat.h>
 #include <linux/uaccess.h>
-#include <linux/sysdev.h>
 #include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/kernel.h>
@@ -27,6 +26,7 @@
 #include <linux/percpu.h>
 #include <linux/string.h>
 #include <linux/smp.h>
+#include <linux/device.h>
 #include <asm/cacheflush.h>
 #include <asm/smp_plat.h>
 #include <asm/mmu_writeable.h>
@@ -59,7 +59,7 @@ char type[TYPE_MAX_CHARACTERS] = "C";
 static DEFINE_PER_CPU(struct cp_params, cp_param)
 	 = { 0, 15, 0, 0, 0, 0, 0, 'r' };
 
-static struct sysdev_class cpaccess_sysclass = {
+static struct bus_type cpaccess_subsys = {
 	.name = "cpaccess",
 };
 
@@ -265,8 +265,8 @@ static int get_register_params(char *str_tmp)
  * @cnt:	not used
  *
  */
-static ssize_t cp_register_write_sysfs(struct sys_device *dev,
-	struct sysdev_attribute *attr, const char *buf, size_t cnt)
+static ssize_t cp_register_write_sysfs(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t cnt)
 {
 	char *str_tmp = (char *)buf;
 
@@ -289,8 +289,8 @@ static ssize_t cp_register_write_sysfs(struct sys_device *dev,
  * caches and then execute the new instruction and provide the
  * result to the caller.
  */
-static ssize_t cp_register_read_sysfs(struct sys_device *dev,
-	struct sysdev_attribute *attr, char *buf)
+static ssize_t cp_register_read_sysfs(struct device *dev,
+	struct device_attribute *attr, char *buf)
 {
 	int ret;
 
@@ -311,11 +311,11 @@ static ssize_t cp_register_read_sysfs(struct sys_device *dev,
 /*
  * Setup sysfs files
  */
-SYSDEV_ATTR(cp_rw, 0644, cp_register_read_sysfs, cp_register_write_sysfs);
+DEVICE_ATTR(cp_rw, 0644, cp_register_read_sysfs, cp_register_write_sysfs);
 
-static struct sys_device device_cpaccess = {
+static struct device device_cpaccess = {
 	.id     = 0,
-	.cls    = &cpaccess_sysclass,
+	.bus    = &cpaccess_subsys,
 };
 
 /*
@@ -323,20 +323,20 @@ static struct sys_device device_cpaccess = {
  */
 static int __init init_cpaccess_sysfs(void)
 {
-	int error = sysdev_class_register(&cpaccess_sysclass);
+	int error = subsys_system_register(&cpaccess_subsys);
 
 	if (!error)
-		error = sysdev_register(&device_cpaccess);
+		error = device_register(&device_cpaccess);
 	else
 		pr_err("Error initializing cpaccess interface\n");
 
 	if (!error)
-		error = sysdev_create_file(&device_cpaccess,
+		error = device_create_file(&device_cpaccess,
 		 &attr_cp_rw);
 	else {
 		pr_err("Error initializing cpaccess interface\n");
-		sysdev_unregister(&device_cpaccess);
-		sysdev_class_unregister(&cpaccess_sysclass);
+		device_unregister(&device_cpaccess);
+		bus_unregister(&cpaccess_subsys);
 	}
 
 	sema_init(&cp_sem, 1);
@@ -346,9 +346,9 @@ static int __init init_cpaccess_sysfs(void)
 
 static void __exit exit_cpaccess_sysfs(void)
 {
-	sysdev_remove_file(&device_cpaccess, &attr_cp_rw);
-	sysdev_unregister(&device_cpaccess);
-	sysdev_class_unregister(&cpaccess_sysclass);
+	device_remove_file(&device_cpaccess, &attr_cp_rw);
+	device_unregister(&device_cpaccess);
+	bus_unregister(&cpaccess_subsys);
 }
 
 module_init(init_cpaccess_sysfs);
