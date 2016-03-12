@@ -93,8 +93,11 @@ rm -rf arch/arm/include/asm/exec.h include/asm-generic/mman-common.h mm/bounce.c
 git checkout HEAD -- include/linux/shrinker.h include/linux/smp.h include/linux/vm_event_item.h include/trace/events/vmscan.h mm/backing-dev.c mm/process_vm_access.c mm/slab.c mm/slub.c mm/sparse.c mm/swap.c mm/swap_state.c mm/thrash.c mm/truncate.c mm/util.c
 git checkout HEAD -- arch/arm/include/asm/exec.h include/asm-generic/mman-common.h mm/bounce.c mm/compaction.c mm/dmapool.c mm/fadvise.c mm/huge_memory.c mm/hugetlb.c mm/hwpoison-inject.c mm/ksm.c mm/memory-failure.c mm/mempolicy.c mm/mempool.c mm/mincore.c mm/mlock.c mm/nobootmem.c mm/nommu.c mm/page_cgroup.c
 
+####v3.6
+git checkout HEAD -- drivers/char/random.c
+
 ####v3.5
-git checkout HEAD arch/arm/include/asm/dma-mapping.h arch/arm/mm/dma-mapping.c arch/arm/common/dmabounce.c
+git checkout HEAD -- arch/arm/include/asm/dma-mapping.h arch/arm/mm/dma-mapping.c arch/arm/common/dmabounce.c
 
 ####v3.4
 git checkout HEAD -- block/blk-core.c block/cfq-iosched.c mm/shmem.c include/linux/filter.h include/linux/mmzone.h include/linux/swap.h lib/crc32.c include/linux/kconfig.h
