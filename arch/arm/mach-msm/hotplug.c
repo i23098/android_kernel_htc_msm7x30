@@ -11,6 +11,7 @@
 #include <linux/smp.h>
 
 #include <asm/cacheflush.h>
+#include <asm/smp_plat.h>
 
 #ifdef CONFIG_SMP
 extern volatile int pen_release;
