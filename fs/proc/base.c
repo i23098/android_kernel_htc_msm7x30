@@ -717,7 +717,7 @@ static ssize_t mem_rw(struct file *file, char __user *buf,
 	struct mm_struct *mm = file->private_data;
 	unsigned long addr = *ppos;
 	ssize_t copied;
- 	char *page;
+	char *page;
 
 	if (!mm)
 		return 0;
@@ -754,7 +754,6 @@ static ssize_t mem_rw(struct file *file, char __user *buf,
 		addr += this_len;
 		copied += this_len;
 		count -= this_len;
-
 	}
 	*ppos = addr;
 
@@ -1134,9 +1133,6 @@ static ssize_t proc_loginuid_write(struct file * file, const char __user * buf,
 	ssize_t length;
 	uid_t loginuid;
 
-	if (!capable(CAP_AUDIT_CONTROL))
-		return -EPERM;
-
 	rcu_read_lock();
 	if (current != pid_task(proc_pid(inode), PIDTYPE_PID)) {
 		rcu_read_unlock();
@@ -1165,7 +1161,7 @@ static ssize_t proc_loginuid_write(struct file * file, const char __user * buf,
 		goto out_free_page;
 
 	}
-	length = audit_set_loginuid(current, loginuid);
+	length = audit_set_loginuid(loginuid);
 	if (likely(length == 0))
 		length = count;
 
@@ -2494,7 +2490,7 @@ out:
 	return error;
 }
 
-static struct dentry *proc_pident_lookup(struct inode *dir,
+static struct dentry *proc_pident_lookup(struct inode *dir, 
 					 struct dentry *dentry,
 					 const struct pid_entry *ents,
 					 unsigned int nents)

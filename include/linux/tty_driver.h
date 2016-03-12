@@ -313,7 +313,6 @@ struct tty_driver {
 	 */
 	struct tty_struct **ttys;
 	struct ktermios **termios;
-	struct ktermios **termios_locked;
 	void *driver_state;
 
 	/*
