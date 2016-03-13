@@ -66,7 +66,11 @@ struct logger_reader {
 };
 
 /* logger_offset - returns index 'n' into the log via (optimized) modulus */
-#define logger_offset(n)	((n) & (log->size - 1))
+size_t logger_offset(struct logger_log *log, size_t n)
+{
+	return n & (log->size-1);
+}
+
 
 /*
  * file_get_log - Given a file structure, return the associated log
@@ -115,6 +119,10 @@ static struct logger_entry *get_entry_header(struct logger_log *log,
 /*
  * get_entry_msg_len - Grabs the length of the message of the entry
  * starting from from 'off'.
+ *
+ * An entry length is 2 bytes (16 bits) in host endian order.
+ * In the log, the length does not include the size of the log entry structure.
+ * This function returns the size including the log entry structure.
  *
  * An entry length is 2 bytes (16 bits) in host endian order.
  * In the log, the length does not include the size of the log entry structure.
@@ -261,6 +269,8 @@ static ssize_t logger_read(struct file *file, char __user *buf,
 
 start:
 	while (1) {
+		mutex_lock(&log->mutex);
+
 		prepare_to_wait(&log->wq, &wait, TASK_INTERRUPTIBLE);
 
 		mutex_lock(&log->mutex);
@@ -360,7 +370,6 @@ static inline int is_between(size_t a, size_t b, size_t c)
 	} else {
 		/* is c outside of b through a? */
 		if (c <= b || a < c)
-
 			return 1;
 	}
 
