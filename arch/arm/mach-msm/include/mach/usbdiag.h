@@ -96,11 +96,8 @@ int usb_diag_write(struct usb_diag_ch *ch, struct diag_request *d_req);
 
 int diag_read_from_cb(unsigned char * , int);
 
-#if defined(CONFIG_MACH_MECHA) /* || defined(CONFIG_ARCH_MSM8X60_LTE) */
+#if defined(CONFIG_MACH_MECHA)
 extern  int sdio_diag_init_enable;
-#endif
-#if defined(CONFIG_ARCH_MSM8X60_LTE)
-extern int diag_configured;
 #endif
 int checkcmd_modem_epst(unsigned char *buf);
 int modem_to_userspace(void *buf, int r, int cmdtype, int is9k);

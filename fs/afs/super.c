@@ -327,7 +327,7 @@ static int afs_fill_super(struct super_block *sb,
 		set_bit(AFS_VNODE_AUTOCELL, &AFS_FS_I(inode)->flags);
 
 	ret = -ENOMEM;
-	root = d_make_root(inode);
+	root = d_alloc_root(inode);
 	if (!root)
 		goto error;
 

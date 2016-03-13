@@ -57,7 +57,7 @@ struct pm_irq_chip {
 	unsigned int		num_irqs;
 	unsigned int		num_blocks;
 	unsigned int		num_masters;
-	u8		        config[0];
+	u8			config[0];
 };
 
 struct pm_irq_wake_state {

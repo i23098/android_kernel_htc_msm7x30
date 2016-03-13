@@ -404,13 +404,14 @@ EXPORT_SYMBOL(sg_miter_start);
  * @miter: sg mapping iter to proceed
  *
  * Description:
- *   Proceeds @miter to the next mapping.  @miter should have been started
- *   using sg_miter_start().  On successful return, @miter->page,
- *   @miter->addr and @miter->length point to the current mapping.
+ *   Proceeds @miter@ to the next mapping.  @miter@ should have been
+ *   started using sg_miter_start().  On successful return,
+ *   @miter@->page, @miter@->addr and @miter@->length point to the
+ *   current mapping.
  *
  * Context:
- *   Preemption disabled if SG_MITER_ATOMIC.  Preemption must stay disabled
- *   till @miter is stopped.  May sleep if !SG_MITER_ATOMIC.
+ *   IRQ disabled if SG_MITER_ATOMIC.  IRQ must stay disabled till
+ *   @miter@ is stopped.  May sleep if !SG_MITER_ATOMIC.
  *
  * Returns:
  *   true if @miter contains the next mapping.  false if end of sg

@@ -340,9 +340,4 @@ struct itimerval {
  */
 #define TIMER_ABSTIME			0x01
 
-#ifdef CONFIG_ARCH_MSM8X60_LTE
-extern void htc_timer_stats_OnOff(char OnOff);
-extern void htc_timer_stats_show(u16 water_mark);
-#endif
-
 #endif

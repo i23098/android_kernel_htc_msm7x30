@@ -1163,7 +1163,7 @@ magic_found:
 		ret = PTR_ERR(inode);
 		goto failed;
 	}
-	sb->s_root = d_make_root(inode);
+	sb->s_root = d_alloc_root(inode);
 	if (!sb->s_root) {
 		ret = -ENOMEM;
 		goto dalloc_failed;

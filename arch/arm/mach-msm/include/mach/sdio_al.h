@@ -17,8 +17,6 @@
 
 #if defined(CONFIG_ARCH_MSM7X30_SMD)
 #include <mach/7x30-smd/sdio_al.h>
-#elif defined(CONFIG_ARCH_MSM8X60_LTE)
-#include <mach/8x60-lte/sdio_al.h>
 #endif
 
 #ifndef __SDIO_AL__

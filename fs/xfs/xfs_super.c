@@ -1361,7 +1361,7 @@ xfs_fs_fill_super(
 		error = EINVAL;
 		goto out_syncd_stop;
 	}
-	sb->s_root = d_make_root(root);
+	sb->s_root = d_alloc_root(root);
 	if (!sb->s_root) {
 		error = ENOMEM;
 		goto out_iput;

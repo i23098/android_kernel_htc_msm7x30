@@ -481,7 +481,7 @@ got_root:
 	else
 		sb->s_d_op = &affs_dentry_operations;
 
-	sb->s_root = d_make_root(root_inode);
+	sb->s_root = d_alloc_root(root_inode);
 	if (!sb->s_root) {
 		printk(KERN_ERR "AFFS: Get root inode failed\n");
 		goto out_error;

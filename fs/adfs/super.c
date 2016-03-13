@@ -483,7 +483,7 @@ static int adfs_fill_super(struct super_block *sb, void *data, int silent)
 
 	sb->s_d_op = &adfs_dentry_operations;
 	root = adfs_iget(sb, &root_obj);
-	sb->s_root = d_make_root(root);
+	sb->s_root = d_alloc_root(root);
 	if (!sb->s_root) {
 		int i;
 		iput(root);

@@ -260,7 +260,7 @@ static int qnx4_fill_super(struct super_block *s, void *data, int silent)
  	}
 
 	ret = -ENOMEM;
- 	s->s_root = d_make_root(root);
+ 	s->s_root = d_alloc_root(root);
  	if (s->s_root == NULL)
  		goto outi;
 

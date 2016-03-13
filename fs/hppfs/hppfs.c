@@ -729,7 +729,7 @@ static int hppfs_fill_super(struct super_block *sb, void *d, int silent)
 	if (!root_inode)
 		goto out_mntput;
 
-	sb->s_root = d_make_root(root_inode);
+	sb->s_root = d_alloc_root(root_inode);
 	if (!sb->s_root)
 		goto out_iput;
 

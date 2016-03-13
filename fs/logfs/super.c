@@ -315,7 +315,7 @@ static int logfs_get_sb_final(struct super_block *sb)
 	if (IS_ERR(rootdir))
 		goto fail;
 
-	sb->s_root = d_make_root(rootdir);
+	sb->s_root = d_alloc_root(rootdir);
 	if (!sb->s_root) {
 		iput(rootdir);
 		goto fail;

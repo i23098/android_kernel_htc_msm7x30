@@ -8,9 +8,6 @@
 #include <asm/thread_info.h>
 #include <asm/memory.h>
 #include <asm/page.h>
-#ifdef CONFIG_STRICT_MEMORY_RWX
-#include <asm/pgtable.h>
-#endif
 	
 #define PROC_INFO							\
 	. = ALIGN(4);							\

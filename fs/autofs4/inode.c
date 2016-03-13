@@ -250,7 +250,7 @@ int autofs4_fill_super(struct super_block *s, void *data, int silent)
 	if (!root_inode)
 		goto fail_ino;
 
-	root = d_make_root(root_inode);
+	root = d_alloc_root(root_inode);
 	if (!root)
 		goto fail_iput;
 	pipe = NULL;

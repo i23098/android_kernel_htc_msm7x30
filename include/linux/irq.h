@@ -408,10 +408,6 @@ struct _irq_state {
 extern struct _irq_state *irq_count_info_ptr;
 #endif
 
-#ifdef CONFIG_ARCH_MSM8X60_LTE
-extern void htc_show_interrupts(void);
-#endif
-
 /*
  * Built-in IRQ handlers for various IRQ types,
  * callable via desc->handle_irq()

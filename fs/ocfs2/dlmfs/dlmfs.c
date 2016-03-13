@@ -594,7 +594,7 @@ static int dlmfs_fill_super(struct super_block * sb,
 	if (!inode)
 		return -ENOMEM;
 
-	root = d_make_root(inode);
+	root = d_alloc_root(inode);
 	if (!root) {
 		iput(inode);
 		return -ENOMEM;

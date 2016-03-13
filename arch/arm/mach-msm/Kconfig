@@ -99,12 +99,6 @@ config ARCH_MSM8X60
 	select MSM_SPM_V1
 	select HAS_MSM_DEBUG_UART_PHYS
 
-config ARCH_MSM8X60_LTE
-	bool "MSM8X60_LTE"
-	depends on ARCH_MSM8X60
-	default n
-	select HAS_MSM_DEBUG_UART_PHYS
-
 config ARCH_MSM8960
 	bool "MSM8960"
 	select ARCH_MSM_KRAITMP
@@ -1352,7 +1346,7 @@ config MSM_SMD_DEBUG
 	  between the ARM9 and ARM11
 
 config MSM_SDIO_AL
-	depends on ((ARCH_MSM7X30 || ARCH_MSM8X60_LTE || MACH_MSM8X60_FUSN_FFA || MACH_TYPE_MSM8X60_FUSION) && HAS_WAKELOCK)
+	depends on ((ARCH_MSM7X30 || MACH_MSM8X60_FUSN_FFA || MACH_TYPE_MSM8X60_FUSION) && HAS_WAKELOCK)
 	default y
 	tristate "SDIO-Abstraction-Layer"
 	help

@@ -660,7 +660,7 @@ static int btrfs_fill_super(struct super_block *sb,
 		goto fail_close;
 	}
 
-	root_dentry = d_make_root(inode);
+	root_dentry = d_alloc_root(inode);
 	if (!root_dentry) {
 		iput(inode);
 		err = -ENOMEM;

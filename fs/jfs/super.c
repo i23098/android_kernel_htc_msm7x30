@@ -521,7 +521,7 @@ static int jfs_fill_super(struct super_block *sb, void *data, int silent)
 		ret = PTR_ERR(inode);
 		goto out_no_rw;
 	}
-	sb->s_root = d_make_root(inode);
+	sb->s_root = d_alloc_root(inode);
 	if (!sb->s_root)
 		goto out_no_root;
 

@@ -42,11 +42,7 @@ static const char *handler[]= { "prefetch abort", "data abort", "address excepti
 void *vectors_page;
 
 #ifdef CONFIG_DEBUG_USER
-#ifdef CONFIG_ARCH_MSM8X60_LTE
-unsigned int user_debug = 31;
-#else
 unsigned int user_debug;
-#endif
 
 static int __init user_debug_setup(char *str)
 {
