@@ -138,8 +138,6 @@ static inline bool timespec_valid_strict(const struct timespec *ts)
 	return true;
 }
 
-extern struct timespec xtime;
-extern struct timespec wall_to_monotonic;
 extern seqlock_t xtime_lock;
 
 extern void read_persistent_clock(struct timespec *ts);
