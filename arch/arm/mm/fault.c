@@ -527,35 +527,6 @@ do_bad(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
 
 #endif
 
-static int
-do_imprecise_ext(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
-{
-#if defined(CONFIG_ARCH_MSM_SCORPION) && !defined(CONFIG_MSM_SMP)
-	MRC(ADFSR,    p15, 0,  c5, c1, 0);
-	MRC(DFSR,     p15, 0,  c5, c0, 0);
-	MRC(ACTLR,    p15, 0,  c1, c0, 1);
-	MRC(EFSR,     p15, 7, c15, c0, 1);
-	MRC(L2SR,     p15, 3, c15, c1, 0);
-	MRC(L2CR0,    p15, 3, c15, c0, 1);
-	MRC(L2CPUESR, p15, 3, c15, c1, 1);
-	MRC(L2CPUCR,  p15, 3, c15, c0, 2);
-	MRC(SPESR,    p15, 1,  c9, c7, 0);
-	MRC(SPCR,     p15, 0,  c9, c7, 0);
-	MRC(DMACHSR,  p15, 1, c11, c0, 0);
-	MRC(DMACHESR, p15, 1, c11, c0, 1);
-	MRC(DMACHCR,  p15, 0, c11, c0, 2);
-
-	/* clear out EFSR and ADFSR after fault */
-	asm volatile ("mcr p15, 7, %0, c15, c0, 1\n\t"
-		      "mcr p15, 0, %0, c5, c1, 0"
-		      : : "r" (0));
-#endif
-#if defined(CONFIG_ARCH_MSM_SCORPION) && !defined(CONFIG_MSM_SMP)
-	pr_info("%s: TCSR_SPARE2 = 0x%.8x\n", __func__, readl(MSM_TCSR_SPARE2));
-#endif
-	return 1;
-}
-
 struct fsr_info {
 	int	(*fn)(unsigned long addr, unsigned int fsr, struct pt_regs *regs);
 	int	sig;
