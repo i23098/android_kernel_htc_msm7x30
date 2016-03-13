@@ -361,6 +361,7 @@ extern signed long schedule_timeout_interruptible(signed long timeout);
 extern signed long schedule_timeout_killable(signed long timeout);
 extern signed long schedule_timeout_uninterruptible(signed long timeout);
 asmlinkage void schedule(void);
+extern void schedule_preempt_disabled(void);
 extern int mutex_spin_on_owner(struct mutex *lock, struct task_struct *owner);
 
 struct nsproxy;
@@ -907,6 +908,7 @@ struct sched_group_power {
 	 * single CPU.
 	 */
 	unsigned int power, power_orig;
+	unsigned long next_update;
 	/*
 	 * Number of busy cpus in this group.
 	 */
@@ -1054,6 +1056,8 @@ static inline int test_sd_parent(struct sched_domain *sd, int flag)
 unsigned long default_scale_freq_power(struct sched_domain *sd, int cpu);
 unsigned long default_scale_smt_power(struct sched_domain *sd, int cpu);
 
+bool cpus_share_cache(int this_cpu, int that_cpu);
+
 #else /* CONFIG_SMP */
 
 struct sched_domain_attr;
@@ -1063,6 +1067,12 @@ partition_sched_domains(int ndoms_new, cpumask_var_t doms_new[],
 			struct sched_domain_attr *dattr_new)
 {
 }
+
+static inline bool cpus_share_cache(int this_cpu, int that_cpu)
+{
+	return true;
+}
+
 #endif	/* !CONFIG_SMP */
 
 
@@ -1248,7 +1258,7 @@ struct sched_rt_entity {
  * default timeslice is 100 msecs (used only for SCHED_RR tasks).
  * Timeslices get refilled after they expire.
  */
-#define DEF_TIMESLICE		(100 * HZ / 1000)
+#define RR_TIMESLICE		(100 * HZ / 1000)
 
 struct rcu_node;
 
@@ -2084,7 +2094,7 @@ extern void sched_autogroup_fork(struct signal_struct *sig);
 extern void sched_autogroup_exit(struct signal_struct *sig);
 #ifdef CONFIG_PROC_FS
 extern void proc_sched_autogroup_show_task(struct task_struct *p, struct seq_file *m);
-extern int proc_sched_autogroup_set_nice(struct task_struct *p, int *nice);
+extern int proc_sched_autogroup_set_nice(struct task_struct *p, int nice);
 #endif
 #else
 static inline void sched_autogroup_create_attach(struct task_struct *p) { }
@@ -2101,12 +2111,20 @@ extern unsigned int sysctl_sched_cfs_bandwidth_slice;
 extern int rt_mutex_getprio(struct task_struct *p);
 extern void rt_mutex_setprio(struct task_struct *p, int prio);
 extern void rt_mutex_adjust_pi(struct task_struct *p);
+static inline bool tsk_is_pi_blocked(struct task_struct *tsk)
+{
+	return tsk->pi_blocked_on != NULL;
+}
 #else
 static inline int rt_mutex_getprio(struct task_struct *p)
 {
 	return p->normal_prio;
 }
 # define rt_mutex_adjust_pi(p)		do { } while (0)
+static inline bool tsk_is_pi_blocked(struct task_struct *tsk)
+{
+	return false;
+}
 #endif
 
 extern bool yield_to(struct task_struct *p, bool preempt);
@@ -2436,12 +2454,15 @@ static inline void task_unlock(struct task_struct *p)
 extern struct sighand_struct *__lock_task_sighand(struct task_struct *tsk,
 							unsigned long *flags);
 
-#define lock_task_sighand(tsk, flags)					\
-({	struct sighand_struct *__ss;					\
-	__cond_lock(&(tsk)->sighand->siglock,				\
-		    (__ss = __lock_task_sighand(tsk, flags)));		\
-	__ss;								\
-})									\
+static inline struct sighand_struct *lock_task_sighand(struct task_struct *tsk,
+						       unsigned long *flags)
+{
+	struct sighand_struct *ret;
+
+	ret = __lock_task_sighand(tsk, flags);
+	(void)__cond_lock(&tsk->sighand->siglock, ret);
+	return ret;
+}
 
 static inline void unlock_task_sighand(struct task_struct *tsk,
 						unsigned long *flags)
