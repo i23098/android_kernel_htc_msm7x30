@@ -263,26 +263,25 @@ quit:
 static int _mei_irq_thread_iamthif_read(struct mei_device *dev, s32 *slots)
 {
 
-	if (((*slots) * sizeof(u32)) >= (sizeof(struct mei_msg_hdr)
+	if (((*slots) * sizeof(u32)) < (sizeof(struct mei_msg_hdr)
 			+ sizeof(struct hbm_flow_control))) {
-		*slots -= (sizeof(struct mei_msg_hdr) +
-				sizeof(struct hbm_flow_control) + 3) / 4;
-		if (!mei_send_flow_control(dev, &dev->iamthif_cl)) {
-			dev_dbg(&dev->pdev->dev, "iamthif flow control failed\n");
-		} else {
-			dev_dbg(&dev->pdev->dev, "iamthif flow control success\n");
-			dev->iamthif_state = MEI_IAMTHIF_READING;
-			dev->iamthif_flow_control_pending = false;
-			dev->iamthif_msg_buf_index = 0;
-			dev->iamthif_msg_buf_size = 0;
-			dev->iamthif_stall_timer = IAMTHIF_STALL_TIMER;
-			dev->mei_host_buffer_is_empty =
-					mei_host_buffer_is_empty(dev);
-		}
-		return 0;
-	} else {
 		return -EMSGSIZE;
 	}
+	*slots -= (sizeof(struct mei_msg_hdr) +
+				sizeof(struct hbm_flow_control) + 3) / 4;
+	if (mei_send_flow_control(dev, &dev->iamthif_cl)) {
+		dev_dbg(&dev->pdev->dev, "iamthif flow control failed\n");
+		return -EIO;
+	}
+
+	dev_dbg(&dev->pdev->dev, "iamthif flow control success\n");
+	dev->iamthif_state = MEI_IAMTHIF_READING;
+	dev->iamthif_flow_control_pending = false;
+	dev->iamthif_msg_buf_index = 0;
+	dev->iamthif_msg_buf_size = 0;
+	dev->iamthif_stall_timer = IAMTHIF_STALL_TIMER;
+	dev->mei_host_buffer_is_empty = mei_host_buffer_is_empty(dev);
+	return 0;
 }
 
 /**
@@ -306,7 +305,7 @@ static int _mei_irq_thread_close(struct mei_device *dev, s32 *slots,
 		*slots -= (sizeof(struct mei_msg_hdr) +
 			sizeof(struct hbm_client_disconnect_request) + 3) / 4;
 
-		if (!mei_disconnect(dev, cl)) {
+		if (mei_disconnect(dev, cl)) {
 			cl->status = 0;
 			cb_pos->information = 0;
 			list_move_tail(&cb_pos->cb_list,
@@ -597,8 +596,7 @@ static void mei_client_disconnect_request(struct mei_device *dev,
 				&dev->ext_msg_buf[1];
 			disconnect_res->host_addr = cl_pos->host_client_id;
 			disconnect_res->me_addr = cl_pos->me_client_id;
-			*(u8 *) (&disconnect_res->cmd) =
-				CLIENT_DISCONNECT_RES_CMD;
+			disconnect_res->hbm_cmd = CLIENT_DISCONNECT_RES_CMD;
 			disconnect_res->status = 0;
 			dev->extra_write_index = 2;
 			break;
@@ -634,7 +632,7 @@ static void mei_irq_thread_read_bus_message(struct mei_device *dev,
 	mei_read_slots(dev, dev->rd_msg_buf, mei_hdr->length);
 	mei_msg = (struct mei_bus_message *)dev->rd_msg_buf;
 
-	switch (*(u8 *) mei_msg) {
+	switch (mei_msg->hbm_cmd) {
 	case HOST_START_RES_CMD:
 		version_res = (struct hbm_host_version_response *) mei_msg;
 		if (version_res->host_version_supported) {
@@ -653,6 +651,7 @@ static void mei_irq_thread_read_bus_message(struct mei_device *dev,
 		} else {
 			dev->version = version_res->me_max_version;
 			/* send stop message */
+			mei_hdr = (struct mei_msg_hdr *)&dev->wr_msg_buf[0];
 			mei_hdr->host_addr = 0;
 			mei_hdr->me_addr = 0;
 			mei_hdr->length = sizeof(struct hbm_host_stop_request);
@@ -665,7 +664,7 @@ static void mei_irq_thread_read_bus_message(struct mei_device *dev,
 			memset(host_stop_req,
 					0,
 					sizeof(struct hbm_host_stop_request));
-			host_stop_req->cmd.cmd = HOST_STOP_REQ_CMD;
+			host_stop_req->hbm_cmd = HOST_STOP_REQ_CMD;
 			host_stop_req->reason = DRIVER_STOP_REQUEST;
 			mei_write_message(dev, mei_hdr,
 					   (unsigned char *) (host_stop_req),
@@ -719,7 +718,7 @@ static void mei_irq_thread_read_bus_message(struct mei_device *dev,
 				dev->me_client_index++;
 				dev->me_client_presentation_num++;
 
-				/** Send Client Propeties request **/
+				/** Send Client Properties request **/
 				res = mei_host_client_properties(dev);
 				if (res < 0) {
 					dev_dbg(&dev->pdev->dev, "mei_host_client_properties() failed");
@@ -805,7 +804,7 @@ static void mei_irq_thread_read_bus_message(struct mei_device *dev,
 		host_stop_req =
 			(struct hbm_host_stop_request *) &dev->ext_msg_buf[1];
 		memset(host_stop_req, 0, sizeof(struct hbm_host_stop_request));
-		host_stop_req->cmd.cmd = HOST_STOP_REQ_CMD;
+		host_stop_req->hbm_cmd = HOST_STOP_REQ_CMD;
 		host_stop_req->reason = DRIVER_STOP_REQUEST;
 		host_stop_req->reserved[0] = 0;
 		host_stop_req->reserved[1] = 0;
@@ -838,23 +837,20 @@ static int _mei_irq_thread_read(struct mei_device *dev,	s32 *slots,
 {
 	if ((*slots * sizeof(u32)) >= (sizeof(struct mei_msg_hdr) +
 			sizeof(struct hbm_flow_control))) {
-		*slots -= (sizeof(struct mei_msg_hdr) +
-			sizeof(struct hbm_flow_control) + 3) / 4;
-		if (!mei_send_flow_control(dev, cl)) {
-			cl->status = -ENODEV;
-			cb_pos->information = 0;
-			list_move_tail(&cb_pos->cb_list,
-					&cmpl_list->mei_cb.cb_list);
-			return -ENODEV;
-		} else {
-			list_move_tail(&cb_pos->cb_list,
-					&dev->read_list.mei_cb.cb_list);
-		}
-	} else {
 		/* return the cancel routine */
 		list_del(&cb_pos->cb_list);
 		return -EBADMSG;
 	}
+
+	*slots -= (sizeof(struct mei_msg_hdr) +
+			sizeof(struct hbm_flow_control) + 3) / 4;
+	if (mei_send_flow_control(dev, cl)) {
+		cl->status = -ENODEV;
+		cb_pos->information = 0;
+		list_move_tail(&cb_pos->cb_list, &cmpl_list->mei_cb.cb_list);
+		return -ENODEV;
+	}
+	list_move_tail(&cb_pos->cb_list, &dev->read_list.mei_cb.cb_list);
 
 	return 0;
 }
@@ -881,7 +877,7 @@ static int _mei_irq_thread_ioctl(struct mei_device *dev, s32 *slots,
 		cl->state = MEI_FILE_CONNECTING;
 		*slots -= (sizeof(struct mei_msg_hdr) +
 			sizeof(struct hbm_client_connect_request) + 3) / 4;
-		if (!mei_connect(dev, cl)) {
+		if (mei_connect(dev, cl)) {
 			cl->status = -ENODEV;
 			cb_pos->information = 0;
 			list_del(&cb_pos->cb_list);
@@ -938,7 +934,7 @@ static int _mei_irq_thread_cmpl(struct mei_device *dev,	s32 *slots,
 				mei_hdr->length);
 		*slots -= (sizeof(struct mei_msg_hdr) +
 				mei_hdr->length + 3) / 4;
-		if (!mei_write_message(dev, mei_hdr,
+		if (mei_write_message(dev, mei_hdr,
 				(unsigned char *)
 				(cb_pos->request_buffer.data +
 				cb_pos->information),
@@ -967,7 +963,7 @@ static int _mei_irq_thread_cmpl(struct mei_device *dev,	s32 *slots,
 
 		(*slots) -= (sizeof(struct mei_msg_hdr) +
 				mei_hdr->length + 3) / 4;
-		if (!mei_write_message(dev, mei_hdr,
+		if (mei_write_message(dev, mei_hdr,
 					(unsigned char *)
 					(cb_pos->request_buffer.data +
 					cb_pos->information),
@@ -1028,7 +1024,7 @@ static int _mei_irq_thread_cmpl_iamthif(struct mei_device *dev, s32 *slots,
 		*slots -= (sizeof(struct mei_msg_hdr) +
 				mei_hdr->length + 3) / 4;
 
-		if (!mei_write_message(dev, mei_hdr,
+		if (mei_write_message(dev, mei_hdr,
 					(dev->iamthif_msg_buf +
 					dev->iamthif_msg_buf_index),
 					mei_hdr->length)) {
@@ -1063,7 +1059,7 @@ static int _mei_irq_thread_cmpl_iamthif(struct mei_device *dev, s32 *slots,
 		*slots -= (sizeof(struct mei_msg_hdr) +
 				mei_hdr->length + 3) / 4;
 
-		if (!mei_write_message(dev, mei_hdr,
+		if (mei_write_message(dev, mei_hdr,
 					(dev->iamthif_msg_buf +
 					dev->iamthif_msg_buf_index),
 					mei_hdr->length)) {
@@ -1280,7 +1276,7 @@ static int mei_irq_thread_write_handler(struct mei_io_list *cmpl_list,
 		}
 	}
 	if (dev->stop)
-		return ~ENODEV;
+		return -ENODEV;
 
 	/* complete control write list CB */
 	dev_dbg(&dev->pdev->dev, "complete control write list cb.\n");
@@ -1507,7 +1503,7 @@ irqreturn_t mei_interrupt_thread_handler(int irq, void *dev_id)
 	dev->host_hw_state = mei_hcsr_read(dev);
 
 	/* Ack the interrupt here
-	 * In case of MSI we don't go throuhg the quick handler */
+	 * In case of MSI we don't go through the quick handler */
 	if (pci_dev_msi_enabled(dev->pdev))
 		mei_reg_write(dev, H_CSR, dev->host_hw_state);
 
@@ -1543,7 +1539,7 @@ irqreturn_t mei_interrupt_thread_handler(int irq, void *dev_id)
 			return IRQ_HANDLED;
 		}
 	}
-	/* check slots avalable for reading */
+	/* check slots available for reading */
 	slots = mei_count_full_read_slots(dev);
 	dev_dbg(&dev->pdev->dev, "slots =%08x  extra_write_index =%08x.\n",
 		slots, dev->extra_write_index);

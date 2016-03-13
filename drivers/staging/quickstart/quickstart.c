@@ -23,7 +23,7 @@
  *
  */
 
-#define QUICKSTART_VERSION "1.03"
+#define QUICKSTART_VERSION "1.04"
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
@@ -98,7 +98,7 @@ static ssize_t quickstart_pressed_button_show(struct device *dev,
 						struct device_attribute *attr,
 						char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "%s\n",
+	return scnprintf(buf, PAGE_SIZE, "%s\n",
 					(pressed ? pressed->name : "none"));
 }
 
@@ -209,8 +209,9 @@ static int quickstart_acpi_ghid(struct quickstart_acpi *quickstart)
 		quickstart->button->id = *(uint64_t *)buffer.pointer;
 		break;
 	default:
-		pr_err("%s GHID method returned buffer of unexpected length %u\n",
-				quickstart->button->name, buffer.length);
+		pr_err("%s GHID method returned buffer of unexpected length %lu\n",
+				quickstart->button->name,
+				(unsigned long)buffer.length);
 		ret = -EINVAL;
 		break;
 	}
