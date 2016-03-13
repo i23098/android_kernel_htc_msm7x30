@@ -21,6 +21,7 @@ obj-$(CONFIG_MODULES)	+= module.o
 endif
 obj-$(CONFIG_SYS_HYPERVISOR) += hypervisor.o
 obj-$(CONFIG_REGMAP)	+= regmap/
+obj-$(CONFIG_SOC_BUS) += soc.o
 
 obj-y	+= sync.o
 obj-y	+= sw_sync.o
