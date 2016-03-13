@@ -4,10 +4,9 @@
 
 menu "File systems"
 
-config VFS_CACHE_PRESSURE
-	int "vfs Cache Pressure"
-	default 100
-	help
+# Use unaligned word dcache accesses
+config DCACHE_WORD_ACCESS
+       bool
 
 if BLOCK
 
@@ -279,6 +278,11 @@ endif # NETWORK_FILESYSTEMS
 
 source "fs/nls/Kconfig"
 source "fs/dlm/Kconfig"
+
+config VFS_CACHE_PRESSURE
+	int "vfs Cache Pressure"
+	default 100
+	help
 
 config DYNAMIC_FSYNC
 	bool "dynamic file sync control"
