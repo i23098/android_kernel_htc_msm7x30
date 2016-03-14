@@ -1189,8 +1189,13 @@ static int usb_suspend_both(struct usb_device *udev, pm_message_t msg)
 	if (status == 0) {
 		status = usb_suspend_device(udev, msg);
 
-		/* Again, ignore errors during system sleep transitions */
-		if (!PMSG_IS_AUTO(msg))
+		/*
+		 * Ignore errors from non-root-hub devices during
+		 * system sleep transitions.  For the most part,
+		 * these devices should go to low power anyway when
+		 * the entire bus is suspended.
+		 */
+		if (udev->parent && !PMSG_IS_AUTO(msg))
 			status = 0;
 	}
 
@@ -1293,7 +1298,7 @@ void usb_hnp_polling_work(struct work_struct *work)
 
 	/* Spec says host must suspend the bus with in 2 sec. */
 	if (*status & (1 << HOST_REQUEST_FLAG)) {
-		do_unbind_rebind(udev, DO_UNBIND);
+		unbind_no_pm_drivers_interfaces(udev);
 		udev->do_remote_wakeup = device_may_wakeup(&udev->dev);
 		ret = usb_suspend_both(udev, PMSG_USER_SUSPEND);
 		if (ret)
