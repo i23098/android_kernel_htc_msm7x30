@@ -223,21 +223,21 @@ static struct usb_descriptor_header *gser_hs_function[] __initdata = {
 	NULL,
 };
 
-static struct usb_endpoint_descriptor gser_ss_in_desc = {
+static struct usb_endpoint_descriptor gser_ss_in_desc __initdata = {
 	.bLength =		USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType =	USB_DT_ENDPOINT,
 	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
 	.wMaxPacketSize =	cpu_to_le16(1024),
 };
 
-static struct usb_endpoint_descriptor gser_ss_out_desc = {
+static struct usb_endpoint_descriptor gser_ss_out_desc __initdata = {
 	.bLength =		USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType =	USB_DT_ENDPOINT,
 	.bmAttributes =		USB_ENDPOINT_XFER_BULK,
 	.wMaxPacketSize =	cpu_to_le16(1024),
 };
 
-static struct usb_ss_ep_comp_descriptor gser_ss_bulk_comp_desc = {
+static struct usb_ss_ep_comp_descriptor gser_ss_bulk_comp_desc __initdata = {
 	.bLength =              sizeof gser_ss_bulk_comp_desc,
 	.bDescriptorType =      USB_DT_SS_ENDPOINT_COMP,
 };
@@ -280,7 +280,7 @@ static struct usb_gadget_strings *modem_strings[] = {
 	NULL,
 };
 
-static struct usb_descriptor_header *gser_ss_function[] = {
+static struct usb_descriptor_header *gser_ss_function[] __initdata = {
 	(struct usb_descriptor_header *) &gser_interface_desc,
 #ifdef CONFIG_MODEM_SUPPORT
 	(struct usb_descriptor_header *) &gser_header_desc,
