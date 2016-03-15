@@ -96,7 +96,7 @@ struct t_usb_status_notifier{
 	const char *name;
 	void (*func)(int online);
 };
-	int usb_register_notifier(struct t_usb_status_notifier *);
+	int msm_usb_register_notifier(struct t_usb_status_notifier *);
 	static LIST_HEAD(g_lh_usb_notifier_list);
 /* END: add USB connected notify function */
 #endif

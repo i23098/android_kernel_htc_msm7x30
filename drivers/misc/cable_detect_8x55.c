@@ -1011,7 +1011,7 @@ static int __init cable_detect_init(void)
 {
 	vbus = 0;
 	the_cable_info.connect_type = CONNECT_TYPE_NONE;
-	usb_register_notifier(&usb_status_notifier);
+	msm_usb_register_notifier(&usb_status_notifier);
 
 #if (defined(CONFIG_CABLE_DETECT_ACCESSORY) && defined(CONFIG_FB_MSM_HDMI_MHL_SII9234))
 		mhl_detect_register_notifier(&mhl_status_notifier);

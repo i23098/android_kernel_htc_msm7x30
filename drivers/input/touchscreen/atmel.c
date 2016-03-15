@@ -2758,7 +2758,7 @@ static int atmel_ts_probe(struct i2c_client *client,
 			ts->input_dev->name);
 
 #if !defined(CONFIG_ARCH_MSM8X60)
-	usb_register_notifier(&cable_status_handler);
+	msm_usb_register_notifier(&cable_status_handler);
 	if (pdata->wlc_config[0])
 		register_notifier_wireless_charger(&wlc_status_handler);
 #else

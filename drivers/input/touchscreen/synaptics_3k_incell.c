@@ -994,7 +994,7 @@ static int synaptics_ts_probe(
 
 	synaptics_touch_sysfs_init();
 	if (pdata->cable_support)
-		usb_register_notifier(&cable_status_handler);
+		msm_usb_register_notifier(&cable_status_handler);
 
 	printk(KERN_INFO "[TP] synaptics_ts_probe: Start touchscreen %s in %s mode\n", ts->input_dev->name, ts->use_irq ? "interrupt" : "polling");
 

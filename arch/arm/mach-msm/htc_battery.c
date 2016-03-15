@@ -2250,7 +2250,7 @@ static int __init htc_battery_init(void)
 	wake_lock_init(&vbus_wake_lock, WAKE_LOCK_SUSPEND, "vbus_present");
 	mutex_init(&htc_batt_info.lock);
 	mutex_init(&htc_batt_info.rpc_lock);
-	usb_register_notifier(&usb_status_notifier);
+	msm_usb_register_notifier(&usb_status_notifier);
 #ifdef CONFIG_HTC_ACCESSORY_ONEWIRE
 	owe_charging_register_notifier(&owe_charging_notifier);
 #endif

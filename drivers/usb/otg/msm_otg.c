@@ -90,7 +90,7 @@ static void send_usb_connect_notify(struct work_struct *w)
 	mutex_unlock(&notify_sem);
 }
 
-int usb_register_notifier(struct t_usb_status_notifier *notifier)
+int msm_usb_register_notifier(struct t_usb_status_notifier *notifier)
 {
 	if (!notifier || !notifier->name || !notifier->func)
 		return -EINVAL;

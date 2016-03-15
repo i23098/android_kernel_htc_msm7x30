@@ -1125,7 +1125,7 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 #endif
 
 	if (ts->cable_config)
-		usb_register_notifier(&himax_cable_status_handler);
+		msm_usb_register_notifier(&himax_cable_status_handler);
 
 	if (client->irq) {
 		ts->use_irq = 1;

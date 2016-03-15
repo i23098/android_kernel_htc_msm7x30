@@ -2404,7 +2404,7 @@ static int synaptics_ts_probe(
 
 #ifdef SYN_CABLE_CONTROL
 	if (ts->cable_support) {
-		usb_register_notifier(&cable_status_handler);
+		msm_usb_register_notifier(&cable_status_handler);
 		/* reserve for new version */
 		ret = i2c_syn_read(ts->client,
 			get_address_base(ts, 0x11, CONTROL_BASE), &ts->cable_config, 1);
