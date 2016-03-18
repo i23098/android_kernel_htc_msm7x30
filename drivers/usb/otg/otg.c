@@ -103,14 +103,14 @@ EXPORT_SYMBOL(otg_state_string);
 
 int otg_send_event(enum usb_otg_event event)
 {
-	struct usb_phy *otg = otg_get_transceiver();
+	struct usb_phy *otg = usb_get_transceiver();
 	int ret = -ENOTSUPP;
 
 	if (otg && otg->send_event)
 		ret = otg->send_event(otg, event);
 
 	if (otg)
-		otg_put_transceiver(otg);
+		usb_put_transceiver(otg);
 
 	return ret;
 }

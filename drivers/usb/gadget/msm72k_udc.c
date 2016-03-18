@@ -335,7 +335,7 @@ static void ulpi_init(struct usb_info *ui)
 
 	while (seq[0] >= 0) {
 		pr_info("ulpi: write 0x%02x to 0x%02x\n", seq[0], seq[1]);
-		otg_io_write(ui->xceiv, seq[0], seq[1]);
+		usb_phy_io_write(ui->xceiv, seq[0], seq[1]);
 		seq += 2;
 	}
 }
@@ -348,13 +348,13 @@ static int usb_phy_stuck_check(struct usb_info *ui)
 	 * otherwise, PHY seems to have stuck.
 	 */
 
-	if (otg_io_write(ui->xceiv, 0xAA, 0x16) == -1) {
+	if (usb_phy_io_write(ui->xceiv, 0xAA, 0x16) == -1) {
 		dev_dbg(&ui->pdev->dev,
 				"%s(): ulpi write timeout\n", __func__);
 		return -EIO;
 	}
 
-	if (otg_io_read(ui->xceiv, 0x16) != 0xAA) {
+	if (usb_phy_io_read(ui->xceiv, 0x16) != 0xAA) {
 		dev_dbg(&ui->pdev->dev,
 				"%s(): read value is incorrect\n", __func__);
 		return -EIO;
@@ -421,7 +421,7 @@ static void usb_chg_stop(struct work_struct *w)
 	temp = atomic_read(&otg->chg_type);
 
 	if (temp == USB_CHG_TYPE__SDP)
-		otg_set_power(ui->xceiv, 0);
+		usb_phy_set_power(ui->xceiv, 0);
 #else
        pr_info("disable charger\n");
        htc_battery_charger_disable();
@@ -448,7 +448,7 @@ static void usb_chg_detect(struct work_struct *w)
 	atomic_set(&otg->chg_type, temp);
 	maxpower = usb_get_max_power(ui);
 	if (maxpower > 0)
-		otg_set_power(ui->xceiv, maxpower);
+		usb_phy_set_power(ui->xceiv, maxpower);
 
 	if (ui->xceiv) {
 		if (atomic_read(&otg->chg_type) == USB_CHG_TYPE__WALLCHARGER)
@@ -460,7 +460,7 @@ static void usb_chg_detect(struct work_struct *w)
 	/* USB driver prevents idle and suspend power collapse(pc)
 	 * while USB cable is connected. But when dedicated charger is
 	 * connected, driver can vote for idle and suspend pc.
-	 * OTG driver handles idle pc as part of above otg_set_power call
+	 * OTG driver handles idle pc as part of above usb_phy_set_power call
 	 * when wallcharger is attached. To allow suspend pc, release the
 	 * wakelock which will be re-acquired for any sub-sequent usb interrupts
 	 * */
@@ -728,7 +728,7 @@ int usb_ept_queue_xfer(struct msm_endpoint *ept, struct usb_request *_req)
 		}
 
 		wake_lock(&ui->wlock);
-		otg_set_suspend(ui->xceiv, 0);
+		usb_phy_set_suspend(ui->xceiv, 0);
 		schedule_delayed_work(&ui->rw_work, REMOTE_WAKEUP_DELAY);
 	}
 
@@ -1282,7 +1282,7 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 #ifdef CONFIG_USB_OTG
 		/* notify otg to clear A_BIDL_ADIS timer */
 		if (ui->gadget.is_a_peripheral)
-			otg_set_suspend(ui->xceiv, 0);
+			usb_phy_set_suspend(ui->xceiv, 0);
 #endif
 	}
 
@@ -1294,7 +1294,7 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 #ifdef CONFIG_USB_OTG
 		/* notify otg to clear A_BIDL_ADIS timer */
 		if (ui->gadget.is_a_peripheral)
-			otg_set_suspend(ui->xceiv, 0);
+			usb_phy_set_suspend(ui->xceiv, 0);
 		spin_lock_irqsave(&ui->lock, flags);
 		/* Host request is persistent across reset */
 		ui->gadget.b_hnp_enable = 0;
@@ -1357,7 +1357,7 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 		 * 2. disabling pull-up and kicking B_ASE0_RST timer
 		 */
 		if (ui->gadget.b_hnp_enable || ui->gadget.is_a_peripheral)
-			otg_set_suspend(ui->xceiv, 1);
+			usb_phy_set_suspend(ui->xceiv, 1);
 #endif
 	}
 
@@ -1470,7 +1470,7 @@ static int usb_free(struct usb_info *ui, int ret)
 	usb_del_gadget_udc(&ui->gadget);
 
 	if (ui->xceiv)
-		otg_put_transceiver(ui->xceiv);
+		usb_put_transceiver(ui->xceiv);
 
 	if (ui->irq)
 		free_irq(ui->irq, 0);
@@ -1602,7 +1602,7 @@ static void usb_do_work(struct work_struct *w)
 				 * we must let modem know about charger
 				 * disconnection
 				 */
-				otg_set_power(ui->xceiv, 0);
+				usb_phy_set_power(ui->xceiv, 0);
 
 				if (ui->irq) {
 					free_irq(ui->irq, ui);
@@ -1625,7 +1625,7 @@ static void usb_do_work(struct work_struct *w)
 				if (maxpower < 0)
 					break;
 
-				otg_set_power(ui->xceiv, 0);
+				usb_phy_set_power(ui->xceiv, 0);
 				/* To support TCXO during bus suspend
 				 * This might be dummy check since bus suspend
 				 * is not implemented as of now
@@ -1650,7 +1650,7 @@ static void usb_do_work(struct work_struct *w)
 					break;
 
 				ui->chg_current = maxpower;
-				otg_set_power(ui->xceiv, maxpower);
+				usb_phy_set_power(ui->xceiv, maxpower);
 				break;
 			}
 			if (flags & USB_FLAG_RESET) {
@@ -2310,7 +2310,7 @@ static int msm72k_pullup_internal(struct usb_gadget *_gadget, int is_active)
 		pr_info("%s: %d\n", __func__, is_active);
 		writel(readl(USB_USBCMD) & ~USBCMD_RS, USB_USBCMD);
 		/* S/W workaround, Issue#1 */
-		otg_io_write(ui->xceiv, 0x48, 0x04);
+		usb_phy_io_write(ui->xceiv, 0x48, 0x04);
 		if (atomic_read(&ui->configured)) {
 			/* marking us offline will cause ept queue attempts
 			 ** to fail
@@ -2359,7 +2359,7 @@ static int msm72k_wakeup(struct usb_gadget *_gadget)
 			"%s: device is not configured\n", __func__);
 		return -ENODEV;
 	}
-	otg_set_suspend(ui->xceiv, 0);
+	usb_phy_set_suspend(ui->xceiv, 0);
 
 	disable_irq(otg->irq);
 
@@ -2472,7 +2472,7 @@ static ssize_t store_usb_chg_current(struct device *dev,
 		return -EINVAL;
 
 	ui->chg_current = mA;
-	otg_set_power(ui->xceiv, mA);
+	usb_phy_set_power(ui->xceiv, mA);
 
 	return count;
 }
@@ -2724,7 +2724,7 @@ static int msm72k_probe(struct platform_device *pdev)
 	if (!ui->pool)
 		return usb_free(ui, -ENOMEM);
 
-	ui->xceiv = otg_get_transceiver();
+	ui->xceiv = usb_get_transceiver();
 	if (!ui->xceiv)
 		return usb_free(ui, -ENODEV);
 
