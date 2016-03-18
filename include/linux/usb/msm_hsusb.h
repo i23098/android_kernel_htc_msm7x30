@@ -208,7 +208,7 @@ struct msm_otg_platform_data {
  * @id_timer: The timer used for polling ID line to detect ACA states.
  */
 struct msm_otg {
-	struct usb_phy otg;
+	struct usb_phy phy;
 	struct msm_otg_platform_data *pdata;
 	int irq;
 	struct clk *clk;
