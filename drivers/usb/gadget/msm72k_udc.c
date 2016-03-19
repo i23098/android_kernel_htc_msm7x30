@@ -33,7 +33,7 @@
 #include <linux/switch.h>
 #include <linux/pm_runtime.h>
 
-#include <linux/usb/msm72_hsusb.h>
+#include <linux/usb/msm72k_hsusb.h>
 #include <linux/io.h>
 
 #include <asm/mach-types.h>

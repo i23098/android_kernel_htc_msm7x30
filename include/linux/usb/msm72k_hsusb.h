@@ -10,18 +10,19 @@
  *
  */
 
-#ifndef __LINUX_USB_GADGET_MSM72K_OTG_H__
-#define __LINUX_USB_GADGET_MSM72K_OTG_H__
+#ifndef __ASM_ARCH_MSM72K_HSUSB_H
+#define __ASM_ARCH_MSM72K_HSUSB_H
 
-#include <linux/usb.h>
-#include <linux/usb/gadget.h>
+#include <linux/types.h>
 #include <linux/usb/otg.h>
 #include <linux/wakelock.h>
-#include <mach/msm_hsusb.h>
+#include <mach/board.h>
+#include <linux/usb.h>
+#include <linux/usb/gadget.h>
 
+#include <mach/msm_hsusb.h>
 #include <asm/mach-types.h>
 #include <mach/msm_hsusb.h>
-#include <mach/board.h>
 
 #define OTGSC_BSVIE            (1 << 27)
 #define OTGSC_IDIE             (1 << 24)

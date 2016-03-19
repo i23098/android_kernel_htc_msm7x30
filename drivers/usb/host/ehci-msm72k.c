@@ -37,7 +37,7 @@
 #include <linux/wakelock.h>
 #include <linux/pm_runtime.h>
 
-#include <linux/usb/msm72_hsusb.h>
+#include <linux/usb/msm72k_hsusb.h>
 
 #define MSM_USB_BASE (hcd->regs)
 
