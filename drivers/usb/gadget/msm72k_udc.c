@@ -452,9 +452,9 @@ static void usb_chg_detect(struct work_struct *w)
 
 	if (ui->xceiv) {
 		if (atomic_read(&otg->chg_type) == USB_CHG_TYPE__WALLCHARGER)
-			ui->xceiv->notify_charger(CONNECT_TYPE_AC);
+			msm_otg_notify_charger_attached(otg, CONNECT_TYPE_AC);
 		else if (atomic_read(&otg->chg_type) == USB_CHG_TYPE__SDP)
-			ui->xceiv->notify_charger(CONNECT_TYPE_UNKNOWN);
+			msm_otg_notify_charger_attached(otg, CONNECT_TYPE_UNKNOWN);
 	}
 
 	/* USB driver prevents idle and suspend power collapse(pc)
@@ -1287,6 +1287,8 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 	}
 
 	if (n & STS_URI) {
+		struct msm_otg *otg = to_msm_otg(ui->xceiv);
+
 		pr_info("reset\n");
 		spin_lock_irqsave(&ui->lock, flags);
 		ui->gadget.speed = USB_SPEED_UNKNOWN;
@@ -1333,8 +1335,7 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 		if (ui->pdata && ui->pdata->is_phy_status_timer_on)
 			mod_timer(&phy_status_timer, PHY_STATUS_CHECK_DELAY);
 
-		if (ui->xceiv->notify_charger)
-			ui->xceiv->notify_charger(CONNECT_TYPE_USB);
+		msm_otg_notify_charger_attached(otg, CONNECT_TYPE_USB);
 	}
 
 	if (n & STS_SLI) {

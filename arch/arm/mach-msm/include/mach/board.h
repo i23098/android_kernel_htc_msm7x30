@@ -587,7 +587,6 @@ int __init rmt_storage_add_ramfs(void);
 int usb_get_connect_type(void);
 void msm_otg_set_vbus_state(int online);
 void msm_hsusb_set_vbus_state(int online);
-void msm_hsusb_vbus_notif_register(void (*vbus_notif)(int));
 enum usb_connect_type {
 	CONNECT_TYPE_CLEAR = -2,
 	CONNECT_TYPE_UNKNOWN = -1,

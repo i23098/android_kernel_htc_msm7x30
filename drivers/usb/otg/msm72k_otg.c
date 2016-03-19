@@ -99,19 +99,8 @@ int usb_get_connect_type(void)
 }
 EXPORT_SYMBOL(usb_get_connect_type);
 
-void msm_hsusb_vbus_notif_register(void (*vbus_notif)(int))
+inline int is_host(struct msm_otg *motg)
 {
-	struct msm_otg *motg = the_msm_otg;
-	if (motg) {
-		motg->vbus_notification_cb = vbus_notif;
-		pr_info("%s: success\n", __func__);
-	}
-}
-
-static int is_host(void)
-{
-	struct msm_otg *motg = the_msm_otg;
-
 	if (motg->pmic_id_notif_supp)
 		return motg->pmic_id_status ? 0 : 1;
 #ifdef CONFIG_USB_OTG_HOST
@@ -740,10 +729,8 @@ static void ac_detect_expired(unsigned long _data)
 	}
 }
 
-static void msm_otg_notify_charger_attached(int connect_type)
+void msm_otg_notify_charger_attached(struct msm_otg *motg, int connect_type)
 {
-	struct msm_otg *motg = the_msm_otg;
-
 	pr_info("chg_type: %s %s => %s\n",
 		charger_string(atomic_read(&motg->chg_type)),
 		connect_to_string(motg->connect_type),
@@ -930,7 +917,7 @@ static int msm_otg_suspend(struct msm_otg *motg)
 	 * 3. host is supported, but, id is not routed to pmic
 	 * 4. peripheral is supported, but, vbus is not routed to pmic
 	 */
-	host_bus_suspend = motg->phy.host && is_host();
+	host_bus_suspend = motg->phy.host && is_host(motg);
 
 	/*
 	 *  Configure the PMIC ID only in case of cable disconnect.
@@ -1178,7 +1165,7 @@ phy_resumed:
 	/* If resume signalling finishes before lpm exit, PCD is not set in
 	 * USBSTS register. Drive resume signal to the downstream device now
 	 * so that host driver can process the upcoming port change interrupt.*/
-	if (is_host() || test_bit(ID_A, &motg->inputs)) {
+	if (is_host(motg) || test_bit(ID_A, &motg->inputs)) {
 		writel(readl(USB_PORTSC) | PORTSC_FPR, USB_PORTSC);
 		msm_otg_start_host(&motg->phy, REQUEST_RESUME);
 	}
@@ -1911,11 +1898,11 @@ reset_link:
 	if (motg->phy.host && !motg->pmic_id_notif_supp) {
 		enable_idgnd(motg);
 		/* Handle missing ID_GND interrupts during fast PIPO */
-		if (is_host() && test_bit(ID, &motg->inputs)) {
+		if (is_host(motg) && test_bit(ID, &motg->inputs)) {
 			pr_debug("%s: handle missing ID_GND event\n", __func__);
 			clear_bit(ID, &motg->inputs);
 			work = 1;
-		} else if (!is_host() && !test_bit(ID, &motg->inputs)) {
+		} else if (!is_host(motg) && !test_bit(ID, &motg->inputs)) {
 			pr_debug("%s: handle missing !ID_GND event\n",
 						__func__);
 			set_bit(ID, &motg->inputs);
@@ -1991,7 +1978,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 				set_bit(B_SESS_VLD, &motg->inputs);
 			}
 		} else {
-			if (!motg->phy.host || !is_host())
+			if (!motg->phy.host || !is_host(motg))
 				set_bit(ID, &motg->inputs);
 
 			if (motg->phy.gadget && is_b_sess_vld(motg)) {
@@ -2651,7 +2638,7 @@ out:
 #endif
 #ifdef CONFIG_USB_OTG
 static ssize_t
-set_pwr_down(struct device *_dev, struct device_attribute *attr,
+set_pwr_down(struct device *dev, struct device_attribute *attr,
 		const char *buf, size_t count)
 {
 	struct msm_otg *motg = the_msm_otg;
@@ -2680,7 +2667,7 @@ set_pwr_down(struct device *_dev, struct device_attribute *attr,
 static DEVICE_ATTR(pwr_down, S_IRUGO | S_IWUSR, NULL, set_pwr_down);
 
 static ssize_t
-set_srp_req(struct device *_dev, struct device_attribute *attr,
+set_srp_req(struct device *dev, struct device_attribute *attr,
 		const char *buf, size_t count)
 {
 	struct msm_otg *motg = the_msm_otg;
@@ -2703,7 +2690,7 @@ set_srp_req(struct device *_dev, struct device_attribute *attr,
 static DEVICE_ATTR(srp_req, S_IRUGO | S_IWUSR, NULL, set_srp_req);
 
 static ssize_t
-set_clr_err(struct device *_dev, struct device_attribute *attr,
+set_clr_err(struct device *dev, struct device_attribute *attr,
 		const char *buf, size_t count)
 {
 	struct msm_otg *motg = the_msm_otg;
@@ -2836,50 +2823,50 @@ const struct file_operations otgfs_info_fops = {
 	.read	= otg_info_read,
 };
 
-struct dentry *otg_debug_root;
-struct dentry *otg_debug_mode;
-struct dentry *otg_debug_info;
+static struct dentry *msm_otg_dbg_root;
+static struct dentry *msm_otg_dbg_mode;
+static struct dentry *msm_otg_dbg_info;
 #endif
 
-static int otg_debugfs_init(struct msm_otg *motg)
+static int msm_otg_debugfs_init(struct msm_otg *motg)
 {
 #ifdef CONFIG_DEBUG_FS
-	otg_debug_root = debugfs_create_dir("otg", NULL);
-	if (!otg_debug_root)
+	msm_otg_dbg_root = debugfs_create_dir("otg", NULL);
+	if (!msm_otg_dbg_root)
 		return -ENOENT;
 
-	otg_debug_mode = debugfs_create_file("mode", 0222,
-						otg_debug_root, motg,
+	msm_otg_dbg_mode = debugfs_create_file("mode", 0222,
+						msm_otg_dbg_root, motg,
 						&otgfs_fops);
-	if (!otg_debug_mode)
+	if (!msm_otg_dbg_mode)
 		goto free_root;
 
-	otg_debug_info = debugfs_create_file("info", 0444,
-						otg_debug_root, motg,
+	msm_otg_dbg_info = debugfs_create_file("info", 0444,
+						msm_otg_dbg_root, motg,
 						&otgfs_info_fops);
-	if (!otg_debug_info)
+	if (!msm_otg_dbg_info)
 		goto free_mode;
 
 	return 0;
 
 free_mode:
-	debugfs_remove(otg_debug_mode);
-	otg_debug_mode = NULL;
+	debugfs_remove(msm_otg_dbg_mode);
+	msm_otg_dbg_mode = NULL;
 
 free_root:
-	debugfs_remove(otg_debug_root);
-	otg_debug_root = NULL;
+	debugfs_remove(msm_otg_dbg_root);
+	msm_otg_dbg_root = NULL;
 	return -ENOENT;
 #endif
 	return 0;
 }
 
-static void otg_debugfs_cleanup(void)
+static void msm_otg_debugfs_cleanup(void)
 {
 #ifdef CONFIG_DEBUG_FS
-	debugfs_remove(otg_debug_info);
-	debugfs_remove(otg_debug_mode);
-	debugfs_remove(otg_debug_root);
+	debugfs_remove(msm_otg_dbg_info);
+	debugfs_remove(msm_otg_dbg_mode);
+	debugfs_remove(msm_otg_dbg_root);
 #endif
 }
 
@@ -2907,19 +2894,28 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
+	motg->phy.otg = kzalloc(sizeof(struct usb_otg), GFP_KERNEL);
+	if (!motg->phy.otg) {
+		dev_err(&pdev->dev, "unable to allocate msm_otg\n");
+		return -ENOMEM;
+	}
+
+	motg->pdata = pdev->dev.platform_data;
+	phy = &motg->phy;
+	phy->dev = &pdev->dev;
+
 	the_msm_otg = motg;
 	motg->phy.dev = &pdev->dev;
-	motg->pdata = pdev->dev.platform_data;
 
 	if (!motg->pdata) {
 		ret = -ENODEV;
-		goto free_dev;
+		goto free_motg;
 	}
 
 #ifdef CONFIG_USB_EHCI_MSM_72K
 	if (!motg->pdata->vbus_power) {
 		ret = -ENODEV;
-		goto free_dev;
+		goto free_motg;
 	} else
 		motg->pdata->vbus_power(USB_PHY_INTEGRATED, 0);
 
@@ -2932,7 +2928,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 		if (ret) {
 			pr_err("%s: rpc connect failed\n", __func__);
 			ret = -ENODEV;
-			goto free_dev;
+			goto free_motg;
 		}
 	}
 
@@ -3145,7 +3141,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	ret = request_irq(motg->irq, msm_otg_irq, IRQF_SHARED,
 					"msm_otg", motg);
 	if (ret) {
-		pr_err("%s: request irq failed\n", __func__);
+		dev_err(&pdev->dev, "request irq failed\n");
 		goto free_ldo_enable;
 	}
 
@@ -3157,7 +3153,6 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	motg->phy.start_hnp = msm_otg_start_hnp;
 	motg->phy.send_event = msm_otg_send_event;
 	motg->phy.set_power = msm_usb_phy_set_power;
-	motg->phy.notify_charger = msm_otg_notify_charger_attached;
 	motg->set_clk = msm_otg_set_clk;
 	motg->reset = otg_reset;
 	motg->phy.io_ops = &msm_otg_io_ops;
@@ -3189,9 +3184,9 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	pm_runtime_get(&pdev->dev);
 
 
-	ret = otg_debugfs_init(motg);
+	ret = msm_otg_debugfs_init(motg);
 	if (ret) {
-		pr_err("%s: otg_debugfs_init failed\n", __func__);
+		pr_err("%s: msm_otg_debugfs_init failed\n", __func__);
 		goto chg_deinit;
 	}
 
@@ -3199,11 +3194,10 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	ret = sysfs_create_group(&pdev->dev.kobj, &msm_otg_attr_grp);
 	if (ret < 0) {
 		pr_err("%s: Failed to create the sysfs entry\n", __func__);
-		otg_debugfs_cleanup();
+		msm_otg_debugfs_cleanup();
 		goto chg_deinit;
 	}
 #endif
-
 
 	return 0;
 
@@ -3250,22 +3244,24 @@ put_iface_clk:
 	}
 put_core_clk:
 	clk_disable(motg->core_clk);
-	clk_put(motg->core_clk);
+	if (motg->core_clk)
+		clk_put(motg->core_clk);
 put_alt_core_clk:
 	clk_put(motg->alt_core_clk);
 rpc_fail:
 	if (motg->pdata->rpc_connect)
 		motg->pdata->rpc_connect(0);
-free_dev:
+free_motg:
+	kfree(motg->phy.otg);
 	kfree(motg);
 	return ret;
 }
 
-static int __exit msm_otg_remove(struct platform_device *pdev)
+static int __devexit msm_otg_remove(struct platform_device *pdev)
 {
-	struct msm_otg *motg = the_msm_otg;
+	struct msm_otg *motg = platform_get_drvdata(pdev);
 
-	otg_debugfs_cleanup();
+	msm_otg_debugfs_cleanup();
 #ifdef CONFIG_USB_OTG
 	sysfs_remove_group(&pdev->dev.kobj, &msm_otg_attr_grp);
 #endif
@@ -3316,26 +3312,27 @@ static int __exit msm_otg_remove(struct platform_device *pdev)
 
 	pm_runtime_put(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
+
+	kfree(motg->phy.otg);
 	kfree(motg);
+
 	return 0;
 }
 
 static int msm_otg_runtime_suspend(struct device *dev)
 {
-	struct msm_otg *otg = the_msm_otg;
+	struct msm_otg *motg = dev_get_drvdata(dev);
 
-	dev_dbg(dev, "pm_runtime: suspending...\n");
-	msm_otg_suspend(otg);
-	return  0;
+	dev_dbg(dev, "OTG runtime suspend\n");
+	return msm_otg_suspend(motg);
 }
 
 static int msm_otg_runtime_resume(struct device *dev)
 {
-	struct msm_otg *otg = the_msm_otg;
+	struct msm_otg *motg = dev_get_drvdata(dev);
 
-	dev_dbg(dev, "pm_runtime: resuming...\n");
-	msm_otg_resume(otg);
-	return  0;
+	dev_dbg(dev, "OTG runtime resume\n");
+	return msm_otg_resume(motg);
 }
 
 static int msm_otg_runtime_idle(struct device *dev)
@@ -3351,7 +3348,7 @@ static struct dev_pm_ops msm_otg_dev_pm_ops = {
 };
 
 static struct platform_driver msm_otg_driver = {
-	.remove = __exit_p(msm_otg_remove),
+	.remove = __devexit_p(msm_otg_remove),
 	.driver = {
 		.name = DRIVER_NAME,
 		.owner = THIS_MODULE,
@@ -3373,5 +3370,4 @@ module_init(msm_otg_init);
 module_exit(msm_otg_exit);
 
 MODULE_LICENSE("GPL v2");
-MODULE_DESCRIPTION("MSM usb transceiver driver");
-MODULE_VERSION("1.00");
+MODULE_DESCRIPTION("MSM USB transceiver driver");

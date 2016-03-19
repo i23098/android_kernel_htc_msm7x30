@@ -179,4 +179,6 @@ static inline int can_phy_power_collapse(struct msm_otg *dev)
 	return dev->pdata->phy_can_powercollapse;
 }
 
+void msm_otg_notify_charger_attached(struct msm_otg *motg, int connect_type);
+
 #endif
