@@ -25,7 +25,7 @@
 #include <linux/device.h>
 #include <linux/pm_qos.h>
 #include <mach/msm_hsusb_hw.h>
-#include <mach/msm72k_otg.h>
+#include <linux/usb/msm72_hsusb.h>
 #include <mach/msm_hsusb.h>
 #include <linux/debugfs.h>
 #include <linux/uaccess.h>
