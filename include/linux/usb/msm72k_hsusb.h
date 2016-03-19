@@ -111,7 +111,7 @@
 #define OTG_ID_POLL_MS	1000
 
 struct msm_otg {
-	struct usb_phy otg;
+	struct usb_phy phy;
 
 	/* usb clocks */
 	struct clk		*alt_core_clk;

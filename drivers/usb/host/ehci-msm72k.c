@@ -270,13 +270,13 @@ static void usb_lpm_exit(struct usb_hcd *hcd)
 static irqreturn_t ehci_msm_irq(struct usb_hcd *hcd)
 {
 	struct msmusb_hcd *mhcd = hcd_to_mhcd(hcd);
-	struct msm_otg *otg = container_of(mhcd->xceiv, struct msm_otg, otg);
+	struct msm_otg *phy = container_of(mhcd->xceiv, struct msm_otg, phy);
 
 	/*
 	 * OTG scheduled a work to get Integrated PHY out of LPM,
 	 * WAIT till then */
 	if (PHY_TYPE(mhcd->pdata->phy_info) == USB_PHY_INTEGRATED)
-		if (atomic_read(&otg->in_lpm))
+		if (atomic_read(&phy->in_lpm))
 			return IRQ_HANDLED;
 
 	return ehci_irq(hcd);
@@ -453,7 +453,7 @@ static void msm_hsusb_request_host(void *handle, int request)
 	struct msmusb_hcd *mhcd = handle;
 	struct usb_hcd *hcd = mhcd_to_hcd(mhcd);
 	struct msm_usb_host_platform_data *pdata = mhcd->pdata;
-	struct msm_otg *otg = container_of(mhcd->xceiv, struct msm_otg, otg);
+	struct msm_otg *phy = container_of(mhcd->xceiv, struct msm_otg, phy);
 #ifdef CONFIG_USB_OTG
 	struct usb_device *udev = hcd->self.root_hub;
 #endif
@@ -503,8 +503,8 @@ static void msm_hsusb_request_host(void *handle, int request)
 		msm_xusb_pm_qos_update(mhcd, 1);
 		msm_xusb_enable_clks(mhcd);
 		if (PHY_TYPE(pdata->phy_info) == USB_PHY_INTEGRATED)
-			if (otg->set_clk)
-				otg->set_clk(mhcd->xceiv, 1);
+			if (phy->set_clk)
+				phy->set_clk(mhcd->xceiv, 1);
 		if (pdata->vbus_power)
 			pdata->vbus_power(pdata->phy_info, 1);
 		if (pdata->config_gpio)
@@ -512,8 +512,8 @@ static void msm_hsusb_request_host(void *handle, int request)
 		usb_add_hcd(hcd, hcd->irq, IRQF_SHARED);
 		mhcd->running = 1;
 		if (PHY_TYPE(pdata->phy_info) == USB_PHY_INTEGRATED)
-			if (otg->set_clk)
-				otg->set_clk(mhcd->xceiv, 0);
+			if (phy->set_clk)
+				phy->set_clk(mhcd->xceiv, 0);
 		break;
 	case REQUEST_STOP:
 		if (!mhcd->running)
@@ -622,7 +622,7 @@ static int msm_xusb_init_host(struct platform_device *pdev,
 			      struct msmusb_hcd *mhcd)
 {
 	int ret = 0;
-	struct msm_otg *otg;
+	struct msm_otg *phy;
 	struct usb_hcd *hcd = mhcd_to_hcd(mhcd);
 	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
 	struct msm_usb_host_platform_data *pdata = mhcd->pdata;
@@ -642,9 +642,9 @@ static int msm_xusb_init_host(struct platform_device *pdev,
 		mhcd->xceiv = usb_get_transceiver();
 		if (!mhcd->xceiv)
 			return -ENODEV;
-		otg = container_of(mhcd->xceiv, struct msm_otg, otg);
-		hcd->regs = otg->regs;
-		otg->start_host = msm_hsusb_start_host;
+		phy = container_of(mhcd->xceiv, struct msm_otg, phy);
+		hcd->regs = phy->regs;
+		phy->start_host = msm_hsusb_start_host;
 		ehci->start_hnp = ehci_msm_start_hnp;
 
 		ret = otg_set_host(mhcd->xceiv, &hcd->self);

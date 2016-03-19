@@ -97,7 +97,7 @@ struct msm_request {
 
 #define to_msm_request(r) container_of(r, struct msm_request, req)
 #define to_msm_endpoint(r) container_of(r, struct msm_endpoint, ep)
-#define to_msm_otg(xceiv)  container_of(xceiv, struct msm_otg, otg)
+#define to_msm_otg(xceiv)  container_of(xceiv, struct msm_otg, phy)
 #define is_b_sess_vld()	((OTGSC_BSV & readl(USB_OTGSC)) ? 1 : 0)
 #define is_usb_online(ui) (ui->usb_state != USB_STATE_NOTATTACHED)
 
