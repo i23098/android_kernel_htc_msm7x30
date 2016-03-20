@@ -725,8 +725,9 @@ static void ac_detect_expired(unsigned long _data)
 	}
 }
 
-void msm_otg_notify_charger_attached(struct msm_otg *motg, int connect_type)
+static void msm_otg_notify_charger_attached(struct usb_phy *otg, int connect_type)
 {
+	struct msm_otg *motg = the_msm_otg;
 	pr_info("chg_type: %s %s => %s\n",
 		charger_string(atomic_read(&motg->chg_type)),
 		connect_to_string(motg->connect_type),
@@ -3139,6 +3140,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	motg->phy.set_suspend = msm_usb_phy_set_suspend;
 	motg->phy.start_hnp = msm_otg_start_hnp;
 	motg->phy.send_event = msm_otg_send_event;
+	motg->phy.notify_charger = msm_otg_notify_charger_attached;
 	motg->set_clk = msm_otg_set_clk;
 	motg->reset = otg_reset;
 	if (usb_set_transceiver(&motg->phy)) {
@@ -3244,7 +3246,7 @@ free_motg:
 
 static int __devexit msm_otg_remove(struct platform_device *pdev)
 {
-	struct msm_otg *motg = platform_get_drvdata(pdev);
+	struct msm_otg *motg = the_msm_otg;
 
 	msm_otg_debugfs_cleanup();
 #ifdef CONFIG_USB_OTG
@@ -3306,7 +3308,7 @@ static int __devexit msm_otg_remove(struct platform_device *pdev)
 
 static int msm_otg_runtime_suspend(struct device *dev)
 {
-	struct msm_otg *motg = dev_get_drvdata(dev);
+	struct msm_otg *motg = the_msm_otg;
 
 	dev_dbg(dev, "OTG runtime suspend\n");
 	return msm_otg_suspend(motg);
@@ -3314,7 +3316,7 @@ static int msm_otg_runtime_suspend(struct device *dev)
 
 static int msm_otg_runtime_resume(struct device *dev)
 {
-	struct msm_otg *motg = dev_get_drvdata(dev);
+	struct msm_otg *motg = the_msm_otg;
 
 	dev_dbg(dev, "OTG runtime resume\n");
 	return msm_otg_resume(motg);
