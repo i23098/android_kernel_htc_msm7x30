@@ -117,14 +117,10 @@ struct usb_phy {
 	const char		*label;
 	unsigned int		 flags;
 
-	u8			default_a;
 	enum usb_otg_state	state;
 	enum usb_phy_events	last_event;
 
 	struct usb_otg		*otg;
-
-	struct usb_bus		*host;
-	struct usb_gadget	*gadget;
 
 	struct usb_phy_io_ops	*io_ops;
 	void __iomem		*io_priv;
@@ -140,21 +136,9 @@ struct usb_phy {
 	int	(*init)(struct usb_phy *x);
 	void	(*shutdown)(struct usb_phy *x);
 
-	/* bind/unbind the host controller */
-	int	(*set_host)(struct usb_phy *x,
-				struct usb_bus *host);
-
-	/* bind/unbind the peripheral controller */
-	int	(*set_peripheral)(struct usb_phy *x,
-				struct usb_gadget *gadget);
-
 	/* effective for B devices, ignored for A-peripheral */
 	int	(*set_power)(struct usb_phy *x,
 				unsigned mA);
-
-	/* effective for A-peripheral, ignored for B devices */
-	int	(*set_vbus)(struct usb_phy *x,
-				bool enabled);
 
 	/* for non-OTG B devices: set transceiver into suspend mode */
 	int	(*set_suspend)(struct usb_phy *x,
@@ -253,44 +237,44 @@ static inline const char *otg_state_string(enum usb_otg_state state)
 
 /* Context: can sleep */
 static inline int
-otg_start_hnp(struct usb_phy *x)
+otg_start_hnp(struct usb_otg *otg)
 {
-	if (x->otg && x->otg->start_hnp)
-		return x->otg->start_hnp(x->otg);
+	if (otg && otg->start_hnp)
+		return otg->start_hnp(otg);
 
-	return x->start_hnp(x);
+	return -ENOTSUPP;
 }
 
 /* Context: can sleep */
 static inline int
-otg_set_vbus(struct usb_phy *x, bool enabled)
+otg_set_vbus(struct usb_otg *otg, bool enabled)
 {
-	if (x->otg && x->otg->set_vbus)
-		return x->otg->set_vbus(x->otg, enabled);
+	if (otg && otg->set_vbus)
+		return otg->set_vbus(otg, enabled);
 
-	return x->set_vbus(x, enabled);
+	return -ENOTSUPP;
 }
 
 /* for HCDs */
 static inline int
-otg_set_host(struct usb_phy *x, struct usb_bus *host)
+otg_set_host(struct usb_otg *otg, struct usb_bus *host)
 {
-	if (x->otg && x->otg->set_host)
-		return x->otg->set_host(x->otg, host);
+	if (otg && otg->set_host)
+		return otg->set_host(otg, host);
 
-	return x->set_host(x, host);
+	return -ENOTSUPP;
 }
 
 /* for usb peripheral controller drivers */
 
 /* Context: can sleep */
 static inline int
-otg_set_peripheral(struct usb_phy *x, struct usb_gadget *periph)
+otg_set_peripheral(struct usb_otg *otg, struct usb_gadget *periph)
 {
-	if (x->otg && x->otg->set_peripheral)
-		return x->otg->set_peripheral(x->otg, periph);
+	if (otg && otg->set_peripheral)
+		return otg->set_peripheral(otg, periph);
 
-	return x->set_peripheral(x, periph);
+	return -ENOTSUPP;
 }
 
 static inline int
@@ -311,12 +295,12 @@ usb_phy_set_suspend(struct usb_phy *x, int suspend)
 }
 
 static inline int
-otg_start_srp(struct usb_phy *x)
+otg_start_srp(struct usb_otg *otg)
 {
-	if (x->otg && x->otg->start_srp)
-		return x->otg->start_srp(x->otg);
+	if (otg && otg->start_srp)
+		return otg->start_srp(otg);
 
-	return x->start_srp(x);
+	return -ENOTSUPP;
 }
 
 /* notifiers */
@@ -334,23 +318,5 @@ usb_unregister_notifier(struct usb_phy *x, struct notifier_block *nb)
 
 /* for OTG controller drivers (and maybe other stuff) */
 extern int usb_bus_start_enum(struct usb_bus *bus, unsigned port_num);
-
-/* Temporary aliases for transceiver functions */
-#define otg_set_transceiver(x) usb_set_transceiver(x)
-#define otg_get_transceiver() usb_get_transceiver()
-#define otg_put_transceiver(x) usb_put_transceiver(x)
-
-#define otg_io_read(x, a) usb_phy_io_read(x, a)
-#define otg_io_write(x, a, b) usb_phy_io_write(x, a, b)
-
-#define otg_init(x) usb_phy_init(x)
-#define otg_shutdown(x) usb_phy_shutdown(x)
-#define otg_set_power(x, a) usb_phy_set_power(x, a)
-#define otg_set_suspend(x, a) usb_phy_set_suspend(x, a)
-
-#define otg_register_notifier(x, a) usb_register_notifier(x, a)
-#define otg_unregister_notifier(x, a) usb_unregiser_notifier(x, a)
-
-#define otg_io_access_ops usb_phy_io_ops
 
 #endif /* __LINUX_USB_OTG_H */
