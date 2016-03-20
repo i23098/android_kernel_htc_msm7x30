@@ -59,7 +59,6 @@ bool valid_state(suspend_state_t state)
 	 */
 	return suspend_ops && suspend_ops->valid && suspend_ops->valid(state);
 }
-EXPORT_SYMBOL_GPL(suspend_set_ops);
 
 /**
  * suspend_valid_only_mem - Generic memory-only valid callback.
@@ -85,7 +84,6 @@ static int suspend_test(int level)
 #endif /* !CONFIG_PM_DEBUG */
 	return 0;
 }
-EXPORT_SYMBOL_GPL(suspend_valid_only_mem);
 
 /**
  * suspend_prepare - Prepare for entering system sleep state.
@@ -326,14 +324,7 @@ int pm_suspend(suspend_state_t state)
 	if (state <= PM_SUSPEND_ON || state >= PM_SUSPEND_MAX)
 		return -EINVAL;
 
-#ifdef CONFIG_EARLYSUSPEND
-	if (state == PM_SUSPEND_ON || valid_state(state)) {
-		error = 0;
-		request_suspend_state(state);
-	}
-#else
 	error = enter_state(state);
-#endif
 	if (error) {
 		suspend_stats.fail++;
 		dpm_save_failed_errno(error);
