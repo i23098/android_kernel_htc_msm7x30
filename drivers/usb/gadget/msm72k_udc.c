@@ -2772,7 +2772,7 @@ static int msm72k_probe(struct platform_device *pdev)
 	}
 #endif
 
-	retval = otg_set_peripheral(ui->xceiv, &ui->gadget);
+	retval = otg_set_peripheral(ui->xceiv->otg, &ui->gadget);
 	if (retval) {
 		dev_err(&ui->pdev->dev,
 			"%s: Cannot bind the transceiver, retval:(%d)\n",

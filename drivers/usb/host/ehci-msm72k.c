@@ -612,7 +612,7 @@ static void ehci_msm_start_hnp(struct ehci_hcd *ehci)
 	struct msmusb_hcd *mhcd = hcd_to_mhcd(hcd);
 
 	/* OTG driver handles HNP */
-	otg_start_hnp(mhcd->xceiv);
+	otg_start_hnp(mhcd->xceiv->otg);
 }
 #else
 #define ehci_msm_start_hnp	NULL
@@ -647,7 +647,7 @@ static int msm_xusb_init_host(struct platform_device *pdev,
 		phy->start_host = msm_hsusb_start_host;
 		ehci->start_hnp = ehci_msm_start_hnp;
 
-		ret = otg_set_host(mhcd->xceiv, &hcd->self);
+		ret = otg_set_host(mhcd->xceiv->otg, &hcd->self);
 		break;
 	case USB_PHY_SERIAL_PMIC:
 		hcd->regs = ioremap(hcd->rsrc_start, hcd->rsrc_len);
@@ -753,7 +753,7 @@ static void msm_xusb_uninit_host(struct msmusb_hcd *mhcd)
 	case USB_PHY_INTEGRATED:
 		if (pdata->vbus_init)
 			pdata->vbus_init(0);
-		otg_set_host(mhcd->xceiv, NULL);
+		otg_set_host(mhcd->xceiv->otg, NULL);
 		usb_put_transceiver(mhcd->xceiv);
 		cancel_work_sync(&mhcd->otg_work);
 		break;
