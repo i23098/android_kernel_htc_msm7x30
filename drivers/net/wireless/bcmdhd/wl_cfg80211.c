@@ -4182,6 +4182,8 @@ exit:
 	return 0;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) || 1
+#else
 static s32
 wl_cfg80211_add_set_beacon(struct wiphy *wiphy, struct net_device *dev,
 	struct beacon_parameters *info)
@@ -4544,6 +4546,7 @@ exit:
 		wldev_iovar_setint(dev, "mpc", 1);
 	return err;
 }
+#endif
 
 #ifdef WL_SCHED_SCAN
 #define PNO_TIME		30
@@ -4681,8 +4684,11 @@ static struct cfg80211_ops wl_cfg80211_ops = {
 	.mgmt_frame_register = wl_cfg80211_mgmt_frame_register,
 	.change_bss = wl_cfg80211_change_bss,
 	.set_channel = wl_cfg80211_set_channel,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) || 1
+#else
 	.set_beacon = wl_cfg80211_add_set_beacon,
 	.add_beacon = wl_cfg80211_add_set_beacon,
+#endif
 	.mgmt_tx_cancel_wait = wl_cfg80211_mgmt_tx_cancel_wait,
 #ifdef WL_SCHED_SCAN
 	.sched_scan_start = wl_cfg80211_sched_scan_start,
@@ -5164,11 +5170,23 @@ wl_notify_connect_status_ap(struct wl_priv *wl, struct net_device *ndev,
 	isfree = true;
 
 	if (event == WLC_E_ASSOC_IND && reason == DOT11_SC_SUCCESS) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) || 1
+		cfg80211_rx_mgmt(ndev, freq, 0, mgmt_frame, len, GFP_ATOMIC);
+#else
 		cfg80211_rx_mgmt(ndev, freq, mgmt_frame, len, GFP_ATOMIC);
+#endif 
 	} else if (event == WLC_E_DISASSOC_IND) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) || 1
+		cfg80211_rx_mgmt(ndev, freq, 0, mgmt_frame, len, GFP_ATOMIC);
+#else
 		cfg80211_rx_mgmt(ndev, freq, mgmt_frame, len, GFP_ATOMIC);
+#endif 
 	} else if ((event == WLC_E_DEAUTH_IND) || (event == WLC_E_DEAUTH)) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) || 1
+		cfg80211_rx_mgmt(ndev, freq, 0, mgmt_frame, len, GFP_ATOMIC);
+#else
 		cfg80211_rx_mgmt(ndev, freq, mgmt_frame, len, GFP_ATOMIC);
+#endif 
 	}
 
 exit:
@@ -5861,8 +5879,11 @@ wl_notify_rx_mgmt_frame(struct wl_priv *wl, struct net_device *ndev,
 		mgmt_frame = (u8 *)((wl_event_rx_frame_data_t *)rxframe + 1);
 	}
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) || 1
+	cfg80211_rx_mgmt(ndev, freq, 0, mgmt_frame, mgmt_frame_len, GFP_ATOMIC);
+#else
 	cfg80211_rx_mgmt(ndev, freq, mgmt_frame, mgmt_frame_len, GFP_ATOMIC);
-
+#endif
 	WL_DBG(("%s: mgmt_frame_len (%d) , e->datalen (%d), channel (%d), freq (%d)\n", __func__,
 		mgmt_frame_len, ntoh32(e->datalen), channel, freq));
 
