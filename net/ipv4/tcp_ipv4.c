@@ -50,6 +50,7 @@
  *					a single port at the same time.
  */
 
+#define pr_fmt(fmt) "TCP: " fmt
 
 #include <linux/bottom_half.h>
 #include <linux/types.h>
@@ -876,8 +877,7 @@ int tcp_syn_flood_action(struct sock *sk,
 	lopt = inet_csk(sk)->icsk_accept_queue.listen_opt;
 	if (!lopt->synflood_warned) {
 		lopt->synflood_warned = 1;
-		pr_info("%s: Possible SYN flooding on port %d. %s. "
-			" Check SNMP counters.\n",
+		pr_info("%s: Possible SYN flooding on port %d. %s.  Check SNMP counters.\n",
 			proto, ntohs(tcp_hdr(skb)->dest), msg);
 	}
 	return want_cookie;
@@ -1227,10 +1227,10 @@ static int tcp_v4_inbound_md5_hash(struct sock *sk, const struct sk_buff *skb)
 
 	if (genhash || memcmp(hash_location, newhash, 16) != 0) {
 		if (net_ratelimit()) {
-			printk(KERN_INFO "MD5 Hash failed for (%pI4, %d)->(%pI4, %d)%s\n",
-			       &iph->saddr, ntohs(th->source),
-			       &iph->daddr, ntohs(th->dest),
-			       genhash ? " tcp_v4_calc_md5_hash failed" : "");
+			pr_info("MD5 Hash failed for (%pI4, %d)->(%pI4, %d)%s\n",
+				&iph->saddr, ntohs(th->source),
+				&iph->daddr, ntohs(th->dest),
+				genhash ? " tcp_v4_calc_md5_hash failed" : "");
 		}
 		return 1;
 	}
@@ -1399,7 +1399,7 @@ int tcp_v4_conn_request(struct sock *sk, struct sk_buff *skb)
 			 * to destinations, already remembered
 			 * to the moment of synflood.
 			 */
-			LIMIT_NETDEBUG(KERN_DEBUG "TCP: drop open request from %pI4/%u\n",
+			LIMIT_NETDEBUG(KERN_DEBUG pr_fmt("drop open request from %pI4/%u\n"),
 				       &saddr, ntohs(tcp_hdr(skb)->source));
 			goto drop_and_release;
 		}
