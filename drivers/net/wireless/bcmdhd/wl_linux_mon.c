@@ -82,7 +82,11 @@ static const struct net_device_ops dhd_mon_if_ops = {
 	.ndo_open		= dhd_mon_if_open,
 	.ndo_stop		= dhd_mon_if_stop,
 	.ndo_start_xmit		= dhd_mon_if_subif_start_xmit,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0))
 	.ndo_set_rx_mode = dhd_mon_if_set_multicast_list,
+#else
+	.ndo_set_multicast_list = dhd_mon_if_set_multicast_list,
+#endif
 	.ndo_set_mac_address 	= dhd_mon_if_change_mac,
 };
 
@@ -95,11 +99,12 @@ static const struct net_device_ops dhd_mon_if_ops = {
  */
 static struct net_device* lookup_real_netdev(char *name)
 {
+	struct net_device *ndev_found = NULL;
+
 	int i;
 	int len = 0;
 	int last_name_len = 0;
 	struct net_device *ndev;
-	struct net_device *ndev_found = NULL;
 
 	/* We need to find interface "p2p-p2p-0" corresponding to monitor interface "mon-p2p-0",
 	 * Once mon iface name reaches IFNAMSIZ, it is reset to p2p0-0 and corresponding mon
