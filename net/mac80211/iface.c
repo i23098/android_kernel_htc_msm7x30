@@ -304,7 +304,7 @@ static int ieee80211_do_open(struct net_device *dev, bool coming_up)
 		 * need to initialise the hardware if the hardware
 		 * doesn't start up with sane defaults
 		 */
-		ieee80211_set_wmm_default(sdata);
+		ieee80211_set_wmm_default(sdata, true);
 	}
 
 	set_bit(SDATA_STATE_RUNNING, &sdata->state);
@@ -644,6 +644,8 @@ static void ieee80211_teardown_sdata(struct net_device *dev)
 
 	if (ieee80211_vif_is_mesh(&sdata->vif))
 		mesh_rmc_free(sdata);
+	else if (sdata->vif.type == NL80211_IFTYPE_STATION)
+		ieee80211_mgd_teardown(sdata);
 
 	flushed = sta_info_flush(local, sdata);
 	WARN_ON(flushed);

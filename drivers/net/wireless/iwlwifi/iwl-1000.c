@@ -43,6 +43,7 @@
 #include "iwl-agn-hw.h"
 #include "iwl-shared.h"
 #include "iwl-cfg.h"
+#include "iwl-prph.h"
 
 /* Highest firmware API version supported */
 #define IWL1000_UCODE_API_MAX 6
@@ -95,9 +96,8 @@ static void iwl1000_nic_config(struct iwl_priv *priv)
 				~APMG_SVR_VOLTAGE_CONFIG_BIT_MSK);
 }
 
-static struct iwl_sensitivity_ranges iwl1000_sensitivity = {
+static const struct iwl_sensitivity_ranges iwl1000_sensitivity = {
 	.min_nrg_cck = 95,
-	.max_nrg_cck = 0, /* not used, set to 0 */
 	.auto_corr_min_ofdm = 90,
 	.auto_corr_min_ofdm_mrc = 170,
 	.auto_corr_min_ofdm_x1 = 120,
@@ -120,34 +120,22 @@ static struct iwl_sensitivity_ranges iwl1000_sensitivity = {
 	.nrg_th_cca = 62,
 };
 
-static int iwl1000_hw_set_hw_params(struct iwl_priv *priv)
+static void iwl1000_hw_set_hw_params(struct iwl_priv *priv)
 {
-	if (iwlagn_mod_params.num_of_queues >= IWL_MIN_NUM_QUEUES &&
-	    iwlagn_mod_params.num_of_queues <= IWLAGN_NUM_QUEUES)
-		cfg(priv)->base_params->num_of_queues =
-			iwlagn_mod_params.num_of_queues;
-
-	hw_params(priv).max_txq_num = cfg(priv)->base_params->num_of_queues;
-	hw_params(priv).max_data_size = IWLAGN_RTC_DATA_SIZE;
-	hw_params(priv).max_inst_size = IWLAGN_RTC_INST_SIZE;
-
 	hw_params(priv).ht40_channel =  BIT(IEEE80211_BAND_2GHZ);
 
-	hw_params(priv).tx_chains_num = num_of_ant(cfg(priv)->valid_tx_ant);
+	hw_params(priv).tx_chains_num =
+		num_of_ant(hw_params(priv).valid_tx_ant);
 	if (cfg(priv)->rx_with_siso_diversity)
 		hw_params(priv).rx_chains_num = 1;
 	else
 		hw_params(priv).rx_chains_num =
-			num_of_ant(cfg(priv)->valid_rx_ant);
-	hw_params(priv).valid_tx_ant = cfg(priv)->valid_tx_ant;
-	hw_params(priv).valid_rx_ant = cfg(priv)->valid_rx_ant;
+			num_of_ant(hw_params(priv).valid_rx_ant);
 
 	iwl1000_set_ct_threshold(priv);
 
 	/* Set initial sensitivity parameters */
 	hw_params(priv).sens = &iwl1000_sensitivity;
-
-	return 0;
 }
 
 static struct iwl_lib_ops iwl1000_lib = {
@@ -167,7 +155,7 @@ static struct iwl_lib_ops iwl1000_lib = {
 	.temperature = iwlagn_temperature,
 };
 
-static struct iwl_base_params iwl1000_base_params = {
+static const struct iwl_base_params iwl1000_base_params = {
 	.num_of_queues = IWLAGN_NUM_QUEUES,
 	.num_of_ampdu_queues = IWLAGN_NUM_AMPDU_QUEUES,
 	.eeprom_size = OTP_LOW_IMAGE_SIZE,
@@ -182,7 +170,8 @@ static struct iwl_base_params iwl1000_base_params = {
 	.max_event_log_size = 128,
 	.wd_disable = true,
 };
-static struct iwl_ht_params iwl1000_ht_params = {
+
+static const struct iwl_ht_params iwl1000_ht_params = {
 	.ht_greenfield_support = true,
 	.use_rts_for_aggregation = true, /* use rts/cts protection */
 	.smps_mode = IEEE80211_SMPS_DYNAMIC,
@@ -193,19 +182,21 @@ static struct iwl_ht_params iwl1000_ht_params = {
 	.ucode_api_max = IWL1000_UCODE_API_MAX,			\
 	.ucode_api_ok = IWL1000_UCODE_API_OK,			\
 	.ucode_api_min = IWL1000_UCODE_API_MIN,			\
+	.max_inst_size = IWLAGN_RTC_INST_SIZE,			\
+	.max_data_size = IWLAGN_RTC_DATA_SIZE,			\
 	.eeprom_ver = EEPROM_1000_EEPROM_VERSION,		\
 	.eeprom_calib_ver = EEPROM_1000_TX_POWER_VERSION,	\
 	.lib = &iwl1000_lib,					\
 	.base_params = &iwl1000_base_params,			\
 	.led_mode = IWL_LED_BLINK
 
-struct iwl_cfg iwl1000_bgn_cfg = {
+const struct iwl_cfg iwl1000_bgn_cfg = {
 	.name = "Intel(R) Centrino(R) Wireless-N 1000 BGN",
 	IWL_DEVICE_1000,
 	.ht_params = &iwl1000_ht_params,
 };
 
-struct iwl_cfg iwl1000_bg_cfg = {
+const struct iwl_cfg iwl1000_bg_cfg = {
 	.name = "Intel(R) Centrino(R) Wireless-N 1000 BG",
 	IWL_DEVICE_1000,
 };
@@ -215,6 +206,8 @@ struct iwl_cfg iwl1000_bg_cfg = {
 	.ucode_api_max = IWL100_UCODE_API_MAX,			\
 	.ucode_api_ok = IWL100_UCODE_API_OK,			\
 	.ucode_api_min = IWL100_UCODE_API_MIN,			\
+	.max_inst_size = IWLAGN_RTC_INST_SIZE,			\
+	.max_data_size = IWLAGN_RTC_DATA_SIZE,			\
 	.eeprom_ver = EEPROM_1000_EEPROM_VERSION,		\
 	.eeprom_calib_ver = EEPROM_1000_TX_POWER_VERSION,	\
 	.lib = &iwl1000_lib,					\
@@ -222,13 +215,13 @@ struct iwl_cfg iwl1000_bg_cfg = {
 	.led_mode = IWL_LED_RF_STATE,				\
 	.rx_with_siso_diversity = true
 
-struct iwl_cfg iwl100_bgn_cfg = {
+const struct iwl_cfg iwl100_bgn_cfg = {
 	.name = "Intel(R) Centrino(R) Wireless-N 100 BGN",
 	IWL_DEVICE_100,
 	.ht_params = &iwl1000_ht_params,
 };
 
-struct iwl_cfg iwl100_bg_cfg = {
+const struct iwl_cfg iwl100_bg_cfg = {
 	.name = "Intel(R) Centrino(R) Wireless-N 100 BG",
 	IWL_DEVICE_100,
 };

@@ -455,7 +455,7 @@ int __cfg80211_mlme_deauth(struct cfg80211_registered_device *rdev,
 		return 0;
 	}
 
-	return rdev->ops->deauth(&rdev->wiphy, dev, &req, wdev);
+	return rdev->ops->deauth(&rdev->wiphy, dev, &req);
 }
 
 int cfg80211_mlme_deauth(struct cfg80211_registered_device *rdev,
@@ -500,7 +500,7 @@ static int __cfg80211_mlme_disassoc(struct cfg80211_registered_device *rdev,
 	else
 		return -ENOTCONN;
 
-	return rdev->ops->disassoc(&rdev->wiphy, dev, &req, wdev);
+	return rdev->ops->disassoc(&rdev->wiphy, dev, &req);
 }
 
 int cfg80211_mlme_disassoc(struct cfg80211_registered_device *rdev,
@@ -541,7 +541,7 @@ void cfg80211_mlme_down(struct cfg80211_registered_device *rdev,
 
 	memcpy(bssid, wdev->current_bss->pub.bssid, ETH_ALEN);
 	req.bssid = bssid;
-	rdev->ops->deauth(&rdev->wiphy, dev, &req, wdev);
+	rdev->ops->deauth(&rdev->wiphy, dev, &req);
 
 	if (wdev->current_bss) {
 		cfg80211_unhold_bss(wdev->current_bss);
@@ -814,8 +814,8 @@ int cfg80211_mlme_mgmt_tx(struct cfg80211_registered_device *rdev,
 				  cookie);
 }
 
-bool cfg80211_rx_mgmt(struct net_device *dev, int freq, const u8 *buf,
-		      size_t len, gfp_t gfp)
+bool cfg80211_rx_mgmt(struct net_device *dev, int freq, int sig_mbm,
+		      const u8 *buf, size_t len, gfp_t gfp)
 {
 	struct wireless_dev *wdev = dev->ieee80211_ptr;
 	struct wiphy *wiphy = wdev->wiphy;
@@ -854,7 +854,8 @@ bool cfg80211_rx_mgmt(struct net_device *dev, int freq, const u8 *buf,
 		/* found match! */
 
 		/* Indicate the received Action frame to user space */
-		if (nl80211_send_mgmt(rdev, dev, reg->nlpid, freq,
+		if (nl80211_send_mgmt(rdev, dev, reg->nlpid,
+				      freq, sig_mbm,
 				      buf, len, gfp))
 			continue;
 

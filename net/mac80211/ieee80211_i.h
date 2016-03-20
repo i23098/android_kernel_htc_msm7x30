@@ -105,6 +105,44 @@ struct ieee80211_bss {
 	 */
 	bool has_erp_value;
 	u8 erp_value;
+
+	/* Keep track of the corruption of the last beacon/probe response. */
+	u8 corrupt_data;
+
+	/* Keep track of what bits of information we have valid info for. */
+	u8 valid_data;
+};
+
+/**
+ * enum ieee80211_corrupt_data_flags - BSS data corruption flags
+ * @IEEE80211_BSS_CORRUPT_BEACON: last beacon frame received was corrupted
+ * @IEEE80211_BSS_CORRUPT_PROBE_RESP: last probe response received was corrupted
+ *
+ * These are bss flags that are attached to a bss in the
+ * @corrupt_data field of &struct ieee80211_bss.
+ */
+enum ieee80211_bss_corrupt_data_flags {
+	IEEE80211_BSS_CORRUPT_BEACON		= BIT(0),
+	IEEE80211_BSS_CORRUPT_PROBE_RESP	= BIT(1)
+};
+
+/**
+ * enum ieee80211_valid_data_flags - BSS valid data flags
+ * @IEEE80211_BSS_VALID_DTIM: DTIM data was gathered from non-corrupt IE
+ * @IEEE80211_BSS_VALID_WMM: WMM/UAPSD data was gathered from non-corrupt IE
+ * @IEEE80211_BSS_VALID_RATES: Supported rates were gathered from non-corrupt IE
+ * @IEEE80211_BSS_VALID_ERP: ERP flag was gathered from non-corrupt IE
+ *
+ * These are bss flags that are attached to a bss in the
+ * @valid_data field of &struct ieee80211_bss.  They show which parts
+ * of the data structure were recieved as a result of an un-corrupted
+ * beacon/probe response.
+ */
+enum ieee80211_bss_valid_data_flags {
+	IEEE80211_BSS_VALID_DTIM		= BIT(0),
+	IEEE80211_BSS_VALID_WMM			= BIT(1),
+	IEEE80211_BSS_VALID_RATES		= BIT(2),
+	IEEE80211_BSS_VALID_ERP			= BIT(3)
 };
 
 static inline u8 *bss_mesh_cfg(struct ieee80211_bss *bss)
@@ -228,7 +266,7 @@ struct ieee80211_rx_data {
 struct beacon_data {
 	u8 *head, *tail;
 	int head_len, tail_len;
-	int dtim_period;
+	struct rcu_head rcu_head;
 };
 
 struct ieee80211_if_ap {
@@ -480,7 +518,7 @@ struct ieee80211_if_ibss {
 
 	bool control_port;
 
-	u8 bssid[ETH_ALEN];
+	u8 bssid[ETH_ALEN] __aligned(2);
 	u8 ssid[IEEE80211_MAX_SSID_LEN];
 	u8 ssid_len, ie_len;
 	u8 *ie;
@@ -1120,18 +1158,15 @@ struct ieee802_11_elems {
 	u8 quiet_elem_len;
 	u8 num_of_quiet_elem;	/* can be more the one */
 	u8 timeout_int_len;
+
+	/* whether a parse error occurred while retrieving these elements */
+	bool parse_error;
 };
 
 static inline struct ieee80211_local *hw_to_local(
 	struct ieee80211_hw *hw)
 {
 	return container_of(hw, struct ieee80211_local, hw);
-}
-
-static inline struct ieee80211_hw *local_to_hw(
-	struct ieee80211_local *local)
-{
-	return &local->hw;
 }
 
 
@@ -1156,11 +1191,9 @@ int ieee80211_mgd_auth(struct ieee80211_sub_if_data *sdata,
 int ieee80211_mgd_assoc(struct ieee80211_sub_if_data *sdata,
 			struct cfg80211_assoc_request *req);
 int ieee80211_mgd_deauth(struct ieee80211_sub_if_data *sdata,
-			 struct cfg80211_deauth_request *req,
-			 void *cookie);
+			 struct cfg80211_deauth_request *req);
 int ieee80211_mgd_disassoc(struct ieee80211_sub_if_data *sdata,
-			   struct cfg80211_disassoc_request *req,
-			   void *cookie);
+			   struct cfg80211_disassoc_request *req);
 void ieee80211_send_pspoll(struct ieee80211_local *local,
 			   struct ieee80211_sub_if_data *sdata);
 void ieee80211_recalc_ps(struct ieee80211_local *local, s32 latency);
@@ -1178,6 +1211,7 @@ void ieee80211_sta_rx_queued_mgmt(struct ieee80211_sub_if_data *sdata,
 				  struct sk_buff *skb);
 void ieee80211_sta_reset_beacon_monitor(struct ieee80211_sub_if_data *sdata);
 void ieee80211_sta_reset_conn_monitor(struct ieee80211_sub_if_data *sdata);
+void ieee80211_mgd_teardown(struct ieee80211_sub_if_data *sdata);
 
 /* IBSS code */
 void ieee80211_ibss_notify_scan_completed(struct ieee80211_local *local);
@@ -1355,7 +1389,8 @@ int ieee80211_frame_duration(struct ieee80211_local *local, size_t len,
 void mac80211_ev_michael_mic_failure(struct ieee80211_sub_if_data *sdata, int keyidx,
 				     struct ieee80211_hdr *hdr, const u8 *tsc,
 				     gfp_t gfp);
-void ieee80211_set_wmm_default(struct ieee80211_sub_if_data *sdata);
+void ieee80211_set_wmm_default(struct ieee80211_sub_if_data *sdata,
+			       bool bss_notify);
 void ieee80211_xmit(struct ieee80211_sub_if_data *sdata, struct sk_buff *skb);
 
 void ieee80211_tx_skb_tid(struct ieee80211_sub_if_data *sdata,
