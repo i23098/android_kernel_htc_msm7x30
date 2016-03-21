@@ -64,7 +64,6 @@ static int sysfs_fill_super(struct super_block *sb, void *data, int silent)
 	root = d_make_root(inode);
 	if (!root) {
 		pr_debug("%s: could not get root dentry!\n",__func__);
-		iput(inode);
 		return -ENOMEM;
 	}
 	root->d_fsdata = &sysfs_root;

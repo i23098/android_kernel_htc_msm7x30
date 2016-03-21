@@ -379,7 +379,6 @@ devpts_fill_super(struct super_block *s, void *data, int silent)
 		return 0;
 
 	printk(KERN_ERR "devpts: get root dentry failed\n");
-	iput(inode);
 
 fail:
 	return -ENOMEM;

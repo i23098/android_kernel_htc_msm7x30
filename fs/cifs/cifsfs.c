@@ -119,18 +119,16 @@ cifs_read_super(struct super_block *sb)
 
 	if (IS_ERR(inode)) {
 		rc = PTR_ERR(inode);
-		inode = NULL;
 		goto out_no_root;
 	}
 
 	sb->s_root = d_make_root(inode);
-
 	if (!sb->s_root) {
 		rc = -ENOMEM;
 		goto out_no_root;
 	}
 
-	/* do that *after* d_make_root() - we want NULL ->d_op for root here */
+	/* do that *after* d_alloc_root() - we want NULL ->d_op for root here */
 	if (cifs_sb_master_tcon(cifs_sb)->nocase)
 		sb->s_d_op = &cifs_ci_dentry_ops;
 	else
@@ -147,9 +145,6 @@ cifs_read_super(struct super_block *sb)
 
 out_no_root:
 	cERROR(1, "cifs_read_super: get root inode failed");
-	if (inode)
-		iput(inode);
-
 	return rc;
 }
 

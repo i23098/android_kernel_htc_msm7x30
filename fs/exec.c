@@ -19,7 +19,7 @@
  * current->executable is only used by the procfs.  This allows a dispatch
  * table to check for several different types  of binary formats.  We keep
  * trying until we recognize the file or we run out of supported binary
- * formats.
+ * formats. 
  */
 
 #include <linux/slab.h>
@@ -82,15 +82,13 @@ static atomic_t call_count = ATOMIC_INIT(1);
 static LIST_HEAD(formats);
 static DEFINE_RWLOCK(binfmt_lock);
 
-int __register_binfmt(struct linux_binfmt * fmt, int insert)
+void __register_binfmt(struct linux_binfmt * fmt, int insert)
 {
-	if (!fmt)
-		return -EINVAL;
+	BUG_ON(!fmt);
 	write_lock(&binfmt_lock);
 	insert ? list_add(&fmt->lh, &formats) :
 		 list_add_tail(&fmt->lh, &formats);
 	write_unlock(&binfmt_lock);
-	return 0;
 }
 
 EXPORT_SYMBOL(__register_binfmt);
@@ -1116,7 +1114,7 @@ int flush_old_exec(struct linux_binprm * bprm)
 	bprm->mm = NULL;		/* We're using it now */
 
 	set_fs(USER_DS);
-	current->flags &= ~(PF_RANDOMIZE | PF_KTHREAD);
+	current->flags &= ~(PF_RANDOMIZE | PF_FORKNOEXEC | PF_KTHREAD);
 	flush_thread();
 	current->personality &= ~bprm->per_clear;
 
@@ -1175,7 +1173,7 @@ void setup_new_exec(struct linux_binprm * bprm)
 	   group */
 
 	current->self_exec_id++;
-
+			
 	flush_signal_handlers(current, 0);
 	flush_old_files(current->files);
 }
@@ -1270,8 +1268,8 @@ static int check_unsafe_exec(struct linux_binprm *bprm)
 	return res;
 }
 
-/*
- * Fill the binprm structure from the inode.
+/* 
+ * Fill the binprm structure from the inode. 
  * Check permissions, then read the first 128 (BINPRM_BUF_SIZE) bytes
  *
  * This may be called multiple times for binary chains (scripts for example).

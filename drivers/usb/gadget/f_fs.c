@@ -712,7 +712,7 @@ static long ffs_ep0_ioctl(struct file *file, unsigned code, unsigned long value)
 	if (code == FUNCTIONFS_INTERFACE_REVMAP) {
 		struct ffs_function *func = ffs->func;
 		ret = func ? ffs_func_revmap_intf(func, value) : -ENODEV;
-	} else if (gadget->ops->ioctl) {
+	} else if (gadget && gadget->ops->ioctl) {
 		ret = gadget->ops->ioctl(gadget, code, value);
 	} else {
 		ret = -ENOTTY;
@@ -1063,13 +1063,9 @@ static int ffs_sb_fill(struct super_block *sb, void *_data, int silent)
 				  &simple_dir_operations,
 				  &simple_dir_inode_operations,
 				  &data->perms);
-	if (unlikely(!inode))
-		goto Enomem;
 	sb->s_root = d_make_root(inode);
-	if (unlikely(!sb->s_root)) {
-		iput(inode);
+	if (unlikely(!sb->s_root))
 		goto Enomem;
-	}
 
 	/* EP0 file */
 	if (unlikely(!ffs_sb_create_file(sb, "ep0", ffs,
@@ -1386,6 +1382,7 @@ static void functionfs_unbind(struct ffs_data *ffs)
 		ffs->ep0req = NULL;
 		ffs->gadget = NULL;
 		ffs_data_put(ffs);
+		clear_bit(FFS_FL_BOUND, &ffs->flags);
 	}
 }
 
