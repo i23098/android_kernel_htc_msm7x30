@@ -47,19 +47,20 @@ static inline struct snd_pcm_substream *snd_soc_dsp_get_substream(
  * FE stream event, send event to all active BEs.
  */
 static inline int soc_dsp_dapm_stream_event(struct snd_soc_pcm_runtime *fe,
-	int dir, const char *stream, int event)
+	int stream, int event)
 {
 	struct snd_soc_dsp_params *dsp_params;
+	struct snd_soc_dai *codec_dai = fe->codec_dai;
 
 	/* resume for playback */
-	list_for_each_entry(dsp_params, &fe->dsp[dir].be_clients, list_be) {
+	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 
-		dev_dbg(be->dev, "pm: BE %s stream %s event %d dir %d\n",
-				be->dai_link->name, stream, event, dir);
+		dev_dbg(be->dev, "pm: BE %s stream %d event %d\n",
+				be->dai_link->name, stream, event);
 
-		snd_soc_dapm_stream_event(be, stream, event);
+		snd_soc_dapm_stream_event(be, stream, codec_dai, event);
 	}
 
 	return 0;
@@ -673,15 +674,7 @@ static int dsp_run_update_shutdown(struct snd_soc_pcm_runtime *fe, int stream)
 		return ret;
 
 	/* run the stream event for each BE */
-	if (stream == SNDRV_PCM_STREAM_PLAYBACK)
-		soc_dsp_dapm_stream_event(fe, stream,
-				fe->cpu_dai->driver->playback.stream_name,
-				SNDRV_PCM_TRIGGER_STOP);
-	else
-		soc_dsp_dapm_stream_event(fe, stream,
-				fe->cpu_dai->driver->capture.stream_name,
-				SNDRV_PCM_TRIGGER_STOP);
-
+	soc_dsp_dapm_stream_event(fe, stream, SNDRV_PCM_TRIGGER_STOP);
 	return 0;
 }
 
@@ -722,14 +715,7 @@ static int dsp_run_update_startup(struct snd_soc_pcm_runtime *fe, int stream)
 		return ret;
 
 	/* run the stream event for each BE */
-	if (stream == SNDRV_PCM_STREAM_PLAYBACK)
-		soc_dsp_dapm_stream_event(fe, stream,
-				fe->cpu_dai->driver->playback.stream_name,
-				SNDRV_PCM_TRIGGER_START);
-	else
-		soc_dsp_dapm_stream_event(fe, stream,
-				fe->cpu_dai->driver->capture.stream_name,
-				SNDRV_PCM_TRIGGER_START);
+	soc_dsp_dapm_stream_event(fe, stream, SNDRV_PCM_TRIGGER_START);
 
 	if (dsp_link->trigger[stream] == SND_SOC_DSP_TRIGGER_BESPOKE) {
 
