@@ -17,7 +17,7 @@ menuconfig NEW_LEDS
 if NEW_LEDS
 
 config LEDS_CLASS
-	bool "LED Class Support"
+	tristate "LED Class Support"
 	help
 	  This option enables the led sysfs class in /sys/class/leds.  You'll
 	  need this to do anything useful with LEDs.  If unsure, say N.
@@ -279,6 +279,14 @@ config LEDS_PM8XXX
 
 	  To compile this driver as a module, choose M here: the module will
 	  be called leds-pmic8xxx.
+
+config LEDS_PCA9633
+	tristate "LED support for PCA9633 I2C chip"
+	depends on LEDS_CLASS
+	depends on I2C
+	help
+	  This option enables support for LEDs connected to the PCA9633
+	  LED driver chip accessed via the I2C bus.
 
 config LEDS_WM831X_STATUS
 	tristate "LED support for status LEDs on WM831x PMICs"
