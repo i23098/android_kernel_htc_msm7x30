@@ -608,6 +608,8 @@ static void swap_key_to_BE(struct wl_wsec_key *key)
 	key->iv_initialized = dtoh32(key->iv_initialized);
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0))
+#else
 /* For debug: Dump the contents of the encoded wps ie buffe */
 static void
 wl_validate_wps_ie(char *wps_ie, bool *pbc)
@@ -683,6 +685,7 @@ wl_validate_wps_ie(char *wps_ie, bool *pbc)
 		subel += subelt_len;
 	}
 }
+#endif
 
 static chanspec_t wl_cfg80211_get_shared_freq(struct wiphy *wiphy)
 {
@@ -3933,6 +3936,8 @@ wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
 	return err;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0))
+#else
 static s32
 wl_validate_wpa2ie(struct net_device *dev, bcm_tlv_t *wpa2ie, s32 bssidx)
 {
@@ -4182,8 +4187,6 @@ exit:
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0))
-#else
 static s32
 wl_cfg80211_add_set_beacon(struct wiphy *wiphy, struct net_device *dev,
 	struct beacon_parameters *info)
