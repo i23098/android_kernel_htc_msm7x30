@@ -41,7 +41,6 @@
 #include <linux/bitops.h>
 #include <linux/mpage.h>
 #include <linux/bit_spinlock.h>
-#include <linux/cleancache.h>
 
 static int fsync_buffers_list(spinlock_t *lock, struct list_head *list);
 
@@ -1386,30 +1385,22 @@ static void invalidate_bh_lru(void *arg)
 	put_cpu_var(bh_lrus);
 }
 
-/*
- * Invalidate all buffers in LRUs. Since we have to signal all CPUs to
- * invalidate their per-cpu local LRU lists this is rather expensive operation.
- * So we optimize the case of several parallel calls to invalidate_bh_lrus()
- * which happens from partitioning code when lots of disks appear in the
- * system during boot.
- */
+static bool has_bh_in_lru(int cpu, void *dummy)
+{
+	struct bh_lru *b = per_cpu_ptr(&bh_lrus, cpu);
+	int i;
+	
+	for (i = 0; i < BH_LRU_SIZE; i++) {
+		if (b->bhs[i])
+			return 1;
+	}
+
+	return 0;
+}
+
 void invalidate_bh_lrus(void)
 {
-	static DEFINE_MUTEX(bh_invalidate_mutex);
-	static long bh_invalidate_sequence;
-
-	long my_bh_invalidate_sequence = bh_invalidate_sequence;
-
-	mutex_lock(&bh_invalidate_mutex);
-	/* Someone did bh invalidation while we were sleeping? */
-	if (my_bh_invalidate_sequence != bh_invalidate_sequence)
-		goto out;
-	bh_invalidate_sequence++;
-	/* Inc of bh_invalidate_sequence must happen before we invalidate bhs */
-	smp_wmb();
-	on_each_cpu(invalidate_bh_lru, NULL, 1);
-out:
-	mutex_unlock(&bh_invalidate_mutex);
+	on_each_cpu_cond(has_bh_in_lru, invalidate_bh_lru, NULL, 1, GFP_KERNEL);
 }
 EXPORT_SYMBOL_GPL(invalidate_bh_lrus);
 

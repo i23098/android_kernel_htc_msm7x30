@@ -804,6 +804,8 @@ static int pagemap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
 		return err;
 	}
 
+	if (pmd_trans_unstable(pmd))
+		return 0;
 	for (; addr != end; addr += PAGE_SIZE) {
 
 		/* check to see if we've left 'vma' behind
