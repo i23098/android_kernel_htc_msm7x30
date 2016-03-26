@@ -50,6 +50,17 @@ struct dma_buf_attachment;
  * @unmap_dma_buf: decreases usecount of buffer, might deallocate scatter
  *		   pages.
  * @release: release this buffer; to be called after the last dma_buf_put.
+ * @begin_cpu_access: [optional] called before cpu access to invalidate cpu
+ * 		      caches and allocate backing storage (if not yet done)
+ * 		      respectively pin the objet into memory.
+ * @end_cpu_access: [optional] called after cpu access to flush cashes.
+ * @kmap_atomic: maps a page from the buffer into kernel address
+ * 		 space, users may not block until the subsequent unmap call.
+ * 		 This callback must not sleep.
+ * @kunmap_atomic: [optional] unmaps a atomically mapped page from the buffer.
+ * 		   This Callback must not sleep.
+ * @kmap: maps a page from the buffer into kernel address space.
+ * @kunmap: [optional] unmaps a page from the buffer.
  */
 struct dma_buf_ops {
 	int (*attach)(struct dma_buf *, struct device *,
@@ -81,7 +92,6 @@ struct dma_buf_ops {
 	void (*kunmap_atomic)(struct dma_buf *, unsigned long, void *);
 	void *(*kmap)(struct dma_buf *, unsigned long);
 	void (*kunmap)(struct dma_buf *, unsigned long, void *);
-
 	int (*mmap)(struct dma_buf *, struct vm_area_struct *vma);
 };
 
@@ -98,7 +108,7 @@ struct dma_buf {
 	struct file *file;
 	struct list_head attachments;
 	const struct dma_buf_ops *ops;
-	/* mutex to serialize list manipulation and other ops */
+	/* mutex to serialize list manipulation and attach/detach */
 	struct mutex lock;
 	void *priv;
 };
@@ -141,7 +151,7 @@ struct dma_buf_attachment *dma_buf_attach(struct dma_buf *dmabuf,
 void dma_buf_detach(struct dma_buf *dmabuf,
 				struct dma_buf_attachment *dmabuf_attach);
 struct dma_buf *dma_buf_export(void *priv, const struct dma_buf_ops *ops,
-			size_t size, int flags);
+			       size_t size, int flags);
 int dma_buf_fd(struct dma_buf *dmabuf, int flags);
 struct dma_buf *dma_buf_get(int fd);
 void dma_buf_put(struct dma_buf *dmabuf);
@@ -158,7 +168,6 @@ void *dma_buf_kmap_atomic(struct dma_buf *, unsigned long);
 void dma_buf_kunmap_atomic(struct dma_buf *, unsigned long, void *);
 void *dma_buf_kmap(struct dma_buf *, unsigned long);
 void dma_buf_kunmap(struct dma_buf *, unsigned long, void *);
-
 int dma_buf_mmap(struct dma_buf *, struct vm_area_struct *,
 		 unsigned long);
 #else
@@ -176,8 +185,8 @@ static inline void dma_buf_detach(struct dma_buf *dmabuf,
 }
 
 static inline struct dma_buf *dma_buf_export(void *priv,
-					const struct dma_buf_ops *ops,
-						size_t size, int flags)
+					     const struct dma_buf_ops *ops,
+					     size_t size, int flags)
 {
 	return ERR_PTR(-ENODEV);
 }
@@ -204,7 +213,7 @@ static inline struct sg_table *dma_buf_map_attachment(
 }
 
 static inline void dma_buf_unmap_attachment(struct dma_buf_attachment *attach,
-						struct sg_table *sg, enum dma_data_direction dir)
+			struct sg_table *sg, enum dma_data_direction dir)
 {
 	return;
 }

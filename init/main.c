@@ -401,7 +401,7 @@ static int __init do_early_param(char *param, char *val)
 
 void __init parse_early_options(char *cmdline)
 {
-	parse_args("early options", cmdline, NULL, 0, do_early_param);
+	parse_args("early options", cmdline, NULL, 0, 0, 0, do_early_param);
 }
 
 /* Arch code calls this early on, or if not, just before other parsing. */
@@ -504,7 +504,7 @@ asmlinkage void __init start_kernel(void)
 	parse_early_param();
 	parse_args("Booting kernel", static_command_line, __start___param,
 		   __stop___param - __start___param,
-		   &unknown_bootoption);
+		   0, 0, &unknown_bootoption);
 
 	jump_label_init();
 
@@ -697,14 +697,50 @@ int __init_or_module do_one_initcall(initcall_t fn)
 }
 
 
-extern initcall_t __initcall_start[], __initcall_end[], __early_initcall_end[];
+extern initcall_t __initcall_start[];
+extern initcall_t __initcall0_start[];
+extern initcall_t __initcall1_start[];
+extern initcall_t __initcall2_start[];
+extern initcall_t __initcall3_start[];
+extern initcall_t __initcall4_start[];
+extern initcall_t __initcall5_start[];
+extern initcall_t __initcall6_start[];
+extern initcall_t __initcall7_start[];
+extern initcall_t __initcall_end[];
 
+static initcall_t *initcall_levels[] __initdata = {
+	__initcall0_start,
+	__initcall1_start,
+	__initcall2_start,
+	__initcall3_start,
+	__initcall4_start,
+	__initcall5_start,
+	__initcall6_start,
+	__initcall7_start,
+	__initcall_end,
+};
 
+static char *initcall_level_names[] __initdata = {
+	"early parameters",
+	"core parameters",
+	"postcore parameters",
+	"arch parameters",
+	"subsys parameters",
+	"fs parameters",
+	"device parameters",
+	"late parameters",
+};
+
+static int __init ignore_unknown_bootoption(char *param, char *val)
+{
+	return 0;
+}
 static struct initcall_state {
 	initcall_t	*next_call;
 	atomic_t	threads, waiting;
 	wait_queue_head_t queue;
 	int		master_thread;
+	int		level;
 } initcall;
 
 int initcall_schedule(void)
@@ -757,7 +793,7 @@ static int __init init_caller(void *vtnum)
 	 * when all other threads are waiting, so there is no
 	 * race here.
 	 */
-	while (initcall.next_call < __initcall_end
+	while (initcall.next_call < initcall_levels[initcall.level+1]
 	       && initcall.master_thread == tnum) {
 		initcall_t fn;
 
@@ -778,18 +814,27 @@ static int __init init_caller(void *vtnum)
 	return 0;
 }
 
-static void __init do_initcalls(void)
+static void __init do_initcall_level(int level)
 {
+	extern const struct kernel_param __start___param[], __stop___param[];
 	DEFINE_WAIT(wait);
+	initcall.level = level;
 
-	initcall.next_call = __early_initcall_end;
+	strcpy(static_command_line, saved_command_line);
+	parse_args(initcall_level_names[level],
+		   static_command_line, __start___param,
+		   __stop___param - __start___param,
+		   level, level,
+		   ignore_unknown_bootoption);
+
+	initcall.next_call = initcall_levels[initcall.level];
 
 	init_waitqueue_head(&initcall.queue);
 
 	while (1) {
 		prepare_to_wait(&initcall.queue, &wait, TASK_UNINTERRUPTIBLE);
 
-		if (initcall.next_call == __initcall_end)
+		if (initcall.next_call == initcall_levels[initcall.level+1])
 			break;
 
 		if (atomic_read(&initcall.threads)
@@ -805,6 +850,14 @@ static void __init do_initcalls(void)
 	finish_wait(&initcall.queue, &wait);
 	wait_event(initcall.queue, atomic_read(&initcall.threads) == 0);
 	initcall.master_thread = 0;
+}
+
+static void __init do_initcalls(void)
+{
+	int level;
+
+	for (level = 0; level < ARRAY_SIZE(initcall_levels) - 1; level++)
+		do_initcall_level(level);
 }
 
 /*
@@ -830,7 +883,7 @@ static void __init do_pre_smp_initcalls(void)
 {
 	initcall_t *fn;
 
-	for (fn = __initcall_start; fn < __early_initcall_end; fn++)
+	for (fn = __initcall_start; fn < __initcall0_start; fn++)
 		do_one_initcall(*fn);
 }
 

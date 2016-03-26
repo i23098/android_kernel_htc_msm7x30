@@ -207,17 +207,18 @@ struct dma_buf_attachment *dma_buf_attach(struct dma_buf *dmabuf,
 	struct dma_buf_attachment *attach;
 	int ret;
 
-	if (WARN_ON(!dmabuf || !dev || !dmabuf->ops))
+	if (WARN_ON(!dmabuf || !dev))
 		return ERR_PTR(-EINVAL);
 
 	attach = kzalloc(sizeof(struct dma_buf_attachment), GFP_KERNEL);
 	if (attach == NULL)
-		goto err_alloc;
-
-	mutex_lock(&dmabuf->lock);
+		return ERR_PTR(-ENOMEM);
 
 	attach->dev = dev;
 	attach->dmabuf = dmabuf;
+
+	mutex_lock(&dmabuf->lock);
+
 	if (dmabuf->ops->attach) {
 		ret = dmabuf->ops->attach(dmabuf, dev, attach);
 		if (ret)
@@ -228,8 +229,6 @@ struct dma_buf_attachment *dma_buf_attach(struct dma_buf *dmabuf,
 	mutex_unlock(&dmabuf->lock);
 	return attach;
 
-err_alloc:
-	return ERR_PTR(-ENOMEM);
 err_attach:
 	kfree(attach);
 	mutex_unlock(&dmabuf->lock);
@@ -246,7 +245,7 @@ EXPORT_SYMBOL_GPL(dma_buf_attach);
  */
 void dma_buf_detach(struct dma_buf *dmabuf, struct dma_buf_attachment *attach)
 {
-	if (WARN_ON(!dmabuf || !attach || !dmabuf->ops))
+	if (WARN_ON(!dmabuf || !attach))
 		return;
 
 	mutex_lock(&dmabuf->lock);
@@ -277,13 +276,10 @@ struct sg_table *dma_buf_map_attachment(struct dma_buf_attachment *attach,
 
 	might_sleep();
 
-	if (WARN_ON(!attach || !attach->dmabuf || !attach->dmabuf->ops))
+	if (WARN_ON(!attach || !attach->dmabuf))
 		return ERR_PTR(-EINVAL);
 
-	mutex_lock(&attach->dmabuf->lock);
-	if (attach->dmabuf->ops->map_dma_buf)
-		sg_table = attach->dmabuf->ops->map_dma_buf(attach, direction);
-	mutex_unlock(&attach->dmabuf->lock);
+	sg_table = attach->dmabuf->ops->map_dma_buf(attach, direction);
 
 	return sg_table;
 }
@@ -302,15 +298,14 @@ void dma_buf_unmap_attachment(struct dma_buf_attachment *attach,
 				struct sg_table *sg_table,
 				enum dma_data_direction direction)
 {
-	if (WARN_ON(!attach || !attach->dmabuf || !sg_table
-			    || !attach->dmabuf->ops))
+	if (WARN_ON(!attach || !attach->dmabuf || !sg_table))
 		return;
 
 	mutex_lock(&attach->dmabuf->lock);
 	if (attach->dmabuf->ops->unmap_dma_buf)
-		attach->dmabuf->ops->unmap_dma_buf(attach, sg_table, direction);
+		attach->dmabuf->ops->unmap_dma_buf(attach, sg_table,
+						direction);
 	mutex_unlock(&attach->dmabuf->lock);
-
 }
 EXPORT_SYMBOL_GPL(dma_buf_unmap_attachment);
 
@@ -433,7 +428,6 @@ void dma_buf_kunmap(struct dma_buf *dmabuf, unsigned long page_num,
 		dmabuf->ops->kunmap(dmabuf, page_num, vaddr);
 }
 EXPORT_SYMBOL_GPL(dma_buf_kunmap);
-
 
 /**
  * dma_buf_mmap - Setup up a userspace mmap with the given vma
