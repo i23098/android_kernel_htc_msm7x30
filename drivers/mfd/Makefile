@@ -38,7 +38,7 @@ obj-$(CONFIG_MFD_WM8994)	+= wm8994-core.o wm8994-irq.o wm8994-regmap.o
 obj-$(CONFIG_TPS6105X)		+= tps6105x.o
 obj-$(CONFIG_TPS65010)		+= tps65010.o
 obj-$(CONFIG_TPS6507X)		+= tps6507x.o
-obj-$(CONFIG_MARIMBA_CODEC)     += marimba-codec.o
+obj-$(CONFIG_MFD_TPS65217)	+= tps65217.o
 obj-$(CONFIG_MFD_TPS65910)	+= tps65910.o tps65910-irq.o
 tps65912-objs                   := tps65912-core.o tps65912-irq.o
 obj-$(CONFIG_MFD_TPS65912)	+= tps65912.o
@@ -50,18 +50,13 @@ obj-$(CONFIG_TWL4030_CORE)	+= twl-core.o twl4030-irq.o twl6030-irq.o
 obj-$(CONFIG_TWL4030_MADC)      += twl4030-madc.o
 obj-$(CONFIG_TWL4030_POWER)    += twl4030-power.o
 obj-$(CONFIG_MFD_TWL4030_AUDIO)	+= twl4030-audio.o
+obj-$(CONFIG_MARIMBA_CODEC)     += marimba-codec.o
 
 obj-$(CONFIG_MARIMBA_CORE)	+= marimba-core.o
 obj-$(CONFIG_MARIMBA_TSADC)	+= marimba-tsadc.o
 obj-$(CONFIG_TPS65023)		+= tps65023.o
 
 obj-$(CONFIG_TIMPANI_CODEC)	+= timpani-codec.o
-
-#ifdef CONFIG_TIMPANI_CODEC
-#obj-$(CONFIG_TIMPANI_CODEC) += msm-adie-codec.o
-#else ifdef CONFIG_MARIMBA_CODEC
-#obj-$(CONFIG_MARIMBA_CODEC) += msm-adie-codec.o
-#endif
 
 obj-$(CONFIG_TWL6030_PWM)	+= twl6030-pwm.o
 obj-$(CONFIG_TWL6040_CORE)	+= twl6040-core.o twl6040-irq.o
@@ -137,6 +132,9 @@ obj-$(CONFIG_MFD_PM8XXX_HAPTIC) += pm8xxx-haptic.o
 obj-$(CONFIG_MFD_PM8XXX_MISC) 	+= pm8xxx-misc.o
 obj-$(CONFIG_MFD_PM8XXX_BATT_ALARM) 	+= pm8xxx-batt-alarm.o
 obj-$(CONFIG_MFD_MAX8957)	+= pmicmax8957.o max8957-irq.o
+obj-$(CONFIG_MFD_TPS65090)	+= tps65090.o
 obj-$(CONFIG_MFD_AAT2870_CORE)	+= aat2870-core.o
 obj-$(CONFIG_MFD_INTEL_MSIC)	+= intel_msic.o
+obj-$(CONFIG_MFD_RC5T583)	+= rc5t583.o rc5t583-irq.o
 obj-$(CONFIG_MFD_S5M_CORE)	+= s5m-core.o s5m-irq.o
+obj-$(CONFIG_MFD_ANATOP)	+= anatop-mfd.o
