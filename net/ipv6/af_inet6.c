@@ -61,7 +61,6 @@
 #endif
 
 #include <asm/uaccess.h>
-#include <asm/system.h>
 #include <linux/mroute6.h>
 
 #ifdef CONFIG_ANDROID_PARANOID_NETWORK

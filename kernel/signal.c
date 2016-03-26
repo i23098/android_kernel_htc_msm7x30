@@ -36,6 +36,7 @@
 #include <asm/uaccess.h>
 #include <asm/unistd.h>
 #include <asm/siginfo.h>
+#include <asm/cacheflush.h>
 #include "audit.h"	/* audit_signal_info() */
 
 static struct dying_pid dying_pid_buf[MAX_DYING_PROC_COUNT];

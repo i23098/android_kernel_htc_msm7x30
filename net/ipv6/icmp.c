@@ -67,7 +67,6 @@
 #include <net/inet_common.h>
 
 #include <asm/uaccess.h>
-#include <asm/system.h>
 
 /*
  *	The ICMP socket(s). This is the most convenient way to flow control
