@@ -84,8 +84,8 @@ unsigned int sclk_hz = 32768;
 
 static struct msm_clock *clockevent_to_clock(struct clock_event_device *evt);
 static irqreturn_t msm_timer_interrupt(int irq, void *dev_id);
-static cycle_t msm_gpt_read(struct clocksource *cs);
-static cycle_t msm_dgt_read(struct clocksource *cs);
+static notrace cycle_t msm_gpt_read(struct clocksource *cs);
+static notrace cycle_t msm_dgt_read(struct clocksource *cs);
 static void msm_timer_set_mode(enum clock_event_mode mode,
 			       struct clock_event_device *evt);
 static int msm_timer_set_next_event(unsigned long cycles,
@@ -253,7 +253,7 @@ static uint32_t msm_read_timer_count(struct msm_clock *clock, int global)
 	}
 }
 
-static cycle_t msm_gpt_read(struct clocksource *cs)
+static notrace cycle_t msm_gpt_read(struct clocksource *cs)
 {
 	struct msm_clock *clock = &msm_clocks[MSM_CLOCK_GPT];
 	struct msm_clock_percpu_data *clock_state =
@@ -266,7 +266,7 @@ static cycle_t msm_gpt_read(struct clocksource *cs)
 		clock_state->sleep_offset;
 }
 
-static cycle_t msm_dgt_read(struct clocksource *cs)
+static notrace cycle_t msm_dgt_read(struct clocksource *cs)
 {
 	struct msm_clock *clock = &msm_clocks[MSM_CLOCK_DGT];
 	struct msm_clock_percpu_data *clock_state =
