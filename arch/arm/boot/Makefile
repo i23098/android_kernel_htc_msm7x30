@@ -98,8 +98,8 @@ if [ $(words $(UIMAGE_LOADADDR)) -gt 1 ]; then \
 fi
 
 check_for_multiple_loadaddr = \
-if [ $(words $(LOADADDR)) -gt 1 ]; then \
-	echo 'multiple load addresses: $(LOADADDR)'; \
+if [ $(words $(UIMAGE_LOADADDR)) -gt 1 ]; then \
+	echo 'multiple load addresses: $(UIMAGE_LOADADDR)'; \
 	echo 'This is incompatible with uImages'; \
 	echo 'Specify LOADADDR on the commandline to build an uImage'; \
 	false; \

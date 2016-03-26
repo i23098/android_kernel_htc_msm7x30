@@ -36,6 +36,7 @@ obj-$(CONFIG_BATTERY_S3C_ADC)	+= s3c_adc_battery.o
 obj-$(CONFIG_CHARGER_PCF50633)	+= pcf50633-charger.o
 obj-$(CONFIG_BATTERY_JZ4740)	+= jz4740-battery.o
 obj-$(CONFIG_BATTERY_INTEL_MID)	+= intel_mid_battery.o
+obj-$(CONFIG_AB8500_BM)		+= ab8500_charger.o ab8500_btemp.o ab8500_fg.o abx500_chargalg.o
 obj-$(CONFIG_CHARGER_ISP1704)	+= isp1704_charger.o
 obj-$(CONFIG_CHARGER_MAX8903)	+= max8903_charger.o
 obj-$(CONFIG_CHARGER_TWL4030)	+= twl4030_charger.o
@@ -44,6 +45,7 @@ obj-$(CONFIG_CHARGER_GPIO)	+= gpio-charger.o
 obj-$(CONFIG_CHARGER_MANAGER)	+= charger-manager.o
 obj-$(CONFIG_CHARGER_MAX8997)	+= max8997_charger.o
 obj-$(CONFIG_CHARGER_MAX8998)	+= max8998_charger.o
+obj-$(CONFIG_CHARGER_SMB347)	+= smb347-charger.o
 obj-$(CONFIG_BATTERY_MSM)       += msm_battery.o
 obj-$(CONFIG_BATTERY_MSM8X60)   += msm_charger.o
 obj-$(CONFIG_PM8058_CHARGER)    += pmic8058-charger.o
@@ -62,5 +64,3 @@ else
 		obj-y += pm8921-charger-htc.o
 endif
 endif
-
-
