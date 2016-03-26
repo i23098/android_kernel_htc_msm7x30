@@ -12,7 +12,6 @@
  * GNU General Public License for more details.
  *
  */
-void arch_idle(void);
 
 #if defined(CONFIG_MSM_NATIVE_RESTART)
 void arch_reset(char mode, const char *cmd);
