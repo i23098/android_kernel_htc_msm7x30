@@ -622,7 +622,7 @@ void ion_cp_heap_unmap_kernel(struct ion_heap *heap,
 	else if (cp_heap->cma)
 		vunmap(buffer->vaddr);
 	else
-		__arch_iounmap(buffer->vaddr);
+		__iounmap(buffer->vaddr);
 
 	buffer->vaddr = NULL;
 

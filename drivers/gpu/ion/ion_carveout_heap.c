@@ -198,7 +198,7 @@ void ion_carveout_heap_unmap_kernel(struct ion_heap *heap,
 	struct ion_carveout_heap *carveout_heap =
 		container_of(heap, struct ion_carveout_heap, heap);
 
-	__arch_iounmap(buffer->vaddr);
+	__iounmap(buffer->vaddr);
 	buffer->vaddr = NULL;
 
 	ion_carveout_release_region(carveout_heap);
