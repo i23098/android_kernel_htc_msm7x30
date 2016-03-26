@@ -26,7 +26,6 @@
 
 #include <linux/file.h>
 #include <linux/err.h>
-#include <linux/device.h>
 #include <linux/scatterlist.h>
 #include <linux/list.h>
 #include <linux/dma-mapping.h>
