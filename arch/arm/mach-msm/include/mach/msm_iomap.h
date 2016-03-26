@@ -37,12 +37,6 @@
  *
  */
 
-#ifdef __ASSEMBLY__
-#define IOMEM(x)	x
-#else
-#define IOMEM(x)	((void __force __iomem *)(x))
-#endif
-
 #if defined(CONFIG_ARCH_MSM8960) || defined(CONFIG_ARCH_APQ8064) || \
 	defined(CONFIG_ARCH_MSM8930) || defined(CONFIG_ARCH_MSM9615) || \
 	defined(CONFIG_ARCH_MSMCOPPER)

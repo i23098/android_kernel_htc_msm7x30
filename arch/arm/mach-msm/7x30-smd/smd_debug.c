@@ -21,6 +21,7 @@
 #include <linux/earlysuspend.h>
 #include <linux/rtc.h>
 #include <linux/suspend.h>
+#include <linux/io.h>
 
 #include <mach/msm_iomap.h>
 
