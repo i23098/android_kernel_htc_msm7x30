@@ -2697,7 +2697,7 @@ out:
 	return 0;
 }
 
-static int msmsdcc_disable(struct mmc_host *mmc, int lazy)
+static int msmsdcc_disable(struct mmc_host *mmc)
 {
 	int rc;
 	struct device *dev = mmc->parent;
@@ -4071,11 +4071,9 @@ msmsdcc_probe(struct platform_device *pdev)
 	 * for every claim/release operation on a host. We use this
 	 * notification to increment/decrement runtime pm usage count.
 	 */
-	mmc->caps |= MMC_CAP_DISABLE;
 	pm_runtime_enable(&(pdev)->dev);
 #else
 	if (mmc->caps & MMC_CAP_NONREMOVABLE) {
-		mmc->caps |= MMC_CAP_DISABLE;
 		pm_runtime_enable(&(pdev)->dev);
 	}
 #endif
