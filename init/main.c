@@ -226,13 +226,9 @@ static int __init loglevel(char *str)
 
 early_param("loglevel", loglevel);
 
-/*
- * Unknown boot options get handed to init, unless they look like
- * unused parameters (modprobe will find them in /proc/cmdline).
- */
-static int __init unknown_bootoption(char *param, char *val)
+/* Change NUL term back to "=", to make "param" the whole string. */
+static int __init repair_env_string(char *param, char *val)
 {
-	/* Change NUL term back to "=", to make "param" the whole string. */
 	if (val) {
 		/* param=val or param="val"? */
 		if (val == param+strlen(param)+1)
@@ -244,6 +240,16 @@ static int __init unknown_bootoption(char *param, char *val)
 		} else
 			BUG();
 	}
+	return 0;
+}
+
+/*
+ * Unknown boot options get handed to init, unless they look like
+ * unused parameters (modprobe will find them in /proc/cmdline).
+ */
+static int __init unknown_bootoption(char *param, char *val)
+{
+	repair_env_string(param, val);
 
 	/* Handle obsolete-style parameters */
 	if (obsolete_checksetup(param))
@@ -824,7 +830,7 @@ static void __init do_initcall_level(int level)
 		   static_command_line, __start___param,
 		   __stop___param - __start___param,
 		   level, level,
-		   ignore_unknown_bootoption);
+		   repair_env_string);
 
 	initcall.next_call = initcall_levels[initcall.level];
 
