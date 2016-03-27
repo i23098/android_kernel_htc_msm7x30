@@ -2277,7 +2277,8 @@ new_workload:
 		 * to have higher weight. A more accurate thing would be to
 		 * calculate system wide asnc/sync ratio.
 		 */
-		tmp = cfqd->cfq_target_latency * cfqg_busy_async_queues(cfqd, cfqg);
+		tmp = cfqd->cfq_target_latency *
+			cfqg_busy_async_queues(cfqd, cfqg);
 		tmp = tmp/cfqd->busy_queues;
 		slice = min_t(unsigned, slice, tmp);
 
