@@ -18,6 +18,7 @@
 
 #include <linux/io.h>
 #include <asm/mach-types.h>
+#include <asm/barrier.h>
 #include <asm/processor.h>
 #include <mach/msm_iomap.h>
 
