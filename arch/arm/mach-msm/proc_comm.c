@@ -172,7 +172,7 @@ EXPORT_SYMBOL(msm_proc_comm);
  * and unknown state. This function should be called early to
  * wait on the ARM9.
  */
-void __init proc_comm_boot_wait(void)
+void __devinit proc_comm_boot_wait(void)
 {
 	void __iomem *base = MSM_SHARED_RAM_BASE;
  
