@@ -190,7 +190,7 @@ static int preserve_vfp_context(struct vfp_sigframe __user *frame)
 	if (err)
 		return -EFAULT;
 
-	return vfp_preserve_user_hwstate(&frame->ufp, &frame->ufp_exc);
+	return vfp_preserve_user_clear_hwstate(&frame->ufp, &frame->ufp_exc);
 }
 
 static int restore_vfp_context(struct vfp_sigframe __user *frame)

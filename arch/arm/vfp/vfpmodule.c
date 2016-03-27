@@ -10,8 +10,8 @@
  */
 #include <linux/types.h>
 #include <linux/cpu.h>
-#include <linux/hardirq.h>
 #include <linux/cpu_pm.h>
+#include <linux/hardirq.h>
 #include <linux/kernel.h>
 #include <linux/notifier.h>
 #include <linux/signal.h>
@@ -558,8 +558,8 @@ void vfp_flush_hwstate(struct thread_info *thread)
  * Save the current VFP state into the provided structures and prepare
  * for entry into a new function (signal handler).
  */
-int vfp_preserve_user_hwstate(struct user_vfp __user *ufp,
-			      struct user_vfp_exc __user *ufp_exc)
+int vfp_preserve_user_clear_hwstate(struct user_vfp __user *ufp,
+				    struct user_vfp_exc __user *ufp_exc)
 {
 	struct thread_info *thread = current_thread_info();
 	struct vfp_hard_struct *hwstate = &thread->vfpstate.hard;
@@ -593,14 +593,14 @@ int vfp_preserve_user_hwstate(struct user_vfp __user *ufp,
 	vfp_flush_hwstate(thread);
 
 	/*
-	 * As per the PCS, clear the length and stride bits before entry
-	 * to the signal handler.
+	 * As per the PCS, clear the length and stride bits for function
+	 * entry.
 	 */
 	hwstate->fpscr &= ~(FPSCR_LENGTH_MASK | FPSCR_STRIDE_MASK);
 
 	/*
-	 * Disable VFP in the hwstate so that we can detect if it was
-	 * used by the signal handler.
+	 * Disable VFP in the hwstate so that we can detect if it gets
+	 * used.
 	 */
 	hwstate->fpexc &= ~FPEXC_EN;
 	return 0;
