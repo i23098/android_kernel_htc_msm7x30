@@ -182,8 +182,8 @@ static void if_close(struct tty_struct *tty, struct file *filp)
 	unsigned long flags;
 
 	cs = (struct cardstate *) tty->driver_data;
-	if (!cs) {
-		pr_err("%s: no cardstate\n", __func__);
+	if (!cs) { /* happens if we didn't find cs in open */
+		gig_dbg(DEBUG_IF, "%s: no cardstate", __func__);
 		return;
 	}
 
