@@ -69,55 +69,9 @@ enum cpu_pm_event {
 #ifdef CONFIG_CPU_PM
 int cpu_pm_register_notifier(struct notifier_block *nb);
 int cpu_pm_unregister_notifier(struct notifier_block *nb);
-
-/*
- * cpm_pm_enter
- *
- * Notifies listeners that a single cpu is entering a low power state that may
- * cause some blocks in the same power domain as the cpu to reset.
- *
- * Must be called on the affected cpu with interrupts disabled.  Platform is
- * responsible for ensuring that cpu_pm_enter is not called twice on the same
- * cpu before cpu_pm_exit is called.
- */
 int cpu_pm_enter(void);
-
-/*
- * cpm_pm_exit
- *
- * Notifies listeners that a single cpu is exiting a low power state that may
- * have caused some blocks in the same power domain as the cpu to reset.
- *
- * Must be called on the affected cpu with interrupts disabled.
- */
 int cpu_pm_exit(void);
-
-/*
- * cpm_cluster_pm_enter
- *
- * Notifies listeners that all cpus in a power domain are entering a low power
- * state that may cause some blocks in the same power domain to reset.
- *
- * Must be called after cpu_pm_enter has been called on all cpus in the power
- * domain, and before cpu_pm_exit has been called on any cpu in the power
- * domain.
- *
- * Must be called with interrupts disabled.
- */
 int cpu_cluster_pm_enter(void);
-
-/*
- * cpm_pm_enter
- *
- * Notifies listeners that a single cpu is entering a low power state that may
- * cause some blocks in the same power domain as the cpu to reset.
- *
- * Must be called after cpu_pm_enter has been called on all cpus in the power
- * domain, and before cpu_pm_exit has been called on any cpu in the power
- * domain.
- *
- * Must be called with interrupts disabled.
- */
 int cpu_cluster_pm_exit(void);
 
 #else
