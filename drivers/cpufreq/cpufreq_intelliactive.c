@@ -156,15 +156,15 @@ static inline cputime64_t get_cpu_idle_time_jiffy(unsigned int cpu,
 	cputime64_t busy_time;
 
 	cur_wall_time = jiffies64_to_cputime64(get_jiffies_64());
-	busy_time = cputime64_add(kstat_cpu(cpu).cpustat.user,
-			kstat_cpu(cpu).cpustat.system);
+	busy_time = (unsigned int) (kcpustat_cpu(cpu).cpustat[CPUTIME_USER] +
+			kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM]);
 
-	busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.irq);
-	busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.softirq);
-	busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.steal);
-	busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.nice);
+	busy_time = (unsigned int) (busy_time + kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ]);
+	busy_time = (unsigned int) (busy_time + kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ]);
+	busy_time = (unsigned int) (busy_time + kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL]);
+	busy_time = (unsigned int) (busy_time + kcpustat_cpu(cpu).cpustat[CPUTIME_NICE]);
 
-	idle_time = cputime64_sub(cur_wall_time, busy_time);
+	idle_time = (unsigned int) (cur_wall_time - busy_time);
 	if (wall)
 		*wall = (cputime64_t)jiffies_to_usecs(cur_wall_time);
 
@@ -865,7 +865,8 @@ static ssize_t show_target_loads(
 		ret += sprintf(buf + ret, "%u%s", target_loads[i],
 			       i & 0x1 ? ":" : " ");
 
-	ret += sprintf(buf + --ret, "\n");
+	--ret;
+	ret += sprintf(buf + ret, "\n");
 	spin_unlock_irqrestore(&target_loads_lock, flags);
 	return ret;
 }
@@ -908,7 +909,8 @@ static ssize_t show_above_hispeed_delay(
 		ret += sprintf(buf + ret, "%u%s", above_hispeed_delay[i],
 			       i & 0x1 ? ":" : " ");
 
-	ret += sprintf(buf + --ret, "\n");
+	--ret;
+	ret += sprintf(buf + ret, "\n");
 	spin_unlock_irqrestore(&above_hispeed_delay_lock, flags);
 	return ret;
 }
