@@ -6,7 +6,7 @@
  *  GK 2/5/95  -  Changed to support mounting root fs via NFS
  *  Added initrd & change_root: Werner Almesberger & Hans Lermen, Feb '96
  *  Moan early if gcc is old, avoiding bogus kernels - Paul Gortmaker, May '96
- *  Simplified starting of init:  Michael A. Griffith <grif@acm.org>
+ *  Simplified starting of init:  Michael A. Griffith <grif@acm.org> 
  */
 
 #include <linux/types.h>
@@ -68,7 +68,6 @@
 #include <linux/shmem_fs.h>
 #include <linux/slab.h>
 #include <linux/perf_event.h>
-#include <linux/random.h>
 
 #include <asm/io.h>
 #include <asm/bugs.h>
@@ -561,6 +560,9 @@ asmlinkage void __init start_kernel(void)
 	early_boot_irqs_disabled = false;
 	local_irq_enable();
 
+	/* Interrupts are enabled now so all GFP allocations are safe. */
+	gfp_allowed_mask = __GFP_BITS_MASK;
+
 	kmem_cache_init_late();
 
 	/*
@@ -736,90 +738,10 @@ static char *initcall_level_names[] __initdata = {
 	"late parameters",
 };
 
-static struct initcall_state {
-	initcall_t	*next_call;
-	atomic_t	threads, waiting;
-	wait_queue_head_t queue;
-	int		master_thread;
-	int		level;
-} initcall;
-
-int initcall_schedule(void)
-{
-	/* Some probe function needs to wait for a pre-requisite
-	 * initcall to provide some resource.    A wakeup has already
-	 * been arranged for when it arrives.
-	 */
-	if (!initcall.master_thread)
-		return -ENODEV;
-
-	atomic_inc(&initcall.waiting);
-	/* Might need to start a new thread */
-	wake_up(&initcall.queue);
-
-	schedule();
-
-	atomic_dec(&initcall.waiting);
-	/* Might be time to progress to next initcall */
-	wake_up(&initcall.queue);
-
-	return 0;
-}
-
-void initcall_lock(struct mutex *mutex)
-{
-	if (!initcall.master_thread) {
-		mutex_lock(mutex);
-		return;
-	}
-	if (mutex_trylock(mutex))
-		return;
-
-	atomic_inc(&initcall.waiting);
-	/* Might need to start a new thread */
-	wake_up(&initcall.queue);
-
-	mutex_lock(mutex);
-
-	atomic_dec(&initcall.waiting);
-	/* Might be time to progress to next initcall */
-	wake_up(&initcall.queue);
-}
-
-static int __init init_caller(void *vtnum)
-{
-	unsigned long tnum = (unsigned long)vtnum;
-
-	/* Both next_call and master_thread can only be changed
-	 * when all other threads are waiting, so there is no
-	 * race here.
-	 */
-	while (initcall.next_call < initcall_levels[initcall.level+1]
-	       && initcall.master_thread == tnum) {
-		initcall_t fn;
-
-		/* Don't want to proceed while other threads are
-		 * running.
-		 */
-		wait_event(initcall.queue,
-			   atomic_read(&initcall.threads)
-			   == atomic_read(&initcall.waiting)+1);
-
-		fn = *initcall.next_call;
-		initcall.next_call++;
-
-		do_one_initcall(fn);
-	}
-	atomic_dec(&initcall.threads);
-	wake_up(&initcall.queue);
-	return 0;
-}
-
 static void __init do_initcall_level(int level)
 {
 	extern const struct kernel_param __start___param[], __stop___param[];
-	DEFINE_WAIT(wait);
-	initcall.level = level;
+	initcall_t *fn;
 
 	strcpy(static_command_line, saved_command_line);
 	parse_args(initcall_level_names[level],
@@ -828,29 +750,8 @@ static void __init do_initcall_level(int level)
 		   level, level,
 		   repair_env_string);
 
-	initcall.next_call = initcall_levels[initcall.level];
-
-	init_waitqueue_head(&initcall.queue);
-
-	while (1) {
-		prepare_to_wait(&initcall.queue, &wait, TASK_UNINTERRUPTIBLE);
-
-		if (initcall.next_call == initcall_levels[initcall.level+1])
-			break;
-
-		if (atomic_read(&initcall.threads)
-		    == atomic_read(&initcall.waiting)) {
-			/* All threads are waiting, create a new master */
-			initcall.master_thread++;
-			atomic_inc(&initcall.threads);
-			kernel_thread(init_caller,
-				      (void*)initcall.master_thread, 0);
-		}
-		schedule();
-	}
-	finish_wait(&initcall.queue, &wait);
-	wait_event(initcall.queue, atomic_read(&initcall.threads) == 0);
-	initcall.master_thread = 0;
+	for (fn = initcall_levels[level]; fn < initcall_levels[level+1]; fn++)
+		do_one_initcall(*fn);
 }
 
 static void __init do_initcalls(void)
@@ -941,10 +842,6 @@ static int __init kernel_init(void * unused)
 	 * Wait until kthreadd is all set-up.
 	 */
 	wait_for_completion(&kthreadd_done);
-
-	/* Now the scheduler is fully set up and can do blocking allocations */
-	gfp_allowed_mask = __GFP_BITS_MASK;
-
 	/*
 	 * init can allocate pages on any node
 	 */

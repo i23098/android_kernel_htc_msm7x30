@@ -16,3 +16,10 @@ git checkout HEAD -- drivers/char/random.c
 
 ####v3.5
 git checkout HEAD -- arch/arm/include/asm/dma-mapping.h arch/arm/mm/dma-mapping.c arch/arm/common/dmabounce.c
+
+# cleanup
+find * | grep "\.h" | awk '{print "chmod 664 " $1}' | sh -
+find * | grep "\.c" | awk '{print "chmod 664 " $1}' | sh -
+find * | grep "Makefile" | awk '{print "chmod 664 " $1}' | sh -
+find * | grep "Kconfig" | awk '{print "chmod 664 " $1}' | sh -
+
