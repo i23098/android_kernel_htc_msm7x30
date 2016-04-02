@@ -866,9 +866,6 @@ int cfg80211_change_iface(struct cfg80211_registered_device *rdev,
 		case NUM_NL80211_IFTYPES:
 			/* not happening */
 			break;
-		case NL80211_IFTYPE_P2P_DEVICE:
-			WARN_ON(1);
-			break;
 		}
 	}
 
