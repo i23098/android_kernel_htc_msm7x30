@@ -23,6 +23,61 @@
 #define BM(msb, lsb)	(((((uint32_t)-1) << (31-msb)) >> (31-msb+lsb)) << lsb)
 #define BVAL(msb, lsb, val)	(((val) << lsb) & BM(msb, lsb))
 
+#define MN_MODE_DUAL_EDGE 0x2
+
+/* MD Registers */
+#define MD4(m_lsb, m, n_lsb, n) \
+		((BVAL((m_lsb+3), m_lsb, m) | BVAL((n_lsb+3), n_lsb, ~(n))) \
+		* !!(n))
+#define MD8(m_lsb, m, n_lsb, n) \
+		((BVAL((m_lsb+7), m_lsb, m) | BVAL((n_lsb+7), n_lsb, ~(n))) \
+		* !!(n))
+#define MD16(m, n) ((BVAL(31, 16, m) | BVAL(15, 0, ~(n))) * !!(n))
+
+/* NS Registers */
+#define NS(n_msb, n_lsb, n, m, mde_lsb, d_msb, d_lsb, d, s_msb, s_lsb, s) \
+		(BVAL(n_msb, n_lsb, ~(n-m)) \
+		| (BVAL((mde_lsb+1), mde_lsb, MN_MODE_DUAL_EDGE) * !!(n)) \
+		| BVAL(d_msb, d_lsb, (d-1)) | BVAL(s_msb, s_lsb, s))
+
+#define NS_MM(n_msb, n_lsb, n, m, d_msb, d_lsb, d, s_msb, s_lsb, s) \
+		(BVAL(n_msb, n_lsb, ~(n-m)) | BVAL(d_msb, d_lsb, (d-1)) \
+		| BVAL(s_msb, s_lsb, s))
+
+#define NS_DIVSRC(d_msb, d_lsb, d, s_msb, s_lsb, s) \
+		(BVAL(d_msb, d_lsb, (d-1)) | BVAL(s_msb, s_lsb, s))
+
+#define NS_DIV(d_msb, d_lsb, d) \
+		BVAL(d_msb, d_lsb, (d-1))
+
+#define NS_SRC_SEL(s_msb, s_lsb, s) \
+		BVAL(s_msb, s_lsb, s)
+
+#define NS_MND_BANKED4(n0_lsb, n1_lsb, n, m, s0_lsb, s1_lsb, s) \
+		 (BVAL((n0_lsb+3), n0_lsb, ~(n-m)) \
+		| BVAL((n1_lsb+3), n1_lsb, ~(n-m)) \
+		| BVAL((s0_lsb+2), s0_lsb, s) \
+		| BVAL((s1_lsb+2), s1_lsb, s))
+
+#define NS_MND_BANKED8(n0_lsb, n1_lsb, n, m, s0_lsb, s1_lsb, s) \
+		 (BVAL((n0_lsb+7), n0_lsb, ~(n-m)) \
+		| BVAL((n1_lsb+7), n1_lsb, ~(n-m)) \
+		| BVAL((s0_lsb+2), s0_lsb, s) \
+		| BVAL((s1_lsb+2), s1_lsb, s))
+
+#define NS_DIVSRC_BANKED(d0_msb, d0_lsb, d1_msb, d1_lsb, d, \
+	s0_msb, s0_lsb, s1_msb, s1_lsb, s) \
+		 (BVAL(d0_msb, d0_lsb, (d-1)) | BVAL(d1_msb, d1_lsb, (d-1)) \
+		| BVAL(s0_msb, s0_lsb, s) \
+		| BVAL(s1_msb, s1_lsb, s))
+
+/* CC Registers */
+#define CC(mde_lsb, n) (BVAL((mde_lsb+1), mde_lsb, MN_MODE_DUAL_EDGE) * !!(n))
+#define CC_BANKED(mde0_lsb, mde1_lsb, n) \
+		((BVAL((mde0_lsb+1), mde0_lsb, MN_MODE_DUAL_EDGE) \
+		| BVAL((mde1_lsb+1), mde1_lsb, MN_MODE_DUAL_EDGE)) \
+		* !!(n))
+
 /*
  * Halt/Status Checking Mode Macros
  */
@@ -38,7 +93,7 @@
  */
 #define DEFINE_CLK_MEASURE(name) \
 	struct clk name = { \
-		.ops = &clk_ops_measure, \
+		.ops = &clk_ops_empty, \
 		.dbg_name = #name, \
 		CLK_INIT(name), \
 	}; \
@@ -48,11 +103,10 @@
  */
 struct clk_freq_tbl {
 	const uint32_t	freq_hz;
-	struct clk	*src_clk;
+	struct clk	*const src_clk;
 	const uint32_t	md_val;
 	const uint32_t	ns_val;
 	const uint32_t	ctl_val;
-	uint32_t	mnd_en_mask;
 	const unsigned	sys_vdd;
 	void		*const extra_freq_data;
 };
@@ -74,13 +128,12 @@ struct bank_masks {
 	const struct bank_mask_info	bank1_mask;
 };
 
-#define F_RAW(f, sc, m_v, n_v, c_v, m_m, e) { \
+#define F_RAW(f, sc, m_v, n_v, c_v, e) { \
 	.freq_hz = f, \
 	.src_clk = sc, \
 	.md_val = m_v, \
 	.ns_val = n_v, \
 	.ctl_val = c_v, \
-	.mnd_en_mask = m_m, \
 	.extra_freq_data = e, \
 	}
 #define FREQ_END	(UINT_MAX-1)
@@ -123,6 +176,7 @@ struct rcg_clk {
 	const uint32_t	root_en_mask;
 	uint32_t	ns_mask;
 	const uint32_t	ctl_mask;
+	uint32_t	mnd_en_mask;
 
 	void		*bank_info;
 	void   (*set_rate)(struct rcg_clk *, struct clk_freq_tbl *);
@@ -144,7 +198,6 @@ extern struct clk_freq_tbl rcg_dummy_freq;
 int rcg_clk_enable(struct clk *clk);
 void rcg_clk_disable(struct clk *clk);
 int rcg_clk_set_rate(struct clk *clk, unsigned long rate);
-unsigned long rcg_clk_get_rate(struct clk *clk);
 int rcg_clk_list_rate(struct clk *clk, unsigned n);
 int rcg_clk_is_enabled(struct clk *clk);
 long rcg_clk_round_rate(struct clk *clk, unsigned long rate);
@@ -182,29 +235,14 @@ extern struct clk_ops clk_ops_cdiv;
 
 /**
  * struct fixed_clk - fixed rate clock (used for crystal oscillators)
- * @rate: output rate
  * @c: clk
  */
 struct fixed_clk {
-	unsigned long rate;
 	struct clk c;
 };
 
-static inline struct fixed_clk *to_fixed_clk(struct clk *clk)
-{
-	return container_of(clk, struct fixed_clk, c);
-}
-
-static inline unsigned long fixed_clk_get_rate(struct clk *clk)
-{
-	struct fixed_clk *f = to_fixed_clk(clk);
-	return f->rate;
-}
-
-
 /**
  * struct pll_vote_clk - phase locked loop (HW voteable)
- * @rate: output rate
  * @en_reg: enable register
  * @en_mask: ORed with @en_reg to enable the clock
  * @status_reg: status register
@@ -212,8 +250,6 @@ static inline unsigned long fixed_clk_get_rate(struct clk *clk)
  * @c: clk
  */
 struct pll_vote_clk {
-	unsigned long rate;
-
 	void __iomem *const en_reg;
 	const u32 en_mask;
 
@@ -232,14 +268,11 @@ static inline struct pll_vote_clk *to_pll_vote_clk(struct clk *clk)
 
 /**
  * struct pll_clk - phase locked loop
- * @rate: output rate
  * @mode_reg: enable register
  * @parent: clock source
  * @c: clk
  */
 struct pll_clk {
-	unsigned long rate;
-
 	void __iomem *const mode_reg;
 
 	struct clk *parent;
@@ -297,7 +330,7 @@ struct measure_clk {
 	struct clk c;
 };
 
-extern struct clk_ops clk_ops_measure;
+extern struct clk_ops clk_ops_empty;
 
 static inline struct measure_clk *to_measure_clk(struct clk *clk)
 {

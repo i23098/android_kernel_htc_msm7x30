@@ -244,7 +244,7 @@ EXPORT_SYMBOL(clk_reset);
 unsigned long clk_get_rate(struct clk *clk)
 {
 	if (!clk->ops->get_rate)
-		return 0;
+		return clk->rate;
 
 	return clk->ops->get_rate(clk);
 }
@@ -371,36 +371,14 @@ void __init msm_clock_init(struct clock_init_data *data)
  */
 static int __init clock_late_init(void)
 {
-	unsigned n, count = 0;
 	unsigned long flags;
-	int ret = 0;
+	int n, ret = 0;
 
 	clock_debug_init(clk_init_data);
-	for (n = 0; n < clk_init_data->size; n++) {
-		struct clk *clk = clk_init_data->table[n].clk;
-		bool handoff = false;
+	for (n = 0; n < clk_init_data->size; n++)
+		clock_debug_add(clk_init_data->table[n].clk);
 
-		clock_debug_add(clk);
-		if (!(clk->flags & CLKFLAG_SKIP_AUTO_OFF)) {
-			spin_lock_irqsave(&clk->lock, flags);
-			if (!clk->count && clk->ops->auto_off) {
-				count++;
-				clk->ops->auto_off(clk);
-			}
-			if (clk->flags & CLKFLAG_HANDOFF_RATE) {
-				clk->flags &= ~CLKFLAG_HANDOFF_RATE;
-				handoff = true;
-			}
-			spin_unlock_irqrestore(&clk->lock, flags);
-			/*
-			 * Calling clk_disable() outside the lock is safe since
-			 * it doesn't need to be atomic with the flag change.
-			 */
-			if (handoff)
-				clk_disable(clk);
-		}
-	}
-	pr_info("clock_late_init() disabled %d unused clocks\n", count);
+	pr_info("%s: Removing enables held for handed-off clocks\n", __func__);
 	if (clk_init_data->late_init)
 		ret = clk_init_data->late_init();
 	return ret;

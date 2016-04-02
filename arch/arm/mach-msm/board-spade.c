@@ -1763,7 +1763,7 @@ static struct platform_device msm_migrate_pages_device = {
 static struct android_pmem_platform_data android_pmem_adsp_pdata = {
        .name = "pmem_adsp",
        .allocator_type = PMEM_ALLOCATORTYPE_BITMAP,
-       .cached = 0,
+       .cached = 1,
 	.memory_type = MEMTYPE_EBI0,
 };
 
@@ -3117,7 +3117,7 @@ static void __init spade_init(void)
 
 	msm_clock_init(&msm7x30_clock_init_data);
 	msm_spm_init(&msm_spm_data, 1);
-	acpuclk_init(&acpuclk_7x30_soc_data);
+	platform_device_register(&msm7x30_device_acpuclk);
 
 #ifdef CONFIG_PERFLOCK
 	perflock_init(&spade_perflock_data);

@@ -37,9 +37,9 @@ extern struct platform_device msm_device_mddi0;
  * ??????          6    MB             -  64    MB               ( 58 MB)
  * linux1         64    MB ( 67108864) - 256    MB (268435456)   (192 MB)
  * 256mb offset  256    MB (268435456) - 512    MB (536870912)   (256 MB)
- * linux2        512    MB (536870912) - 707    MB (741343232)   (195 MB)
- * adsp          707    MB (741343232) - 737    MB (772800512)   ( 30 MB)
- * pmem sf       737    MB (772800512) - 768    MB (805306368)   ( 31 MB)
+ * linux2        512    MB (536870912) - 706    MB (740294656)   (194 MB)
+ * adsp          706    MB (740294656) - 736    MB (771751936)   ( 30 MB)
+ * pmem sf       736    MB (771751936) - 768    MB (805306368)   ( 32 MB)
  *
  * Please, try to keep this up-to-date if you make changes!
  */
@@ -47,17 +47,17 @@ extern struct platform_device msm_device_mddi0;
 #define MSM_LINUX_BASE1	0x04000000
 #define MSM_LINUX_SIZE1	0x0C000000
 #define MSM_LINUX_BASE2	0x20000000
-#define MSM_LINUX_SIZE2	0x0C300000
+#define MSM_LINUX_SIZE2	0x0C200000
 #define MSM_MEM_256MB_OFFSET	0x10000000
 */
 #define MSM_RAM_CONSOLE_BASE	0x00500000
 #define MSM_RAM_CONSOLE_SIZE	0x00100000
 
-#define MSM_PMEM_ADSP_BASE	0x2C300000
+#define MSM_PMEM_ADSP_BASE	0x2C200000
 #define MSM_PMEM_ADSP_SIZE	0x01E00000 /* for 8M(4:3) + gpu effect */
 
-#define MSM_PMEM_SF_BASE	0x2E100000
-#define MSM_PMEM_SF_SIZE	0x01F00000
+#define MSM_PMEM_SF_BASE	0x2E000000
+#define MSM_PMEM_SF_SIZE	0x02000000
 
 #define PMEM_KERNEL_EBI0_SIZE   0x00500000
 
@@ -67,7 +67,18 @@ extern struct platform_device msm_device_mddi0;
 */
 #define MSM_V4L2_VIDEO_OVERLAY_BUF_SIZE 2764800
 
-#define MSM_FB_SIZE		roundup((800 * 480 * 4 * 3), 4096) /* 4 bpp x 3 pages, Note: must be multiple of 4096 */
+#ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
+#define MSM_FB_PRIM_BUF_SIZE \
+				(roundup((roundup(800, 32) * roundup(480, 32) * 4), 4096) * 3)
+						/* 4 bpp x 3 pages */
+#else
+#define MSM_FB_PRIM_BUF_SIZE \
+				(roundup((roundup(800, 32) * roundup(480, 32) * 4), 4096) * 2)
+						/* 4 bpp x 2 pages */
+#endif
+
+/* Note: must be multiple of 4096 */
+#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE, 4096)
 
 #ifdef CONFIG_ION_MSM
 #define MSM_ION_CAMERA_SIZE	MSM_PMEM_ADSP_SIZE
