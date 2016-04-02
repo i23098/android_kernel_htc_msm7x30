@@ -24,16 +24,13 @@
 #include <linux/export.h>
 #include <linux/suspend.h>
 #include <linux/syscore_ops.h>
-#include <linux/rtc.h>
 #include <linux/ftrace.h>
+#include <linux/rtc.h>
 #include <trace/events/power.h>
 
 #include "power.h"
 
 const char *const pm_states[PM_SUSPEND_MAX] = {
-#ifdef CONFIG_EARLYSUSPEND
-	[PM_SUSPEND_ON]		= "on",
-#endif
 	[PM_SUSPEND_STANDBY]	= "standby",
 	[PM_SUSPEND_MEM]	= "mem",
 };
