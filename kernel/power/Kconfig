@@ -28,25 +28,9 @@ config CPU_PM
 	def_bool y
 	depends on SUSPEND || CPU_IDLE
 
-config WAKELOCK
-	bool "Wake lock"
-	depends on PM && RTC_CLASS
-	default n
-	select HAS_WAKELOCK
-	---help---
-	  Enable wakelocks. When user space request a sleep state the
-	  sleep request will be delayed until no wake locks are held.
-
-config WAKELOCK_STAT
-	bool "Wake lock stats"
-	depends on WAKELOCK
-	default y
-	---help---
-	  Report wake lock stats in /proc/wakelocks
-
 config USER_WAKELOCK
 	bool "Userspace wake locks"
-	depends on WAKELOCK
+	depends on PM_WAKELOCKS
 	default y
 	---help---
 	  User-space wake lock api. Write "lockname" or "lockname timeout"
@@ -56,7 +40,7 @@ config USER_WAKELOCK
 
 config EARLYSUSPEND
 	bool "Early suspend"
-	depends on WAKELOCK
+	depends on PM_WAKELOCKS
 	default y
 	select HAS_EARLYSUSPEND
 	---help---
@@ -180,6 +164,33 @@ config PM_SLEEP_SMP
 	depends on PM_SLEEP
 	select HOTPLUG
 	select HOTPLUG_CPU
+
+config PM_AUTOSLEEP
+	bool "Opportunistic sleep"
+	depends on PM_SLEEP
+	default n
+	---help---
+	Allow the kernel to trigger a system transition into a global sleep
+	state automatically whenever there are no active wakeup sources.
+
+config PM_WAKELOCKS
+	bool "User space wakeup sources interface"
+	depends on PM_SLEEP
+	default n
+	---help---
+	Allow user space to create, activate and deactivate wakeup source
+	objects with the help of a sysfs-based interface.
+
+config PM_WAKELOCKS_LIMIT
+	int "Maximum number of user space wakeup sources (0 = no limit)"
+	range 0 100000
+	default 100
+	depends on PM_WAKELOCKS
+
+config PM_WAKELOCKS_GC
+	bool "Garbage collector for user space wakeup sources"
+	depends on PM_WAKELOCKS
+	default y
 
 config PM_RUNTIME
 	bool "Run-time PM core functionality"
