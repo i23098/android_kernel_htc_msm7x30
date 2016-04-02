@@ -160,6 +160,7 @@ static struct notifier_block sleep_stat_notif_block = {
 	.notifier_call = sleep_stat_suspend_notifier,
 };
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static void sleep_stat_early_suspend(struct early_suspend *handler)
 {
 	print_sleep_stat(F_SCREEN_OFF);
@@ -169,11 +170,14 @@ static void sleep_stat_late_resume(struct early_suspend *handler)
 {
 	print_sleep_stat(F_SCREEN_ON);
 }
+#endif
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static struct early_suspend sleep_stat_screen_hdl = {
 	.suspend = sleep_stat_early_suspend,
 	.resume = sleep_stat_late_resume,
 };
+#endif
 
 #if defined(CONFIG_DEBUG_FS)
 

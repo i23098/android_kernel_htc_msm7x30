@@ -28,7 +28,11 @@
 
 enum {
 	WAKE_LOCK_SUSPEND, /* Prevent suspend */
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	WAKE_LOCK_IDLE,    /* Prevent low power idle */
+#else
+	WAKE_LOCK_IDLE=WAKE_LOCK_SUSPEND,
+#endif
 	WAKE_LOCK_TYPE_COUNT
 };
 

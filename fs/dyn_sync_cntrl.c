@@ -112,6 +112,7 @@ static void dyn_fsync_force_flush(void)
 	sync_filesystems(1);
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static void dyn_fsync_early_suspend(struct early_suspend *h)
 {
 	mutex_lock(&fsync_mutex);
@@ -135,6 +136,7 @@ static struct early_suspend dyn_fsync_early_suspend_handler =
 		.suspend = dyn_fsync_early_suspend,
 		.resume = dyn_fsync_late_resume,
 	};
+#endif
 
 static int dyn_fsync_panic_event(struct notifier_block *this,
 		unsigned long event, void *ptr)

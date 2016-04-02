@@ -117,6 +117,8 @@ struct buffer {
 	unsigned short mfield_sz; /*only useful for data has meta field */
 };
 
+struct audio;
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 struct audmp3_suspend_ctl {
   struct early_suspend node;

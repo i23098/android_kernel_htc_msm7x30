@@ -25,7 +25,6 @@
 #include <linux/platform_device.h>
 #include <mach/atmega_microp.h>
 
-#define EARLY_SUSPEND_BMA 1
 #define D(x...) printk(KERN_DEBUG "[GSNR][BMA150 SPI] " x)
 #define E(x...) printk(KERN_ERR "[GSNR][BMA150 SPI ERROR] " x)
 #define DIF(x...) if (debug_flag) \
@@ -439,7 +438,7 @@ static struct miscdevice spi_bma_device = {
 };
 
 
-#ifdef EARLY_SUSPEND_BMA
+#ifdef CONFIG_HAS_EARLYSUSPEND
 
 static void bma150_early_suspend(struct early_suspend *handler)
 {
@@ -468,7 +467,7 @@ static void bma150_early_resume(struct early_suspend *handler)
 			__func__, ret);*/
 }
 
-#else /* EARLY_SUSPEND_BMA */
+#else /* CONFIG_HAS_EARLYSUSPEND */
 
 static int bma150_suspend(struct device *device)
 {
@@ -491,7 +490,7 @@ static int bma150_resume(struct device *device)
 
 	return 0;
 }
-#endif /* EARLY_SUSPEND_BMA */
+#endif /* CONFIG_HAS_EARLYSUSPEND */
 
 static ssize_t spi_bma150_show(struct device *dev,
 				  struct device_attribute *attr, char *buf)
@@ -714,7 +713,7 @@ static int spi_gsensor_initial(void)
 		goto err_set_mode;
 	}
 
-#ifdef EARLY_SUSPEND_BMA
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	bma_early_suspend.suspend = bma150_early_suspend;
 	bma_early_suspend.resume = bma150_early_resume;
 	register_early_suspend(&bma_early_suspend);
@@ -763,7 +762,7 @@ static int spi_bma150_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#ifndef EARLY_SUSPEND_BMA
+#ifndef CONFIG_HAS_EARLYSUSPEND
 static struct dev_pm_ops bma150_pm_ops = {
 	.suspend_noirq = bma150_suspend,
 	.resume_noirq = bma150_resume,
@@ -776,7 +775,7 @@ static struct platform_driver spi_bma150_driver = {
 	.driver		= {
 		.name		= BMA150_G_SENSOR_NAME,
 		.owner		= THIS_MODULE,
-#ifndef EARLY_SUSPEND_BMA
+#ifndef CONFIG_HAS_EARLYSUSPEND
 		.pm 		= &bma150_pm_ops
 #endif
 	},

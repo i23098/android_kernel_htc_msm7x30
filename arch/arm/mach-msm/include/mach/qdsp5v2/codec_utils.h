@@ -57,6 +57,8 @@ struct buffer {
 	unsigned addr;
 };
 
+struct audio;
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 struct audio_suspend_ctl {
 	struct early_suspend node;

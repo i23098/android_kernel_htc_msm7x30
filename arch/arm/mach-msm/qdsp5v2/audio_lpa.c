@@ -121,6 +121,8 @@
 			((uint64_t)((((uint64_t)v[4]) << 32) | 	   \
 			 (v[5] << 16) | (v[6])))
 
+struct audio;
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 struct audlpa_suspend_ctl {
 	struct early_suspend node;

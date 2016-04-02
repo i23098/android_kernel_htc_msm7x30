@@ -2255,6 +2255,7 @@ static int ov8810_suspend(struct platform_device *pdev, pm_message_t state)
 	return rc;
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static void ov8810_resume(struct early_suspend *handler)
 {
 	int rc = 0;
@@ -2321,7 +2322,7 @@ static void ov8810_resume(struct early_suspend *handler)
 	wake_up(&ov8810_event.event_wait);
 	return;
 }
-
+#endif
 
 static int __exit ov8810_i2c_remove(struct i2c_client *client)
 {
@@ -2342,12 +2343,13 @@ static struct i2c_driver ov8810_i2c_driver = {
 	},
 };
 
-
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static struct early_suspend early_suspend_ov8810 = {
 	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN+1,
 	.resume = ov8810_resume,
 	.suspend = NULL,
 };
+#endif
 
 static const char *Ov8810Vendor = "OmniVision";
 static const char *Ov8810NAME = "ov8810";
@@ -2712,8 +2714,10 @@ static int ov8810_sensor_probe(struct msm_camera_sensor_info *info,
 
 	msleep(20);
 	ov8810_probe_init_done(info);
-	/*register late resuem*/
+	/*register late resume*/
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	register_early_suspend(&early_suspend_ov8810);
+#endif
 	/*init wait event*/
 	init_waitqueue_head(&ov8810_event.event_wait);
 	/*init waked_up value*/
