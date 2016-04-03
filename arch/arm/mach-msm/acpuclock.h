@@ -1,9 +1,8 @@
-/* arch/arm/mach-msm/acpuclock.h
- *
- * MSM architecture clock driver header
+/*
+ * MSM architecture CPU clock driver header
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2007 QUALCOMM Incorporated
+ * Copyright (c) 2007-2011, Code Aurora Forum. All rights reserved.
  * Author: San Mehat <san@android.com>
  *
  * This software is licensed under the terms of the GNU General Public
