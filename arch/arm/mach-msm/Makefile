@@ -1,6 +1,39 @@
 obj-y += io.o timer.o
 obj-y += clock.o
 obj-$(CONFIG_DEBUG_FS) += clock-debug.o
+
+obj-$(CONFIG_MSM_VIC) += irq-vic.o
+obj-$(CONFIG_MSM_IOMMU) += devices-iommu.o
+
+obj-$(CONFIG_ARCH_MSM7X00A) += dma.o irq.o acpuclock-arm11.o
+obj-$(CONFIG_ARCH_MSM7X30) += dma.o
+obj-$(CONFIG_ARCH_QSD8X50) += dma.o sirc.o
+
+obj-$(CONFIG_MSM_PROC_COMM) += proc_comm.o clock-pcom.o vreg.o
+
+
+CFLAGS_scm.o :=$(call as-instr,.arch_extension sec,-DREQUIRES_SEC=1)
+
+obj-$(CONFIG_HOTPLUG_CPU) += hotplug.o
+obj-$(CONFIG_SMP) += headsmp.o platsmp.o
+
+obj-$(CONFIG_MACH_TROUT) += board-trout.o board-trout-gpio.o board-trout-mmc.o devices-msm7x00.o
+obj-$(CONFIG_MACH_TROUT) += board-trout.o board-trout-gpio.o board-trout-mmc.o board-trout-panel.o devices-msm7x00.o
+obj-$(CONFIG_MACH_HALIBUT) += board-halibut.o devices-msm7x00.o
+obj-$(CONFIG_ARCH_MSM7X30) += gpiomux-7x30.o
+obj-$(CONFIG_ARCH_QSD8X50) += board-qsd8x50.o devices-qsd8x50.o
+obj-$(CONFIG_ARCH_MSM8X60) += board-msm8x60.o
+obj-$(CONFIG_ARCH_MSM8960) += board-msm8960.o devices-msm8960.o
+
+obj-$(CONFIG_ARCH_MSM7X30) += gpiomux-v1.o gpiomux.o
+obj-$(CONFIG_ARCH_QSD8X50) += gpiomux-8x50.o gpiomux-v1.o gpiomux.o
+obj-$(CONFIG_ARCH_MSM8X60) += gpiomux-8x60.o gpiomux-v2.o gpiomux.o
+obj-$(CONFIG_ARCH_MSM8960) += gpiomux-v2.o gpiomux.o
+obj-$(CONFIG_ARCH_APQ8064) += gpiomux-v2.o gpiomux.o
+obj-$(CONFIG_ARCH_MSM9615) += gpiomux-v2.o gpiomux.o
+obj-$(CONFIG_ARCH_MSMCOPPER) += gpiomux-v2.o gpiomux.o
+
+obj-$(CONFIG_MSM_IOMMU) += iommu.o iommu_dev.o iommu_domains.o
 obj-y += memory.o clock-voter.o clock-dummy.o
 obj-y += subsystem_map.o
 obj-$(CONFIG_CPU_FREQ_MSM) += cpufreq.o
@@ -10,26 +43,13 @@ obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
 
 obj-y += acpuclock.o
 obj-y += drv_callback.o
-obj-$(CONFIG_ARCH_MSM7X00A) += acpuclock-7201.o
-obj-$(CONFIG_ARCH_MSM7X25) += acpuclock-7201.o
-obj-$(CONFIG_ARCH_MSM7X27) += acpuclock-7201.o
 obj-$(CONFIG_ARCH_MSM_SCORPION) += pmu.o
-obj-$(CONFIG_ARCH_MSM_KRAIT) += msm-krait-l2-accessors.o pmu.o
 obj-$(CONFIG_ARCH_MSM7X27A) += pmu.o
 
 ifndef CONFIG_MSM_SMP
 obj-$(CONFIG_ARCH_MSM_SCORPION) += msm_fault_handlers.o
 endif
 
-obj-$(CONFIG_MSM_VIC) += irq-vic.o
-obj-$(CONFIG_MSM_IOMMU) += iommu.o iommu_dev.o devices-iommu.o
-obj-$(CONFIG_MSM_IOMMU) += iommu_domains.o
-
-obj-$(CONFIG_ARCH_MSM7X00A) += dma.o irq.o acpuclock-arm11.o
-obj-$(CONFIG_ARCH_MSM7X30) += dma.o
-obj-$(CONFIG_ARCH_QSD8X50) += dma.o sirc.o
-
-obj-$(CONFIG_MSM_PROC_COMM) += proc_comm.o clock-pcom.o vreg.o
 ifndef CONFIG_ARCH_MSM8X60
 	obj-$(CONFIG_MSM_PROC_COMM) += mpp.o
 	ifdef CONFIG_MSM_PROC_COMM
@@ -37,15 +57,6 @@ ifndef CONFIG_ARCH_MSM8X60
 		obj-$(CONFIG_DEBUG_FS) += pmic_debugfs.o
 	endif
 endif
-
-ifdef CONFIG_ARCH_QSD8X50
-	obj-$(CONFIG_MSM_SOC_REV_NONE) += acpuclock-8x50.o
-endif
-
-CFLAGS_scm.o :=$(call as-instr,.arch_extension sec,-DREQUIRES_SEC=1)
-
-obj-$(CONFIG_HOTPLUG_CPU) += hotplug.o
-obj-$(CONFIG_SMP) += headsmp.o platsmp.o
 
 obj-$(CONFIG_MSM_CPU_AVS) += avs.o
 obj-$(CONFIG_MSM_AVS_HW) += avs_hw.o
@@ -76,7 +87,6 @@ target += smd_rpc_sym.c
 $(obj)/smd_rpc_sym.c: $(src)/smd_rpc_sym $(src)/mkrpcsym.pl
 	$(call if_changed,mkrpcsym)
 
-obj-$(CONFIG_MSM_SCM) += scm.o scm-boot.o htc_simlock-8x60.o htc_sdservice.o
 ifdef CONFIG_ARCH_MSM8960
 	obj-y += tz_log.o
 endif
@@ -88,8 +98,8 @@ obj-$(CONFIG_MSM_PIL) += peripheral-loader.o
 obj-$(CONFIG_MSM_PIL) += scm-pas.o
 ifdef CONFIG_MSM_PIL
 obj-$(CONFIG_ARCH_MSM8X60) += peripheral-reset.o
-obj-$(CONFIG_ARCH_MSM8960) += peripheral-reset-8960.o
 endif
+
 obj-$(CONFIG_ARCH_QSD8X50) += sirc.o
 obj-$(CONFIG_MSM_FIQ_SUPPORT) += fiq_glue.o
 obj-$(CONFIG_MACH_TROUT) += board-trout-rfkill.o
@@ -131,10 +141,10 @@ else # Else CONFIG_ARCH_MSM7X30_SMD
 obj-y += modem_notifier.o
 obj-$(CONFIG_MSM_SMD_LOGGING) += smem_log.o
 ifeq ($(CONFIG_ARCH_MSM7X27A),y)
-obj-$(CONFIG_MSM_SMD) += smd.o smd_7x2x_debug.o
 else # Else CONFIG_ARCH_MSM7X27A
 obj-$(CONFIG_MSM_SMD) += smd.o smd_debug.o
 endif # End CONFIG_ARCH_MSM7X27A
+
 obj-$(CONFIG_MSM_SMD_TTY) += smd_tty.o
 obj-$(CONFIG_MSM_SMD_QMI) += smd_qmi.o
 obj-$(CONFIG_MSM_SMD_PKT) += smd_pkt.o
@@ -156,6 +166,7 @@ obj-$(CONFIG_MSM_RPC_WATCHDOG) += rpc_dog_keepalive.o
 obj-$(CONFIG_MSM_RPCSERVER_WATCHDOG) += rpc_server_dog_keepalive.o
 obj-$(CONFIG_MSM_RPCSERVER_TIME_REMOTE) += rpc_server_time_remote.o
 obj-$(CONFIG_MSM_RPCSERVER_HANDSET) += rpc_server_handset.o
+
 endif # End CONFIG_ARCH_MSM7X30_SMD
 
 obj-$(CONFIG_MSM_DSPS) += msm_dsps.o
@@ -205,7 +216,6 @@ obj-$(CONFIG_MACH_QSD8X50_FFA) += board-qsd8x50.o
 obj-$(CONFIG_ARCH_MSM8X60) += devices-msm8x60.o clock-local.o clock-8x60.o acpuclock-8x60.o
 obj-$(CONFIG_ARCH_MSM8X60) += clock-rpm.o
 obj-$(CONFIG_ARCH_MSM8X60) += saw-regulator.o
-obj-$(CONFIG_ARCH_MSM8X60) += rpm-regulator.o rpm-regulator-8660.o
 obj-$(CONFIG_ARCH_MSM8X60) += footswitch-8x60.o
 obj-$(CONFIG_MSM8X60_AUDIO) += htc_acoustic_8x60.o
 obj-$(CONFIG_ARCH_MSM7X27A) += htc_acoustic.o
@@ -543,15 +553,6 @@ ifdef CONFIG_VCM
 obj-$(CONFIG_ARCH_MSM8X60) += board-msm8x60-vcm.o
 endif
 
-obj-$(CONFIG_ARCH_MSM7X27) += gpiomux-7x27.o gpiomux-v1.o gpiomux.o
-obj-$(CONFIG_ARCH_MSM7X30) += gpiomux-7x30.o gpiomux-v1.o gpiomux.o
-obj-$(CONFIG_ARCH_QSD8X50) += gpiomux-8x50.o gpiomux-v1.o gpiomux.o
-obj-$(CONFIG_ARCH_MSM8X60) += gpiomux-8x60.o gpiomux-v2.o gpiomux.o
-obj-$(CONFIG_ARCH_MSM8960) += gpiomux-v2.o gpiomux.o
-obj-$(CONFIG_ARCH_APQ8064) += gpiomux-v2.o gpiomux.o
-obj-$(CONFIG_ARCH_MSM9615) += gpiomux-v2.o gpiomux.o
-obj-$(CONFIG_ARCH_MSMCOPPER) += gpiomux-v2.o gpiomux.o
-
 ifdef CONFIG_FSM9XXX_TLMM
 obj-y   += gpio-fsm9xxx.o
 else
@@ -571,17 +572,9 @@ obj-$(CONFIG_MSM_RPC_VIBRATOR) += msm_vibrator.o
 obj-$(CONFIG_MSM_NATIVE_RESTART) += restart.o
 
 obj-$(CONFIG_MSM_PROC_COMM_REGULATOR) += proccomm-regulator.o
-ifdef CONFIG_MSM_PROC_COMM_REGULATOR
-obj-$(CONFIG_MACH_MSM7X27_SURF) += board-msm7627-regulator.o
-obj-$(CONFIG_MACH_MSM7X27_FFA) += board-msm7627-regulator.o
-obj-$(CONFIG_ARCH_MSM7X30) += board-msm7x30-regulator.o
-obj-$(CONFIG_ARCH_MSM7X27A) += board-msm7x27a-regulator.o
-obj-$(CONFIG_MACH_PICO) += board-msm7x27a-regulator.o
-endif
 
 obj-$(CONFIG_PERFLOCK) += perflock.o
 obj-$(CONFIG_MICROP_COMMON) += atmega_microp_common.o
-obj-$(CONFIG_MFD_MAX8957) += max8957_gpio.o
 obj-y += display/
 obj-$(CONFIG_MACH_PRIMOTD) += board-primotd-gps.o
 obj-$(CONFIG_HTC_ACCESSORY_ONEWIRE) += htc_onewire.o
