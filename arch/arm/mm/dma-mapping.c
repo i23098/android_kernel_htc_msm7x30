@@ -818,6 +818,7 @@ static void dma_cache_maint_page(struct page *page, unsigned long offset,
 	void (*op)(const void *, size_t, int))
 {
 	unsigned long pfn;
+	size_t left;
 
 	pfn = page_to_pfn(page) + offset / PAGE_SIZE;
 	offset %= PAGE_SIZE;
@@ -828,7 +829,7 @@ static void dma_cache_maint_page(struct page *page, unsigned long offset,
 	 * If highmem is not configured then the bulk of this loop gets
 	 * optimized out.
 	 */
-	size_t left = size;
+	left = size;
 	do {
 		size_t len = left;
 		void *vaddr;

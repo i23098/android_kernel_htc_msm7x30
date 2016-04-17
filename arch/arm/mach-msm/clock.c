@@ -367,7 +367,6 @@ void __init msm_clock_init(struct clock_init_data *data)
 
 static int __init clock_late_init(void)
 {
-	unsigned long flags;
 	int n, ret = 0;
 
 	clock_debug_init(clk_init_data);
