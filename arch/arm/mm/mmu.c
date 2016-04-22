@@ -220,7 +220,7 @@ static struct mem_type mem_types[] = {
 		.prot_l1	= PMD_TYPE_TABLE,
 		.prot_sect	= PROT_SECT_DEVICE | PMD_SECT_WB,
 		.domain		= DOMAIN_IO,
-	},	
+	},
 	[MT_DEVICE_STRONGLY_ORDERED] = {  /* Guaranteed strongly ordered */
 		.prot_pte       = PROT_PTE_DEVICE,
 		.prot_l1        = PMD_TYPE_TABLE,
@@ -749,7 +749,7 @@ void __init create_mapping(struct map_desc *md)
 
 	if ((md->type == MT_DEVICE || md->type == MT_ROM) &&
 	    md->virtual >= PAGE_OFFSET &&
-	    (md->virtual < MSM_VMALLOC_START || md->virtual >= VMALLOC_END)) {
+	    (md->virtual < VMALLOC_START || md->virtual >= VMALLOC_END)) {
 		printk(KERN_WARNING "BUG: mapping for 0x%08llx"
 		       " at 0x%08lx out of vmalloc space\n",
 		       (long long)__pfn_to_phys((u64)md->pfn), md->virtual);
@@ -807,8 +807,8 @@ void __init iotable_init(struct map_desc *io_desc, int nr)
 		create_mapping(md);
 		vm->addr = (void *)(md->virtual & PAGE_MASK);
 		vm->size = PAGE_ALIGN(md->length + (md->virtual & ~PAGE_MASK));
-		vm->phys_addr = __pfn_to_phys(md->pfn); 
-		vm->flags = VM_IOREMAP | VM_ARM_STATIC_MAPPING; 
+		vm->phys_addr = __pfn_to_phys(md->pfn);
+		vm->flags = VM_IOREMAP | VM_ARM_STATIC_MAPPING;
 		vm->flags |= VM_ARM_MTYPE(md->type);
 		vm->caller = iotable_init;
 		// vm_area_add_early(vm++);
@@ -997,7 +997,7 @@ static inline void prepare_page_table(void)
 	 * memory bank, up to the vmalloc region.
 	 */
 	for (addr = __phys_to_virt(end);
-	     addr < MSM_VMALLOC_START; addr += PMD_SIZE)
+	     addr < VMALLOC_START; addr += PMD_SIZE)
 		pmd_clear(pmd_off_k(addr));
 }
 
@@ -1049,7 +1049,7 @@ static void __init devicemaps_init(struct machine_desc *mdesc)
 
 	early_trap_init(vectors);
 
-	for (addr = MSM_VMALLOC_START; addr; addr += PMD_SIZE)
+	for (addr = VMALLOC_START; addr; addr += PMD_SIZE)
 		pmd_clear(pmd_off_k(addr));
 
 	/*

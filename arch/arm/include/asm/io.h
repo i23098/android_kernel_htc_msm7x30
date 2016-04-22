@@ -122,10 +122,6 @@ static inline void __iomem *__typesafe_io(unsigned long addr)
 #define __io(a)		__typesafe_io((a) & IO_SPACE_LIMIT)
 #endif
 
-#ifdef CONFIG_MACH_SPADE
-#define IO_SPACE_LIMIT 0xffffffff
-#endif
-
 /*
  * This is the limit of PC card/PCI/ISA IO space, which is by default
  * 64K if we have PC card, PCI or ISA support.  Otherwise, default to

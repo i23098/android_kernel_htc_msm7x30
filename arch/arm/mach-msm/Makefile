@@ -553,14 +553,10 @@ ifdef CONFIG_VCM
 obj-$(CONFIG_ARCH_MSM8X60) += board-msm8x60-vcm.o
 endif
 
-ifdef CONFIG_FSM9XXX_TLMM
-obj-y   += gpio-fsm9xxx.o
-else
 ifdef CONFIG_MSM_V2_TLMM
 ifndef CONFIG_ARCH_MSM8960
 # TODO: TLMM Mapping issues need to be resolved
 obj-y	+= gpio-v2.o
-endif
 endif
 endif
 
