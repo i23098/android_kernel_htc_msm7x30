@@ -46,8 +46,8 @@
 #include "iwl-prph.h"
 
 /* Highest firmware API version supported */
-#define IWL1000_UCODE_API_MAX 5
-#define IWL100_UCODE_API_MAX 5
+#define IWL1000_UCODE_API_MAX 6
+#define IWL100_UCODE_API_MAX 6
 
 /* Oldest version we won't warn about */
 #define IWL1000_UCODE_API_OK 5
@@ -157,7 +157,6 @@ static struct iwl_lib_ops iwl1000_lib = {
 
 static const struct iwl_base_params iwl1000_base_params = {
 	.num_of_queues = IWLAGN_NUM_QUEUES,
-	.num_of_ampdu_queues = IWLAGN_NUM_AMPDU_QUEUES,
 	.eeprom_size = OTP_LOW_IMAGE_SIZE,
 	.pll_cfg_val = CSR50_ANA_PLL_CFG_VAL,
 	.max_ll_items = OTP_MAX_LL_ITEMS_1000,
@@ -226,5 +225,5 @@ const struct iwl_cfg iwl100_bg_cfg = {
 	IWL_DEVICE_100,
 };
 
-MODULE_FIRMWARE(IWL1000_MODULE_FIRMWARE(IWL1000_UCODE_API_OK));
-MODULE_FIRMWARE(IWL100_MODULE_FIRMWARE(IWL100_UCODE_API_OK));
+MODULE_FIRMWARE(IWL1000_MODULE_FIRMWARE(IWL1000_UCODE_API_MAX));
+MODULE_FIRMWARE(IWL100_MODULE_FIRMWARE(IWL100_UCODE_API_MAX));

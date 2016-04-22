@@ -773,7 +773,8 @@ static void iwlagn_pass_packet_to_mac80211(struct iwl_priv *priv,
 	struct sk_buff *skb;
 	__le16 fc = hdr->frame_control;
 	struct iwl_rxon_context *ctx;
-	unsigned int hdrlen, fraglen;
+	struct page *p;
+	int offset;
 
 	/* We only process data packets if the interface is open */
 	if (unlikely(!priv->is_open)) {
@@ -787,24 +788,16 @@ static void iwlagn_pass_packet_to_mac80211(struct iwl_priv *priv,
 	    iwlagn_set_decrypted_flag(priv, hdr, ampdu_status, stats))
 		return;
 
-	/* Dont use dev_alloc_skb(), we'll have enough headroom once
-	 * ieee80211_hdr pulled.
-	 */
-	skb = alloc_skb(128, GFP_ATOMIC);
+	skb = dev_alloc_skb(128);
 	if (!skb) {
-		IWL_ERR(priv, "alloc_skb failed\n");
+		IWL_ERR(priv, "dev_alloc_skb failed\n");
 		return;
 	}
-	hdrlen = min_t(unsigned int, len, skb_tailroom(skb));
-	memcpy(skb_put(skb, hdrlen), hdr, hdrlen);
-	fraglen = len - hdrlen;
 
-	if (fraglen) {
-		int offset = (void *)hdr + hdrlen - rxb_addr(rxb);
+	offset = (void *)hdr - rxb_addr(rxb) + rxb_offset(rxb);
+	p = rxb_steal_page(rxb);
+	skb_add_rx_frag(skb, 0, p, offset, len, len);
 
-		skb_add_rx_frag(skb, 0, rxb_steal_page(rxb), offset,
-				fraglen, rxb->truesize);
-	}
 	iwl_update_stats(priv, false, fc, len);
 
 	/*
@@ -977,7 +970,7 @@ static int iwlagn_rx_reply_rx(struct iwl_priv *priv,
 	}
 
 	if ((unlikely(phy_res->cfg_phy_cnt > 20))) {
-		IWL_DEBUG_DROP(priv, "dsp size out of range [0,20]: %d/n",
+		IWL_DEBUG_DROP(priv, "dsp size out of range [0,20]: %d\n",
 				phy_res->cfg_phy_cnt);
 		return 0;
 	}
@@ -1141,9 +1134,6 @@ void iwl_setup_rx_handlers(struct iwl_priv *priv)
 	handlers[REPLY_COMPRESSED_BA]		=
 		iwlagn_rx_reply_compressed_ba;
 
-	/* init calibration handlers */
-	priv->rx_handlers[CALIBRATION_RES_NOTIFICATION] =
-					iwlagn_rx_calib_result;
 	priv->rx_handlers[REPLY_TX] = iwlagn_rx_reply_tx;
 
 	/* set up notification wait support */
