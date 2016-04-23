@@ -1545,12 +1545,12 @@ static int nl80211_send_iface(struct sk_buff *msg, u32 pid, u32 seq, int flags,
 		enum nl80211_channel_type channel_type;
 
 		chan = rdev->ops->get_channel(&rdev->wiphy, &channel_type);
-		if (chan) {
-			NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_FREQ,
-				    chan->center_freq);
-			NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_CHANNEL_TYPE,
-				    channel_type);
-		}
+		if (chan &&
+		    (nla_put_u32(msg, NL80211_ATTR_WIPHY_FREQ,
+				    chan->center_freq) ||
+		     nla_put_u32(msg, NL80211_ATTR_WIPHY_CHANNEL_TYPE,
+				    channel_type)))
+			goto nla_put_failure;
 	}
 
 	return genlmsg_end(msg, hdr);
