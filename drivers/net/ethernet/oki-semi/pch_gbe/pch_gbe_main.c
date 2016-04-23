@@ -79,7 +79,6 @@ const char pch_driver_version[] = DRV_VERSION;
 #define	PCH_GBE_PAUSE_PKT4_VALUE    0x01000888
 #define	PCH_GBE_PAUSE_PKT5_VALUE    0x0000FFFF
 
-#define PCH_GBE_ETH_ALEN            6
 
 /* This defines the bits that are set in the Interrupt Mask
  * Set/Read Register.  Each bit is documented below:
@@ -121,6 +120,7 @@ static unsigned int copybreak __read_mostly = PCH_GBE_COPYBREAK_DEFAULT;
 static int pch_gbe_mdio_read(struct net_device *netdev, int addr, int reg);
 static void pch_gbe_mdio_write(struct net_device *netdev, int addr, int reg,
 			       int data);
+static void pch_gbe_set_multi(struct net_device *netdev);
 
 #ifdef CONFIG_PCH_PTP
 static struct sock_filter ptp_filter[] = {
@@ -392,58 +392,13 @@ static void pch_gbe_mac_mar_set(struct pch_gbe_hw *hw, u8 * addr, u32 index)
 }
 
 /**
- * pch_gbe_mac_save_mac_addr_regs - Save MAC addresse registers
- * @hw:		Pointer to the HW structure
- * @addr:	Pointer to the MAC address
- * @index:  MAC address array register
- */
-static void
-pch_gbe_mac_save_mac_addr_regs(struct pch_gbe_hw *hw,
-			struct pch_gbe_regs_mac_adr *mac_adr, u32 index)
-{
-	mac_adr->high = ioread32(&hw->reg->mac_adr[index].high);
-	mac_adr->low = ioread32(&hw->reg->mac_adr[index].low);
-}
-
-/**
- * pch_gbe_mac_store_mac_addr_regs - Store MAC addresse registers
- * @hw:		Pointer to the HW structure
- * @addr:	Pointer to the MAC address
- * @index:  MAC address array register
- */
-static void
-pch_gbe_mac_store_mac_addr_regs(struct pch_gbe_hw *hw,
-			struct pch_gbe_regs_mac_adr *mac_adr, u32 index)
-{
-	u32 adrmask;
-
-	adrmask = ioread32(&hw->reg->ADDR_MASK);
-	iowrite32((adrmask | (0x0001 << index)), &hw->reg->ADDR_MASK);
-	/* wait busy */
-	pch_gbe_wait_clr_bit(&hw->reg->ADDR_MASK, PCH_GBE_BUSY);
-	/* Set the MAC address to the MAC address xA/xB register */
-	iowrite32(mac_adr->high, &hw->reg->mac_adr[index].high);
-	iowrite32(mac_adr->low, &hw->reg->mac_adr[index].low);
-	iowrite32((adrmask & ~(0x0001 << index)), &hw->reg->ADDR_MASK);
-	/* wait busy */
-	pch_gbe_wait_clr_bit(&hw->reg->ADDR_MASK, PCH_GBE_BUSY);
-}
-
-#define MAC_ADDR_LIST_NUM 16
-/**
  * pch_gbe_mac_reset_hw - Reset hardware
  * @hw:	Pointer to the HW structure
  */
 static void pch_gbe_mac_reset_hw(struct pch_gbe_hw *hw)
 {
-	struct pch_gbe_regs_mac_adr mac_addr_list[MAC_ADDR_LIST_NUM];
-	int i;
-
 	/* Read the MAC address. and store to the private data */
 	pch_gbe_mac_read_mac_addr(hw);
-	/* Read other MAC addresses */
-	for (i = 1; i < MAC_ADDR_LIST_NUM; i++)
-		pch_gbe_mac_save_mac_addr_regs(hw, &mac_addr_list[i], i);
 	iowrite32(PCH_GBE_ALL_RST, &hw->reg->RESET);
 #ifdef PCH_GBE_MAC_IFOP_RGMII
 	iowrite32(PCH_GBE_MODE_GMII_ETHER, &hw->reg->MODE);
@@ -451,26 +406,17 @@ static void pch_gbe_mac_reset_hw(struct pch_gbe_hw *hw)
 	pch_gbe_wait_clr_bit(&hw->reg->RESET, PCH_GBE_ALL_RST);
 	/* Setup the receive addresses */
 	pch_gbe_mac_mar_set(hw, hw->mac.addr, 0);
-	for (i = 1; i < MAC_ADDR_LIST_NUM; i++)
-		pch_gbe_mac_store_mac_addr_regs(hw, &mac_addr_list[i], i);
 	return;
 }
 
 static void pch_gbe_mac_reset_rx(struct pch_gbe_hw *hw)
 {
-	struct pch_gbe_regs_mac_adr mac_addr_list[MAC_ADDR_LIST_NUM];
-	int i;
-
 	/* Read the MAC addresses. and store to the private data */
 	pch_gbe_mac_read_mac_addr(hw);
-	for (i = 1; i < MAC_ADDR_LIST_NUM; i++)
-		pch_gbe_mac_save_mac_addr_regs(hw, &mac_addr_list[i], i);
 	iowrite32(PCH_GBE_RX_RST, &hw->reg->RESET);
 	pch_gbe_wait_clr_bit_irq(&hw->reg->RESET, PCH_GBE_RX_RST);
 	/* Setup the MAC addresses */
 	pch_gbe_mac_mar_set(hw, hw->mac.addr, 0);
-	for (i = 1; i < MAC_ADDR_LIST_NUM; i++)
-		pch_gbe_mac_store_mac_addr_regs(hw, &mac_addr_list[i], i);
 	return;
 }
 
@@ -519,7 +465,7 @@ static void pch_gbe_mac_mc_addr_list_update(struct pch_gbe_hw *hw,
 		if (mc_addr_count) {
 			pch_gbe_mac_mar_set(hw, mc_addr_list, i);
 			mc_addr_count--;
-			mc_addr_list += PCH_GBE_ETH_ALEN;
+			mc_addr_list += ETH_ALEN;
 		} else {
 			/* Clear MAC address mask */
 			adrmask = ioread32(&hw->reg->ADDR_MASK);
@@ -834,6 +780,8 @@ void pch_gbe_reinit_locked(struct pch_gbe_adapter *adapter)
 void pch_gbe_reset(struct pch_gbe_adapter *adapter)
 {
 	pch_gbe_mac_reset_hw(&adapter->hw);
+	/* reprogram multicast address register after reset */
+	pch_gbe_set_multi(adapter->netdev);
 	/* Setup the receive address. */
 	pch_gbe_mac_init_rx_addrs(&adapter->hw, PCH_GBE_MAR_ENTRIES);
 	if (pch_gbe_hal_init_hw(&adapter->hw))
@@ -1237,8 +1185,6 @@ static void pch_gbe_tx_queue(struct pch_gbe_adapter *adapter,
 		if (skb->protocol == htons(ETH_P_IP)) {
 			struct iphdr *iph = ip_hdr(skb);
 			unsigned int offset;
-			iph->check = 0;
-			iph->check = ip_fast_csum((u8 *) iph, iph->ihl);
 			offset = skb_transport_offset(skb);
 			if (iph->protocol == IPPROTO_TCP) {
 				skb->csum = 0;
@@ -1397,6 +1343,8 @@ static void pch_gbe_stop_receive(struct pch_gbe_adapter *adapter)
 		/* Stop Receive */
 		pch_gbe_mac_reset_rx(hw);
 	}
+	/* reprogram multicast address register after reset */
+	pch_gbe_set_multi(adapter->netdev);
 }
 
 static void pch_gbe_start_receive(struct pch_gbe_hw *hw)
@@ -1981,7 +1929,6 @@ static int pch_gbe_request_irq(struct pch_gbe_adapter *adapter)
 }
 
 
-static void pch_gbe_set_multi(struct net_device *netdev);
 /**
  * pch_gbe_up - Up GbE network device
  * @adapter:  Board private structure

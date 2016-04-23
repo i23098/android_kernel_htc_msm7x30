@@ -69,7 +69,7 @@
 #include <trace/events/skb.h>
 #include <linux/highmem.h>
 
-static struct kmem_cache *skbuff_head_cache __read_mostly;
+struct kmem_cache *skbuff_head_cache __read_mostly;
 static struct kmem_cache *skbuff_fclone_cache __read_mostly;
 
 static void sock_pipe_buf_release(struct pipe_inode_info *pipe,
@@ -245,6 +245,7 @@ EXPORT_SYMBOL(__alloc_skb);
 /**
  * build_skb - build a network buffer
  * @data: data buffer provided by caller
+ * @frag_size: size of fragment, or 0 if head was kmalloced
  *
  * Allocate a new &sk_buff. Caller provides space holding head and
  * skb_shared_info. @data must have been allocated by kmalloc()
@@ -258,20 +259,21 @@ EXPORT_SYMBOL(__alloc_skb);
  *  before giving packet to stack.
  *  RX rings only contains data buffers, not full skbs.
  */
-struct sk_buff *build_skb(void *data)
+struct sk_buff *build_skb(void *data, unsigned int frag_size)
 {
 	struct skb_shared_info *shinfo;
 	struct sk_buff *skb;
-	unsigned int size;
+	unsigned int size = frag_size ? : ksize(data);
 
 	skb = kmem_cache_alloc(skbuff_head_cache, GFP_ATOMIC);
 	if (!skb)
 		return NULL;
 
-	size = ksize(data) - SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
+	size -= SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
 
 	memset(skb, 0, offsetof(struct sk_buff, tail));
 	skb->truesize = SKB_TRUESIZE(size);
+	skb->head_frag = frag_size != 0;
 	atomic_set(&skb->users, 1);
 	skb->head = data;
 	skb->data = data;
@@ -376,6 +378,14 @@ static void skb_clone_fraglist(struct sk_buff *skb)
 		skb_get(list);
 }
 
+static void skb_free_head(struct sk_buff *skb)
+{
+	if (skb->head_frag)
+		put_page(virt_to_head_page(skb->head));
+	else
+		kfree(skb->head);
+}
+
 static void skb_release_data(struct sk_buff *skb)
 {
 	if (!skb->cloned ||
@@ -402,7 +412,7 @@ static void skb_release_data(struct sk_buff *skb)
 		if (skb_has_frag_list(skb))
 			skb_drop_fraglist(skb);
 
-		kfree(skb->head);
+		skb_free_head(skb);
 	}
 }
 
@@ -644,6 +654,7 @@ static struct sk_buff *__skb_clone(struct sk_buff *n, struct sk_buff *skb)
 	C(tail);
 	C(end);
 	C(head);
+	C(head_frag);
 	C(data);
 	C(truesize);
 	atomic_set(&n->users, 1);
@@ -940,7 +951,7 @@ int pskb_expand_head(struct sk_buff *skb, int nhead, int ntail,
 		fastpath = atomic_read(&skb_shinfo(skb)->dataref) == delta;
 	}
 
-	if (fastpath &&
+	if (fastpath && !skb->head_frag &&
 	    size + sizeof(struct skb_shared_info) <= ksize(skb->head)) {
 		memmove(skb->head + size, skb_shinfo(skb),
 			offsetof(struct skb_shared_info,
@@ -967,7 +978,7 @@ int pskb_expand_head(struct sk_buff *skb, int nhead, int ntail,
 	       offsetof(struct skb_shared_info, frags[skb_shinfo(skb)->nr_frags]));
 
 	if (fastpath) {
-		kfree(skb->head);
+		skb_free_head(skb);
 	} else {
 		/* copy this zero copy skb frags */
 		if (skb_shinfo(skb)->tx_flags & SKBTX_DEV_ZEROCOPY) {
@@ -985,6 +996,7 @@ int pskb_expand_head(struct sk_buff *skb, int nhead, int ntail,
 	off = (data + nhead) - skb->head;
 
 	skb->head     = data;
+	skb->head_frag = 0;
 adjust_others:
 	skb->data    += off;
 #ifdef NET_SKBUFF_DATA_USES_OFFSET
@@ -1687,14 +1699,18 @@ static bool __skb_splice_bits(struct sk_buff *skb, struct pipe_inode_info *pipe,
 			      struct splice_pipe_desc *spd, struct sock *sk)
 {
 	int seg;
+	bool head_is_linear = !skb->head_frag;
 
-	/*
-	 * map the linear part
+	/* map the linear part :
+	 * If skb->head_frag is set, this 'linear' part is backed
+	 * by a fragment, and we can avoid a copy.
 	 */
 	if (__splice_segment(virt_to_page(skb->data),
 			     (unsigned long) skb->data & (PAGE_SIZE - 1),
 			     skb_headlen(skb),
-			     offset, len, skb, spd, true, sk, pipe))
+			     offset, len, skb, spd,
+			     head_is_linear,
+			     sk, pipe))
 		return true;
 
 	/*
@@ -2888,6 +2904,31 @@ int skb_gro_receive(struct sk_buff **head, struct sk_buff *skb)
 		skb->data_len = 0;
 
 		NAPI_GRO_CB(skb)->free = 1;
+		goto done;
+	} else if (skb->head_frag) {
+		int nr_frags = pinfo->nr_frags;
+		skb_frag_t *frag = pinfo->frags + nr_frags;
+		struct page *page = virt_to_head_page(skb->head);
+		unsigned int first_size = headlen - offset;
+		unsigned int first_offset;
+
+		if (nr_frags + 1 + skbinfo->nr_frags > MAX_SKB_FRAGS)
+			return -E2BIG;
+
+		first_offset = skb->data -
+			       (unsigned char *)page_address(page) +
+			       offset;
+
+		pinfo->nr_frags = nr_frags + 1 + skbinfo->nr_frags;
+
+		frag->page.p	  = page;
+		frag->page_offset = first_offset;
+		skb_frag_size_set(frag, first_size);
+
+		memcpy(frag + 1, skbinfo->frags, sizeof(*frag) * skbinfo->nr_frags);
+		/* We dont need to clear skbinfo->nr_frags here */
+
+		NAPI_GRO_CB(skb)->free = NAPI_GRO_FREE_STOLEN_HEAD;
 		goto done;
 	} else if (skb_gro_len(p) != pinfo->gso_size)
 		return -E2BIG;
