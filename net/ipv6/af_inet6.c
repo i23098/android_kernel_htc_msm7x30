@@ -18,6 +18,7 @@
  *      2 of the License, or (at your option) any later version.
  */
 
+#define pr_fmt(fmt) "IPv6: " fmt
 
 #include <linux/module.h>
 #include <linux/capability.h>
@@ -92,7 +93,7 @@ struct ipv6_params ipv6_defaults = {
 	.autoconf = 1,
 };
 
-static int disable_ipv6_mod = 0;
+static int disable_ipv6_mod;
 
 module_param_named(disable, disable_ipv6_mod, int, 0444);
 MODULE_PARM_DESC(disable, "Disable IPv6 module such that it is non-functional");
@@ -274,7 +275,7 @@ out_rcu_unlock:
 /* bind for INET6 API */
 int inet6_bind(struct socket *sock, struct sockaddr *uaddr, int addr_len)
 {
-	struct sockaddr_in6 *addr=(struct sockaddr_in6 *)uaddr;
+	struct sockaddr_in6 *addr = (struct sockaddr_in6 *)uaddr;
 	struct sock *sk = sock->sk;
 	struct inet_sock *inet = inet_sk(sk);
 	struct ipv6_pinfo *np = inet6_sk(sk);
@@ -408,7 +409,6 @@ out_unlock:
 	rcu_read_unlock();
 	goto out;
 }
-
 EXPORT_SYMBOL(inet6_bind);
 
 int inet6_release(struct socket *sock)
@@ -426,7 +426,6 @@ int inet6_release(struct socket *sock)
 
 	return inet_release(sock);
 }
-
 EXPORT_SYMBOL(inet6_release);
 
 void inet6_destroy_sock(struct sock *sk)
@@ -437,10 +436,12 @@ void inet6_destroy_sock(struct sock *sk)
 
 	/* Release rx options */
 
-	if ((skb = xchg(&np->pktoptions, NULL)) != NULL)
+	skb = xchg(&np->pktoptions, NULL);
+	if (skb != NULL)
 		kfree_skb(skb);
 
-	if ((skb = xchg(&np->rxpmtu, NULL)) != NULL)
+	skb = xchg(&np->rxpmtu, NULL);
+	if (skb != NULL)
 		kfree_skb(skb);
 
 	/* Free flowlabels */
@@ -448,10 +449,10 @@ void inet6_destroy_sock(struct sock *sk)
 
 	/* Free tx options */
 
-	if ((opt = xchg(&np->opt, NULL)) != NULL)
+	opt = xchg(&np->opt, NULL);
+	if (opt != NULL)
 		sock_kfree_s(sk, opt, opt->tot_len);
 }
-
 EXPORT_SYMBOL_GPL(inet6_destroy_sock);
 
 /*
@@ -461,7 +462,7 @@ EXPORT_SYMBOL_GPL(inet6_destroy_sock);
 int inet6_getname(struct socket *sock, struct sockaddr *uaddr,
 		 int *uaddr_len, int peer)
 {
-	struct sockaddr_in6 *sin=(struct sockaddr_in6 *)uaddr;
+	struct sockaddr_in6 *sin = (struct sockaddr_in6 *)uaddr;
 	struct sock *sk = sock->sk;
 	struct inet_sock *inet = inet_sk(sk);
 	struct ipv6_pinfo *np = inet6_sk(sk);
@@ -492,7 +493,6 @@ int inet6_getname(struct socket *sock, struct sockaddr *uaddr,
 	*uaddr_len = sizeof(*sin);
 	return 0;
 }
-
 EXPORT_SYMBOL(inet6_getname);
 
 int inet6_killaddr_ioctl(struct net *net, void __user *arg) {
@@ -515,8 +515,7 @@ int inet6_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
 	struct sock *sk = sock->sk;
 	struct net *net = sock_net(sk);
 
-	switch(cmd)
-	{
+	switch (cmd) {
 	case SIOCGSTAMP:
 		return sock_get_timestamp(sk, (struct timeval __user *)arg);
 
@@ -544,7 +543,6 @@ int inet6_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
 	/*NOTREACHED*/
 	return 0;
 }
-
 EXPORT_SYMBOL(inet6_ioctl);
 
 const struct proto_ops inet6_stream_ops = {
@@ -650,25 +648,21 @@ out:
 	return ret;
 
 out_permanent:
-	printk(KERN_ERR "Attempt to override permanent protocol %d.\n",
-	       protocol);
+	pr_err("Attempt to override permanent protocol %d\n", protocol);
 	goto out;
 
 out_illegal:
-	printk(KERN_ERR
-	       "Ignoring attempt to register invalid socket type %d.\n",
+	pr_err("Ignoring attempt to register invalid socket type %d\n",
 	       p->type);
 	goto out;
 }
-
 EXPORT_SYMBOL(inet6_register_protosw);
 
 void
 inet6_unregister_protosw(struct inet_protosw *p)
 {
 	if (INET_PROTOSW_PERMANENT & p->flags) {
-		printk(KERN_ERR
-		       "Attempt to unregister permanent protocol %d.\n",
+		pr_err("Attempt to unregister permanent protocol %d\n",
 		       p->protocol);
 	} else {
 		spin_lock_bh(&inetsw6_lock);
@@ -678,7 +672,6 @@ inet6_unregister_protosw(struct inet_protosw *p)
 		synchronize_net();
 	}
 }
-
 EXPORT_SYMBOL(inet6_unregister_protosw);
 
 int inet6_sk_rebuild_header(struct sock *sk)
@@ -719,13 +712,12 @@ int inet6_sk_rebuild_header(struct sock *sk)
 
 	return 0;
 }
-
 EXPORT_SYMBOL_GPL(inet6_sk_rebuild_header);
 
-int ipv6_opt_accepted(struct sock *sk, struct sk_buff *skb)
+bool ipv6_opt_accepted(const struct sock *sk, const struct sk_buff *skb)
 {
-	struct ipv6_pinfo *np = inet6_sk(sk);
-	struct inet6_skb_parm *opt = IP6CB(skb);
+	const struct ipv6_pinfo *np = inet6_sk(sk);
+	const struct inet6_skb_parm *opt = IP6CB(skb);
 
 	if (np->rxopt.all) {
 		if ((opt->hop && (np->rxopt.bits.hopopts ||
@@ -737,11 +729,10 @@ int ipv6_opt_accepted(struct sock *sk, struct sk_buff *skb)
 		     np->rxopt.bits.osrcrt)) ||
 		    ((opt->dst1 || opt->dst0) &&
 		     (np->rxopt.bits.dstopts || np->rxopt.bits.odstopts)))
-			return 1;
+			return true;
 	}
-	return 0;
+	return false;
 }
-
 EXPORT_SYMBOL_GPL(ipv6_opt_accepted);
 
 static int ipv6_gso_pull_exthdrs(struct sk_buff *skb, int proto)
@@ -1106,13 +1097,11 @@ static int __init inet6_init(void)
 	BUILD_BUG_ON(sizeof(struct inet6_skb_parm) > sizeof(dummy_skb->cb));
 
 	/* Register the socket-side information for inet6_create.  */
-	for(r = &inetsw6[0]; r < &inetsw6[SOCK_MAX]; ++r)
+	for (r = &inetsw6[0]; r < &inetsw6[SOCK_MAX]; ++r)
 		INIT_LIST_HEAD(r);
 
 	if (disable_ipv6_mod) {
-		printk(KERN_INFO
-		       "IPv6: Loaded, but administratively disabled, "
-		       "reboot required to enable\n");
+		pr_info("Loaded, but administratively disabled, reboot required to enable\n");
 		goto out;
 	}
 

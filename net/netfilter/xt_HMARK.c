@@ -109,7 +109,7 @@ hmark_hash(struct hmark_tuple *t, const struct xt_hmark_info *info)
 	hash = jhash_3words(t->src, t->dst, t->uports.v32, info->hashrnd);
 	hash = hash ^ (t->proto & info->proto_mask);
 
-	return (hash % info->hmodulus) + info->hoffset;
+	return (((u64)hash * info->hmodulus) >> 32) + info->hoffset;
 }
 
 static void
@@ -223,7 +223,7 @@ static int get_inner_hdr(const struct sk_buff *skb, int iphsz, int *nhoff)
 
 	/* Not enough header? */
 	icmph = skb_header_pointer(skb, *nhoff + iphsz, sizeof(_ih), &_ih);
-	if (icmph == NULL && icmph->type > NR_ICMP_TYPES)
+	if (icmph == NULL || icmph->type > NR_ICMP_TYPES)
 		return 0;
 
 	/* Error message? */

@@ -171,8 +171,7 @@ dsthash_alloc_init(struct xt_hashlimit_htable *ht,
 
 	if (ht->cfg.max && ht->count >= ht->cfg.max) {
 		/* FIXME: do something. question is what.. */
-		if (net_ratelimit())
-			pr_err("max count of %u reached\n", ht->cfg.max);
+		net_err_ratelimited("max count of %u reached\n", ht->cfg.max);
 		ent = NULL;
 	} else
 		ent = kmem_cache_alloc(hashlimit_cachep, GFP_ATOMIC);
@@ -648,7 +647,7 @@ static int hashlimit_mt_check(const struct xt_mtchk_param *par)
 			return -EINVAL;
 	}
 
-	if (info->cfg.mode >= XT_HASHLIMIT_MAX) {
+	if (info->cfg.mode & ~XT_HASHLIMIT_ALL) {
 		pr_info("Unknown mode mask %X, kernel too old?\n",
 						info->cfg.mode);
 		return -EINVAL;
