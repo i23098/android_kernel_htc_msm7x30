@@ -1544,13 +1544,6 @@ static inline bool bnx2x_mtu_allows_gro(int mtu)
 	 */
 	return mtu <= SGE_PAGE_SIZE && (U_ETH_SGL_SIZE * fpp) <= MAX_SKB_FRAGS;
 }
-
-static inline bool bnx2x_need_gro_check(int mtu)
-{
-	return (SGE_PAGES / (mtu - ETH_MAX_TPA_HEADER_SIZE - 1)) !=
-		(SGE_PAGES / (mtu - ETH_MIN_TPA_HEADER_SIZE + 1));
-}
-
 /**
  * bnx2x_bz_fp - zero content of the fastpath structure.
  *
@@ -1694,7 +1687,8 @@ static inline bool bnx2x_is_valid_ether_addr(struct bnx2x *bp, u8 *addr)
 	if (is_valid_ether_addr(addr))
 		return true;
 #ifdef BCM_CNIC
-	if (is_zero_ether_addr(addr) && IS_MF_STORAGE_SD(bp))
+	if (is_zero_ether_addr(addr) &&
+	    (IS_MF_STORAGE_SD(bp) || IS_MF_FCOE_AFEX(bp)))
 		return true;
 #endif
 	return false;

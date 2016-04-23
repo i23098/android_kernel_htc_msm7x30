@@ -23,8 +23,8 @@
  * (you will need to reboot afterwards) */
 /* #define BNX2X_STOP_ON_ERROR */
 
-#define DRV_MODULE_VERSION      "1.72.17-0"
-#define DRV_MODULE_RELDATE      "2012/04/02"
+#define DRV_MODULE_VERSION      "1.72.50-0"
+#define DRV_MODULE_RELDATE      "2012/04/23"
 #define BNX2X_BC_VER            0x040200
 
 #if defined(CONFIG_DCB)
@@ -349,7 +349,6 @@ union db_prod {
 #define SGE_PAGE_SIZE		PAGE_SIZE
 #define SGE_PAGE_SHIFT		PAGE_SHIFT
 #define SGE_PAGE_ALIGN(addr)	PAGE_ALIGN((typeof(PAGE_SIZE))(addr))
-#define SGE_PAGES		(SGE_PAGE_SIZE * PAGES_PER_SGE)
 
 /* SGE ring related macros */
 #define NUM_RX_SGE_PAGES	2
@@ -1063,6 +1062,13 @@ struct bnx2x_slowpath {
 		struct flow_control_configuration pfc_config;
 	} func_rdata;
 
+	/* afex ramrod can not be a part of func_rdata union because these
+	 * events might arrive in parallel to other events from func_rdata.
+	 * Therefore, if they would have been defined in the same union,
+	 * data can get corrupted.
+	 */
+	struct afex_vif_list_ramrod_data func_afex_rdata;
+
 	/* used by dmae command executer */
 	struct dmae_command		dmae[MAX_DMAE_C];
 
@@ -1179,6 +1185,7 @@ struct bnx2x_fw_stats_data {
 enum {
 	BNX2X_SP_RTNL_SETUP_TC,
 	BNX2X_SP_RTNL_TX_TIMEOUT,
+	BNX2X_SP_RTNL_AFEX_F_UPDATE,
 	BNX2X_SP_RTNL_FAN_FAILURE,
 };
 
@@ -1232,7 +1239,6 @@ struct bnx2x {
 #define ETH_MAX_JUMBO_PACKET_SIZE	9600
 /* TCP with Timestamp Option (32) + IPv6 (40) */
 #define ETH_MAX_TPA_HEADER_SIZE		72
-#define ETH_MIN_TPA_HEADER_SIZE		40
 
 	/* Max supported alignment is 256 (8 shift) */
 #define BNX2X_RX_ALIGN_SHIFT		min(8, L1_CACHE_SHIFT)
@@ -1343,17 +1349,16 @@ struct bnx2x {
 	struct cmng_init	cmng;
 
 	u32			mf_config[E1HVN_MAX];
-	u32			mf2_config[E2_FUNC_MAX];
+	u32			mf_ext_config;
 	u32			path_has_ovlan; /* E3 */
 	u16			mf_ov;
 	u8			mf_mode;
 #define IS_MF(bp)		(bp->mf_mode != 0)
 #define IS_MF_SI(bp)		(bp->mf_mode == MULTI_FUNCTION_SI)
 #define IS_MF_SD(bp)		(bp->mf_mode == MULTI_FUNCTION_SD)
+#define IS_MF_AFEX(bp)		(bp->mf_mode == MULTI_FUNCTION_AFEX)
 
 	u8			wol;
-
-	bool			gro_check;
 
 	int			rx_ring_size;
 
@@ -1592,6 +1597,9 @@ struct bnx2x {
 	struct dcbx_features			dcbx_remote_feat;
 	u32					dcbx_remote_flags;
 #endif
+	/* AFEX: store default vlan used */
+	int					afex_def_vlan_tag;
+	enum mf_cfg_afex_vlan_mode		afex_vlan_mode;
 	u32					pending_max;
 
 	/* multiple tx classes of service */
@@ -2148,9 +2156,16 @@ void bnx2x_notify_link_changed(struct bnx2x *bp);
 #define IS_MF_ISCSI_SD(bp) (IS_MF_SD(bp) && BNX2X_IS_MF_SD_PROTOCOL_ISCSI(bp))
 #define IS_MF_FCOE_SD(bp) (IS_MF_SD(bp) && BNX2X_IS_MF_SD_PROTOCOL_FCOE(bp))
 
+#define BNX2X_MF_EXT_PROTOCOL_FCOE(bp)  ((bp)->mf_ext_config & \
+					 MACP_FUNC_CFG_FLAGS_FCOE_OFFLOAD)
+
+#define IS_MF_FCOE_AFEX(bp) (IS_MF_AFEX(bp) && BNX2X_MF_EXT_PROTOCOL_FCOE(bp))
 #define IS_MF_STORAGE_SD(bp) (IS_MF_SD(bp) && \
 				(BNX2X_IS_MF_SD_PROTOCOL_ISCSI(bp) || \
 				 BNX2X_IS_MF_SD_PROTOCOL_FCOE(bp)))
+#else
+#define IS_MF_FCOE_AFEX(bp)	false
 #endif
+
 
 #endif /* bnx2x.h */

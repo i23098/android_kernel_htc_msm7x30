@@ -38,7 +38,7 @@ static bool lb_transmit(struct team *team, struct sk_buff *skb)
 	if (unlikely(!fp))
 		goto drop;
 	hash = SK_RUN_FILTER(fp, skb);
-	port_index = hash % team->port_count;
+	port_index = hash % team->en_port_count;
 	port = team_get_port_by_index_rcu(team, port_index);
 	if (unlikely(!port))
 		goto drop;
@@ -142,22 +142,10 @@ static void lb_exit(struct team *team)
 				ARRAY_SIZE(lb_options));
 }
 
-static int lb_port_enter(struct team *team, struct team_port *port)
-{
-	return team_port_set_team_mac(port);
-}
-
-static void lb_port_change_mac(struct team *team, struct team_port *port)
-{
-	team_port_set_team_mac(port);
-}
-
 static const struct team_mode_ops lb_mode_ops = {
 	.init			= lb_init,
 	.exit			= lb_exit,
 	.transmit		= lb_transmit,
-	.port_enter		= lb_port_enter,
-	.port_change_mac	= lb_port_change_mac,
 };
 
 static struct team_mode lb_mode = {

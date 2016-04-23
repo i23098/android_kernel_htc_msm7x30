@@ -168,6 +168,9 @@ static void stmmac_clk_csr_set(struct stmmac_priv *priv)
 #ifdef CONFIG_HAVE_CLK
 	u32 clk_rate;
 
+	if (IS_ERR(priv->stmmac_clk))
+		return;
+
 	clk_rate = clk_get_rate(priv->stmmac_clk);
 
 	/* Platform provided default clk_csr would be assumed valid
@@ -919,6 +922,24 @@ static void stmmac_check_ether_addr(struct stmmac_priv *priv)
 						   priv->dev->dev_addr);
 }
 
+static int stmmac_init_dma_engine(struct stmmac_priv *priv)
+{
+	int pbl = DEFAULT_DMA_PBL, fixed_burst = 0, burst_len = 0;
+
+	/* Some DMA parameters can be passed from the platform;
+	 * in case of these are not passed we keep a default
+	 * (good for all the chips) and init the DMA! */
+	if (priv->plat->dma_cfg) {
+		pbl = priv->plat->dma_cfg->pbl;
+		fixed_burst = priv->plat->dma_cfg->fixed_burst;
+		burst_len = priv->plat->dma_cfg->burst_len;
+	}
+
+	return priv->hw->dma->init(priv->ioaddr, pbl, fixed_burst,
+				   burst_len, priv->dma_tx_phy,
+				   priv->dma_rx_phy);
+}
+
 /**
  *  stmmac_open - open entry point of the driver
  *  @dev : pointer to the device structure.
@@ -933,24 +954,10 @@ static int stmmac_open(struct net_device *dev)
 	struct stmmac_priv *priv = netdev_priv(dev);
 	int ret;
 
-	stmmac_clk_enable(priv);
-
-	stmmac_check_ether_addr(priv);
-
-	/* MDIO bus Registration */
-	ret = stmmac_mdio_register(dev);
-	if (ret < 0) {
-		pr_debug("%s: MDIO bus (id: %d) registration failed",
-			 __func__, priv->plat->bus_id);
-		goto open_clk_dis;
-	}
-
 #ifdef CONFIG_STMMAC_TIMER
 	priv->tm = kzalloc(sizeof(struct stmmac_timer *), GFP_KERNEL);
-	if (unlikely(priv->tm == NULL)) {
-		ret = -ENOMEM;
-		goto open_clk_dis;
-	}
+	if (unlikely(priv->tm == NULL))
+		return -ENOMEM;
 
 	priv->tm->freq = tmrate;
 
@@ -964,6 +971,10 @@ static int stmmac_open(struct net_device *dev)
 	} else
 		priv->tm->enable = 1;
 #endif
+	stmmac_clk_enable(priv);
+
+	stmmac_check_ether_addr(priv);
+
 	ret = stmmac_init_phy(dev);
 	if (unlikely(ret)) {
 		pr_err("%s: Cannot attach to PHY (error: %d)\n", __func__, ret);
@@ -977,10 +988,7 @@ static int stmmac_open(struct net_device *dev)
 	init_dma_desc_rings(dev);
 
 	/* DMA initialization and SW reset */
-	ret = priv->hw->dma->init(priv->ioaddr, priv->plat->dma_cfg->pbl,
-				  priv->plat->dma_cfg->fixed_burst,
-				  priv->plat->dma_cfg->burst_len,
-				  priv->dma_tx_phy, priv->dma_rx_phy);
+	ret = stmmac_init_dma_engine(priv);
 	if (ret < 0) {
 		pr_err("%s: DMA initialization failed\n", __func__);
 		goto open_error;
@@ -1067,8 +1075,8 @@ open_error:
 	if (priv->phydev)
 		phy_disconnect(priv->phydev);
 
-open_clk_dis:
 	stmmac_clk_disable(priv);
+
 	return ret;
 }
 
@@ -1120,7 +1128,6 @@ static int stmmac_release(struct net_device *dev)
 #ifdef CONFIG_STMMAC_DEBUG_FS
 	stmmac_exit_fs();
 #endif
-	stmmac_mdio_unregister(dev);
 	stmmac_clk_disable(priv);
 
 	return 0;
@@ -1919,7 +1926,7 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 	}
 
 	if (stmmac_clk_get(priv))
-		goto error;
+		pr_warning("%s: warning: cannot get CSR clock\n", __func__);
 
 	/* If a specific clk_csr value is passed from the platform
 	 * this means that the CSR Clock Range selection cannot be
@@ -1931,6 +1938,14 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 		stmmac_clk_csr_set(priv);
 	else
 		priv->clk_csr = priv->plat->clk_csr;
+
+	/* MDIO bus Registration */
+	ret = stmmac_mdio_register(ndev);
+	if (ret < 0) {
+		pr_debug("%s: MDIO bus (id: %d) registration failed",
+			 __func__, priv->plat->bus_id);
+		goto error;
+	}
 
 	return priv;
 
@@ -1959,6 +1974,7 @@ int stmmac_dvr_remove(struct net_device *ndev)
 	priv->hw->dma->stop_tx(priv->ioaddr);
 
 	stmmac_set_mac(priv->ioaddr, false);
+	stmmac_mdio_unregister(ndev);
 	netif_carrier_off(ndev);
 	unregister_netdev(ndev);
 	free_netdev(ndev);

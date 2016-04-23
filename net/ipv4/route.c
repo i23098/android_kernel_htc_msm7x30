@@ -109,6 +109,7 @@
 #include <net/rtnetlink.h>
 #ifdef CONFIG_SYSCTL
 #include <linux/sysctl.h>
+#include <linux/kmemleak.h>
 #endif
 #include <net/secure_seq.h>
 
@@ -960,8 +961,7 @@ void rt_cache_flush_batch(struct net *net)
 
 static void rt_emergency_hash_rebuild(struct net *net)
 {
-	if (net_ratelimit())
-		pr_warn("Route hash chain too long!\n");
+	net_warn_ratelimited("Route hash chain too long!\n");
 	rt_cache_invalidate(net);
 }
 
@@ -1084,8 +1084,7 @@ static int rt_garbage_collect(struct dst_ops *ops)
 		goto out;
 	if (dst_entries_get_slow(&ipv4_dst_ops) < ip_rt_max_size)
 		goto out;
-	if (net_ratelimit())
-		pr_warn("dst cache overflow\n");
+	net_warn_ratelimited("dst cache overflow\n");
 	RT_CACHE_STAT_INC(gc_dst_overflow);
 	return 1;
 
@@ -1182,8 +1181,7 @@ restart:
 		if (rt->rt_type == RTN_UNICAST || rt_is_output_route(rt)) {
 			int err = rt_bind_neighbour(rt);
 			if (err) {
-				if (net_ratelimit())
-					pr_warn("Neighbour table failure & not caching routes\n");
+				net_warn_ratelimited("Neighbour table failure & not caching routes\n");
 				ip_rt_put(rt);
 				return ERR_PTR(err);
 			}
@@ -1299,8 +1297,7 @@ restart:
 				goto restart;
 			}
 
-			if (net_ratelimit())
-				pr_warn("Neighbour table overflow\n");
+			net_warn_ratelimited("Neighbour table overflow\n");
 			rt_drop(rt);
 			return ERR_PTR(-ENOBUFS);
 		}
@@ -1378,8 +1375,7 @@ void __ip_select_ident(struct iphdr *iph, struct dst_entry *dst, int more)
 			return;
 		}
 	} else if (!rt)
-		printk(KERN_DEBUG "rt_bind_peer(0) @%p\n",
-		       __builtin_return_address(0));
+		pr_debug("rt_bind_peer(0) @%p\n", __builtin_return_address(0));
 
 	ip_select_fb_ident(iph);
 }
@@ -1503,11 +1499,11 @@ void ip_rt_redirect(__be32 old_gw, __be32 daddr, __be32 new_gw,
 
 reject_redirect:
 #ifdef CONFIG_IP_ROUTE_VERBOSE
-	if (IN_DEV_LOG_MARTIANS(in_dev) && net_ratelimit())
-		pr_info("Redirect from %pI4 on %s about %pI4 ignored\n"
-			"  Advised path = %pI4 -> %pI4\n",
-			&old_gw, dev->name, &new_gw,
-			&saddr, &daddr);
+	if (IN_DEV_LOG_MARTIANS(in_dev))
+		net_info_ratelimited("Redirect from %pI4 on %s about %pI4 ignored\n"
+				     "  Advised path = %pI4 -> %pI4\n",
+				     &old_gw, dev->name, &new_gw,
+				     &saddr, &daddr);
 #endif
 	;
 }
@@ -1617,11 +1613,10 @@ void ip_rt_send_redirect(struct sk_buff *skb)
 		++peer->rate_tokens;
 #ifdef CONFIG_IP_ROUTE_VERBOSE
 		if (log_martians &&
-		    peer->rate_tokens == ip_rt_redirect_number &&
-		    net_ratelimit())
-			pr_warn("host %pI4/if%d ignores redirects for %pI4 to %pI4\n",
-				&ip_hdr(skb)->saddr, rt->rt_iif,
-				&rt->rt_dst, &rt->rt_gateway);
+		    peer->rate_tokens == ip_rt_redirect_number)
+			net_warn_ratelimited("host %pI4/if%d ignores redirects for %pI4 to %pI4\n",
+					     &ip_hdr(skb)->saddr, rt->rt_iif,
+					     &rt->rt_dst, &rt->rt_gateway);
 #endif
 	}
 }
@@ -1844,9 +1839,9 @@ static void ipv4_link_failure(struct sk_buff *skb)
 
 static int ip_rt_bug(struct sk_buff *skb)
 {
-	printk(KERN_DEBUG "ip_rt_bug: %pI4 -> %pI4, %s\n",
-		&ip_hdr(skb)->saddr, &ip_hdr(skb)->daddr,
-		skb->dev ? skb->dev->name : "?");
+	pr_debug("%s: %pI4 -> %pI4, %s\n",
+		 __func__, &ip_hdr(skb)->saddr, &ip_hdr(skb)->daddr,
+		 skb->dev ? skb->dev->name : "?");
 	kfree_skb(skb);
 	WARN_ON(1);
 	return 0;
@@ -2137,8 +2132,7 @@ static int __mkroute_input(struct sk_buff *skb,
 	/* get a working reference to the output device */
 	out_dev = __in_dev_get_rcu(FIB_RES_DEV(*res));
 	if (out_dev == NULL) {
-		if (net_ratelimit())
-			pr_crit("Bug in ip_route_input_slow(). Please report.\n");
+		net_crit_ratelimited("Bug in ip_route_input_slow(). Please report.\n");
 		return -EINVAL;
 	}
 
@@ -2411,9 +2405,9 @@ no_route:
 martian_destination:
 	RT_CACHE_STAT_INC(in_martian_dst);
 #ifdef CONFIG_IP_ROUTE_VERBOSE
-	if (IN_DEV_LOG_MARTIANS(in_dev) && net_ratelimit())
-		pr_warn("martian destination %pI4 from %pI4, dev %s\n",
-			&daddr, &saddr, dev->name);
+	if (IN_DEV_LOG_MARTIANS(in_dev))
+		net_warn_ratelimited("martian destination %pI4 from %pI4, dev %s\n",
+				     &daddr, &saddr, dev->name);
 #endif
 
 e_hostunreach:
@@ -3361,23 +3355,6 @@ static ctl_table ipv4_route_table[] = {
 	{ }
 };
 
-static struct ctl_table empty[1];
-
-static struct ctl_table ipv4_skeleton[] =
-{
-	{ .procname = "route",
-	  .mode = 0555, .child = ipv4_route_table},
-	{ .procname = "neigh",
-	  .mode = 0555, .child = empty},
-	{ }
-};
-
-static __net_initdata struct ctl_path ipv4_path[] = {
-	{ .procname = "net", },
-	{ .procname = "ipv4", },
-	{ },
-};
-
 static struct ctl_table ipv4_route_flush_table[] = {
 	{
 		.procname	= "flush",
@@ -3385,13 +3362,6 @@ static struct ctl_table ipv4_route_flush_table[] = {
 		.mode		= 0200,
 		.proc_handler	= ipv4_sysctl_rtcache_flush,
 	},
-	{ },
-};
-
-static __net_initdata struct ctl_path ipv4_route_path[] = {
-	{ .procname = "net", },
-	{ .procname = "ipv4", },
-	{ .procname = "route", },
 	{ },
 };
 
@@ -3407,8 +3377,7 @@ static __net_init int sysctl_route_net_init(struct net *net)
 	}
 	tbl[0].extra1 = net;
 
-	net->ipv4.route_hdr =
-		register_net_sysctl_table(net, ipv4_route_path, tbl);
+	net->ipv4.route_hdr = register_net_sysctl(net, "net/ipv4/route", tbl);
 	if (net->ipv4.route_hdr == NULL)
 		goto err_reg;
 	return 0;
@@ -3532,6 +3501,6 @@ int __init ip_rt_init(void)
  */
 void __init ip_static_sysctl_init(void)
 {
-	kmemleak_not_leak(register_sysctl_paths(ipv4_path, ipv4_skeleton));
+	register_net_sysctl(&init_net, "net/ipv4/route", ipv4_route_table);
 }
 #endif

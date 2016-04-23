@@ -328,16 +328,6 @@ static void bnx2x_tpa_start(struct bnx2x_fastpath *fp, u16 queue,
 		u16 gro_size = le16_to_cpu(cqe->pkt_len_or_gro_seg_len);
 		tpa_info->full_page =
 			SGE_PAGE_SIZE * PAGES_PER_SGE / gro_size * gro_size;
-		/*
-		 * FW 7.2.16 BUG workaround:
-		 * if SGE size is (exactly) multiple gro_size
-		 * fw will place one less frag on SGE.
-		 * the calculation is done only for potentially
-		 * dangerous MTUs.
-		 */
-		if (unlikely(bp->gro_check))
-			if (!(SGE_PAGE_SIZE * PAGES_PER_SGE % gro_size))
-				tpa_info->full_page -= gro_size;
 		tpa_info->gro_size = gro_size;
 	}
 
@@ -1467,8 +1457,8 @@ void bnx2x_set_num_queues(struct bnx2x *bp)
 	bp->num_queues = bnx2x_calc_num_queues(bp);
 
 #ifdef BCM_CNIC
-	/* override in STORAGE SD mode */
-	if (IS_MF_STORAGE_SD(bp))
+	/* override in STORAGE SD modes */
+	if (IS_MF_STORAGE_SD(bp) || IS_MF_FCOE_AFEX(bp))
 		bp->num_queues = 1;
 #endif
 	/* Add special queues */
@@ -1900,7 +1890,13 @@ int bnx2x_nic_load(struct bnx2x *bp, int load_mode)
 			SHMEM2_WR(bp, dcc_support,
 				  (SHMEM_DCC_SUPPORT_DISABLE_ENABLE_PF_TLV |
 				   SHMEM_DCC_SUPPORT_BANDWIDTH_ALLOCATION_TLV));
+		if (SHMEM2_HAS(bp, afex_driver_support))
+			SHMEM2_WR(bp, afex_driver_support,
+				  SHMEM_AFEX_SUPPORTED_VERSION_ONE);
 	}
+
+	/* Set AFEX default VLAN tag to an invalid value */
+	bp->afex_def_vlan_tag = -1;
 
 	bp->state = BNX2X_STATE_OPENING_WAIT4_PORT;
 	rc = bnx2x_func_start(bp);
@@ -3073,7 +3069,8 @@ int bnx2x_change_mac_addr(struct net_device *dev, void *p)
 	}
 
 #ifdef BCM_CNIC
-	if (IS_MF_STORAGE_SD(bp) && !is_zero_ether_addr(addr->sa_data)) {
+	if ((IS_MF_STORAGE_SD(bp) || IS_MF_FCOE_AFEX(bp)) &&
+	    !is_zero_ether_addr(addr->sa_data)) {
 		BNX2X_ERR("Can't configure non-zero address on iSCSI or FCoE functions in MF-SD mode\n");
 		return -EINVAL;
 	}
@@ -3195,7 +3192,8 @@ static int bnx2x_alloc_fp_mem_at(struct bnx2x *bp, int index)
 	int rx_ring_size = 0;
 
 #ifdef BCM_CNIC
-	if (!bp->rx_ring_size && IS_MF_STORAGE_SD(bp)) {
+	if (!bp->rx_ring_size &&
+	    (IS_MF_STORAGE_SD(bp) || IS_MF_FCOE_AFEX(bp))) {
 		rx_ring_size = MIN_RX_SIZE_NONTPA;
 		bp->rx_ring_size = rx_ring_size;
 	} else
@@ -3516,8 +3514,6 @@ int bnx2x_change_mtu(struct net_device *dev, int new_mtu)
 	 * only updated as part of load
 	 */
 	dev->mtu = new_mtu;
-
-	bp->gro_check = bnx2x_need_gro_check(new_mtu);
 
 	return bnx2x_reload_if_running(dev);
 }
