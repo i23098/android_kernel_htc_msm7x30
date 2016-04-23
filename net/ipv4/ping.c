@@ -60,16 +60,17 @@ EXPORT_SYMBOL_GPL(pingv6_ops);
 
 static u16 ping_port_rover;
 
-static inline int ping_hashfn(struct net *net, unsigned num, unsigned mask)
+static inline int ping_hashfn(struct net *net, unsigned int num, unsigned int mask)
 {
 	int res = (num + net_hash_mix(net)) & mask;
+
 	pr_debug("hash(%d) = %d\n", num, res);
 	return res;
 }
 EXPORT_SYMBOL_GPL(ping_hash);
 
 static inline struct hlist_nulls_head *ping_hashslot(struct ping_table *table,
-					     struct net *net, unsigned num)
+					     struct net *net, unsigned int num)
 {
 	return &table->hash[ping_hashfn(net, num, PING_HTABLE_MASK)];
 }
@@ -233,7 +234,8 @@ static void inet_get_ping_group_range_net(struct net *net, gid_t *low,
 					  gid_t *high)
 {
 	gid_t *data = net->ipv4.sysctl_ping_group_range;
-	unsigned seq;
+	unsigned int seq;
+
 	do {
 		seq = read_seqbegin(&sysctl_local_ports.lock);
 
@@ -580,8 +582,9 @@ void ping_v4_err(struct sk_buff *skb, u32 info)
  *	starting from the payload.
  */
 
+
 int ping_getfrag(void *from, char *to,
-		 int offset, int fraglen, int odd, struct sk_buff *skb)
+			int offset, int fraglen, int odd, struct sk_buff *skb)
 {
 	struct pingfakehdr *pfh = (struct pingfakehdr *)from;
 

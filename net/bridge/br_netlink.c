@@ -88,7 +88,7 @@ void br_ifinfo_notify(int event, struct net_bridge_port *port)
 	int err = -ENOBUFS;
 
 	br_debug(port->br, "port %u(%s) event %d\n",
-		 (unsigned)port->port_no, port->dev->name, event);
+		 (unsigned int)port->port_no, port->dev->name, event);
 
 	skb = nlmsg_new(br_nlmsg_size(), GFP_ATOMIC);
 	if (skb == NULL)
@@ -230,18 +230,6 @@ int __init br_netlink_init(void)
 		goto err2;
 	err = __rtnl_register(PF_BRIDGE, RTM_SETLINK,
 			      br_rtm_setlink, NULL, NULL);
-	if (err)
-		goto err3;
-	err = __rtnl_register(PF_BRIDGE, RTM_NEWNEIGH,
-			      br_fdb_add, NULL, NULL);
-	if (err)
-		goto err3;
-	err = __rtnl_register(PF_BRIDGE, RTM_DELNEIGH,
-			      br_fdb_delete, NULL, NULL);
-	if (err)
-		goto err3;
-	err = __rtnl_register(PF_BRIDGE, RTM_GETNEIGH,
-			      NULL, br_fdb_dump, NULL);
 	if (err)
 		goto err3;
 

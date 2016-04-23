@@ -296,7 +296,7 @@ static inline void rt_hash_lock_init(void)
 #endif
 
 static struct rt_hash_bucket 	*rt_hash_table __read_mostly;
-static unsigned			rt_hash_mask __read_mostly;
+static unsigned int		rt_hash_mask __read_mostly;
 static unsigned int		rt_hash_log  __read_mostly;
 
 static DEFINE_PER_CPU(struct rt_cache_stat, rt_cache_stat);
@@ -1144,7 +1144,7 @@ static int rt_bind_neighbour(struct rtable *rt)
 	return 0;
 }
 
-static struct rtable *rt_intern_hash(unsigned hash, struct rtable *rt,
+static struct rtable *rt_intern_hash(unsigned int hash, struct rtable *rt,
 				     struct sk_buff *skb, int ifindex)
 {
 	struct rtable	*rth, *cand;
@@ -1385,7 +1385,7 @@ void __ip_select_ident(struct iphdr *iph, struct dst_entry *dst, int more)
 }
 EXPORT_SYMBOL(__ip_select_ident);
 
-static void rt_del(unsigned hash, struct rtable *rt)
+static void rt_del(unsigned int hash, struct rtable *rt)
 {
 	struct rtable __rcu **rthp;
 	struct rtable *aux;
@@ -1539,7 +1539,7 @@ static struct dst_entry *ipv4_negative_advice(struct dst_entry *dst)
 			ip_rt_put(rt);
 			ret = NULL;
 		} else if (rt->rt_flags & RTCF_REDIRECTED) {
-			unsigned hash = rt_hash(rt->rt_key_dst, rt->rt_key_src,
+			unsigned int hash = rt_hash(rt->rt_key_dst, rt->rt_key_src,
 						rt->rt_oif,
 						rt_genid(dev_net(dst->dev)));
 			rt_del(hash, rt);
@@ -2219,9 +2219,9 @@ static int ip_mkroute_input(struct sk_buff *skb,
 			    struct in_device *in_dev,
 			    __be32 daddr, __be32 saddr, u32 tos)
 {
-	struct rtable* rth = NULL;
+	struct rtable *rth = NULL;
 	int err;
-	unsigned hash;
+	unsigned int hash;
 
 #ifdef CONFIG_IP_ROUTE_MULTIPATH
 	if (res->fi && res->fi->fib_nhs > 1)
@@ -2259,13 +2259,13 @@ static int ip_route_input_slow(struct sk_buff *skb, __be32 daddr, __be32 saddr,
 	struct fib_result res;
 	struct in_device *in_dev = __in_dev_get_rcu(dev);
 	struct flowi4	fl4;
-	unsigned	flags = 0;
+	unsigned int	flags = 0;
 	u32		itag = 0;
-	struct rtable * rth;
-	unsigned	hash;
+	struct rtable	*rth;
+	unsigned int	hash;
 	__be32		spec_dst;
 	int		err = -EINVAL;
-	struct net    * net = dev_net(dev);
+	struct net    *net = dev_net(dev);
 
 	/* IP on this device is disabled. */
 
@@ -2438,8 +2438,8 @@ martian_source_keep_err:
 int ip_route_input_common(struct sk_buff *skb, __be32 daddr, __be32 saddr,
 			   u8 tos, struct net_device *dev, bool noref)
 {
-	struct rtable * rth;
-	unsigned	hash;
+	struct rtable	*rth;
+	unsigned int	hash;
 	int iif = dev->ifindex;
 	struct net *net;
 	int res;
@@ -3085,7 +3085,7 @@ nla_put_failure:
 	return -EMSGSIZE;
 }
 
-static int inet_rtm_getroute(struct sk_buff *in_skb, struct nlmsghdr* nlh, void *arg)
+static int inet_rtm_getroute(struct sk_buff *in_skb, struct nlmsghdr *nlh, void *arg)
 {
 	struct net *net = sock_net(in_skb->sk);
 	struct rtmsg *rtm;
@@ -3532,6 +3532,6 @@ int __init ip_rt_init(void)
  */
 void __init ip_static_sysctl_init(void)
 {
-	register_sysctl_paths(ipv4_path, ipv4_skeleton);
+	kmemleak_not_leak(register_sysctl_paths(ipv4_path, ipv4_skeleton));
 }
 #endif

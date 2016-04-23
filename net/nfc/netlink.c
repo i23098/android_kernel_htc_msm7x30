@@ -202,8 +202,9 @@ int nfc_genl_target_lost(struct nfc_dev *dev, u32 target_idx)
 	if (!hdr)
 		goto free_msg;
 
-	NLA_PUT_STRING(msg, NFC_ATTR_DEVICE_NAME, nfc_device_name(dev));
-	NLA_PUT_U32(msg, NFC_ATTR_TARGET_INDEX, target_idx);
+	if (nla_put_string(msg, NFC_ATTR_DEVICE_NAME, nfc_device_name(dev)) ||
+	    nla_put_u32(msg, NFC_ATTR_TARGET_INDEX, target_idx))
+		goto nla_put_failure;
 
 	genlmsg_end(msg, hdr);
 
