@@ -245,6 +245,7 @@ static void put_clocks(struct footswitch *fs)
 
 static int footswitch_probe(struct platform_device *pdev)
 {
+	struct regulator_config config = { };
 	struct footswitch *fs;
 	struct regulator_init_data *init_data;
 	int rc;
@@ -266,7 +267,11 @@ static int footswitch_probe(struct platform_device *pdev)
 	if (rc)
 		return rc;
 
-	fs->rdev = regulator_register(&fs->desc, &pdev->dev, init_data, fs, NULL);
+	config.dev = &pdev->dev;
+	config.driver_data = fs;
+	config.init_data = init_data;
+
+	fs->rdev = regulator_register(&fs->desc, &config);
 	if (IS_ERR(fs->rdev)) {
 		pr_err("regulator_register(%s) failed\n", fs->desc.name);
 		rc = PTR_ERR(fs->rdev);
