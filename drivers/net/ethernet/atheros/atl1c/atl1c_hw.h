@@ -48,7 +48,32 @@ bool atl1c_read_eeprom(struct atl1c_hw *hw, u32 offset, u32 *p_value);
 int atl1c_phy_init(struct atl1c_hw *hw);
 int atl1c_check_eeprom_exist(struct atl1c_hw *hw);
 int atl1c_restart_autoneg(struct atl1c_hw *hw);
-int atl1c_phy_power_saving(struct atl1c_hw *hw);
+int atl1c_phy_to_ps_link(struct atl1c_hw *hw);
+int atl1c_power_saving(struct atl1c_hw *hw, u32 wufc);
+bool atl1c_wait_mdio_idle(struct atl1c_hw *hw);
+void atl1c_stop_phy_polling(struct atl1c_hw *hw);
+void atl1c_start_phy_polling(struct atl1c_hw *hw, u16 clk_sel);
+int atl1c_read_phy_core(struct atl1c_hw *hw, bool ext, u8 dev,
+			u16 reg, u16 *phy_data);
+int atl1c_write_phy_core(struct atl1c_hw *hw, bool ext, u8 dev,
+			u16 reg, u16 phy_data);
+int atl1c_read_phy_ext(struct atl1c_hw *hw, u8 dev_addr,
+			u16 reg_addr, u16 *phy_data);
+int atl1c_write_phy_ext(struct atl1c_hw *hw, u8 dev_addr,
+			u16 reg_addr, u16 phy_data);
+int atl1c_read_phy_dbg(struct atl1c_hw *hw, u16 reg_addr, u16 *phy_data);
+int atl1c_write_phy_dbg(struct atl1c_hw *hw, u16 reg_addr, u16 phy_data);
+
+/* hw-ids */
+#define PCI_DEVICE_ID_ATTANSIC_L2C      0x1062
+#define PCI_DEVICE_ID_ATTANSIC_L1C      0x1063
+#define PCI_DEVICE_ID_ATHEROS_L2C_B	0x2060 /* AR8152 v1.1 Fast 10/100 */
+#define PCI_DEVICE_ID_ATHEROS_L2C_B2	0x2062 /* AR8152 v2.0 Fast 10/100 */
+#define PCI_DEVICE_ID_ATHEROS_L1D	0x1073 /* AR8151 v1.0 Gigabit 1000 */
+#define PCI_DEVICE_ID_ATHEROS_L1D_2_0	0x1083 /* AR8151 v2.0 Gigabit 1000 */
+#define L2CB_V10			0xc0
+#define L2CB_V11			0xc1
+
 /* register definition */
 #define REG_DEVICE_CAP              	0x5C
 #define DEVICE_CAP_MAX_PAYLOAD_MASK     0x7
@@ -211,41 +236,32 @@ int atl1c_phy_power_saving(struct atl1c_hw *hw);
 #define IRQ_MODRT_RX_TIMER_SHIFT	16
 
 #define REG_GPHY_CTRL               	0x140C
-#define GPHY_CTRL_EXT_RESET         	0x1
-#define GPHY_CTRL_RTL_MODE		0x2
-#define GPHY_CTRL_LED_MODE		0x4
-#define GPHY_CTRL_ANEG_NOW		0x8
-#define GPHY_CTRL_REV_ANEG		0x10
-#define GPHY_CTRL_GATE_25M_EN       	0x20
-#define GPHY_CTRL_LPW_EXIT          	0x40
-#define GPHY_CTRL_PHY_IDDQ          	0x80
-#define GPHY_CTRL_PHY_IDDQ_DIS      	0x100
-#define GPHY_CTRL_GIGA_DIS		0x200
-#define GPHY_CTRL_HIB_EN            	0x400
-#define GPHY_CTRL_HIB_PULSE         	0x800
-#define GPHY_CTRL_SEL_ANA_RST       	0x1000
-#define GPHY_CTRL_PHY_PLL_ON        	0x2000
-#define GPHY_CTRL_PWDOWN_HW		0x4000
-#define GPHY_CTRL_PHY_PLL_BYPASS	0x8000
-
-#define GPHY_CTRL_DEFAULT (		 \
-		GPHY_CTRL_SEL_ANA_RST	|\
-		GPHY_CTRL_HIB_PULSE	|\
-		GPHY_CTRL_HIB_EN)
-
-#define GPHY_CTRL_PW_WOL_DIS (		 \
-		GPHY_CTRL_SEL_ANA_RST	|\
-		GPHY_CTRL_HIB_PULSE	|\
-		GPHY_CTRL_HIB_EN	|\
-		GPHY_CTRL_PWDOWN_HW	|\
-		GPHY_CTRL_PHY_IDDQ)
-
-#define GPHY_CTRL_POWER_SAVING (	\
-		GPHY_CTRL_SEL_ANA_RST	|\
-		GPHY_CTRL_HIB_EN	|\
-		GPHY_CTRL_HIB_PULSE	|\
-		GPHY_CTRL_PWDOWN_HW	|\
-		GPHY_CTRL_PHY_IDDQ)
+#define GPHY_CTRL_ADDR_MASK		0x1FUL
+#define GPHY_CTRL_ADDR_SHIFT		19
+#define GPHY_CTRL_BP_VLTGSW		BIT(18)
+#define GPHY_CTRL_100AB_EN		BIT(17)
+#define GPHY_CTRL_10AB_EN		BIT(16)
+#define GPHY_CTRL_PHY_PLL_BYPASS	BIT(15)
+#define GPHY_CTRL_PWDOWN_HW		BIT(14)	/* affect MAC&PHY, to low pw */
+#define GPHY_CTRL_PHY_PLL_ON		BIT(13)	/* 1:pll always on, 0:can sw */
+#define GPHY_CTRL_SEL_ANA_RST		BIT(12)
+#define GPHY_CTRL_HIB_PULSE		BIT(11)
+#define GPHY_CTRL_HIB_EN		BIT(10)
+#define GPHY_CTRL_GIGA_DIS		BIT(9)
+#define GPHY_CTRL_PHY_IDDQ_DIS		BIT(8)	/* pw on RST */
+#define GPHY_CTRL_PHY_IDDQ		BIT(7)	/* bit8 affect bit7 while rb */
+#define GPHY_CTRL_LPW_EXIT		BIT(6)
+#define GPHY_CTRL_GATE_25M_EN		BIT(5)
+#define GPHY_CTRL_REV_ANEG		BIT(4)
+#define GPHY_CTRL_ANEG_NOW		BIT(3)
+#define GPHY_CTRL_LED_MODE		BIT(2)
+#define GPHY_CTRL_RTL_MODE		BIT(1)
+#define GPHY_CTRL_EXT_RESET		BIT(0)	/* 1:out of DSP RST status */
+#define GPHY_CTRL_EXT_RST_TO		80	/* 800us atmost */
+#define GPHY_CTRL_CLS			(\
+	GPHY_CTRL_LED_MODE		|\
+	GPHY_CTRL_100AB_EN		|\
+	GPHY_CTRL_PHY_PLL_ON)
 
 /* Block IDLE Status Register */
 #define REG_IDLE_STATUS			0x1410
@@ -268,38 +284,37 @@ int atl1c_phy_power_saving(struct atl1c_hw *hw);
 
 /* MDIO Control Register */
 #define REG_MDIO_CTRL           	0x1414
-#define MDIO_DATA_MASK          	0xffff  /* On MDIO write, the 16-bit
-						 * control data to write to PHY
-						 * MII management register */
-#define MDIO_DATA_SHIFT         	0       /* On MDIO read, the 16-bit
-						 * status data that was read
-						 * from the PHY MII management register */
-#define MDIO_REG_ADDR_MASK      	0x1f    /* MDIO register address */
-#define MDIO_REG_ADDR_SHIFT     	16
-#define MDIO_RW                 	0x200000  /* 1: read, 0: write */
-#define MDIO_SUP_PREAMBLE       	0x400000  /* Suppress preamble */
-#define MDIO_START              	0x800000  /* Write 1 to initiate the MDIO
-						   * master. And this bit is self
-						   * cleared after one cycle */
-#define MDIO_CLK_SEL_SHIFT      	24
-#define MDIO_CLK_25_4           	0
-#define MDIO_CLK_25_6           	2
-#define MDIO_CLK_25_8           	3
-#define MDIO_CLK_25_10          	4
-#define MDIO_CLK_25_14          	5
-#define MDIO_CLK_25_20          	6
-#define MDIO_CLK_25_28          	7
-#define MDIO_BUSY               	0x8000000
-#define MDIO_AP_EN              	0x10000000
-#define MDIO_WAIT_TIMES         	10
+#define MDIO_CTRL_MODE_EXT		BIT(30)
+#define MDIO_CTRL_POST_READ		BIT(29)
+#define MDIO_CTRL_AP_EN			BIT(28)
+#define MDIO_CTRL_BUSY			BIT(27)
+#define MDIO_CTRL_CLK_SEL_MASK		0x7UL
+#define MDIO_CTRL_CLK_SEL_SHIFT		24
+#define MDIO_CTRL_CLK_25_4		0	/* 25MHz divide 4 */
+#define MDIO_CTRL_CLK_25_6		2
+#define MDIO_CTRL_CLK_25_8		3
+#define MDIO_CTRL_CLK_25_10		4
+#define MDIO_CTRL_CLK_25_32		5
+#define MDIO_CTRL_CLK_25_64		6
+#define MDIO_CTRL_CLK_25_128		7
+#define MDIO_CTRL_START			BIT(23)
+#define MDIO_CTRL_SPRES_PRMBL		BIT(22)
+#define MDIO_CTRL_OP_READ		BIT(21)	/* 1:read, 0:write */
+#define MDIO_CTRL_REG_MASK		0x1FUL
+#define MDIO_CTRL_REG_SHIFT		16
+#define MDIO_CTRL_DATA_MASK		0xFFFFUL
+#define MDIO_CTRL_DATA_SHIFT		0
+#define MDIO_MAX_AC_TO			120	/* 1.2ms timeout for slow clk */
 
-/* MII PHY Status Register */
-#define REG_PHY_STATUS           	0x1418
-#define PHY_GENERAL_STATUS_MASK		0xFFFF
-#define PHY_STATUS_RECV_ENABLE		0x0001
-#define PHY_OE_PWSP_STATUS_MASK		0x07FF
-#define PHY_OE_PWSP_STATUS_SHIFT	16
-#define PHY_STATUS_LPW_STATE		0x80000000
+/* for extension reg access */
+#define REG_MDIO_EXTN			0x1448
+#define MDIO_EXTN_PORTAD_MASK		0x1FUL
+#define MDIO_EXTN_PORTAD_SHIFT		21
+#define MDIO_EXTN_DEVAD_MASK		0x1FUL
+#define MDIO_EXTN_DEVAD_SHIFT		16
+#define MDIO_EXTN_REG_MASK		0xFFFFUL
+#define MDIO_EXTN_REG_SHIFT		0
+
 /* BIST Control and Status Register0 (for the Packet Memory) */
 #define REG_BIST0_CTRL              	0x141c
 #define BIST0_NOW                   	0x1
@@ -317,50 +332,81 @@ int atl1c_phy_power_saving(struct atl1c_hw *hw);
 #define BIST1_FUSE_FLAG             	0x4
 
 /* SerDes Lock Detect Control and Status Register */
-#define REG_SERDES_LOCK            	0x1424
-#define SERDES_LOCK_DETECT          	0x1  /* SerDes lock detected. This signal
-					      * comes from Analog SerDes */
-#define SERDES_LOCK_DETECT_EN       	0x2  /* 1: Enable SerDes Lock detect function */
-#define SERDES_LOCK_STS_SELFB_PLL_SHIFT 0xE
-#define SERDES_LOCK_STS_SELFB_PLL_MASK  0x3
-#define SERDES_OVCLK_18_25		0x0
-#define SERDES_OVCLK_12_18		0x1
-#define SERDES_OVCLK_0_4		0x2
-#define SERDES_OVCLK_4_12		0x3
-#define SERDES_MAC_CLK_SLOWDOWN		0x20000
-#define SERDES_PYH_CLK_SLOWDOWN		0x40000
+#define REG_SERDES			0x1424
+#define SERDES_PHY_CLK_SLOWDOWN		BIT(18)
+#define SERDES_MAC_CLK_SLOWDOWN		BIT(17)
+#define SERDES_SELFB_PLL_MASK		0x3UL
+#define SERDES_SELFB_PLL_SHIFT		14
+#define SERDES_PHYCLK_SEL_GTX		BIT(13)	/* 1:gtx_clk, 0:25M */
+#define SERDES_PCIECLK_SEL_SRDS		BIT(12)	/* 1:serdes,0:25M */
+#define SERDES_BUFS_RX_EN		BIT(11)
+#define SERDES_PD_RX			BIT(10)
+#define SERDES_PLL_EN			BIT(9)
+#define SERDES_EN			BIT(8)
+#define SERDES_SELFB_PLL_SEL_CSR	BIT(6)	/* 0:state-machine,1:csr */
+#define SERDES_SELFB_PLL_CSR_MASK	0x3UL
+#define SERDES_SELFB_PLL_CSR_SHIFT	4
+#define SERDES_SELFB_PLL_CSR_4		3	/* 4-12% OV-CLK */
+#define SERDES_SELFB_PLL_CSR_0		2	/* 0-4% OV-CLK */
+#define SERDES_SELFB_PLL_CSR_12		1	/* 12-18% OV-CLK */
+#define SERDES_SELFB_PLL_CSR_18		0	/* 18-25% OV-CLK */
+#define SERDES_VCO_SLOW			BIT(3)
+#define SERDES_VCO_FAST			BIT(2)
+#define SERDES_LOCK_DETECT_EN		BIT(1)
+#define SERDES_LOCK_DETECT		BIT(0)
+
+#define REG_LPI_DECISN_TIMER            0x143C
+#define L2CB_LPI_DESISN_TIMER		0x7D00
+
+#define REG_LPI_CTRL                    0x1440
+#define LPI_CTRL_CHK_DA			BIT(31)
+#define LPI_CTRL_ENH_TO_MASK		0x1FFFUL
+#define LPI_CTRL_ENH_TO_SHIFT		12
+#define LPI_CTRL_ENH_TH_MASK		0x1FUL
+#define LPI_CTRL_ENH_TH_SHIFT		6
+#define LPI_CTRL_ENH_EN			BIT(5)
+#define LPI_CTRL_CHK_RX			BIT(4)
+#define LPI_CTRL_CHK_STATE		BIT(3)
+#define LPI_CTRL_GMII			BIT(2)
+#define LPI_CTRL_TO_PHY			BIT(1)
+#define LPI_CTRL_EN			BIT(0)
+
+#define REG_LPI_WAIT			0x1444
+#define LPI_WAIT_TIMER_MASK		0xFFFFUL
+#define LPI_WAIT_TIMER_SHIFT		0
 
 /* MAC Control Register  */
 #define REG_MAC_CTRL         		0x1480
-#define MAC_CTRL_TX_EN			0x1
-#define MAC_CTRL_RX_EN			0x2
-#define MAC_CTRL_TX_FLOW		0x4
-#define MAC_CTRL_RX_FLOW            	0x8
-#define MAC_CTRL_LOOPBACK          	0x10
-#define MAC_CTRL_DUPLX              	0x20
-#define MAC_CTRL_ADD_CRC            	0x40
-#define MAC_CTRL_PAD                	0x80
-#define MAC_CTRL_LENCHK             	0x100
-#define MAC_CTRL_HUGE_EN            	0x200
-#define MAC_CTRL_PRMLEN_SHIFT       	10
-#define MAC_CTRL_PRMLEN_MASK        	0xf
-#define MAC_CTRL_RMV_VLAN           	0x4000
-#define MAC_CTRL_PROMIS_EN          	0x8000
-#define MAC_CTRL_TX_PAUSE           	0x10000
-#define MAC_CTRL_SCNT               	0x20000
-#define MAC_CTRL_SRST_TX            	0x40000
-#define MAC_CTRL_TX_SIMURST         	0x80000
-#define MAC_CTRL_SPEED_SHIFT        	20
-#define MAC_CTRL_SPEED_MASK         	0x3
-#define MAC_CTRL_DBG_TX_BKPRESURE   	0x400000
-#define MAC_CTRL_TX_HUGE            	0x800000
-#define MAC_CTRL_RX_CHKSUM_EN       	0x1000000
-#define MAC_CTRL_MC_ALL_EN          	0x2000000
-#define MAC_CTRL_BC_EN              	0x4000000
-#define MAC_CTRL_DBG                	0x8000000
-#define MAC_CTRL_SINGLE_PAUSE_EN	0x10000000
-#define MAC_CTRL_HASH_ALG_CRC32		0x20000000
-#define MAC_CTRL_SPEED_MODE_SW		0x40000000
+#define MAC_CTRL_SPEED_MODE_SW		BIT(30) /* 0:phy,1:sw */
+#define MAC_CTRL_HASH_ALG_CRC32		BIT(29) /* 1:legacy,0:lw_5b */
+#define MAC_CTRL_SINGLE_PAUSE_EN	BIT(28)
+#define MAC_CTRL_DBG			BIT(27)
+#define MAC_CTRL_BC_EN			BIT(26)
+#define MAC_CTRL_MC_ALL_EN		BIT(25)
+#define MAC_CTRL_RX_CHKSUM_EN		BIT(24)
+#define MAC_CTRL_TX_HUGE		BIT(23)
+#define MAC_CTRL_DBG_TX_BKPRESURE	BIT(22)
+#define MAC_CTRL_SPEED_MASK		3UL
+#define MAC_CTRL_SPEED_SHIFT		20
+#define MAC_CTRL_SPEED_10_100		1
+#define MAC_CTRL_SPEED_1000		2
+#define MAC_CTRL_TX_SIMURST		BIT(19)
+#define MAC_CTRL_SCNT			BIT(17)
+#define MAC_CTRL_TX_PAUSE		BIT(16)
+#define MAC_CTRL_PROMIS_EN		BIT(15)
+#define MAC_CTRL_RMV_VLAN		BIT(14)
+#define MAC_CTRL_PRMLEN_MASK		0xFUL
+#define MAC_CTRL_PRMLEN_SHIFT		10
+#define MAC_CTRL_HUGE_EN		BIT(9)
+#define MAC_CTRL_LENCHK			BIT(8)
+#define MAC_CTRL_PAD			BIT(7)
+#define MAC_CTRL_ADD_CRC		BIT(6)
+#define MAC_CTRL_DUPLX			BIT(5)
+#define MAC_CTRL_LOOPBACK		BIT(4)
+#define MAC_CTRL_RX_FLOW		BIT(3)
+#define MAC_CTRL_TX_FLOW		BIT(2)
+#define MAC_CTRL_RX_EN			BIT(1)
+#define MAC_CTRL_TX_EN			BIT(0)
 
 /* MAC IPG/IFG Control Register  */
 #define REG_MAC_IPG_IFG             	0x1484
@@ -793,73 +839,188 @@ int atl1c_phy_power_saving(struct atl1c_hw *hw);
 #define MII_DBG_ADDR			0x1D
 #define MII_DBG_DATA			0x1E
 
-#define MII_ANA_CTRL_0			0x0
-#define ANA_RESTART_CAL			0x0001
-#define ANA_MANUL_SWICH_ON_SHIFT	0x1
-#define ANA_MANUL_SWICH_ON_MASK		0xF
-#define ANA_MAN_ENABLE			0x0020
-#define ANA_SEL_HSP			0x0040
-#define ANA_EN_HB			0x0080
-#define ANA_EN_HBIAS			0x0100
-#define ANA_OEN_125M			0x0200
-#define ANA_EN_LCKDT			0x0400
-#define ANA_LCKDT_PHY			0x0800
-#define ANA_AFE_MODE			0x1000
-#define ANA_VCO_SLOW			0x2000
-#define ANA_VCO_FAST			0x4000
-#define ANA_SEL_CLK125M_DSP		0x8000
+/***************************** debug port *************************************/
 
-#define MII_ANA_CTRL_4			0x4
-#define ANA_IECHO_ADJ_MASK		0xF
-#define ANA_IECHO_ADJ_3_SHIFT		0
-#define ANA_IECHO_ADJ_2_SHIFT		4
-#define ANA_IECHO_ADJ_1_SHIFT		8
-#define ANA_IECHO_ADJ_0_SHIFT		12
+#define MIIDBG_ANACTRL                  0x00
+#define ANACTRL_CLK125M_DELAY_EN        0x8000
+#define ANACTRL_VCO_FAST                0x4000
+#define ANACTRL_VCO_SLOW                0x2000
+#define ANACTRL_AFE_MODE_EN             0x1000
+#define ANACTRL_LCKDET_PHY              0x800
+#define ANACTRL_LCKDET_EN               0x400
+#define ANACTRL_OEN_125M                0x200
+#define ANACTRL_HBIAS_EN                0x100
+#define ANACTRL_HB_EN                   0x80
+#define ANACTRL_SEL_HSP                 0x40
+#define ANACTRL_CLASSA_EN               0x20
+#define ANACTRL_MANUSWON_SWR_MASK       3U
+#define ANACTRL_MANUSWON_SWR_SHIFT      2
+#define ANACTRL_MANUSWON_SWR_2V         0
+#define ANACTRL_MANUSWON_SWR_1P9V       1
+#define ANACTRL_MANUSWON_SWR_1P8V       2
+#define ANACTRL_MANUSWON_SWR_1P7V       3
+#define ANACTRL_MANUSWON_BW3_4M         0x2
+#define ANACTRL_RESTART_CAL             0x1
+#define ANACTRL_DEF                     0x02EF
 
-#define MII_ANA_CTRL_5			0x5
-#define ANA_SERDES_CDR_BW_SHIFT		0
-#define ANA_SERDES_CDR_BW_MASK		0x3
-#define ANA_MS_PAD_DBG			0x0004
-#define ANA_SPEEDUP_DBG			0x0008
-#define ANA_SERDES_TH_LOS_SHIFT		4
-#define ANA_SERDES_TH_LOS_MASK		0x3
-#define ANA_SERDES_EN_DEEM		0x0040
-#define ANA_SERDES_TXELECIDLE		0x0080
-#define ANA_SERDES_BEACON		0x0100
-#define ANA_SERDES_HALFTXDR		0x0200
-#define ANA_SERDES_SEL_HSP		0x0400
-#define ANA_SERDES_EN_PLL		0x0800
-#define ANA_SERDES_EN			0x1000
-#define ANA_SERDES_EN_LCKDT		0x2000
+#define MIIDBG_SYSMODCTRL               0x04
+#define SYSMODCTRL_IECHOADJ_PFMH_PHY    0x8000
+#define SYSMODCTRL_IECHOADJ_BIASGEN     0x4000
+#define SYSMODCTRL_IECHOADJ_PFML_PHY    0x2000
+#define SYSMODCTRL_IECHOADJ_PS_MASK     3U
+#define SYSMODCTRL_IECHOADJ_PS_SHIFT    10
+#define SYSMODCTRL_IECHOADJ_PS_40       3
+#define SYSMODCTRL_IECHOADJ_PS_20       2
+#define SYSMODCTRL_IECHOADJ_PS_0        1
+#define SYSMODCTRL_IECHOADJ_10BT_100MV  0x40 /* 1:100mv, 0:200mv */
+#define SYSMODCTRL_IECHOADJ_HLFAP_MASK  3U
+#define SYSMODCTRL_IECHOADJ_HLFAP_SHIFT 4
+#define SYSMODCTRL_IECHOADJ_VDFULBW     0x8
+#define SYSMODCTRL_IECHOADJ_VDBIASHLF   0x4
+#define SYSMODCTRL_IECHOADJ_VDAMPHLF    0x2
+#define SYSMODCTRL_IECHOADJ_VDLANSW     0x1
+#define SYSMODCTRL_IECHOADJ_DEF         0x88BB /* ???? */
 
-#define MII_ANA_CTRL_11			0xB
-#define ANA_PS_HIB_EN			0x8000
+/* for l1d & l2cb */
+#define SYSMODCTRL_IECHOADJ_CUR_ADD     0x8000
+#define SYSMODCTRL_IECHOADJ_CUR_MASK    7U
+#define SYSMODCTRL_IECHOADJ_CUR_SHIFT   12
+#define SYSMODCTRL_IECHOADJ_VOL_MASK    0xFU
+#define SYSMODCTRL_IECHOADJ_VOL_SHIFT   8
+#define SYSMODCTRL_IECHOADJ_VOL_17ALL   3
+#define SYSMODCTRL_IECHOADJ_VOL_100M15  1
+#define SYSMODCTRL_IECHOADJ_VOL_10M17   0
+#define SYSMODCTRL_IECHOADJ_BIAS1_MASK  0xFU
+#define SYSMODCTRL_IECHOADJ_BIAS1_SHIFT 4
+#define SYSMODCTRL_IECHOADJ_BIAS2_MASK  0xFU
+#define SYSMODCTRL_IECHOADJ_BIAS2_SHIFT 0
+#define L1D_SYSMODCTRL_IECHOADJ_DEF     0x4FBB
 
-#define MII_ANA_CTRL_18			0x12
-#define ANA_TEST_MODE_10BT_01SHIFT	0
-#define ANA_TEST_MODE_10BT_01MASK	0x3
-#define ANA_LOOP_SEL_10BT		0x0004
-#define ANA_RGMII_MODE_SW		0x0008
-#define ANA_EN_LONGECABLE		0x0010
-#define ANA_TEST_MODE_10BT_2		0x0020
-#define ANA_EN_10BT_IDLE		0x0400
-#define ANA_EN_MASK_TB			0x0800
-#define ANA_TRIGGER_SEL_TIMER_SHIFT	12
-#define ANA_TRIGGER_SEL_TIMER_MASK	0x3
-#define ANA_INTERVAL_SEL_TIMER_SHIFT	14
-#define ANA_INTERVAL_SEL_TIMER_MASK	0x3
+#define MIIDBG_SRDSYSMOD                0x05
+#define SRDSYSMOD_LCKDET_EN             0x2000
+#define SRDSYSMOD_PLL_EN                0x800
+#define SRDSYSMOD_SEL_HSP               0x400
+#define SRDSYSMOD_HLFTXDR               0x200
+#define SRDSYSMOD_TXCLK_DELAY_EN        0x100
+#define SRDSYSMOD_TXELECIDLE            0x80
+#define SRDSYSMOD_DEEMP_EN              0x40
+#define SRDSYSMOD_MS_PAD                0x4
+#define SRDSYSMOD_CDR_ADC_VLTG          0x2
+#define SRDSYSMOD_CDR_DAC_1MA           0x1
+#define SRDSYSMOD_DEF                   0x2C46
 
-#define MII_ANA_CTRL_41			0x29
-#define ANA_TOP_PS_EN			0x8000
+#define MIIDBG_CFGLPSPD                 0x0A
+#define CFGLPSPD_RSTCNT_MASK            3U
+#define CFGLPSPD_RSTCNT_SHIFT           14
+#define CFGLPSPD_RSTCNT_CLK125SW        0x2000
 
-#define MII_ANA_CTRL_54			0x36
-#define ANA_LONG_CABLE_TH_100_SHIFT	0
-#define ANA_LONG_CABLE_TH_100_MASK	0x3F
-#define ANA_DESERVED			0x0040
-#define ANA_EN_LIT_CH			0x0080
-#define ANA_SHORT_CABLE_TH_100_SHIFT	8
-#define ANA_SHORT_CABLE_TH_100_MASK	0x3F
-#define ANA_BP_BAD_LINK_ACCUM		0x4000
-#define ANA_BP_SMALL_BW			0x8000
+#define MIIDBG_HIBNEG                   0x0B
+#define HIBNEG_PSHIB_EN                 0x8000
+#define HIBNEG_WAKE_BOTH                0x4000
+#define HIBNEG_ONOFF_ANACHG_SUDEN       0x2000
+#define HIBNEG_HIB_PULSE                0x1000
+#define HIBNEG_GATE_25M_EN              0x800
+#define HIBNEG_RST_80U                  0x400
+#define HIBNEG_RST_TIMER_MASK           3U
+#define HIBNEG_RST_TIMER_SHIFT          8
+#define HIBNEG_GTX_CLK_DELAY_MASK       3U
+#define HIBNEG_GTX_CLK_DELAY_SHIFT      5
+#define HIBNEG_BYPSS_BRKTIMER           0x10
+#define HIBNEG_DEF                      0xBC40
+
+#define MIIDBG_TST10BTCFG               0x12
+#define TST10BTCFG_INTV_TIMER_MASK      3U
+#define TST10BTCFG_INTV_TIMER_SHIFT     14
+#define TST10BTCFG_TRIGER_TIMER_MASK    3U
+#define TST10BTCFG_TRIGER_TIMER_SHIFT   12
+#define TST10BTCFG_DIV_MAN_MLT3_EN      0x800
+#define TST10BTCFG_OFF_DAC_IDLE         0x400
+#define TST10BTCFG_LPBK_DEEP            0x4 /* 1:deep,0:shallow */
+#define TST10BTCFG_DEF                  0x4C04
+
+#define MIIDBG_AZ_ANADECT		0x15
+#define AZ_ANADECT_10BTRX_TH		0x8000
+#define AZ_ANADECT_BOTH_01CHNL		0x4000
+#define AZ_ANADECT_INTV_MASK		0x3FU
+#define AZ_ANADECT_INTV_SHIFT		8
+#define AZ_ANADECT_THRESH_MASK		0xFU
+#define AZ_ANADECT_THRESH_SHIFT		4
+#define AZ_ANADECT_CHNL_MASK		0xFU
+#define AZ_ANADECT_CHNL_SHIFT		0
+#define AZ_ANADECT_DEF			0x3220
+#define AZ_ANADECT_LONG                 0xb210
+
+#define MIIDBG_MSE16DB			0x18	/* l1d */
+#define L1D_MSE16DB_UP			0x05EA
+#define L1D_MSE16DB_DOWN		0x02EA
+
+#define MIIDBG_LEGCYPS                  0x29
+#define LEGCYPS_EN                      0x8000
+#define LEGCYPS_DAC_AMP1000_MASK        7U
+#define LEGCYPS_DAC_AMP1000_SHIFT       12
+#define LEGCYPS_DAC_AMP100_MASK         7U
+#define LEGCYPS_DAC_AMP100_SHIFT        9
+#define LEGCYPS_DAC_AMP10_MASK          7U
+#define LEGCYPS_DAC_AMP10_SHIFT         6
+#define LEGCYPS_UNPLUG_TIMER_MASK       7U
+#define LEGCYPS_UNPLUG_TIMER_SHIFT      3
+#define LEGCYPS_UNPLUG_DECT_EN          0x4
+#define LEGCYPS_ECNC_PS_EN              0x1
+#define L1D_LEGCYPS_DEF                 0x129D
+#define L1C_LEGCYPS_DEF                 0x36DD
+
+#define MIIDBG_TST100BTCFG              0x36
+#define TST100BTCFG_NORMAL_BW_EN        0x8000
+#define TST100BTCFG_BADLNK_BYPASS       0x4000
+#define TST100BTCFG_SHORTCABL_TH_MASK   0x3FU
+#define TST100BTCFG_SHORTCABL_TH_SHIFT  8
+#define TST100BTCFG_LITCH_EN            0x80
+#define TST100BTCFG_VLT_SW              0x40
+#define TST100BTCFG_LONGCABL_TH_MASK    0x3FU
+#define TST100BTCFG_LONGCABL_TH_SHIFT   0
+#define TST100BTCFG_DEF                 0xE12C
+
+#define MIIDBG_VOLT_CTRL                0x3B	/* only for l2cb 1 & 2 */
+#define VOLT_CTRL_CABLE1TH_MASK         0x1FFU
+#define VOLT_CTRL_CABLE1TH_SHIFT        7
+#define VOLT_CTRL_AMPCTRL_MASK          3U
+#define VOLT_CTRL_AMPCTRL_SHIFT         5
+#define VOLT_CTRL_SW_BYPASS             0x10
+#define VOLT_CTRL_SWLOWEST              0x8
+#define VOLT_CTRL_DACAMP10_MASK         7U
+#define VOLT_CTRL_DACAMP10_SHIFT        0
+
+#define MIIDBG_CABLE1TH_DET             0x3E
+#define CABLE1TH_DET_EN                 0x8000
+
+
+/******* dev 3 *********/
+#define MIIEXT_PCS                      3
+
+#define MIIEXT_CLDCTRL3                 0x8003
+#define CLDCTRL3_BP_CABLE1TH_DET_GT     0x8000
+#define CLDCTRL3_AZ_DISAMP              0x1000
+#define L2CB_CLDCTRL3                   0x4D19
+#define L1D_CLDCTRL3                    0xDD19
+
+#define MIIEXT_CLDCTRL6			0x8006
+#define CLDCTRL6_CAB_LEN_MASK		0x1FFU
+#define CLDCTRL6_CAB_LEN_SHIFT          0
+#define CLDCTRL6_CAB_LEN_SHORT          0x50
+
+/********* dev 7 **********/
+#define MIIEXT_ANEG                     7
+
+#define MIIEXT_LOCAL_EEEADV             0x3C
+#define LOCAL_EEEADV_1000BT             0x4
+#define LOCAL_EEEADV_100BT              0x2
+
+#define MIIEXT_REMOTE_EEEADV            0x3D
+#define REMOTE_EEEADV_1000BT            0x4
+#define REMOTE_EEEADV_100BT             0x2
+
+#define MIIEXT_EEE_ANEG                 0x8000
+#define EEE_ANEG_1000M                  0x4
+#define EEE_ANEG_100M                   0x2
 
 #endif /*_ATL1C_HW_H_*/

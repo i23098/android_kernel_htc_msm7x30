@@ -24,14 +24,6 @@
 #define ATL1C_DRV_VERSION "1.0.1.0-NAPI"
 char atl1c_driver_name[] = "atl1c";
 char atl1c_driver_version[] = ATL1C_DRV_VERSION;
-#define PCI_DEVICE_ID_ATTANSIC_L2C      0x1062
-#define PCI_DEVICE_ID_ATTANSIC_L1C      0x1063
-#define PCI_DEVICE_ID_ATHEROS_L2C_B	0x2060 /* AR8152 v1.1 Fast 10/100 */
-#define PCI_DEVICE_ID_ATHEROS_L2C_B2	0x2062 /* AR8152 v2.0 Fast 10/100 */
-#define PCI_DEVICE_ID_ATHEROS_L1D	0x1073 /* AR8151 v1.0 Gigabit 1000 */
-#define PCI_DEVICE_ID_ATHEROS_L1D_2_0	0x1083 /* AR8151 v2.0 Gigabit 1000 */
-#define L2CB_V10			0xc0
-#define L2CB_V11			0xc1
 
 /*
  * atl1c_pci_tbl - PCI Device ID Table
@@ -61,11 +53,9 @@ MODULE_LICENSE("GPL");
 MODULE_VERSION(ATL1C_DRV_VERSION);
 
 static int atl1c_stop_mac(struct atl1c_hw *hw);
-static void atl1c_enable_rx_ctrl(struct atl1c_hw *hw);
-static void atl1c_enable_tx_ctrl(struct atl1c_hw *hw);
 static void atl1c_disable_l0s_l1(struct atl1c_hw *hw);
 static void atl1c_set_aspm(struct atl1c_hw *hw, u16 link_speed);
-static void atl1c_setup_mac_ctrl(struct atl1c_adapter *adapter);
+static void atl1c_start_mac(struct atl1c_adapter *adapter);
 static void atl1c_clean_rx_irq(struct atl1c_adapter *adapter,
 		   int *work_done, int work_to_do);
 static int atl1c_up(struct atl1c_adapter *adapter);
@@ -165,11 +155,6 @@ static void atl1c_reset_pcie(struct atl1c_hw *hw, u32 flag)
 	atl1c_pcie_patch(hw);
 	if (flag & ATL1C_PCIE_L0S_L1_DISABLE)
 		atl1c_disable_l0s_l1(hw);
-	if (flag & ATL1C_PCIE_PHY_RESET)
-		AT_WRITE_REG(hw, REG_GPHY_CTRL, GPHY_CTRL_DEFAULT);
-	else
-		AT_WRITE_REG(hw, REG_GPHY_CTRL,
-			GPHY_CTRL_DEFAULT | GPHY_CTRL_EXT_RESET);
 
 	msleep(5);
 }
@@ -275,8 +260,6 @@ static void atl1c_check_link_status(struct atl1c_adapter *adapter)
 		atl1c_set_aspm(hw, SPEED_0);
 		netif_carrier_off(netdev);
 		netif_stop_queue(netdev);
-		atl1c_phy_reset(hw);
-		atl1c_phy_init(&adapter->hw);
 	} else {
 		/* Link Up */
 		hw->hibernate = false;
@@ -291,9 +274,7 @@ static void atl1c_check_link_status(struct atl1c_adapter *adapter)
 			adapter->link_speed  = speed;
 			adapter->link_duplex = duplex;
 			atl1c_set_aspm(hw, speed);
-			atl1c_enable_tx_ctrl(hw);
-			atl1c_enable_rx_ctrl(hw);
-			atl1c_setup_mac_ctrl(adapter);
+			atl1c_start_mac(adapter);
 			if (netif_msg_link(adapter))
 				dev_info(&pdev->dev,
 					"%s: %s NIC Link is Up<%d Mbps %s>\n",
@@ -699,11 +680,9 @@ static void atl1c_set_mac_type(struct atl1c_hw *hw)
 
 static int atl1c_setup_mac_funcs(struct atl1c_hw *hw)
 {
-	u32 phy_status_data;
 	u32 link_ctrl_data;
 
 	atl1c_set_mac_type(hw);
-	AT_READ_REG(hw, REG_PHY_STATUS, &phy_status_data);
 	AT_READ_REG(hw, REG_LINK_CTRL, &link_ctrl_data);
 
 	hw->ctrl_flags = ATL1C_INTR_MODRT_ENABLE  |
@@ -1015,7 +994,6 @@ static void atl1c_configure_des_ring(struct atl1c_adapter *adapter)
 	struct atl1c_rrd_ring *rrd_ring = &adapter->rrd_ring;
 	struct atl1c_tpd_ring *tpd_ring = (struct atl1c_tpd_ring *)
 				adapter->tpd_ring;
-	u32 data;
 
 	/* TPD */
 	AT_WRITE_REG(hw, REG_TX_BASE_ADDR_HI,
@@ -1058,13 +1036,6 @@ static void atl1c_configure_des_ring(struct atl1c_adapter *adapter)
 		AT_WRITE_REG(hw, REG_SRAM_TRD_ADDR, 0x03df03c0L);
 		AT_WRITE_REG(hw, REG_TXF_WATER_MARK, 0);	/* TX watermark, to enter l1 state.*/
 		AT_WRITE_REG(hw, REG_RXD_DMA_CTRL, 0);		/* RXD threshold.*/
-	}
-	if (hw->nic_type == athr_l2c_b || hw->nic_type == athr_l1d_2) {
-			/* Power Saving for L2c_B */
-		AT_READ_REG(hw, REG_SERDES_LOCK, &data);
-		data |= SERDES_MAC_CLK_SLOWDOWN;
-		data |= SERDES_PYH_CLK_SLOWDOWN;
-		AT_WRITE_REG(hw, REG_SERDES_LOCK, data);
 	}
 	/* Load all of base address above */
 	AT_WRITE_REG(hw, REG_LOAD_PTR, 1);
@@ -1157,22 +1128,36 @@ static int atl1c_stop_mac(struct atl1c_hw *hw)
 		IDLE_STATUS_TXMAC_BUSY | IDLE_STATUS_RXMAC_BUSY);
 }
 
-static void atl1c_enable_rx_ctrl(struct atl1c_hw *hw)
+static void atl1c_start_mac(struct atl1c_adapter *adapter)
 {
-	u32 data;
+	struct atl1c_hw *hw = &adapter->hw;
+	u32 mac, txq, rxq;
 
-	AT_READ_REG(hw, REG_RXQ_CTRL, &data);
-	data |= RXQ_CTRL_EN;
-	AT_WRITE_REG(hw, REG_RXQ_CTRL, data);
-}
+	hw->mac_duplex = adapter->link_duplex == FULL_DUPLEX ? true : false;
+	hw->mac_speed = adapter->link_speed == SPEED_1000 ?
+		atl1c_mac_speed_1000 : atl1c_mac_speed_10_100;
 
-static void atl1c_enable_tx_ctrl(struct atl1c_hw *hw)
-{
-	u32 data;
+	AT_READ_REG(hw, REG_TXQ_CTRL, &txq);
+	AT_READ_REG(hw, REG_RXQ_CTRL, &rxq);
+	AT_READ_REG(hw, REG_MAC_CTRL, &mac);
 
-	AT_READ_REG(hw, REG_TXQ_CTRL, &data);
-	data |= TXQ_CTRL_EN;
-	AT_WRITE_REG(hw, REG_TXQ_CTRL, data);
+	txq |= TXQ_CTRL_EN;
+	rxq |= RXQ_CTRL_EN;
+	mac |= MAC_CTRL_TX_EN | MAC_CTRL_TX_FLOW |
+	       MAC_CTRL_RX_EN | MAC_CTRL_RX_FLOW |
+	       MAC_CTRL_ADD_CRC | MAC_CTRL_PAD |
+	       MAC_CTRL_BC_EN | MAC_CTRL_SINGLE_PAUSE_EN |
+	       MAC_CTRL_HASH_ALG_CRC32;
+	if (hw->mac_duplex)
+		mac |= MAC_CTRL_DUPLX;
+	else
+		mac &= ~MAC_CTRL_DUPLX;
+	mac = FIELD_SETX(mac, MAC_CTRL_SPEED, hw->mac_speed);
+	mac = FIELD_SETX(mac, MAC_CTRL_PRMLEN, hw->preamble_len);
+
+	AT_WRITE_REG(hw, REG_TXQ_CTRL, txq);
+	AT_WRITE_REG(hw, REG_RXQ_CTRL, rxq);
+	AT_WRITE_REG(hw, REG_MAC_CTRL, mac);
 }
 
 /*
@@ -1184,7 +1169,7 @@ static int atl1c_reset_mac(struct atl1c_hw *hw)
 {
 	struct atl1c_adapter *adapter = (struct atl1c_adapter *)hw->adapter;
 	struct pci_dev *pdev = adapter->pdev;
-	u32 master_ctrl_data = 0;
+	u32 ctrl_data = 0;
 
 	AT_WRITE_REG(hw, REG_IMR, 0);
 	AT_WRITE_REG(hw, REG_ISR, ISR_DIS_INT);
@@ -1196,10 +1181,9 @@ static int atl1c_reset_mac(struct atl1c_hw *hw)
 	 * the current PCI configuration.  The global reset bit is self-
 	 * clearing, and should clear within a microsecond.
 	 */
-	AT_READ_REG(hw, REG_MASTER_CTRL, &master_ctrl_data);
-	master_ctrl_data |= MASTER_CTRL_OOB_DIS;
-	AT_WRITE_REG(hw, REG_MASTER_CTRL,
-		master_ctrl_data | MASTER_CTRL_SOFT_RST);
+	AT_READ_REG(hw, REG_MASTER_CTRL, &ctrl_data);
+	ctrl_data |= MASTER_CTRL_OOB_DIS;
+	AT_WRITE_REG(hw, REG_MASTER_CTRL, ctrl_data | MASTER_CTRL_SOFT_RST);
 
 	AT_WRITE_FLUSH(hw);
 	msleep(10);
@@ -1211,7 +1195,28 @@ static int atl1c_reset_mac(struct atl1c_hw *hw)
 			" disabled for 10ms second\n");
 		return -1;
 	}
-	AT_WRITE_REG(hw, REG_MASTER_CTRL, master_ctrl_data);
+	AT_WRITE_REG(hw, REG_MASTER_CTRL, ctrl_data);
+
+	/* driver control speed/duplex */
+	AT_READ_REG(hw, REG_MAC_CTRL, &ctrl_data);
+	AT_WRITE_REG(hw, REG_MAC_CTRL, ctrl_data | MAC_CTRL_SPEED_MODE_SW);
+
+	/* clk switch setting */
+	AT_READ_REG(hw, REG_SERDES, &ctrl_data);
+	switch (hw->nic_type) {
+	case athr_l2c_b:
+		ctrl_data &= ~(SERDES_PHY_CLK_SLOWDOWN |
+				SERDES_MAC_CLK_SLOWDOWN);
+		AT_WRITE_REG(hw, REG_SERDES, ctrl_data);
+		break;
+	case athr_l2c_b2:
+	case athr_l1d_2:
+		ctrl_data |= SERDES_PHY_CLK_SLOWDOWN | SERDES_MAC_CLK_SLOWDOWN;
+		AT_WRITE_REG(hw, REG_SERDES, ctrl_data);
+		break;
+	default:
+		break;
+	}
 
 	return 0;
 }
@@ -1299,49 +1304,6 @@ static void atl1c_set_aspm(struct atl1c_hw *hw, u16 link_speed)
 	AT_WRITE_REG(hw, REG_PM_CTRL, pm_ctrl_data);
 
 	return;
-}
-
-static void atl1c_setup_mac_ctrl(struct atl1c_adapter *adapter)
-{
-	struct atl1c_hw *hw = &adapter->hw;
-	struct net_device *netdev = adapter->netdev;
-	u32 mac_ctrl_data;
-
-	mac_ctrl_data = MAC_CTRL_TX_EN | MAC_CTRL_RX_EN;
-	mac_ctrl_data |= (MAC_CTRL_TX_FLOW | MAC_CTRL_RX_FLOW);
-
-	if (adapter->link_duplex == FULL_DUPLEX) {
-		hw->mac_duplex = true;
-		mac_ctrl_data |= MAC_CTRL_DUPLX;
-	}
-
-	if (adapter->link_speed == SPEED_1000)
-		hw->mac_speed = atl1c_mac_speed_1000;
-	else
-		hw->mac_speed = atl1c_mac_speed_10_100;
-
-	mac_ctrl_data |= (hw->mac_speed & MAC_CTRL_SPEED_MASK) <<
-			MAC_CTRL_SPEED_SHIFT;
-
-	mac_ctrl_data |= (MAC_CTRL_ADD_CRC | MAC_CTRL_PAD);
-	mac_ctrl_data |= ((hw->preamble_len & MAC_CTRL_PRMLEN_MASK) <<
-			MAC_CTRL_PRMLEN_SHIFT);
-
-	__atl1c_vlan_mode(netdev->features, &mac_ctrl_data);
-
-	mac_ctrl_data |= MAC_CTRL_BC_EN;
-	if (netdev->flags & IFF_PROMISC)
-		mac_ctrl_data |= MAC_CTRL_PROMIS_EN;
-	if (netdev->flags & IFF_ALLMULTI)
-		mac_ctrl_data |= MAC_CTRL_MC_ALL_EN;
-
-	mac_ctrl_data |= MAC_CTRL_SINGLE_PAUSE_EN;
-	if (hw->nic_type == athr_l1d || hw->nic_type == athr_l2c_b2 ||
-	    hw->nic_type == athr_l1d_2) {
-		mac_ctrl_data |= MAC_CTRL_SPEED_MODE_SW;
-		mac_ctrl_data |= MAC_CTRL_HASH_ALG_CRC32;
-	}
-	AT_WRITE_REG(hw, REG_MAC_CTRL, mac_ctrl_data);
 }
 
 /*
@@ -2268,13 +2230,6 @@ static int atl1c_open(struct net_device *netdev)
 	if (unlikely(err))
 		goto err_up;
 
-	if (adapter->hw.ctrl_flags & ATL1C_FPGA_VERSION) {
-		u32 phy_data;
-
-		AT_READ_REG(&adapter->hw, REG_MDIO_CTRL, &phy_data);
-		phy_data |= MDIO_AP_EN;
-		AT_WRITE_REG(&adapter->hw, REG_MDIO_CTRL, phy_data);
-	}
 	return 0;
 
 err_up:
@@ -2311,10 +2266,6 @@ static int atl1c_suspend(struct device *dev)
 	struct net_device *netdev = pci_get_drvdata(pdev);
 	struct atl1c_adapter *adapter = netdev_priv(netdev);
 	struct atl1c_hw *hw = &adapter->hw;
-	u32 mac_ctrl_data = 0;
-	u32 master_ctrl_data = 0;
-	u32 wol_ctrl_data = 0;
-	u16 mii_intr_status_data = 0;
 	u32 wufc = adapter->wol;
 
 	atl1c_disable_l0s_l1(hw);
@@ -2325,80 +2276,10 @@ static int atl1c_suspend(struct device *dev)
 	netif_device_detach(netdev);
 
 	if (wufc)
-		if (atl1c_phy_power_saving(hw) != 0)
+		if (atl1c_phy_to_ps_link(hw) != 0)
 			dev_dbg(&pdev->dev, "phy power saving failed");
 
-	AT_READ_REG(hw, REG_MASTER_CTRL, &master_ctrl_data);
-	AT_READ_REG(hw, REG_MAC_CTRL, &mac_ctrl_data);
-
-	master_ctrl_data &= ~MASTER_CTRL_CLK_SEL_DIS;
-	mac_ctrl_data &= ~(MAC_CTRL_PRMLEN_MASK << MAC_CTRL_PRMLEN_SHIFT);
-	mac_ctrl_data |= (((u32)adapter->hw.preamble_len &
-			MAC_CTRL_PRMLEN_MASK) <<
-			MAC_CTRL_PRMLEN_SHIFT);
-	mac_ctrl_data &= ~(MAC_CTRL_SPEED_MASK << MAC_CTRL_SPEED_SHIFT);
-	mac_ctrl_data &= ~MAC_CTRL_DUPLX;
-
-	if (wufc) {
-		mac_ctrl_data |= MAC_CTRL_RX_EN;
-		if (adapter->link_speed == SPEED_1000 ||
-			adapter->link_speed == SPEED_0) {
-			mac_ctrl_data |= atl1c_mac_speed_1000 <<
-					MAC_CTRL_SPEED_SHIFT;
-			mac_ctrl_data |= MAC_CTRL_DUPLX;
-		} else
-			mac_ctrl_data |= atl1c_mac_speed_10_100 <<
-					MAC_CTRL_SPEED_SHIFT;
-
-		if (adapter->link_duplex == DUPLEX_FULL)
-			mac_ctrl_data |= MAC_CTRL_DUPLX;
-
-		/* turn on magic packet wol */
-		if (wufc & AT_WUFC_MAG) {
-			wol_ctrl_data |= WOL_MAGIC_EN | WOL_MAGIC_PME_EN;
-			if (hw->nic_type == athr_l2c_b &&
-			    hw->revision_id == L2CB_V11) {
-				wol_ctrl_data |=
-					WOL_PATTERN_EN | WOL_PATTERN_PME_EN;
-			}
-		}
-		if (wufc & AT_WUFC_LNKC) {
-			wol_ctrl_data |=  WOL_LINK_CHG_EN | WOL_LINK_CHG_PME_EN;
-			/* only link up can wake up */
-			if (atl1c_write_phy_reg(hw, MII_IER, IER_LINK_UP) != 0) {
-				dev_dbg(&pdev->dev, "%s: read write phy "
-						  "register failed.\n",
-						  atl1c_driver_name);
-			}
-		}
-		/* clear phy interrupt */
-		atl1c_read_phy_reg(hw, MII_ISR, &mii_intr_status_data);
-		/* Config MAC Ctrl register */
-		__atl1c_vlan_mode(netdev->features, &mac_ctrl_data);
-
-		/* magic packet maybe Broadcast&multicast&Unicast frame */
-		if (wufc & AT_WUFC_MAG)
-			mac_ctrl_data |= MAC_CTRL_BC_EN;
-
-		dev_dbg(&pdev->dev,
-			"%s: suspend MAC=0x%x\n",
-			atl1c_driver_name, mac_ctrl_data);
-		AT_WRITE_REG(hw, REG_MASTER_CTRL, master_ctrl_data);
-		AT_WRITE_REG(hw, REG_WOL_CTRL, wol_ctrl_data);
-		AT_WRITE_REG(hw, REG_MAC_CTRL, mac_ctrl_data);
-
-		AT_WRITE_REG(hw, REG_GPHY_CTRL, GPHY_CTRL_DEFAULT |
-			GPHY_CTRL_EXT_RESET);
-	} else {
-		AT_WRITE_REG(hw, REG_GPHY_CTRL, GPHY_CTRL_POWER_SAVING);
-		master_ctrl_data |= MASTER_CTRL_CLK_SEL_DIS;
-		mac_ctrl_data |= atl1c_mac_speed_10_100 << MAC_CTRL_SPEED_SHIFT;
-		mac_ctrl_data |= MAC_CTRL_DUPLX;
-		AT_WRITE_REG(hw, REG_MASTER_CTRL, master_ctrl_data);
-		AT_WRITE_REG(hw, REG_MAC_CTRL, mac_ctrl_data);
-		AT_WRITE_REG(hw, REG_WOL_CTRL, 0);
-		hw->phy_configured = false; /* re-init PHY when resume */
-	}
+	atl1c_power_saving(hw, wufc);
 
 	return 0;
 }
@@ -2411,8 +2292,7 @@ static int atl1c_resume(struct device *dev)
 	struct atl1c_adapter *adapter = netdev_priv(netdev);
 
 	AT_WRITE_REG(&adapter->hw, REG_WOL_CTRL, 0);
-	atl1c_reset_pcie(&adapter->hw, ATL1C_PCIE_L0S_L1_DISABLE |
-			ATL1C_PCIE_PHY_RESET);
+	atl1c_reset_pcie(&adapter->hw, ATL1C_PCIE_L0S_L1_DISABLE);
 
 	atl1c_phy_reset(&adapter->hw);
 	atl1c_reset_mac(&adapter->hw);
@@ -2560,7 +2440,7 @@ static int __devinit atl1c_probe(struct pci_dev *pdev,
 	adapter->mii.mdio_read  = atl1c_mdio_read;
 	adapter->mii.mdio_write = atl1c_mdio_write;
 	adapter->mii.phy_id_mask = 0x1f;
-	adapter->mii.reg_num_mask = MDIO_REG_ADDR_MASK;
+	adapter->mii.reg_num_mask = MDIO_CTRL_REG_MASK;
 	netif_napi_add(netdev, &adapter->napi, atl1c_clean, 64);
 	setup_timer(&adapter->phy_config_timer, atl1c_phy_config,
 			(unsigned long)adapter);
@@ -2570,8 +2450,7 @@ static int __devinit atl1c_probe(struct pci_dev *pdev,
 		dev_err(&pdev->dev, "net device private data init failed\n");
 		goto err_sw_init;
 	}
-	atl1c_reset_pcie(&adapter->hw, ATL1C_PCIE_L0S_L1_DISABLE |
-			ATL1C_PCIE_PHY_RESET);
+	atl1c_reset_pcie(&adapter->hw, ATL1C_PCIE_L0S_L1_DISABLE);
 
 	/* Init GPHY as early as possible due to power saving issue  */
 	atl1c_phy_reset(&adapter->hw);
