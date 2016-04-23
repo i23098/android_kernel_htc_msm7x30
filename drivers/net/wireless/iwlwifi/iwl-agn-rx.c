@@ -737,8 +737,7 @@ static void iwlagn_pass_packet_to_mac80211(struct iwl_priv *priv,
 	struct sk_buff *skb;
 	__le16 fc = hdr->frame_control;
 	struct iwl_rxon_context *ctx;
-	struct page *p;
-	int offset;
+	unsigned int hdrlen, fraglen;
 
 	/* We only process data packets if the interface is open */
 	if (unlikely(!priv->is_open)) {
@@ -752,15 +751,30 @@ static void iwlagn_pass_packet_to_mac80211(struct iwl_priv *priv,
 	    iwlagn_set_decrypted_flag(priv, hdr, ampdu_status, stats))
 		return;
 
-	skb = dev_alloc_skb(128);
+	/* Dont use dev_alloc_skb(), we'll have enough headroom once
+	 * ieee80211_hdr pulled.
+	 */
+	skb = alloc_skb(128, GFP_ATOMIC);
 	if (!skb) {
-		IWL_ERR(priv, "dev_alloc_skb failed\n");
+		IWL_ERR(priv, "alloc_skb failed\n");
 		return;
 	}
+	/* If frame is small enough to fit in skb->head, pull it completely.
+	 * If not, only pull ieee80211_hdr so that splice() or TCP coalesce
+	 * are more efficient.
+	 */
+	hdrlen = (len <= skb_tailroom(skb)) ? len : sizeof(*hdr);
 
-	offset = (void *)hdr - rxb_addr(rxb) + rxb_offset(rxb);
-	p = rxb_steal_page(rxb);
-	skb_add_rx_frag(skb, 0, p, offset, len, len);
+	memcpy(skb_put(skb, hdrlen), hdr, hdrlen);
+	fraglen = len - hdrlen;
+
+	if (fraglen) {
+		int offset = (void *)hdr + hdrlen -
+			     rxb_addr(rxb) + rxb_offset(rxb);
+
+		skb_add_rx_frag(skb, 0, rxb_steal_page(rxb), offset,
+				fraglen, rxb->truesize);
+	}
 
 	/*
 	* Wake any queues that were stopped due to a passive channel tx
@@ -771,8 +785,8 @@ static void iwlagn_pass_packet_to_mac80211(struct iwl_priv *priv,
 	*/
 	if (unlikely(ieee80211_is_beacon(fc) && priv->passive_no_rx)) {
 		for_each_context(priv, ctx) {
-			if (compare_ether_addr(hdr->addr3,
-					       ctx->active.bssid_addr))
+			if (!ether_addr_equal(hdr->addr3,
+					      ctx->active.bssid_addr))
 				continue;
 			iwlagn_lift_passive_no_rx(priv);
 		}
