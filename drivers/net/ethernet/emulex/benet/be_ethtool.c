@@ -558,7 +558,7 @@ static int be_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 				be_link_status_update(adapter, link_status);
 			if (link_speed)
 				et_speed = link_speed * 10;
-			else
+			else if (link_status)
 				et_speed = convert_to_et_speed(port_speed);
 		} else {
 			et_speed = adapter->phy.forced_port_speed;
@@ -618,7 +618,7 @@ static int be_get_settings(struct net_device *netdev, struct ethtool_cmd *ecmd)
 		ecmd->supported = adapter->phy.supported;
 	}
 
-	ecmd->duplex = DUPLEX_FULL;
+	ecmd->duplex = netif_carrier_ok(netdev) ? DUPLEX_FULL : DUPLEX_UNKNOWN;
 	ecmd->phy_address = adapter->port_num;
 
 	return 0;

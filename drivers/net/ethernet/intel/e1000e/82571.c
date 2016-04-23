@@ -1279,6 +1279,16 @@ static void e1000_initialize_hw_bits_82571(struct e1000_hw *hw)
 		ew32(CTRL_EXT, reg);
 	}
 
+	/*
+	 * Disable IPv6 extension header parsing because some malformed
+	 * IPv6 headers can hang the Rx.
+	 */
+	if (hw->mac.type <= e1000_82573) {
+		reg = er32(RFCTL);
+		reg |= (E1000_RFCTL_IPV6_EX_DIS | E1000_RFCTL_NEW_IPV6_EXT_DIS);
+		ew32(RFCTL, reg);
+	}
+
 	/* PCI-Ex Control Registers */
 	switch (hw->mac.type) {
 	case e1000_82574:
@@ -1762,7 +1772,8 @@ void e1000e_set_laa_state_82571(struct e1000_hw *hw, bool state)
 		 * incoming packets directed to this port are dropped.
 		 * Eventually the LAA will be in RAR[0] and RAR[14].
 		 */
-		e1000e_rar_set(hw, hw->mac.addr, hw->mac.rar_entry_count - 1);
+		hw->mac.ops.rar_set(hw, hw->mac.addr,
+				    hw->mac.rar_entry_count - 1);
 }
 
 /**
@@ -1926,6 +1937,7 @@ static const struct e1000_mac_operations e82571_mac_ops = {
 	.setup_led		= e1000e_setup_led_generic,
 	.config_collision_dist	= e1000e_config_collision_dist_generic,
 	.read_mac_addr		= e1000_read_mac_addr_82571,
+	.rar_set		= e1000e_rar_set_generic,
 };
 
 static const struct e1000_phy_operations e82_phy_ops_igp = {
@@ -2060,8 +2072,9 @@ const struct e1000_info e1000_82574_info = {
 				  | FLAG_HAS_SMART_POWER_DOWN
 				  | FLAG_HAS_AMT
 				  | FLAG_HAS_CTRLEXT_ON_LOAD,
-	.flags2			  = FLAG2_CHECK_PHY_HANG
+	.flags2			 = FLAG2_CHECK_PHY_HANG
 				  | FLAG2_DISABLE_ASPM_L0S
+				  | FLAG2_DISABLE_ASPM_L1
 				  | FLAG2_NO_DISABLE_RX
 				  | FLAG2_DMA_BURST,
 	.pba			= 32,

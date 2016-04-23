@@ -1259,6 +1259,7 @@ static void be_rx_compl_process(struct be_rx_obj *rxo,
 		skb_checksum_none_assert(skb);
 
 	skb->protocol = eth_type_trans(skb, netdev);
+	skb_record_rx_queue(skb, rxo - &adapter->rx_obj[0]);
 	if (netdev->features & NETIF_F_RXHASH)
 		skb->rxhash = rxcp->rss_hash;
 
@@ -1315,6 +1316,7 @@ void be_rx_compl_process_gro(struct be_rx_obj *rxo, struct napi_struct *napi,
 	skb->len = rxcp->pkt_size;
 	skb->data_len = rxcp->pkt_size;
 	skb->ip_summed = CHECKSUM_UNNECESSARY;
+	skb_record_rx_queue(skb, rxo - &adapter->rx_obj[0]);
 	if (adapter->netdev->features & NETIF_F_RXHASH)
 		skb->rxhash = rxcp->rss_hash;
 
@@ -3819,6 +3821,11 @@ static pci_ers_result_t be_eeh_err_detected(struct pci_dev *pdev,
 
 	pci_disable_device(pdev);
 
+	/* The error could cause the FW to trigger a flash debug dump.
+	 * Resetting the card while flash dump is in progress
+	 * can cause it not to recover; wait for it to finish
+	 */
+	ssleep(30);
 	return PCI_ERS_RESULT_NEED_RESET;
 }
 

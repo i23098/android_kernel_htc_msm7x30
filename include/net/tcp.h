@@ -254,8 +254,8 @@ extern int sysctl_tcp_max_ssthresh;
 extern int sysctl_tcp_cookie_size;
 extern int sysctl_tcp_thin_linear_timeouts;
 extern int sysctl_tcp_thin_dupack;
-extern int sysctl_tcp_challenge_ack_limit;
 extern int sysctl_tcp_default_init_rwnd;
+extern int sysctl_tcp_early_retrans;
 
 extern atomic_long_t tcp_memory_allocated;
 
@@ -451,7 +451,8 @@ extern int tcp_disconnect(struct sock *sk, int flags);
 
 void tcp_connect_init(struct sock *sk);
 void tcp_finish_connect(struct sock *sk, struct sk_buff *skb);
-void tcp_queue_rcv(struct sock *sk, struct sk_buff *skb, int hdrlen);
+int __must_check tcp_queue_rcv(struct sock *sk, struct sk_buff *skb,
+			       int hdrlen, bool *fragstolen);
 
 /* From syncookies.c */
 extern __u32 syncookie_secret[2][16-4+SHA_DIGEST_WORDS];
@@ -512,6 +513,8 @@ extern void tcp_send_delayed_ack(struct sock *sk);
 
 /* tcp_input.c */
 extern void tcp_cwnd_application_limited(struct sock *sk);
+extern void tcp_resume_early_retransmit(struct sock *sk);
+extern void tcp_rearm_rto(struct sock *sk);
 
 /* tcp_timer.c */
 extern void tcp_init_xmit_timers(struct sock *);
@@ -808,6 +811,21 @@ static inline int tcp_is_fack(const struct tcp_sock *tp)
 static inline void tcp_enable_fack(struct tcp_sock *tp)
 {
 	tp->rx_opt.sack_ok |= TCP_FACK_ENABLED;
+}
+
+/* TCP early-retransmit (ER) is similar to but more conservative than
+ * the thin-dupack feature.  Enable ER only if thin-dupack is disabled.
+ */
+static inline void tcp_enable_early_retrans(struct tcp_sock *tp)
+{
+	tp->do_early_retrans = sysctl_tcp_early_retrans &&
+		!sysctl_tcp_thin_dupack && sysctl_tcp_reordering == 3;
+	tp->early_retrans_delayed = 0;
+}
+
+static inline void tcp_disable_early_retrans(struct tcp_sock *tp)
+{
+	tp->do_early_retrans = 0;
 }
 
 static inline unsigned int tcp_left_out(const struct tcp_sock *tp)

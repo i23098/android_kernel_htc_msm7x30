@@ -133,7 +133,7 @@ static struct notifier_block dca_notifier = {
 static unsigned int max_vfs;
 module_param(max_vfs, uint, 0);
 MODULE_PARM_DESC(max_vfs,
-		 "Maximum number of virtual functions to allocate per physical function");
+		 "Maximum number of virtual functions to allocate per physical function - default is zero and maximum value is 63");
 #endif /* CONFIG_PCI_IOV */
 
 static unsigned int allow_unsupported_sfp;
@@ -6776,9 +6776,10 @@ static void __devinit ixgbe_probe_vf(struct ixgbe_adapter *adapter,
 	/* The 82599 supports up to 64 VFs per physical function
 	 * but this implementation limits allocation to 63 so that
 	 * basic networking resources are still available to the
-	 * physical function
+	 * physical function.  If the user requests greater thn
+	 * 63 VFs then it is an error - reset to default of zero.
 	 */
-	adapter->num_vfs = (max_vfs > 63) ? 63 : max_vfs;
+	adapter->num_vfs = (max_vfs > 63) ? 0 : max_vfs;
 	ixgbe_enable_sriov(adapter, ii);
 #endif /* CONFIG_PCI_IOV */
 }
@@ -7217,6 +7218,10 @@ static int __devinit ixgbe_probe(struct pci_dev *pdev,
 
 	e_dev_info("%s\n", ixgbe_default_device_descr);
 	cards_found++;
+
+	if (ixgbe_sysfs_init(adapter))
+		e_err(probe, "failed to allocate sysfs resources\n");
+
 	return 0;
 
 err_register:
@@ -7263,6 +7268,8 @@ static void __devexit ixgbe_remove(struct pci_dev *pdev)
 	}
 
 #endif
+	ixgbe_sysfs_exit(adapter);
+
 #ifdef IXGBE_FCOE
 	if (adapter->flags & IXGBE_FLAG_FCOE_ENABLED)
 		ixgbe_cleanup_fcoe(adapter);

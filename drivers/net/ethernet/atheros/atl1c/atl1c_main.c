@@ -60,6 +60,10 @@ static void atl1c_clean_rx_irq(struct atl1c_adapter *adapter,
 		   int *work_done, int work_to_do);
 static int atl1c_up(struct atl1c_adapter *adapter);
 static void atl1c_down(struct atl1c_adapter *adapter);
+static int atl1c_reset_mac(struct atl1c_hw *hw);
+static void atl1c_reset_dma_ring(struct atl1c_adapter *adapter);
+static int atl1c_configure(struct atl1c_adapter *adapter);
+static int atl1c_alloc_rx_buffer(struct atl1c_adapter *adapter);
 
 static const u16 atl1c_pay_load_size[] = {
 	128, 256, 512, 1024, 2048, 4096,
@@ -133,6 +137,9 @@ static void atl1c_reset_pcie(struct atl1c_hw *hw, u32 flag)
 	 */
 	pci_enable_wake(pdev, PCI_D3hot, 0);
 	pci_enable_wake(pdev, PCI_D3cold, 0);
+	/* wol sts read-clear */
+	AT_READ_REG(hw, REG_WOL_CTRL, &data);
+	AT_WRITE_REG(hw, REG_WOL_CTRL, 0);
 
 	/*
 	 * Mask some pcie error bits
@@ -253,13 +260,16 @@ static void atl1c_check_link_status(struct atl1c_adapter *adapter)
 
 	if ((phy_data & BMSR_LSTATUS) == 0) {
 		/* link down */
-		hw->hibernate = true;
-		if (atl1c_stop_mac(hw) != 0)
-			if (netif_msg_hw(adapter))
-				dev_warn(&pdev->dev, "stop mac failed\n");
-		atl1c_set_aspm(hw, SPEED_0);
 		netif_carrier_off(netdev);
 		netif_stop_queue(netdev);
+		hw->hibernate = true;
+		if (atl1c_reset_mac(hw) != 0)
+			if (netif_msg_hw(adapter))
+				dev_warn(&pdev->dev, "reset mac failed\n");
+		atl1c_set_aspm(hw, SPEED_0);
+		atl1c_post_phy_linkchg(hw, SPEED_0);
+		atl1c_reset_dma_ring(adapter);
+		atl1c_configure(adapter);
 	} else {
 		/* Link Up */
 		hw->hibernate = false;
@@ -274,6 +284,7 @@ static void atl1c_check_link_status(struct atl1c_adapter *adapter)
 			adapter->link_speed  = speed;
 			adapter->link_duplex = duplex;
 			atl1c_set_aspm(hw, speed);
+			atl1c_post_phy_linkchg(hw, speed);
 			atl1c_start_mac(adapter);
 			if (netif_msg_link(adapter))
 				dev_info(&pdev->dev,
@@ -325,6 +336,9 @@ static void atl1c_common_task(struct work_struct *work)
 	adapter = container_of(work, struct atl1c_adapter, common_task);
 	netdev = adapter->netdev;
 
+	if (test_bit(__AT_DOWN, &adapter->flags))
+		return;
+
 	if (test_and_clear_bit(ATL1C_WORK_EVENT_RESET, &adapter->work_event)) {
 		netif_device_detach(netdev);
 		atl1c_down(adapter);
@@ -333,8 +347,11 @@ static void atl1c_common_task(struct work_struct *work)
 	}
 
 	if (test_and_clear_bit(ATL1C_WORK_EVENT_LINK_CHANGE,
-		&adapter->work_event))
+		&adapter->work_event)) {
+		atl1c_irq_disable(adapter);
 		atl1c_check_link_status(adapter);
+		atl1c_irq_enable(adapter);
+	}
 }
 
 
@@ -458,7 +475,7 @@ static int atl1c_set_mac_addr(struct net_device *netdev, void *p)
 	memcpy(adapter->hw.mac_addr, addr->sa_data, netdev->addr_len);
 	netdev->addr_assign_type &= ~NET_ADDR_RANDOM;
 
-	atl1c_hw_set_mac_addr(&adapter->hw);
+	atl1c_hw_set_mac_addr(&adapter->hw, adapter->hw.mac_addr);
 
 	return 0;
 }
@@ -536,14 +553,6 @@ static int atl1c_change_mtu(struct net_device *netdev, int new_mtu)
 		netdev_update_features(netdev);
 		atl1c_up(adapter);
 		clear_bit(__AT_RESETTING, &adapter->flags);
-		if (adapter->hw.ctrl_flags & ATL1C_FPGA_VERSION) {
-			u32 phy_data;
-
-			AT_READ_REG(&adapter->hw, 0x1414, &phy_data);
-			phy_data |= 0x10000000;
-			AT_WRITE_REG(&adapter->hw, 0x1414, phy_data);
-		}
-
 	}
 	return 0;
 }
@@ -697,6 +706,55 @@ static int atl1c_setup_mac_funcs(struct atl1c_hw *hw)
 		hw->link_cap_flags |= ATL1C_LINK_CAP_1000M;
 	return 0;
 }
+
+struct atl1c_platform_patch {
+	u16 pci_did;
+	u8  pci_revid;
+	u16 subsystem_vid;
+	u16 subsystem_did;
+	u32 patch_flag;
+#define ATL1C_LINK_PATCH	0x1
+};
+static const struct atl1c_platform_patch plats[] __devinitdata = {
+{0x2060, 0xC1, 0x1019, 0x8152, 0x1},
+{0x2060, 0xC1, 0x1019, 0x2060, 0x1},
+{0x2060, 0xC1, 0x1019, 0xE000, 0x1},
+{0x2062, 0xC0, 0x1019, 0x8152, 0x1},
+{0x2062, 0xC0, 0x1019, 0x2062, 0x1},
+{0x2062, 0xC0, 0x1458, 0xE000, 0x1},
+{0x2062, 0xC1, 0x1019, 0x8152, 0x1},
+{0x2062, 0xC1, 0x1019, 0x2062, 0x1},
+{0x2062, 0xC1, 0x1458, 0xE000, 0x1},
+{0x2062, 0xC1, 0x1565, 0x2802, 0x1},
+{0x2062, 0xC1, 0x1565, 0x2801, 0x1},
+{0x1073, 0xC0, 0x1019, 0x8151, 0x1},
+{0x1073, 0xC0, 0x1019, 0x1073, 0x1},
+{0x1073, 0xC0, 0x1458, 0xE000, 0x1},
+{0x1083, 0xC0, 0x1458, 0xE000, 0x1},
+{0x1083, 0xC0, 0x1019, 0x8151, 0x1},
+{0x1083, 0xC0, 0x1019, 0x1083, 0x1},
+{0x1083, 0xC0, 0x1462, 0x7680, 0x1},
+{0x1083, 0xC0, 0x1565, 0x2803, 0x1},
+{0},
+};
+
+static void __devinit atl1c_patch_assign(struct atl1c_hw *hw)
+{
+	int i = 0;
+
+	hw->msi_lnkpatch = false;
+
+	while (plats[i].pci_did != 0) {
+		if (plats[i].pci_did == hw->device_id &&
+		    plats[i].pci_revid == hw->revision_id &&
+		    plats[i].subsystem_vid == hw->subsystem_vendor_id &&
+		    plats[i].subsystem_did == hw->subsystem_id) {
+			if (plats[i].patch_flag & ATL1C_LINK_PATCH)
+				hw->msi_lnkpatch = true;
+		}
+		i++;
+	}
+}
 /*
  * atl1c_sw_init - Initialize general software structures (struct atl1c_adapter)
  * @adapter: board private structure to initialize
@@ -732,6 +790,8 @@ static int __devinit atl1c_sw_init(struct atl1c_adapter *adapter)
 		dev_err(&pdev->dev, "set mac function pointers failed\n");
 		return -1;
 	}
+	atl1c_patch_assign(hw);
+
 	hw->intr_mask = IMR_NORMAL_MASK;
 	hw->phy_configured = false;
 	hw->preamble_len = 7;
@@ -1171,9 +1231,6 @@ static int atl1c_reset_mac(struct atl1c_hw *hw)
 	struct pci_dev *pdev = adapter->pdev;
 	u32 ctrl_data = 0;
 
-	AT_WRITE_REG(hw, REG_IMR, 0);
-	AT_WRITE_REG(hw, REG_ISR, ISR_DIS_INT);
-
 	atl1c_stop_mac(hw);
 	/*
 	 * Issue Soft Reset to the MAC.  This will reset the chip's
@@ -1261,7 +1318,7 @@ static void atl1c_set_aspm(struct atl1c_hw *hw, u16 link_speed)
 	}
 
 	/* L0S/L1 enable */
-	if (hw->ctrl_flags & ATL1C_ASPM_L0S_SUPPORT)
+	if ((hw->ctrl_flags & ATL1C_ASPM_L0S_SUPPORT) && link_speed != SPEED_0)
 		pm_ctrl_data |= PM_CTRL_ASPM_L0S_EN | PM_CTRL_MAC_ASPM_CHK;
 	if (hw->ctrl_flags & ATL1C_ASPM_L1_SUPPORT)
 		pm_ctrl_data |= PM_CTRL_ASPM_L1_EN | PM_CTRL_MAC_ASPM_CHK;
@@ -1312,7 +1369,7 @@ static void atl1c_set_aspm(struct atl1c_hw *hw, u16 link_speed)
  *
  * Configure the Tx /Rx unit of the MAC after a reset.
  */
-static int atl1c_configure(struct atl1c_adapter *adapter)
+static int atl1c_configure_mac(struct atl1c_adapter *adapter)
 {
 	struct atl1c_hw *hw = &adapter->hw;
 	u32 master_ctrl_data = 0;
@@ -1371,6 +1428,25 @@ static int atl1c_configure(struct atl1c_adapter *adapter)
 	atl1c_configure_tx(adapter);
 	atl1c_configure_rx(adapter);
 	atl1c_configure_dma(adapter);
+
+	return 0;
+}
+
+static int atl1c_configure(struct atl1c_adapter *adapter)
+{
+	struct net_device *netdev = adapter->netdev;
+	int num;
+
+	atl1c_init_ring_ptrs(adapter);
+	atl1c_set_multi(netdev);
+	atl1c_restore_vlan(adapter);
+
+	num = atl1c_alloc_rx_buffer(adapter);
+	if (unlikely(num == 0))
+		return -ENOMEM;
+
+	if (atl1c_configure_mac(adapter))
+		return -EIO;
 
 	return 0;
 }
@@ -2135,41 +2211,38 @@ static int atl1c_request_irq(struct atl1c_adapter *adapter)
 	return err;
 }
 
+
+static void atl1c_reset_dma_ring(struct atl1c_adapter *adapter)
+{
+	/* release tx-pending skbs and reset tx/rx ring index */
+	atl1c_clean_tx_ring(adapter, atl1c_trans_normal);
+	atl1c_clean_tx_ring(adapter, atl1c_trans_high);
+	atl1c_clean_rx_ring(adapter);
+}
+
 static int atl1c_up(struct atl1c_adapter *adapter)
 {
 	struct net_device *netdev = adapter->netdev;
-	int num;
 	int err;
 
 	netif_carrier_off(netdev);
-	atl1c_init_ring_ptrs(adapter);
-	atl1c_set_multi(netdev);
-	atl1c_restore_vlan(adapter);
 
-	num = atl1c_alloc_rx_buffer(adapter);
-	if (unlikely(num == 0)) {
-		err = -ENOMEM;
-		goto err_alloc_rx;
-	}
-
-	if (atl1c_configure(adapter)) {
-		err = -EIO;
+	err = atl1c_configure(adapter);
+	if (unlikely(err))
 		goto err_up;
-	}
 
 	err = atl1c_request_irq(adapter);
 	if (unlikely(err))
 		goto err_up;
 
+	atl1c_check_link_status(adapter);
 	clear_bit(__AT_DOWN, &adapter->flags);
 	napi_enable(&adapter->napi);
 	atl1c_irq_enable(adapter);
-	atl1c_check_link_status(adapter);
 	netif_start_queue(netdev);
 	return err;
 
 err_up:
-err_alloc_rx:
 	atl1c_clean_rx_ring(adapter);
 	return err;
 }
@@ -2195,9 +2268,7 @@ static void atl1c_down(struct atl1c_adapter *adapter)
 
 	adapter->link_speed = SPEED_0;
 	adapter->link_duplex = -1;
-	atl1c_clean_tx_ring(adapter, atl1c_trans_normal);
-	atl1c_clean_tx_ring(adapter, atl1c_trans_high);
-	atl1c_clean_rx_ring(adapter);
+	atl1c_reset_dma_ring(adapter);
 }
 
 /*
@@ -2255,6 +2326,8 @@ static int atl1c_close(struct net_device *netdev)
 	struct atl1c_adapter *adapter = netdev_priv(netdev);
 
 	WARN_ON(test_bit(__AT_RESETTING, &adapter->flags));
+	set_bit(__AT_DOWN, &adapter->flags);
+	cancel_work_sync(&adapter->common_task);
 	atl1c_down(adapter);
 	atl1c_free_ring_resources(adapter);
 	return 0;
@@ -2478,7 +2551,7 @@ static int __devinit atl1c_probe(struct pci_dev *pdev,
 		dev_dbg(&pdev->dev, "mac address : %pM\n",
 			adapter->hw.mac_addr);
 
-	atl1c_hw_set_mac_addr(&adapter->hw);
+	atl1c_hw_set_mac_addr(&adapter->hw, adapter->hw.mac_addr);
 	INIT_WORK(&adapter->common_task, atl1c_common_task);
 	adapter->work_event = 0;
 	err = register_netdev(netdev);
@@ -2522,6 +2595,8 @@ static void __devexit atl1c_remove(struct pci_dev *pdev)
 	struct atl1c_adapter *adapter = netdev_priv(netdev);
 
 	unregister_netdev(netdev);
+	/* restore permanent address */
+	atl1c_hw_set_mac_addr(&adapter->hw, adapter->hw.perm_mac_addr);
 	atl1c_phy_disable(&adapter->hw);
 
 	iounmap(adapter->hw.hw_addr);

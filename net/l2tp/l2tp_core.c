@@ -330,8 +330,10 @@ static void l2tp_recv_queue_skb(struct l2tp_session *session, struct sk_buff *sk
 	struct sk_buff *skbp;
 	struct sk_buff *tmp;
 	u32 ns = L2TP_SKB_CB(skb)->ns;
+	struct l2tp_stats *sstats;
 
 	spin_lock_bh(&session->reorder_q.lock);
+	sstats = &session->stats;
 	skb_queue_walk_safe(&session->reorder_q, skbp, tmp) {
 		if (L2TP_SKB_CB(skbp)->ns > ns) {
 			__skb_queue_before(&session->reorder_q, skbp, skb);
@@ -339,7 +341,9 @@ static void l2tp_recv_queue_skb(struct l2tp_session *session, struct sk_buff *sk
 			       "%s: pkt %hu, inserted before %hu, reorder_q len=%d\n",
 			       session->name, ns, L2TP_SKB_CB(skbp)->ns,
 			       skb_queue_len(&session->reorder_q));
-			session->stats.rx_oos_packets++;
+			u64_stats_update_begin(&sstats->syncp);
+			sstats->rx_oos_packets++;
+			u64_stats_update_end(&sstats->syncp);
 			goto out;
 		}
 	}
@@ -356,16 +360,23 @@ static void l2tp_recv_dequeue_skb(struct l2tp_session *session, struct sk_buff *
 {
 	struct l2tp_tunnel *tunnel = session->tunnel;
 	int length = L2TP_SKB_CB(skb)->length;
+	struct l2tp_stats *tstats, *sstats;
 
 	/* We're about to requeue the skb, so return resources
 	 * to its current owner (a socket receive buffer).
 	 */
 	skb_orphan(skb);
 
-	tunnel->stats.rx_packets++;
-	tunnel->stats.rx_bytes += length;
-	session->stats.rx_packets++;
-	session->stats.rx_bytes += length;
+	tstats = &tunnel->stats;
+	u64_stats_update_begin(&tstats->syncp);
+	sstats = &session->stats;
+	u64_stats_update_begin(&sstats->syncp);
+	tstats->rx_packets++;
+	tstats->rx_bytes += length;
+	sstats->rx_packets++;
+	sstats->rx_bytes += length;
+	u64_stats_update_end(&tstats->syncp);
+	u64_stats_update_end(&sstats->syncp);
 
 	if (L2TP_SKB_CB(skb)->has_seq) {
 		/* Bump our Nr */
@@ -396,6 +407,7 @@ static void l2tp_recv_dequeue(struct l2tp_session *session)
 {
 	struct sk_buff *skb;
 	struct sk_buff *tmp;
+	struct l2tp_stats *sstats;
 
 	/* If the pkt at the head of the queue has the nr that we
 	 * expect to send up next, dequeue it and any other
@@ -403,10 +415,13 @@ static void l2tp_recv_dequeue(struct l2tp_session *session)
 	 */
 start:
 	spin_lock_bh(&session->reorder_q.lock);
+	sstats = &session->stats;
 	skb_queue_walk_safe(&session->reorder_q, skb, tmp) {
 		if (time_after(jiffies, L2TP_SKB_CB(skb)->expires)) {
-			session->stats.rx_seq_discards++;
-			session->stats.rx_errors++;
+			u64_stats_update_begin(&sstats->syncp);
+			sstats->rx_seq_discards++;
+			sstats->rx_errors++;
+			u64_stats_update_end(&sstats->syncp);
 			PRINTK(session->debug, L2TP_MSG_SEQ, KERN_DEBUG,
 			       "%s: oos pkt %u len %d discarded (too old), "
 			       "waiting for %u, reorder_q_len=%d\n",
@@ -558,6 +573,7 @@ void l2tp_recv_common(struct l2tp_session *session, struct sk_buff *skb,
 	struct l2tp_tunnel *tunnel = session->tunnel;
 	int offset;
 	u32 ns, nr;
+	struct l2tp_stats *sstats = &session->stats;
 
 	/* The ref count is increased since we now hold a pointer to
 	 * the session. Take care to decrement the refcnt when exiting
@@ -573,7 +589,9 @@ void l2tp_recv_common(struct l2tp_session *session, struct sk_buff *skb,
 			PRINTK(tunnel->debug, L2TP_MSG_DATA, KERN_INFO,
 			       "%s: cookie mismatch (%u/%u). Discarding.\n",
 			       tunnel->name, tunnel->tunnel_id, session->session_id);
-			session->stats.rx_cookie_discards++;
+			u64_stats_update_begin(&sstats->syncp);
+			sstats->rx_cookie_discards++;
+			u64_stats_update_end(&sstats->syncp);
 			goto discard;
 		}
 		ptr += session->peer_cookie_len;
@@ -642,7 +660,9 @@ void l2tp_recv_common(struct l2tp_session *session, struct sk_buff *skb,
 			PRINTK(session->debug, L2TP_MSG_SEQ, KERN_WARNING,
 			       "%s: recv data has no seq numbers when required. "
 			       "Discarding\n", session->name);
-			session->stats.rx_seq_discards++;
+			u64_stats_update_begin(&sstats->syncp);
+			sstats->rx_seq_discards++;
+			u64_stats_update_end(&sstats->syncp);
 			goto discard;
 		}
 
@@ -661,7 +681,9 @@ void l2tp_recv_common(struct l2tp_session *session, struct sk_buff *skb,
 			PRINTK(session->debug, L2TP_MSG_SEQ, KERN_WARNING,
 			       "%s: recv data has no seq numbers when required. "
 			       "Discarding\n", session->name);
-			session->stats.rx_seq_discards++;
+			u64_stats_update_begin(&sstats->syncp);
+			sstats->rx_seq_discards++;
+			u64_stats_update_end(&sstats->syncp);
 			goto discard;
 		}
 	}
@@ -715,7 +737,9 @@ void l2tp_recv_common(struct l2tp_session *session, struct sk_buff *skb,
 			 * packets
 			 */
 			if (L2TP_SKB_CB(skb)->ns != session->nr) {
-				session->stats.rx_seq_discards++;
+				u64_stats_update_begin(&sstats->syncp);
+				sstats->rx_seq_discards++;
+				u64_stats_update_end(&sstats->syncp);
 				PRINTK(session->debug, L2TP_MSG_SEQ, KERN_DEBUG,
 				       "%s: oos pkt %u len %d discarded, "
 				       "waiting for %u, reorder_q_len=%d\n",
@@ -742,7 +766,9 @@ void l2tp_recv_common(struct l2tp_session *session, struct sk_buff *skb,
 	return;
 
 discard:
-	session->stats.rx_errors++;
+	u64_stats_update_begin(&sstats->syncp);
+	sstats->rx_errors++;
+	u64_stats_update_end(&sstats->syncp);
 	kfree_skb(skb);
 
 	if (session->deref)
@@ -768,6 +794,7 @@ static int l2tp_udp_recv_core(struct l2tp_tunnel *tunnel, struct sk_buff *skb,
 	int offset;
 	u16 version;
 	int length;
+	struct l2tp_stats *tstats;
 
 	if (tunnel->sock && l2tp_verify_udp_checksum(tunnel->sock, skb))
 		goto discard_bad_csum;
@@ -860,7 +887,10 @@ static int l2tp_udp_recv_core(struct l2tp_tunnel *tunnel, struct sk_buff *skb,
 discard_bad_csum:
 	LIMIT_NETDEBUG("%s: UDP: bad checksum\n", tunnel->name);
 	UDP_INC_STATS_USER(tunnel->l2tp_net, UDP_MIB_INERRORS, 0);
-	tunnel->stats.rx_errors++;
+	tstats = &tunnel->stats;
+	u64_stats_update_begin(&tstats->syncp);
+	tstats->rx_errors++;
+	u64_stats_update_end(&tstats->syncp);
 	kfree_skb(skb);
 
 	return 0;
@@ -986,6 +1016,7 @@ static int l2tp_xmit_core(struct l2tp_session *session, struct sk_buff *skb,
 	struct l2tp_tunnel *tunnel = session->tunnel;
 	unsigned int len = skb->len;
 	int error;
+	struct l2tp_stats *tstats, *sstats;
 
 	/* Debug */
 	if (session->send_seq)
@@ -1022,15 +1053,21 @@ static int l2tp_xmit_core(struct l2tp_session *session, struct sk_buff *skb,
 		error = ip_queue_xmit(skb, fl);
 
 	/* Update stats */
+	tstats = &tunnel->stats;
+	u64_stats_update_begin(&tstats->syncp);
+	sstats = &session->stats;
+	u64_stats_update_begin(&sstats->syncp);
 	if (error >= 0) {
-		tunnel->stats.tx_packets++;
-		tunnel->stats.tx_bytes += len;
-		session->stats.tx_packets++;
-		session->stats.tx_bytes += len;
+		tstats->tx_packets++;
+		tstats->tx_bytes += len;
+		sstats->tx_packets++;
+		sstats->tx_bytes += len;
 	} else {
-		tunnel->stats.tx_errors++;
-		session->stats.tx_errors++;
+		tstats->tx_errors++;
+		sstats->tx_errors++;
 	}
+	u64_stats_update_end(&tstats->syncp);
+	u64_stats_update_end(&sstats->syncp);
 
 	return 0;
 }
@@ -1329,31 +1366,69 @@ static int l2tp_tunnel_sock_create(u32 tunnel_id, u32 peer_tunnel_id, struct l2t
 {
 	int err = -EINVAL;
 	struct sockaddr_in udp_addr;
+#if IS_ENABLED(CONFIG_IPV6)
+	struct sockaddr_in6 udp6_addr;
+	struct sockaddr_l2tpip6 ip6_addr;
+#endif
 	struct sockaddr_l2tpip ip_addr;
 	struct socket *sock = NULL;
 
 	switch (cfg->encap) {
 	case L2TP_ENCAPTYPE_UDP:
-		err = sock_create(AF_INET, SOCK_DGRAM, 0, sockp);
-		if (err < 0)
-			goto out;
+#if IS_ENABLED(CONFIG_IPV6)
+		if (cfg->local_ip6 && cfg->peer_ip6) {
+			err = sock_create(AF_INET6, SOCK_DGRAM, 0, sockp);
+			if (err < 0)
+				goto out;
 
-		sock = *sockp;
+			sock = *sockp;
 
-		memset(&udp_addr, 0, sizeof(udp_addr));
-		udp_addr.sin_family = AF_INET;
-		udp_addr.sin_addr = cfg->local_ip;
-		udp_addr.sin_port = htons(cfg->local_udp_port);
-		err = kernel_bind(sock, (struct sockaddr *) &udp_addr, sizeof(udp_addr));
-		if (err < 0)
-			goto out;
+			memset(&udp6_addr, 0, sizeof(udp6_addr));
+			udp6_addr.sin6_family = AF_INET6;
+			memcpy(&udp6_addr.sin6_addr, cfg->local_ip6,
+			       sizeof(udp6_addr.sin6_addr));
+			udp6_addr.sin6_port = htons(cfg->local_udp_port);
+			err = kernel_bind(sock, (struct sockaddr *) &udp6_addr,
+					  sizeof(udp6_addr));
+			if (err < 0)
+				goto out;
 
-		udp_addr.sin_family = AF_INET;
-		udp_addr.sin_addr = cfg->peer_ip;
-		udp_addr.sin_port = htons(cfg->peer_udp_port);
-		err = kernel_connect(sock, (struct sockaddr *) &udp_addr, sizeof(udp_addr), 0);
-		if (err < 0)
-			goto out;
+			udp6_addr.sin6_family = AF_INET6;
+			memcpy(&udp6_addr.sin6_addr, cfg->peer_ip6,
+			       sizeof(udp6_addr.sin6_addr));
+			udp6_addr.sin6_port = htons(cfg->peer_udp_port);
+			err = kernel_connect(sock,
+					     (struct sockaddr *) &udp6_addr,
+					     sizeof(udp6_addr), 0);
+			if (err < 0)
+				goto out;
+		} else
+#endif
+		{
+			err = sock_create(AF_INET, SOCK_DGRAM, 0, sockp);
+			if (err < 0)
+				goto out;
+
+			sock = *sockp;
+
+			memset(&udp_addr, 0, sizeof(udp_addr));
+			udp_addr.sin_family = AF_INET;
+			udp_addr.sin_addr = cfg->local_ip;
+			udp_addr.sin_port = htons(cfg->local_udp_port);
+			err = kernel_bind(sock, (struct sockaddr *) &udp_addr,
+					  sizeof(udp_addr));
+			if (err < 0)
+				goto out;
+
+			udp_addr.sin_family = AF_INET;
+			udp_addr.sin_addr = cfg->peer_ip;
+			udp_addr.sin_port = htons(cfg->peer_udp_port);
+			err = kernel_connect(sock,
+					     (struct sockaddr *) &udp_addr,
+					     sizeof(udp_addr), 0);
+			if (err < 0)
+				goto out;
+		}
 
 		if (!cfg->use_udp_checksums)
 			sock->sk->sk_no_check = UDP_CSUM_NOXMIT;
@@ -1361,27 +1436,61 @@ static int l2tp_tunnel_sock_create(u32 tunnel_id, u32 peer_tunnel_id, struct l2t
 		break;
 
 	case L2TP_ENCAPTYPE_IP:
-		err = sock_create(AF_INET, SOCK_DGRAM, IPPROTO_L2TP, sockp);
-		if (err < 0)
-			goto out;
+#if IS_ENABLED(CONFIG_IPV6)
+		if (cfg->local_ip6 && cfg->peer_ip6) {
+			err = sock_create(AF_INET6, SOCK_DGRAM, IPPROTO_L2TP,
+					  sockp);
+			if (err < 0)
+				goto out;
 
-		sock = *sockp;
+			sock = *sockp;
 
-		memset(&ip_addr, 0, sizeof(ip_addr));
-		ip_addr.l2tp_family = AF_INET;
-		ip_addr.l2tp_addr = cfg->local_ip;
-		ip_addr.l2tp_conn_id = tunnel_id;
-		err = kernel_bind(sock, (struct sockaddr *) &ip_addr, sizeof(ip_addr));
-		if (err < 0)
-			goto out;
+			memset(&ip6_addr, 0, sizeof(ip6_addr));
+			ip6_addr.l2tp_family = AF_INET6;
+			memcpy(&ip6_addr.l2tp_addr, cfg->local_ip6,
+			       sizeof(ip6_addr.l2tp_addr));
+			ip6_addr.l2tp_conn_id = tunnel_id;
+			err = kernel_bind(sock, (struct sockaddr *) &ip6_addr,
+					  sizeof(ip6_addr));
+			if (err < 0)
+				goto out;
 
-		ip_addr.l2tp_family = AF_INET;
-		ip_addr.l2tp_addr = cfg->peer_ip;
-		ip_addr.l2tp_conn_id = peer_tunnel_id;
-		err = kernel_connect(sock, (struct sockaddr *) &ip_addr, sizeof(ip_addr), 0);
-		if (err < 0)
-			goto out;
+			ip6_addr.l2tp_family = AF_INET6;
+			memcpy(&ip6_addr.l2tp_addr, cfg->peer_ip6,
+			       sizeof(ip6_addr.l2tp_addr));
+			ip6_addr.l2tp_conn_id = peer_tunnel_id;
+			err = kernel_connect(sock,
+					     (struct sockaddr *) &ip6_addr,
+					     sizeof(ip6_addr), 0);
+			if (err < 0)
+				goto out;
+		} else
+#endif
+		{
+			err = sock_create(AF_INET, SOCK_DGRAM, IPPROTO_L2TP,
+					  sockp);
+			if (err < 0)
+				goto out;
 
+			sock = *sockp;
+
+			memset(&ip_addr, 0, sizeof(ip_addr));
+			ip_addr.l2tp_family = AF_INET;
+			ip_addr.l2tp_addr = cfg->local_ip;
+			ip_addr.l2tp_conn_id = tunnel_id;
+			err = kernel_bind(sock, (struct sockaddr *) &ip_addr,
+					  sizeof(ip_addr));
+			if (err < 0)
+				goto out;
+
+			ip_addr.l2tp_family = AF_INET;
+			ip_addr.l2tp_addr = cfg->peer_ip;
+			ip_addr.l2tp_conn_id = peer_tunnel_id;
+			err = kernel_connect(sock, (struct sockaddr *) &ip_addr,
+					     sizeof(ip_addr), 0);
+			if (err < 0)
+				goto out;
+		}
 		break;
 
 	default:

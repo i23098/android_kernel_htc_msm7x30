@@ -27,6 +27,7 @@
 #include <net/tcp_memcontrol.h>
 
 static int zero;
+static int two = 2;
 static int tcp_retr1_max = 255;
 static int ip_local_port_range_min[] = { 1, 1 };
 static int ip_local_port_range_max[] = { 65535, 65535 };
@@ -700,7 +701,16 @@ static struct ctl_table ipv4_table[] = {
 		.data           = &sysctl_tcp_default_init_rwnd,
 		.maxlen         = sizeof(int),
 		.mode           = 0644,
-		.proc_handler   = proc_tcp_default_init_rwnd
+		.proc_handler	= proc_tcp_default_init_rwnd
+	},
+	{
+		.procname	= "tcp_early_retrans",
+		.data		= &sysctl_tcp_early_retrans,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= &zero,
+		.extra2		= &two,
 	},
 	{
 		.procname	= "udp_mem",

@@ -944,6 +944,14 @@ static void e1000_initialize_hw_bits_80003es2lan(struct e1000_hw *hw)
 	else
 		reg |= (1 << 28);
 	ew32(TARC(1), reg);
+
+	/*
+	 * Disable IPv6 extension header parsing because some malformed
+	 * IPv6 headers can hang the Rx.
+	 */
+	reg = er32(RFCTL);
+	reg |= (E1000_RFCTL_IPV6_EX_DIS | E1000_RFCTL_NEW_IPV6_EXT_DIS);
+	ew32(RFCTL, reg);
 }
 
 /**
@@ -1439,6 +1447,7 @@ static const struct e1000_mac_operations es2_mac_ops = {
 	/* setup_physical_interface dependent on media type */
 	.setup_led		= e1000e_setup_led_generic,
 	.config_collision_dist	= e1000e_config_collision_dist_generic,
+	.rar_set		= e1000e_rar_set_generic,
 };
 
 static const struct e1000_phy_operations es2_phy_ops = {
