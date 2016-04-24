@@ -421,6 +421,8 @@ config ARCH_PRIMA2
 	select CLKDEV_LOOKUP
 	select GENERIC_IRQ_CHIP
 	select MIGHT_HAVE_CACHE_L2X0
+	select PINCTRL
+	select PINCTRL_SIRF
 	select USE_OF
 	select ZONE_DMA
 	help
@@ -483,6 +485,7 @@ config ARCH_MXS
 	select CLKDEV_LOOKUP
 	select CLKSRC_MMIO
 	select HAVE_CLK_PREPARE
+	select PINCTRL
 	help
 	  Support for Freescale MXS-based family of processors
 
@@ -943,6 +946,7 @@ config ARCH_NOMADIK
 	select CPU_ARM926T
 	select CLKDEV_LOOKUP
 	select GENERIC_CLOCKEVENTS
+	select PINCTRL
 	select MIGHT_HAVE_CACHE_L2X0
 	select ARCH_REQUIRE_GPIOLIB
 	help
@@ -2427,7 +2431,7 @@ source "kernel/power/Kconfig"
 config ARCH_SUSPEND_POSSIBLE
 	depends on !ARCH_S5PC100 && !ARCH_TEGRA
 	depends on CPU_ARM920T || CPU_ARM926T || CPU_SA1100 || \
-		CPU_V6 || CPU_V6K || CPU_V7 || CPU_XSC3 || CPU_XSCALE
+		CPU_V6 || CPU_V6K || CPU_V7 || CPU_XSC3 || CPU_XSCALE || CPU_MOHAWK
 	def_bool y
 
 config ARM_CPU_SUSPEND
