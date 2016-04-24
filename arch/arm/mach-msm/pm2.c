@@ -1956,15 +1956,17 @@ static int __init msm_pm_init(void)
 	pgd_t *pc_pgd;
 	pmd_t *pmd;
 	unsigned long pmdval;
+	unsigned long exit_phys;
+
+	exit_phys = virt_to_phys(msm_pm_collapse_exit);
 
 	/* Page table for cores to come back up safely. */
 	pc_pgd = pgd_alloc(&init_mm);
 	if (!pc_pgd)
 		return -ENOMEM;
-	pmd = pmd_offset(pc_pgd +
-			 pgd_index(virt_to_phys(msm_pm_collapse_exit)),
-			 virt_to_phys(msm_pm_collapse_exit));
-	pmdval = (virt_to_phys(msm_pm_collapse_exit) & PGDIR_MASK) |
+	pmd = pmd_offset(pud_offset(pc_pgd + pgd_index(exit_phys), exit_phys),
+			 exit_phys);
+	pmdval = (exit_phys & PGDIR_MASK) |
 		     PMD_TYPE_SECT | PMD_SECT_AP_WRITE;
 	pmd[0] = __pmd(pmdval);
 	pmd[1] = __pmd(pmdval + (1 << (PGDIR_SHIFT - 1)));
