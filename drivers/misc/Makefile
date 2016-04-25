@@ -76,3 +76,4 @@ obj-$(CONFIG_CABLE_DETECT_8960) += cable_detect_8960.o
 obj-$(CONFIG_CABLE_DETECT_8X55) += cable_detect_8x55.o
 obj-$(CONFIG_USB_SWITCH_FSA9480) += fsa9480.o
 obj-$(CONFIG_ALTERA_STAPL)	+=altera-stapl/
+obj-$(CONFIG_INTEL_MEI)		+= mei/
