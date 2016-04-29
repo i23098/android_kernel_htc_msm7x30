@@ -698,4 +698,10 @@ extern int processor_name_read_proc(char *page, char **start, off_t off,
 extern int dying_processors_read_proc(char *page, char **start, off_t off,
 			   int count, int *eof, void *data);
 
+#if defined(CONFIG_MSM_SMD) && defined(CONFIG_DEBUG_FS)
+int smd_debugfs_init(void);
+#else
+static inline int smd_debugfs_init(void) { return 0; }
+#endif
+
 #endif

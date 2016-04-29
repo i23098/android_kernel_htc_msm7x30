@@ -481,8 +481,10 @@ config ARCH_MXS
 	select ARCH_REQUIRE_GPIOLIB
 	select CLKDEV_LOOKUP
 	select CLKSRC_MMIO
+	select COMMON_CLK
 	select HAVE_CLK_PREPARE
 	select PINCTRL
+	select USE_OF
 	help
 	  Support for Freescale MXS-based family of processors
 
@@ -978,6 +980,7 @@ config PLAT_SPEAR
 	select ARM_AMBA
 	select ARCH_REQUIRE_GPIOLIB
 	select CLKDEV_LOOKUP
+	select COMMON_CLK
 	select CLKSRC_MMIO
 	select GENERIC_CLOCKEVENTS
 	select HAVE_CLK
@@ -1132,6 +1135,7 @@ config PLAT_ORION
 	bool
 	select CLKSRC_MMIO
 	select GENERIC_IRQ_CHIP
+	select COMMON_CLK
 
 config PLAT_PXA
 	bool
