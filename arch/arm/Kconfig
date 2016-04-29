@@ -42,6 +42,8 @@ config ARM
 	select GENERIC_PCI_IOMAP
 	select HAVE_BPF_JIT
 	select GENERIC_SMP_IDLE_THREAD
+	select KTIME_SCALAR
+	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
 	help
 	  The ARM series is a line of low-power-consumption RISC chip designs
 	  licensed by ARM Ltd and targeted at embedded applications and
@@ -1518,8 +1520,6 @@ source "drivers/pcmcia/Kconfig"
 endmenu
 
 menu "Kernel Features"
-
-source "kernel/time/Kconfig"
 
 config HAVE_SMP
 	bool
