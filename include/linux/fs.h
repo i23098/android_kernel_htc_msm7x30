@@ -173,6 +173,15 @@ struct inodes_stat_t {
 #define WRITE_FUA		(WRITE | REQ_SYNC | REQ_NOIDLE | REQ_FUA)
 #define WRITE_FLUSH_FUA		(WRITE | REQ_SYNC | REQ_NOIDLE | REQ_FLUSH | REQ_FUA)
 
+
+/*
+ * Flag for rw_copy_check_uvector and compat_rw_copy_check_uvector
+ * that indicates that they should check the contents of the iovec are
+ * valid, but not check the memory that the iovec elements
+ * points too.
+ */
+#define CHECK_IOVEC_ONLY -1
+
 #define SEL_IN		1
 #define SEL_OUT		2
 #define SEL_EX		4
@@ -615,8 +624,6 @@ struct address_space_operations {
 	void (*freepage)(struct page *);
 	ssize_t (*direct_IO)(int, struct kiocb *, const struct iovec *iov,
 			loff_t offset, unsigned long nr_segs);
-	ssize_t (*direct_IO_bvec)(int, struct kiocb *, struct bio_vec *bvec,
-			loff_t offset, unsigned long bvec_len);
 	int (*get_xip_mem)(struct address_space *, pgoff_t, int,
 						void **, unsigned long *);
 	/*
@@ -1634,9 +1641,7 @@ struct file_operations {
 	ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);
 	ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
 	ssize_t (*aio_read) (struct kiocb *, const struct iovec *, unsigned long, loff_t);
-	ssize_t (*read_iter) (struct kiocb *, struct iov_iter *, loff_t);
 	ssize_t (*aio_write) (struct kiocb *, const struct iovec *, unsigned long, loff_t);
-	ssize_t (*write_iter) (struct kiocb *, struct iov_iter *, loff_t);
 	int (*readdir) (struct file *, void *, filldir_t);
 	unsigned int (*poll) (struct file *, struct poll_table_struct *);
 	long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
@@ -1687,6 +1692,7 @@ struct inode_operations {
 	int (*removexattr) (struct dentry *, const char *);
 	int (*fiemap)(struct inode *, struct fiemap_extent_info *, u64 start,
 		      u64 len);
+	int (*update_time)(struct inode *, struct timespec *, int);
 } ____cacheline_aligned;
 
 struct seq_file;
@@ -1694,8 +1700,7 @@ struct seq_file;
 ssize_t rw_copy_check_uvector(int type, const struct iovec __user * uvector,
 			      unsigned long nr_segs, unsigned long fast_segs,
 			      struct iovec *fast_pointer,
-			      struct iovec **ret_pointer,
-			      int check_access);
+			      struct iovec **ret_pointer);
 
 extern ssize_t vfs_read(struct file *, char __user *, size_t, loff_t *);
 extern ssize_t vfs_write(struct file *, const char __user *, size_t, loff_t *);
@@ -1845,6 +1850,13 @@ static inline void inode_inc_iversion(struct inode *inode)
        inode->i_version++;
        spin_unlock(&inode->i_lock);
 }
+
+enum file_time_flags {
+	S_ATIME = 1,
+	S_MTIME = 2,
+	S_CTIME = 4,
+	S_VERSION = 8,
+};
 
 extern void touch_atime(struct path *);
 static inline void file_accessed(struct file *file)
@@ -2390,23 +2402,13 @@ extern int generic_file_readonly_mmap(struct file *, struct vm_area_struct *);
 extern int file_read_actor(read_descriptor_t * desc, struct page *page, unsigned long offset, unsigned long size);
 int generic_write_checks(struct file *file, loff_t *pos, size_t *count, int isblk);
 extern ssize_t generic_file_aio_read(struct kiocb *, const struct iovec *, unsigned long, loff_t);
-extern ssize_t generic_file_read_iter(struct kiocb *, struct iov_iter *,
-		loff_t);
 extern ssize_t __generic_file_aio_write(struct kiocb *, const struct iovec *, unsigned long,
 		loff_t *);
-extern ssize_t __generic_file_write_iter(struct kiocb *, struct iov_iter *,
-		loff_t *);
 extern ssize_t generic_file_aio_write(struct kiocb *, const struct iovec *, unsigned long, loff_t);
-extern ssize_t generic_file_write_iter(struct kiocb *, struct iov_iter *,
-		loff_t);
 extern ssize_t generic_file_direct_write(struct kiocb *, const struct iovec *,
 		unsigned long *, loff_t, loff_t *, size_t, size_t);
-extern ssize_t generic_file_direct_write_iter(struct kiocb *, struct iov_iter *,
-		loff_t, loff_t *, size_t);
 extern ssize_t generic_file_buffered_write(struct kiocb *, const struct iovec *,
 		unsigned long, loff_t, loff_t *, size_t, ssize_t);
-extern ssize_t generic_file_buffered_write_iter(struct kiocb *,
-		struct iov_iter *, loff_t, loff_t *, ssize_t);
 extern ssize_t do_sync_read(struct file *filp, char __user *buf, size_t len, loff_t *ppos);
 extern ssize_t do_sync_write(struct file *filp, const char __user *buf, size_t len, loff_t *ppos);
 extern int generic_segment_checks(const struct iovec *iov,
@@ -2436,8 +2438,6 @@ file_ra_state_init(struct file_ra_state *ra, struct address_space *mapping);
 extern loff_t noop_llseek(struct file *file, loff_t offset, int origin);
 extern loff_t no_llseek(struct file *file, loff_t offset, int origin);
 extern loff_t generic_file_llseek(struct file *file, loff_t offset, int origin);
-extern loff_t generic_file_llseek_unlocked(struct file *file, loff_t offset,
-			int origin);
 extern loff_t generic_file_llseek_size(struct file *file, loff_t offset,
 		int origin, loff_t maxsize);
 extern int generic_file_open(struct inode * inode, struct file * filp);
@@ -2470,8 +2470,6 @@ enum {
 };
 
 void dio_end_io(struct bio *bio, int error);
-void inode_dio_wait(struct inode *inode);
-void inode_dio_done(struct inode *inode);
 
 ssize_t __blockdev_direct_IO(int rw, struct kiocb *iocb, struct inode *inode,
 	struct block_device *bdev, const struct iovec *iov, loff_t offset,
@@ -2486,35 +2484,10 @@ static inline ssize_t blockdev_direct_IO(int rw, struct kiocb *iocb,
 				    offset, nr_segs, get_block, NULL, NULL,
 				    DIO_LOCKING | DIO_SKIP_HOLES);
 }
-
-ssize_t __blockdev_direct_IO_bvec(int rw, struct kiocb *iocb,
-	struct inode *inode, struct block_device *bdev, struct bio_vec *bvec,
-	loff_t offset, unsigned long bvec_len, get_block_t get_block,
-	dio_iodone_t end_io, dio_submit_t submit_io, int flags);
-
-static inline ssize_t blockdev_direct_IO_bvec(int rw, struct kiocb *iocb,
-	struct inode *inode, struct block_device *bdev, struct bio_vec *bvec,
-	loff_t offset, unsigned long bvec_len, get_block_t get_block,
-	dio_iodone_t end_io)
-{
-	return __blockdev_direct_IO_bvec(rw, iocb, inode, bdev, bvec, offset,
-				bvec_len, get_block, end_io, NULL,
-				DIO_LOCKING | DIO_SKIP_HOLES);
-}
-
-static inline ssize_t blockdev_direct_IO_bvec_no_locking(int rw,
-	struct kiocb *iocb, struct inode *inode, struct block_device *bdev,
-	struct bio_vec *bvec, loff_t offset, unsigned long bvec_len,
-	get_block_t get_block, dio_iodone_t end_io)
-{
-	return __blockdev_direct_IO_bvec(rw, iocb, inode, bdev, bvec, offset,
-				bvec_len, get_block, end_io, NULL, 0);
-}
-#else
-static inline void inode_dio_wait(struct inode *inode)
-{
-}
 #endif
+
+void inode_dio_wait(struct inode *inode);
+void inode_dio_done(struct inode *inode);
 
 extern const struct file_operations generic_ro_fops;
 
@@ -2619,7 +2592,7 @@ extern int inode_change_ok(const struct inode *, struct iattr *);
 extern int inode_newsize_ok(const struct inode *, loff_t offset);
 extern void setattr_copy(struct inode *inode, const struct iattr *attr);
 
-extern void file_update_time(struct file *file);
+extern int file_update_time(struct file *file);
 
 extern int generic_show_options(struct seq_file *m, struct dentry *root);
 extern void save_mount_options(struct super_block *sb, char *options);

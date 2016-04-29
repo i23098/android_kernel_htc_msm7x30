@@ -109,6 +109,7 @@ enum power_supply_property {
 	POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN,
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_VOLTAGE_AVG,
+	POWER_SUPPLY_PROP_VOLTAGE_OCV,
 	POWER_SUPPLY_PROP_CURRENT_MAX,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CURRENT_AVG,
@@ -232,7 +233,7 @@ extern int power_supply_set_battery_charged(struct power_supply *psy);
 extern int power_supply_set_current_limit(struct power_supply *psy, int limit);
 extern int power_supply_set_charging_by(struct power_supply *psy, bool enable);
 
-#if defined(CONFIG_POWER_SUPPLY) || defined(CONFIG_POWER_SUPPLY_MODULE)
+#ifdef CONFIG_POWER_SUPPLY
 extern int power_supply_is_system_supplied(void);
 #else
 static inline int power_supply_is_system_supplied(void) { return -ENOSYS; }
@@ -282,6 +283,7 @@ static inline bool power_supply_is_watt_property(enum power_supply_property psp)
 	case POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN:
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 	case POWER_SUPPLY_PROP_VOLTAGE_AVG:
+	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
 	case POWER_SUPPLY_PROP_POWER_NOW:
 		return 1;
 	default:
