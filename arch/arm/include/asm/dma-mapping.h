@@ -108,7 +108,6 @@ static inline void dma_free_noncoherent(struct device *dev, size_t size,
 {
 }
 
-
 /*
  * dma_coherent_pre_ops - barrier functions for coherent memory before DMA.
  * A barrier is required to ensure memory operations are complete before the
@@ -253,14 +252,6 @@ static inline void dma_free_writecombine(struct device *dev, size_t size,
 	return dma_free_attrs(dev, size, cpu_addr, dma_handle, &attrs);
 }
 
-static inline int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
-		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
-{
-	DEFINE_DMA_ATTRS(attrs);
-	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
-	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
-}
-
 static inline void *dma_alloc_stronglyordered(struct device *dev, size_t size,
 				       dma_addr_t *dma_handle, gfp_t flag)
 {
@@ -311,7 +302,13 @@ static inline int dma_mmap_nonconsistent(struct device *dev,
 	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
 }
 
-
+static inline int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
+		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
+{
+	DEFINE_DMA_ATTRS(attrs);
+	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
+	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
+}
 
 /*
  * This can be called during boot to increase the size of the consistent
@@ -359,8 +356,6 @@ extern int dmabounce_register_dev(struct device *, unsigned long,
  */
 extern void dmabounce_unregister_dev(struct device *);
 
-
-
 /**
  * dma_cache_pre_ops - clean or invalidate cache before dma transfer is
  *                     initiated and perform a barrier operation.
@@ -383,6 +378,7 @@ static inline void dma_cache_pre_ops(void *virtual_addr,
 	if (!arch_is_coherent())
 		___dma_single_cpu_to_dev(virtual_addr, size, dir);
 }
+
 
 /*
  * The scatter list versions of the above methods.

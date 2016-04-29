@@ -35,6 +35,8 @@
 #include <asm/system_info.h>
 #include <asm/dma-contiguous.h>
 
+#include "mm.h"
+
 /*
  * The DMA API is built upon the notion of "buffer ownership".  A buffer
  * is either exclusively owned by the CPU (and therefore may be accessed
@@ -133,8 +135,6 @@ struct dma_map_ops arm_dma_ops = {
 	.set_dma_mask		= arm_dma_set_mask,
 };
 EXPORT_SYMBOL(arm_dma_ops);
-
-#include "mm.h"
 
 static u64 get_coherent_dma_mask(struct device *dev)
 {
@@ -268,8 +268,10 @@ static int __init consistent_init(void)
 	unsigned long base = consistent_base;
 	unsigned long num_ptes = (CONSISTENT_END - base) >> PMD_SHIFT;
 
-	if (IS_ENABLED(CONFIG_CMA) && !IS_ENABLED(CONFIG_ARM_DMA_USE_IOMMU))
+#ifndef CONFIG_ARM_DMA_USE_IOMMU
+	if (cpu_architecture() >= CPU_ARCH_ARMv6)
 		return 0;
+#endif
 
 	consistent_pte = kmalloc(num_ptes * sizeof(pte_t), GFP_KERNEL);
 	if (!consistent_pte) {
@@ -322,7 +324,7 @@ static struct arm_vmregion_head coherent_head = {
 	.vm_list	= LIST_HEAD_INIT(coherent_head.vm_list),
 };
 
-static size_t coherent_pool_size = DEFAULT_CONSISTENT_DMA_SIZE / 8;
+size_t coherent_pool_size = DEFAULT_CONSISTENT_DMA_SIZE / 8;
 
 static int __init early_coherent_pool(char *p)
 {
@@ -341,7 +343,7 @@ static int __init coherent_init(void)
 	struct page *page;
 	void *ptr;
 
-	if (!IS_ENABLED(CONFIG_CMA))
+	if (cpu_architecture() < CPU_ARCH_ARMv6)
 		return 0;
 
 	ptr = __alloc_from_contiguous(NULL, size, prot, &page, false);
@@ -386,8 +388,8 @@ void __init dma_contiguous_remap(void)
 		struct map_desc map;
 		unsigned long addr;
 
-		if (end > lowmem_limit)
-			end = lowmem_limit;
+		if (end > arm_lowmem_limit)
+			end = arm_lowmem_limit;
 		if (start >= end)
 			return;
 
@@ -654,7 +656,6 @@ static inline pgprot_t __get_dma_pgprot(struct dma_attrs *attrs, pgprot_t prot)
 	/* if non-consistent just pass back what was given */
 	else if (!dma_get_attr(DMA_ATTR_NON_CONSISTENT, attrs))
 		prot = pgprot_dmacoherent(prot);
-
 	return prot;
 }
 
@@ -725,7 +726,7 @@ static void *__dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
 
 	if (arch_is_coherent() || nommu())
 		addr = __alloc_simple_buffer(dev, size, gfp, &page);
-	else if (!IS_ENABLED(CONFIG_CMA))
+	else if (cpu_architecture() < CPU_ARCH_ARMv6)
 		addr = __alloc_remap_buffer(dev, size, gfp, prot, &page, caller);
 	else if (gfp & GFP_ATOMIC)
 		addr = __alloc_from_pool(dev, size, &page, caller);
@@ -735,8 +736,6 @@ static void *__dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
 
 	if (addr)
 		*handle = pfn_to_dma(dev, page_to_pfn(page));
-	else
-		__dma_free_buffer(page, size);
 
 	return addr;
 }
@@ -799,7 +798,7 @@ void arm_dma_free(struct device *dev, size_t size, void *cpu_addr,
 
 	if (arch_is_coherent() || nommu()) {
 		__dma_free_buffer(page, size);
-	} else if (!IS_ENABLED(CONFIG_CMA)) {
+	} else if (cpu_architecture() < CPU_ARCH_ARMv6) {
 		__dma_free_remap(cpu_addr, size);
 		__dma_free_buffer(page, size);
 	} else {
