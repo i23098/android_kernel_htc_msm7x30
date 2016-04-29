@@ -311,6 +311,7 @@ struct snd_soc_jack_pin;
 struct snd_soc_cache_ops;
 struct snd_soc_dsp_link;
 #include <sound/soc-dapm.h>
+#include <sound/soc-dpcm.h>
 
 #ifdef CONFIG_GPIOLIB
 struct snd_soc_jack_gpio;
@@ -399,6 +400,9 @@ int snd_soc_params_to_bclk(struct snd_pcm_hw_params *parms);
 /* set runtime hw params */
 int snd_soc_set_runtime_hwparams(struct snd_pcm_substream *substream,
 	const struct snd_pcm_hardware *hw);
+
+int snd_soc_platform_trigger(struct snd_pcm_substream *substream,
+		int cmd, struct snd_soc_platform *platform);
 
 /* Jack reporting */
 int snd_soc_jack_new(struct snd_soc_codec *codec, const char *id, int type,
@@ -773,11 +777,10 @@ struct snd_soc_platform_driver {
 	int probe_order;
 	int remove_order;
 
-	int (*bespoke_trigger)(struct snd_pcm_substream *, int);
-
 	/* platform IO - used for platform DAPM */
 	unsigned int (*read)(struct snd_soc_platform *, unsigned int);
 	int (*write)(struct snd_soc_platform *, unsigned int, unsigned int);
+	int (*bespoke_trigger)(struct snd_pcm_substream *, int);
 };
 
 struct snd_soc_platform {
@@ -816,27 +819,27 @@ struct snd_soc_dai_link {
 	const char *cpu_dai_name;
 	const struct device_node *cpu_dai_of_node;
 	const char *codec_dai_name;
+	int be_id;	/* optional ID for machine driver BE identification */
 
 	const struct snd_soc_pcm_stream *params;
 
 	unsigned int dai_fmt;           /* format to set on init */
 
 	struct snd_soc_dsp_link *dsp_link;
+
+	enum snd_soc_dpcm_trigger trigger[2]; /* trigger type for DPCM */
+
 	/* Keep DAI active over suspend */
 	unsigned int ignore_suspend:1;
 
 	/* Symmetry requirements */
 	unsigned int symmetric_rates:1;
-	/* No PCM created for this DAI link */
+
+	/* Do not create a PCM for this DAI link (Backend link) */
 	unsigned int no_pcm:1;
-	/* This DAI link can change CODEC and platform at runtime*/
+
+	/* This DAI link can route to other DAI links at runtime (Frontend)*/
 	unsigned int dynamic:1;
-	/* This DAI link has no codec side driver*/
-	unsigned int no_codec:1;
-	/* This DAI has a Backend ID */
-	unsigned int be_id;
-	/* This DAI can support no host IO (no pcm data is copied to from host) */
-	unsigned int no_host_mode:2;
 
 	/* pmdown_time is ignored at stop */
 	unsigned int ignore_pmdown_time:1;
@@ -844,7 +847,14 @@ struct snd_soc_dai_link {
 	/* codec/machine specific init - e.g. add machine controls */
 	int (*init)(struct snd_soc_pcm_runtime *rtd);
 
-	/* hw_params re-writing for BE and FE sync */
+
+	/* This DAI link has no codec side driver*/
+	unsigned int no_codec:1;
+
+	/* This DAI can support no host IO (no pcm data is copied to from host) */
+	unsigned int no_host_mode:2;
+
+	/* optional hw_params re-writing for BE and FE sync */
 	int (*be_hw_params_fixup)(struct snd_soc_pcm_runtime *rtd,
 			struct snd_pcm_hw_params *params);
 
@@ -968,16 +978,6 @@ struct snd_soc_card {
 	void *drvdata;
 };
 
-/* DSP runtime data */
-struct snd_soc_dsp_runtime {
-	struct list_head be_clients;
-	struct list_head fe_clients;
-	int users;
-	struct snd_pcm_runtime *runtime;
-	struct snd_pcm_hw_params params;
-	int runtime_update;
-};
-
 /* SoC machine DAI configuration, glues a codec and cpu DAI together */
 struct snd_soc_pcm_runtime {
 	struct device *dev;
@@ -989,8 +989,8 @@ struct snd_soc_pcm_runtime {
 
 	unsigned int dev_registered:1;
 
-	/* DSP runtime data */
-	struct snd_soc_dsp_runtime dsp[2];
+	/* Dynamic PCM BE runtime data */
+	struct snd_soc_dpcm_runtime dpcm[2];
 
 	long pmdown_time;
 
@@ -1002,9 +1002,9 @@ struct snd_soc_pcm_runtime {
 	struct snd_soc_dai *cpu_dai;
 
 	struct delayed_work delayed_work;
-
 #ifdef CONFIG_DEBUG_FS
-	struct dentry *debugfs_dsp_root;
+	struct dentry *debugfs_dpcm_root;
+	struct dentry *debugfs_dpcm_state;
 #endif
 };
 

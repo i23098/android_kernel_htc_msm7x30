@@ -2176,7 +2176,7 @@ static int soc_dapm_mux_update_power(struct snd_soc_dapm_widget *widget,
 			dapm_power_widgets(widget->dapm, SND_SOC_DAPM_STREAM_NOP);
 	}
 
-	return 0;
+	return found;
 }
 
 int snd_soc_dapm_mux_update_power(struct snd_soc_dapm_widget *widget,
@@ -2188,6 +2188,8 @@ int snd_soc_dapm_mux_update_power(struct snd_soc_dapm_widget *widget,
 	mutex_lock_nested(&card->dapm_mutex, SND_SOC_DAPM_CLASS_RUNTIME);
 	ret = soc_dapm_mux_update_power(widget, kcontrol, mux, e);
 	mutex_unlock(&card->dapm_mutex);
+	if (ret > 0)
+		soc_dpcm_runtime_update(widget);
 	return ret;
 }
 EXPORT_SYMBOL_GPL(snd_soc_dapm_mux_update_power);
@@ -2223,7 +2225,7 @@ static int soc_dapm_mixer_update_power(struct snd_soc_dapm_widget *widget,
 			dapm_power_widgets(widget->dapm, SND_SOC_DAPM_STREAM_NOP);
 	}
 
-	return 0;
+	return found;
 }
 
 int snd_soc_dapm_mixer_update_power(struct snd_soc_dapm_widget *widget,
@@ -2235,6 +2237,8 @@ int snd_soc_dapm_mixer_update_power(struct snd_soc_dapm_widget *widget,
 	mutex_lock_nested(&card->dapm_mutex, SND_SOC_DAPM_CLASS_RUNTIME);
 	ret = soc_dapm_mixer_update_power(widget, kcontrol, connect);
 	mutex_unlock(&card->dapm_mutex);
+	if (ret > 0)
+		soc_dpcm_runtime_update(widget);
 	return ret;
 }
 EXPORT_SYMBOL_GPL(snd_soc_dapm_mixer_update_power);
@@ -3336,7 +3340,7 @@ static int snd_soc_dai_link_event(struct snd_soc_dapm_widget *w,
 	struct snd_soc_dai *source, *sink;
 	const struct snd_soc_pcm_stream *config = w->params;
 	struct snd_pcm_substream substream;
-	struct snd_pcm_hw_params params;
+	struct snd_pcm_hw_params *params = NULL;
 	u64 fmt;
 	int ret;
 
@@ -3366,17 +3370,21 @@ static int snd_soc_dai_link_event(struct snd_soc_dapm_widget *w,
 	}
 
 	/* Currently very limited parameter selection */
-	memset(&params, 0, sizeof(params));
-	snd_mask_set(hw_param_mask(&params, SNDRV_PCM_HW_PARAM_FORMAT), fmt);
+	params = kzalloc(sizeof(*params), GFP_KERNEL);
+	if (!params) {
+		ret = -ENOMEM;
+		goto out;
+	}
+	snd_mask_set(hw_param_mask(params, SNDRV_PCM_HW_PARAM_FORMAT), fmt);
 
-	hw_param_interval(&params, SNDRV_PCM_HW_PARAM_RATE)->min =
+	hw_param_interval(params, SNDRV_PCM_HW_PARAM_RATE)->min =
 		config->rate_min;
-	hw_param_interval(&params, SNDRV_PCM_HW_PARAM_RATE)->max =
+	hw_param_interval(params, SNDRV_PCM_HW_PARAM_RATE)->max =
 		config->rate_max;
 
-	hw_param_interval(&params, SNDRV_PCM_HW_PARAM_CHANNELS)->min
+	hw_param_interval(params, SNDRV_PCM_HW_PARAM_CHANNELS)->min
 		= config->channels_min;
-	hw_param_interval(&params, SNDRV_PCM_HW_PARAM_CHANNELS)->max
+	hw_param_interval(params, SNDRV_PCM_HW_PARAM_CHANNELS)->max
 		= config->channels_max;
 
 	memset(&substream, 0, sizeof(substream));
@@ -3386,22 +3394,22 @@ static int snd_soc_dai_link_event(struct snd_soc_dapm_widget *w,
 		if (source->driver->ops && source->driver->ops->hw_params) {
 			substream.stream = SNDRV_PCM_STREAM_CAPTURE;
 			ret = source->driver->ops->hw_params(&substream,
-							     &params, source);
+							     params, source);
 			if (ret != 0) {
 				dev_err(source->dev,
 					"hw_params() failed: %d\n", ret);
-				return ret;
+				goto out;
 			}
 		}
 
 		if (sink->driver->ops && sink->driver->ops->hw_params) {
 			substream.stream = SNDRV_PCM_STREAM_PLAYBACK;
-			ret = sink->driver->ops->hw_params(&substream, &params,
+			ret = sink->driver->ops->hw_params(&substream, params,
 							   sink);
 			if (ret != 0) {
 				dev_err(sink->dev,
 					"hw_params() failed: %d\n", ret);
-				return ret;
+				goto out;
 			}
 		}
 		break;
@@ -3410,12 +3418,14 @@ static int snd_soc_dai_link_event(struct snd_soc_dapm_widget *w,
 		ret = snd_soc_dai_digital_mute(sink, 0);
 		if (ret != 0 && ret != -ENOTSUPP)
 			dev_warn(sink->dev, "Failed to unmute: %d\n", ret);
+		ret = 0;
 		break;
 
 	case SND_SOC_DAPM_PRE_PMD:
 		ret = snd_soc_dai_digital_mute(sink, 1);
 		if (ret != 0 && ret != -ENOTSUPP)
 			dev_warn(sink->dev, "Failed to mute: %d\n", ret);
+		ret = 0;
 		break;
 
 	default:
@@ -3423,7 +3433,9 @@ static int snd_soc_dai_link_event(struct snd_soc_dapm_widget *w,
 		return -EINVAL;
 	}
 
-	return 0;
+out:
+	kfree(params);
+	return ret;
 }
 
 int snd_soc_dapm_new_pcm(struct snd_soc_card *card,

@@ -52,7 +52,7 @@ static inline int soc_dsp_dapm_stream_event(struct snd_soc_pcm_runtime *fe,
 	struct snd_soc_dsp_params *dsp_params;
 
 	/* resume for playback */
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 
@@ -70,13 +70,13 @@ static inline int be_connect(struct snd_soc_pcm_runtime *fe,
 {
 	struct snd_soc_dsp_params *dsp_params;
 
-	if (!fe->dsp[stream].runtime) {
+	if (!fe->dpcm[stream].runtime) {
 		dev_err(fe->dev, "%s no runtime\n", fe->dai_link->name);
 		return -ENODEV;
 	}
 
 	/* only add new dsp_paramss */
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 		if (dsp_params->be == be && dsp_params->fe == fe)
 			return 0;
 	}
@@ -87,10 +87,10 @@ static inline int be_connect(struct snd_soc_pcm_runtime *fe,
 
 	dsp_params->be = be;
 	dsp_params->fe = fe;
-	be->dsp[stream].runtime = fe->dsp[stream].runtime;
+	be->dpcm[stream].runtime = fe->dpcm[stream].runtime;
 	dsp_params->state = SND_SOC_DSP_LINK_STATE_NEW;
-	list_add(&dsp_params->list_be, &fe->dsp[stream].be_clients);
-	list_add(&dsp_params->list_fe, &be->dsp[stream].fe_clients);
+	list_add(&dsp_params->list_be, &fe->dpcm[stream].be_clients);
+	list_add(&dsp_params->list_fe, &be->dpcm[stream].fe_clients);
 
 	dev_dbg(fe->dev, "  connected new DSP %s path %s %s %s\n",
 			stream ? "capture" : "playback",  fe->dai_link->name,
@@ -98,7 +98,7 @@ static inline int be_connect(struct snd_soc_pcm_runtime *fe,
 
 #ifdef CONFIG_DEBUG_FS
 	dsp_params->debugfs_state = debugfs_create_u32(be->dai_link->name, 0644,
-			fe->debugfs_dsp_root, &dsp_params->state);
+			fe->debugfs_dpcm_root, &dsp_params->state);
 #endif
 
 	return 1;
@@ -108,7 +108,7 @@ static inline void be_disconnect(struct snd_soc_pcm_runtime *fe, int stream)
 {
 	struct snd_soc_dsp_params *dsp_params, *d;
 
-	list_for_each_entry_safe(dsp_params, d, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry_safe(dsp_params, d, &fe->dpcm[stream].be_clients, list_be) {
 		if (dsp_params->state == SND_SOC_DSP_LINK_STATE_FREE) {
 			dev_dbg(fe->dev, "  freed DSP %s path %s %s %s\n",
 					stream ? "capture" : "playback", fe->dai_link->name,
@@ -219,7 +219,7 @@ static int dsp_add_new_paths(struct snd_soc_pcm_runtime *fe,
 			}
 
 			/* don't connect if FE is not running */
-			if (!fe->dsp[stream].runtime)
+			if (!fe->dpcm[stream].runtime)
 				continue;
 
 			/* newly connected FE and BE */
@@ -230,7 +230,7 @@ static int dsp_add_new_paths(struct snd_soc_pcm_runtime *fe,
 			} else if (err == 0)
 				continue;
 
-			be->dsp[stream].runtime_update = pending;
+			be->dpcm[stream].runtime_update = pending;
 			count++;
 		}
 	}
@@ -274,10 +274,10 @@ static int dsp_prune_old_paths(struct snd_soc_pcm_runtime *fe, int stream,
 			stream ? "capture" : "playback");
 	if (!paths) {
 		/* prune all BEs */
-		list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+		list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 
 			dsp_params->state = SND_SOC_DSP_LINK_STATE_FREE;
-			dsp_params->be->dsp[stream].runtime_update = pending;
+			dsp_params->be->dpcm[stream].runtime_update = pending;
 			count++;
 		}
 
@@ -287,7 +287,7 @@ static int dsp_prune_old_paths(struct snd_soc_pcm_runtime *fe, int stream,
 	}
 
 	/* search card for valid BE AIFs */
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 
 		/* is there a valid widget for this BE */
 		widget = be_get_widget(card, dsp_params->be);
@@ -305,7 +305,7 @@ static int dsp_prune_old_paths(struct snd_soc_pcm_runtime *fe, int stream,
 			stream ? "capture" : "playback", dsp_params->be->dai_link->name,
 			fe->dai_link->name);
 		dsp_params->state = SND_SOC_DSP_LINK_STATE_FREE;
-		dsp_params->be->dsp[stream].runtime_update = pending;
+		dsp_params->be->dpcm[stream].runtime_update = pending;
 		count++;
 	}
 
@@ -323,7 +323,7 @@ static void be_state_update(struct snd_soc_pcm_runtime *fe, int stream,
 {
 	struct snd_soc_dsp_params *dsp_params;
 
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 		if (dsp_params->state == old)
 			dsp_params->state = new;
 	}
@@ -336,8 +336,8 @@ static void fe_clear_pending(struct snd_soc_pcm_runtime *fe, int stream)
 {
 	struct snd_soc_dsp_params *dsp_params;
 
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be)
-			dsp_params->be->dsp[stream].runtime_update = 0;
+	list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be)
+			dsp_params->be->dpcm[stream].runtime_update = 0;
 }
 
 /* Startup all new BE */
@@ -347,18 +347,18 @@ static int soc_dsp_be_dai_startup(struct snd_soc_pcm_runtime *fe, int stream)
 	int err, count = 0;
 
 	/* only startup BE DAIs that are either sinks or sources to this FE DAI */
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 
 		struct snd_pcm_substream *be_substream =
 			snd_soc_dsp_get_substream(dsp_params->be, stream);
 
 		/* is this op for this BE ? */
-		if (fe->dsp[stream].runtime_update &&
-				!dsp_params->be->dsp[stream].runtime_update)
+		if (fe->dpcm[stream].runtime_update &&
+				!dsp_params->be->dpcm[stream].runtime_update)
 			continue;
 
 		/* first time the dsp_params is open ? */
-		if (dsp_params->be->dsp[stream].users++ != 0)
+		if (dsp_params->be->dpcm[stream].users++ != 0)
 			continue;
 
 		/* only open and ref count new links */
@@ -368,7 +368,7 @@ static int soc_dsp_be_dai_startup(struct snd_soc_pcm_runtime *fe, int stream)
 		dev_dbg(dsp_params->be->dev, "dsp: open BE %s\n",
 				dsp_params->be->dai_link->name);
 
-		be_substream->runtime = dsp_params->be->dsp[stream].runtime;
+		be_substream->runtime = dsp_params->be->dpcm[stream].runtime;
 		err = soc_pcm_open(be_substream);
 		if (err < 0)
 			goto unwind;
@@ -382,16 +382,16 @@ static int soc_dsp_be_dai_startup(struct snd_soc_pcm_runtime *fe, int stream)
 
 unwind:
 	/* disable any enabled and non active backends */
-	list_for_each_entry_continue_reverse(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry_continue_reverse(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 
 		struct snd_pcm_substream *be_substream =
 			snd_soc_dsp_get_substream(dsp_params->be, stream);
 
-		if (fe->dsp[stream].runtime_update &&
-				!dsp_params->be->dsp[stream].runtime_update)
+		if (fe->dpcm[stream].runtime_update &&
+				!dsp_params->be->dpcm[stream].runtime_update)
 			continue;
 
-		if (--dsp_params->be->dsp[stream].users != 0)
+		if (--dsp_params->be->dpcm[stream].users != 0)
 			continue;
 
 		if (dsp_params->state != SND_SOC_DSP_LINK_STATE_NEW)
@@ -413,17 +413,17 @@ static int soc_dsp_be_dai_shutdown(struct snd_soc_pcm_runtime *fe, int stream)
 	struct snd_soc_dsp_params *dsp_params;
 
 	/* only shutdown backends that are either sinks or sources to this frontend DAI */
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 
 		struct snd_pcm_substream *be_substream =
 			snd_soc_dsp_get_substream(dsp_params->be, stream);
 
 		/* is this op for this BE ? */
-		if (fe->dsp[stream].runtime_update &&
-				!dsp_params->be->dsp[stream].runtime_update)
+		if (fe->dpcm[stream].runtime_update &&
+				!dsp_params->be->dpcm[stream].runtime_update)
 			continue;
 
-		if (--dsp_params->be->dsp[stream].users != 0)
+		if (--dsp_params->be->dpcm[stream].users != 0)
 			continue;
 
 		if (dsp_params->state != SND_SOC_DSP_LINK_STATE_FREE)
@@ -443,28 +443,28 @@ static int soc_dsp_be_dai_hw_params(struct snd_soc_pcm_runtime *fe, int stream)
 	struct snd_soc_dsp_params *dsp_params;
 	int ret;
 
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 
 		struct snd_pcm_substream *be_substream =
 			snd_soc_dsp_get_substream(dsp_params->be, stream);
 
 		/* is this op for this BE ? */
-		if (fe->dsp[stream].runtime_update &&
-				!dsp_params->be->dsp[stream].runtime_update)
+		if (fe->dpcm[stream].runtime_update &&
+				!dsp_params->be->dpcm[stream].runtime_update)
 			continue;
 
 		if (dsp_params->state != SND_SOC_DSP_LINK_STATE_HW_PARAMS)
 			continue;
 
 		/* first time the dsp_params is open ? */
-		if (dsp_params->be->dsp[stream].users != 1)
+		if (dsp_params->be->dpcm[stream].users != 1)
 			continue;
 
 		dev_dbg(dsp_params->be->dev, "dsp: hw_params BE %s\n",
 			dsp_params->fe->dai_link->name);
 
 		/* copy params for each dsp_params */
-		memcpy(&dsp_params->params, &fe->dsp[stream].params,
+		memcpy(&dsp_params->params, &fe->dpcm[stream].hw_params,
 				sizeof(struct snd_pcm_hw_params));
 
 		/* perform any hw_params fixups */
@@ -507,14 +507,14 @@ int soc_dsp_be_dai_trigger(struct snd_soc_pcm_runtime *fe, int stream, int cmd)
 	struct snd_soc_dsp_params *dsp_params;
 	int ret = 0;
 
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 
 		struct snd_pcm_substream *be_substream =
 			snd_soc_dsp_get_substream(dsp_params->be, stream);
 
 		/* is this op for this BE ? */
-		if (fe->dsp[stream].runtime_update &&
-				!dsp_params->be->dsp[stream].runtime_update)
+		if (fe->dpcm[stream].runtime_update &&
+				!dsp_params->be->dpcm[stream].runtime_update)
 			continue;
 
 		switch (cmd) {
@@ -529,7 +529,7 @@ int soc_dsp_be_dai_trigger(struct snd_soc_pcm_runtime *fe, int stream, int cmd)
 		case SNDRV_PCM_TRIGGER_STOP:
 			/* only stop BEs that are being shutdown */
 			if (dsp_params->state == SND_SOC_DSP_LINK_STATE_FREE &&
-				dsp_params->be->dsp[stream].users == 1)
+				dsp_params->be->dpcm[stream].users == 1)
 				ret = dsp_do_trigger(dsp_params, be_substream, cmd);
 			break;
 		case SNDRV_PCM_TRIGGER_SUSPEND:
@@ -567,14 +567,14 @@ static int soc_dsp_be_dai_prepare(struct snd_soc_pcm_runtime *fe, int stream)
 	struct snd_soc_dsp_params *dsp_params;
 	int ret = 0;
 
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 
 		struct snd_pcm_substream *be_substream =
 			snd_soc_dsp_get_substream(dsp_params->be, stream);
 
 		/* is this op for this BE ? */
-		if (fe->dsp[stream].runtime_update &&
-				!dsp_params->be->dsp[stream].runtime_update)
+		if (fe->dpcm[stream].runtime_update &&
+				!dsp_params->be->dpcm[stream].runtime_update)
 			continue;
 
 		/* only prepare ACTIVE or READY BE's */
@@ -605,21 +605,21 @@ static int soc_dsp_be_dai_hw_free(struct snd_soc_pcm_runtime *fe, int stream)
 
 	/* only hw_params backends that are either sinks or sources
 	 * to this frontend DAI */
-	list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 
 		struct snd_pcm_substream *be_substream =
 			snd_soc_dsp_get_substream(dsp_params->be, stream);
 
 		/* is this op for this BE ? */
-		if (fe->dsp[stream].runtime_update &&
-				!dsp_params->be->dsp[stream].runtime_update)
+		if (fe->dpcm[stream].runtime_update &&
+				!dsp_params->be->dpcm[stream].runtime_update)
 			continue;
 
 		if (dsp_params->state != SND_SOC_DSP_LINK_STATE_FREE)
 			continue;
 
 		/* only free hw when no longer used */
-		if (dsp_params->be->dsp[stream].users != 1)
+		if (dsp_params->be->dpcm[stream].users != 1)
 			continue;
 
 		dev_dbg(dsp_params->be->dev, "dsp: hw_free BE %s\n",
@@ -653,7 +653,7 @@ static int dsp_run_update_shutdown(struct snd_soc_pcm_runtime *fe, int stream)
 		}
 	} else {
 
-		list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+		list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 
 			dev_dbg(fe->dev, "dsp: trigger FE %s cmd stop\n",
 				fe->dai_link->name);
@@ -683,7 +683,7 @@ static int dsp_get_fe_trigger_cmd(struct snd_soc_pcm_runtime *fe, int stream)
 	struct snd_soc_dsp_params *dsp_be_params;
 
 	/* get the FEs for each BE */
-	list_for_each_entry(dsp_be_params, &fe->dsp[stream].be_clients, list_be) {
+	list_for_each_entry(dsp_be_params, &fe->dpcm[stream].be_clients, list_be) {
 
 		if (dsp_be_params->state == SND_SOC_DSP_LINK_STATE_START)
 				return SND_SOC_DSP_LINK_STATE_START;
@@ -732,11 +732,11 @@ static int dsp_run_update_startup(struct snd_soc_pcm_runtime *fe, int stream)
 		}
 
 		/* successful trigger so update BE trigger status */
-		list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+		list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 
 			/* is this op for this BE ? */
-			if (fe->dsp[stream].runtime_update &&
-				!dsp_params->be->dsp[stream].runtime_update)
+			if (fe->dpcm[stream].runtime_update &&
+				!dsp_params->be->dpcm[stream].runtime_update)
 				continue;
 
 			switch (cmd) {
@@ -754,7 +754,7 @@ static int dsp_run_update_startup(struct snd_soc_pcm_runtime *fe, int stream)
 		}
 	} else {
 
-		list_for_each_entry(dsp_params, &fe->dsp[stream].be_clients, list_be) {
+		list_for_each_entry(dsp_params, &fe->dpcm[stream].be_clients, list_be) {
 			ret = soc_dsp_be_dai_trigger(fe, stream,
 				SNDRV_PCM_TRIGGER_START);
 			if (ret < 0)
@@ -770,7 +770,7 @@ static int dsp_run_update(struct snd_soc_pcm_runtime *fe, int stream,
 {
 	int ret = 0;
 
-	fe->dsp[stream].runtime_update = 1;
+	fe->dpcm[stream].runtime_update = 1;
 
 	/* startup any new BEs */
 	if (start) {
@@ -786,7 +786,7 @@ static int dsp_run_update(struct snd_soc_pcm_runtime *fe, int stream,
 			dev_err(fe->dev, "failed to shutdown BEs\n");
 	}
 
-	fe->dsp[stream].runtime_update = 0;
+	fe->dpcm[stream].runtime_update = 0;
 
 	return ret;
 }
@@ -870,7 +870,7 @@ int soc_dsp_be_digital_mute(struct snd_soc_pcm_runtime *fe, int mute)
 	struct snd_soc_dsp_params *dsp_params;
 
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_dai *dai = be->codec_dai;
@@ -894,7 +894,7 @@ int soc_dsp_be_cpu_dai_suspend(struct snd_soc_pcm_runtime *fe)
 
 	/* suspend for playback */
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_dai *dai = be->cpu_dai;
@@ -912,7 +912,7 @@ int soc_dsp_be_cpu_dai_suspend(struct snd_soc_pcm_runtime *fe)
 
 	/* suspend for capture */
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_CAPTURE].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_CAPTURE].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_dai *dai = be->cpu_dai;
@@ -937,7 +937,7 @@ int soc_dsp_be_ac97_cpu_dai_suspend(struct snd_soc_pcm_runtime *fe)
 
 	/* suspend for playback */
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_dai *dai = be->cpu_dai;
@@ -955,7 +955,7 @@ int soc_dsp_be_ac97_cpu_dai_suspend(struct snd_soc_pcm_runtime *fe)
 
 	/* suspend for capture */
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_CAPTURE].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_CAPTURE].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_dai *dai = be->cpu_dai;
@@ -980,7 +980,7 @@ int soc_dsp_be_platform_suspend(struct snd_soc_pcm_runtime *fe)
 
 	/* suspend for playback */
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_platform *platform = be->platform;
@@ -1001,7 +1001,7 @@ int soc_dsp_be_platform_suspend(struct snd_soc_pcm_runtime *fe)
 
 	/* suspend for capture */
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_CAPTURE].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_CAPTURE].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_platform *platform = be->platform;
@@ -1029,7 +1029,7 @@ int soc_dsp_be_cpu_dai_resume(struct snd_soc_pcm_runtime *fe)
 
 	/* resume for playback */
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_dai *dai = be->cpu_dai;
@@ -1047,7 +1047,7 @@ int soc_dsp_be_cpu_dai_resume(struct snd_soc_pcm_runtime *fe)
 
 	/* suspend for capture */
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_CAPTURE].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_CAPTURE].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_dai *dai = be->cpu_dai;
@@ -1072,7 +1072,7 @@ int soc_dsp_be_ac97_cpu_dai_resume(struct snd_soc_pcm_runtime *fe)
 
 	/* resume for playback */
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_dai *dai = be->cpu_dai;
@@ -1090,7 +1090,7 @@ int soc_dsp_be_ac97_cpu_dai_resume(struct snd_soc_pcm_runtime *fe)
 
 	/* suspend for capture */
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_CAPTURE].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_CAPTURE].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_dai *dai = be->cpu_dai;
@@ -1115,7 +1115,7 @@ int soc_dsp_be_platform_resume(struct snd_soc_pcm_runtime *fe)
 
 	/* resume for playback */
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_PLAYBACK].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_platform *platform = be->platform;
@@ -1136,7 +1136,7 @@ int soc_dsp_be_platform_resume(struct snd_soc_pcm_runtime *fe)
 
 	/* resume for capture */
 	list_for_each_entry(dsp_params,
-			&fe->dsp[SNDRV_PCM_STREAM_CAPTURE].be_clients, list_be) {
+			&fe->dpcm[SNDRV_PCM_STREAM_CAPTURE].be_clients, list_be) {
 
 		struct snd_soc_pcm_runtime *be = dsp_params->be;
 		struct snd_soc_platform *platform = be->platform;
@@ -1157,22 +1157,6 @@ int soc_dsp_be_platform_resume(struct snd_soc_pcm_runtime *fe)
 
 	return 0;
 }
-
-#ifdef CONFIG_DEBUG_FS
-int soc_dsp_debugfs_add(struct snd_soc_pcm_runtime *rtd)
-{
-	rtd->debugfs_dsp_root = debugfs_create_dir(rtd->dai_link->name,
-			rtd->card->debugfs_card_root);
-	if (!rtd->debugfs_dsp_root) {
-		dev_dbg(rtd->dev,
-			 "ASoC: Failed to create dsp debugfs directory %s\n",
-			 rtd->dai_link->name);
-		return -EINVAL;
-	}
-
-	return 0;
-}
-#endif
 
 /* Module information */
 MODULE_AUTHOR("Liam Girdwood, lrg@slimlogic.co.uk");

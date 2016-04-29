@@ -40,6 +40,7 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 #include <sound/soc-dsp.h>
+#include <sound/soc-dpcm.h>
 #include <sound/initval.h>
 
 #define CREATE_TRACE_POINTS
@@ -465,6 +466,35 @@ static inline void soc_cleanup_card_debugfs(struct snd_soc_card *card)
 }
 #endif
 
+struct snd_pcm_substream *snd_soc_get_dai_substream(struct snd_soc_card *card,
+		const char *dai_link, int stream)
+{
+	int i;
+
+	for (i = 0; i < card->num_links; i++) {
+		if (card->rtd[i].dai_link->no_pcm &&
+			!strcmp(card->rtd[i].dai_link->name, dai_link))
+			return card->rtd[i].pcm->streams[stream].substream;
+	}
+	dev_dbg(card->dev, "failed to find dai link %s\n", dai_link);
+	return NULL;
+}
+EXPORT_SYMBOL_GPL(snd_soc_get_dai_substream);
+
+struct snd_soc_pcm_runtime *snd_soc_get_pcm_runtime(struct snd_soc_card *card,
+		const char *dai_link)
+{
+	int i;
+
+	for (i = 0; i < card->num_links; i++) {
+		if (!strcmp(card->rtd[i].dai_link->name, dai_link))
+			return &card->rtd[i];
+	}
+	dev_dbg(card->dev, "failed to find rtd %s\n", dai_link);
+	return NULL;
+}
+EXPORT_SYMBOL_GPL(snd_soc_get_pcm_runtime);
+
 #ifdef CONFIG_SND_SOC_AC97_BUS
 /* unregister ac97 codec */
 static int soc_ac97_dev_unregister(struct snd_soc_codec *codec)
@@ -497,8 +527,6 @@ static int soc_ac97_dev_register(struct snd_soc_codec *codec)
 	return 0;
 }
 #endif
-
-int soc_dsp_debugfs_add(struct snd_soc_pcm_runtime *rtd);
 
 /* ASoC no host IO hardware.
  * TODO: fine tune these values for all host less transfers.
@@ -572,35 +600,6 @@ int soc_pcm_bespoke_trigger(struct snd_pcm_substream *substream, int cmd)
 	}
 	return 0;
 }
-
-struct snd_pcm_substream *snd_soc_get_dai_substream(struct snd_soc_card *card,
-		const char *dai_link, int stream)
-{
-	int i;
-
-	for (i = 0; i < card->num_links; i++) {
-		if (card->rtd[i].dai_link->no_pcm &&
-			!strcmp(card->rtd[i].dai_link->name, dai_link))
-			return card->rtd[i].pcm->streams[stream].substream;
-	}
-	dev_dbg(card->dev, "failed to find dai link %s\n", dai_link);
-	return NULL;
-}
-EXPORT_SYMBOL_GPL(snd_soc_get_dai_substream);
-
-struct snd_soc_pcm_runtime *snd_soc_get_pcm_runtime(struct snd_soc_card *card,
-		const char *dai_link)
-{
-	int i;
-
-	for (i = 0; i < card->num_links; i++) {
-		if (!strcmp(card->rtd[i].dai_link->name, dai_link))
-			return &card->rtd[i];
-	}
-	dev_dbg(card->dev, "failed to find rtd %s\n", dai_link);
-	return NULL;
-}
-EXPORT_SYMBOL_GPL(snd_soc_get_pcm_runtime);
 
 #define NULL_FORMATS \
 	(SNDRV_PCM_FMTBIT_S16 | SNDRV_PCM_FMTBIT_U16 |\
@@ -1323,10 +1322,10 @@ static int soc_post_component_init(struct snd_soc_card *card,
 	rtd->dev->init_name = name;
 	dev_set_drvdata(rtd->dev, rtd);
 	mutex_init(&rtd->pcm_mutex);
-	INIT_LIST_HEAD(&rtd->dsp[SNDRV_PCM_STREAM_PLAYBACK].be_clients);
-	INIT_LIST_HEAD(&rtd->dsp[SNDRV_PCM_STREAM_CAPTURE].be_clients);
-	INIT_LIST_HEAD(&rtd->dsp[SNDRV_PCM_STREAM_PLAYBACK].fe_clients);
-	INIT_LIST_HEAD(&rtd->dsp[SNDRV_PCM_STREAM_CAPTURE].fe_clients);
+	INIT_LIST_HEAD(&rtd->dpcm[SNDRV_PCM_STREAM_PLAYBACK].be_clients);
+	INIT_LIST_HEAD(&rtd->dpcm[SNDRV_PCM_STREAM_CAPTURE].be_clients);
+	INIT_LIST_HEAD(&rtd->dpcm[SNDRV_PCM_STREAM_PLAYBACK].fe_clients);
+	INIT_LIST_HEAD(&rtd->dpcm[SNDRV_PCM_STREAM_CAPTURE].fe_clients);
 	ret = device_add(rtd->dev);
 	if (ret < 0) {
 		dev_err(card->dev,
@@ -1349,13 +1348,13 @@ static int soc_post_component_init(struct snd_soc_card *card,
 			"asoc: failed to add codec sysfs files: %d\n", ret);
 
 #ifdef CONFIG_DEBUG_FS
-	/* add DSP sysfs entries */
-	if (!dai_link->dynamic)
+	/* add DPCM sysfs entries */
+	if (!dailess && !dai_link->dynamic)
 		goto out;
 
-	ret = soc_dsp_debugfs_add(rtd);
+	ret = soc_dpcm_debugfs_add(rtd);
 	if (ret < 0)
-		dev_err(rtd->dev, "asoc: failed to add dsp sysfs entries: %d\n", ret);
+		dev_err(rtd->dev, "asoc: failed to add dpcm sysfs entries: %d\n", ret);
 
 out:
 #endif
@@ -1751,7 +1750,8 @@ static int snd_soc_instantiate_card(struct snd_soc_card *card)
 		}
 
 		/* If this is a regular CPU link there will be a platform */
-		if (dai_fmt && dai_link->platform_name) {
+		if (dai_fmt &&
+		    (dai_link->platform_name || dai_link->platform_of_node)) {
 			ret = snd_soc_dai_set_fmt(card->rtd[i].cpu_dai,
 						  dai_fmt);
 			if (ret != 0 && ret != -ENOTSUPP)
