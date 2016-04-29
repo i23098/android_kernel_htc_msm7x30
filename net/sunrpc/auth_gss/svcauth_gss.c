@@ -470,7 +470,7 @@ static int rsc_parse(struct cache_detail *cd,
 		/* gid's */
 		status = -EINVAL;
 		for (i=0; i<N; i++) {
-			gid_t gid;
+			gid_t gid = 0;
 			kgid_t kgid;
 			if (get_int(&mesg, &gid))
 				goto out;
