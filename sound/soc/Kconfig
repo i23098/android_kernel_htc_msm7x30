@@ -52,5 +52,8 @@ source "sound/soc/msm/Kconfig"
 # Supported codecs
 source "sound/soc/codecs/Kconfig"
 
+# generic frame-work
+source "sound/soc/generic/Kconfig"
+
 endif	# SND_SOC
 

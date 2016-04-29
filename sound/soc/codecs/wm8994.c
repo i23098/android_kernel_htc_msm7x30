@@ -1735,6 +1735,7 @@ SND_SOC_DAPM_MUX("AIF3ADC Mux", SND_SOC_NOPM, 0, 0, &wm8994_aif3adc_mux),
 };
 
 static const struct snd_soc_dapm_widget wm8958_dapm_widgets[] = {
+SND_SOC_DAPM_SUPPLY("AIF3", WM8994_POWER_MANAGEMENT_6, 5, 1, NULL, 0),
 SND_SOC_DAPM_MUX("Mono PCM Out Mux", SND_SOC_NOPM, 0, 0, &mono_pcm_out_mux),
 SND_SOC_DAPM_MUX("AIF2DACL Mux", SND_SOC_NOPM, 0, 0, &aif2dacl_src_mux),
 SND_SOC_DAPM_MUX("AIF2DACR Mux", SND_SOC_NOPM, 0, 0, &aif2dacr_src_mux),
@@ -1975,6 +1976,9 @@ static const struct snd_soc_dapm_route wm8958_intercon[] = {
 	{ "AIF2DACR Mux", "AIF2", "AIF2DAC Mux" },
 	{ "AIF2DACR Mux", "AIF3", "AIF3DACDAT" },
 
+	{ "AIF3DACDAT", NULL, "AIF3" },
+	{ "AIF3ADCDAT", NULL, "AIF3" },
+
 	{ "Mono PCM Out Mux", "AIF2ADCL", "AIF2ADCL" },
 	{ "Mono PCM Out Mux", "AIF2ADCR", "AIF2ADCR" },
 
@@ -2145,6 +2149,14 @@ static int _wm8994_set_fll(struct snd_soc_codec *codec, int id, int src,
 	snd_soc_update_bits(codec, WM8994_FLL1_CONTROL_1 + reg_offset,
 			    WM8994_FLL1_ENA, 0);
 
+	if (wm8994->fll_byp && src == WM8994_FLL_SRC_BCLK &&
+	    freq_in == freq_out) {
+		dev_dbg(codec->dev, "Bypassing FLL%d\n", id + 1);
+		snd_soc_update_bits(codec, WM8994_FLL1_CONTROL_5 + reg_offset,
+				    WM8958_FLL1_BYP, WM8958_FLL1_BYP);
+		goto out;
+	}
+
 	reg = (fll.outdiv << WM8994_FLL1_OUTDIV_SHIFT) |
 		(fll.fll_fratio << WM8994_FLL1_FRATIO_SHIFT);
 	snd_soc_update_bits(codec, WM8994_FLL1_CONTROL_2 + reg_offset,
@@ -2159,6 +2171,7 @@ static int _wm8994_set_fll(struct snd_soc_codec *codec, int id, int src,
 				    fll.n << WM8994_FLL1_N_SHIFT);
 
 	snd_soc_update_bits(codec, WM8994_FLL1_CONTROL_5 + reg_offset,
+			    WM8958_FLL1_BYP |
 			    WM8994_FLL1_REFCLK_DIV_MASK |
 			    WM8994_FLL1_REFCLK_SRC_MASK,
 			    (fll.clk_ref_div << WM8994_FLL1_REFCLK_DIV_SHIFT) |
@@ -2221,6 +2234,7 @@ static int _wm8994_set_fll(struct snd_soc_codec *codec, int id, int src,
 		}
 	}
 
+out:
 	wm8994->fll[id].in = freq_in;
 	wm8994->fll[id].out = freq_out;
 	wm8994->fll[id].src = src;
@@ -2835,10 +2849,6 @@ static int wm8994_set_tristate(struct snd_soc_dai *codec_dai, int tristate)
 		reg = WM8994_AIF2_MASTER_SLAVE;
 		mask = WM8994_AIF2_TRI;
 		break;
-	case 3:
-		reg = WM8994_POWER_MANAGEMENT_6;
-		mask = WM8994_AIF3_TRI;
-		break;
 	default:
 		return -EINVAL;
 	}
@@ -2891,7 +2901,6 @@ static const struct snd_soc_dai_ops wm8994_aif2_dai_ops = {
 
 static const struct snd_soc_dai_ops wm8994_aif3_dai_ops = {
 	.hw_params	= wm8994_aif3_hw_params,
-	.set_tristate	= wm8994_set_tristate,
 };
 
 static struct snd_soc_dai_driver wm8994_dai[] = {
@@ -3747,6 +3756,14 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 	case WM8958:
 		wm8994->hubs.dcs_readback_mode = 1;
 		wm8994->hubs.hp_startup_mode = 1;
+
+		switch (wm8994->revision) {
+		case 0:
+			break;
+		default:
+			wm8994->fll_byp = true;
+			break;
+		}
 		break;
 
 	case WM1811:
@@ -3754,6 +3771,7 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 		wm8994->hubs.no_series_update = 1;
 		wm8994->hubs.hp_startup_mode = 1;
 		wm8994->hubs.no_cache_class_w = true;
+		wm8994->fll_byp = true;
 
 		switch (wm8994->revision) {
 		case 0:
@@ -4104,7 +4122,7 @@ err_irq:
 	return ret;
 }
 
-static int  wm8994_codec_remove(struct snd_soc_codec *codec)
+static int wm8994_codec_remove(struct snd_soc_codec *codec)
 {
 	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
 	struct wm8994 *control = wm8994->wm8994;
@@ -4145,14 +4163,10 @@ static int  wm8994_codec_remove(struct snd_soc_codec *codec)
 			free_irq(wm8994->micdet_irq, wm8994);
 		break;
 	}
-	if (wm8994->mbc)
-		release_firmware(wm8994->mbc);
-	if (wm8994->mbc_vss)
-		release_firmware(wm8994->mbc_vss);
-	if (wm8994->enh_eq)
-		release_firmware(wm8994->enh_eq);
+	release_firmware(wm8994->mbc);
+	release_firmware(wm8994->mbc_vss);
+	release_firmware(wm8994->enh_eq);
 	kfree(wm8994->retune_mobile_texts);
-
 	return 0;
 }
 
