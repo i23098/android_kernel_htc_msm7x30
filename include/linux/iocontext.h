@@ -8,6 +8,7 @@
 enum {
 	ICQ_IOPRIO_CHANGED	= 1 << 0,
 	ICQ_CGROUP_CHANGED	= 1 << 1,
+	ICQ_EXITED		= 1 << 2,
 
 	ICQ_CHANGED_MASK	= ICQ_IOPRIO_CHANGED | ICQ_CGROUP_CHANGED,
 };
@@ -90,7 +91,7 @@ struct io_cq {
 		struct rcu_head		__rcu_head;
 	};
 
-	unsigned long		flags;
+	unsigned int		flags;
 };
 
 /*

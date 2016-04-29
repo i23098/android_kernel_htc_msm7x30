@@ -29,7 +29,6 @@
 #include <linux/fault-inject.h>
 #include <linux/list_sort.h>
 #include <linux/delay.h>
-#include <linux/ratelimit.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/block.h>
@@ -298,26 +297,13 @@ EXPORT_SYMBOL(blk_sync_queue);
  * Description:
  *    See @blk_run_queue. This variant must be called with the queue lock
  *    held and interrupts disabled.
- *    Device driver will be notified of an urgent request
- *    pending under the following conditions:
- *    1. The driver and the current scheduler support urgent reques handling
- *    2. There is an urgent request pending in the scheduler
- *    3. There isn't already an urgent request in flight, meaning previously
- *       notified urgent request completed (!q->notified_urgent)
  */
 void __blk_run_queue(struct request_queue *q)
 {
 	if (unlikely(blk_queue_stopped(q)))
 		return;
 
-	if (!q->notified_urgent &&
-		q->elevator->type->ops.elevator_is_urgent_fn &&
-		q->urgent_request_fn &&
-		q->elevator->type->ops.elevator_is_urgent_fn(q)) {
-		q->notified_urgent = true;
-		q->urgent_request_fn(q);
-	} else
-		q->request_fn(q);
+	q->request_fn(q);
 }
 EXPORT_SYMBOL(__blk_run_queue);
 
@@ -501,7 +487,8 @@ struct request_queue *blk_alloc_queue_node(gfp_t gfp_mask, int node_id)
 	if (q->id < 0)
 		goto fail_q;
 
-	q->backing_dev_info.ra_pages = max_readahead_pages;
+	q->backing_dev_info.ra_pages =
+			(VM_MAX_READAHEAD * 1024) / PAGE_CACHE_SIZE;
 	q->backing_dev_info.state = 0;
 	q->backing_dev_info.capabilities = BDI_CAP_MAP_COPY;
 	q->backing_dev_info.name = "block";
@@ -614,7 +601,7 @@ blk_init_allocated_queue(struct request_queue *q, request_fn_proc *rfn,
 	q->request_fn		= rfn;
 	q->prep_rq_fn		= NULL;
 	q->unprep_rq_fn		= NULL;
-	q->queue_flags		|= QUEUE_FLAG_DEFAULT;
+	q->queue_flags		= QUEUE_FLAG_DEFAULT;
 
 	/* Override internal queue lock with supplied lock pointer */
 	if (lock)
@@ -837,7 +824,8 @@ retry:
 				ioc_set_batching(q, ioc);
 				blk_set_queue_full(q, is_sync);
 			} else {
-                if (may_queue != ELV_MQUEUE_MUST && !ioc_batching(q, ioc)) {
+				if (may_queue != ELV_MQUEUE_MUST
+						&& !ioc_batching(q, ioc)) {
 					/*
 					 * The queue is full and the allocating
 					 * process is not a "batcher", and not
@@ -855,7 +843,7 @@ retry:
 	 * limit of requests, otherwise we could have thousands of requests
 	 * allocated with any setting of ->nr_requests
 	 */
-    if ((rl->count[is_sync] >= (3 * q->nr_requests / 2)))
+	if (rl->count[is_sync] >= (3 * q->nr_requests / 2))
 		goto out;
 
 	rl->count[is_sync]++;
@@ -989,9 +977,6 @@ struct request *blk_get_request(struct request_queue *q, int rw, gfp_t gfp_mask)
 {
 	struct request *rq;
 
-	if (unlikely(test_bit(QUEUE_FLAG_DEAD, &q->queue_flags)))
-		return NULL;
-
 	BUG_ON(rw != READ && rw != WRITE);
 
 	spin_lock_irq(q->queue_lock);
@@ -1083,73 +1068,9 @@ void blk_requeue_request(struct request_queue *q, struct request *rq)
 
 	BUG_ON(blk_queued_rq(rq));
 
-	if (rq->cmd_flags & REQ_URGENT) {
-		/*
-		 * It's not compliant with the design to re-insert
-		 * urgent requests. We want to be able to track this
-		 * down.
-		 */
-		pr_err("%s(): requeueing an URGENT request", __func__);
-		WARN_ON(!q->dispatched_urgent);
-		q->dispatched_urgent = false;
-	}
 	elv_requeue_request(q, rq);
 }
 EXPORT_SYMBOL(blk_requeue_request);
-
-/**
- * blk_reinsert_request() - Insert a request back to the scheduler
- * @q:		request queue
- * @rq:		request to be inserted
- *
- * This function inserts the request back to the scheduler as if
- * it was never dispatched.
- *
- * Return: 0 on success, error code on fail
- */
-int blk_reinsert_request(struct request_queue *q, struct request *rq)
-{
-	if (unlikely(!rq) || unlikely(!q))
-		return -EIO;
-
-	blk_delete_timer(rq);
-	blk_clear_rq_complete(rq);
-	trace_block_rq_requeue(q, rq);
-
-	if (blk_rq_tagged(rq))
-		blk_queue_end_tag(q, rq);
-
-	BUG_ON(blk_queued_rq(rq));
-	if (rq->cmd_flags & REQ_URGENT) {
-		/*
-		 * It's not compliant with the design to re-insert
-		 * urgent requests. We want to be able to track this
-		 * down.
-		 */
-		pr_err("%s(): reinserting an URGENT request", __func__);
-		WARN_ON(!q->dispatched_urgent);
-		q->dispatched_urgent = false;
-	}
-
-	return elv_reinsert_request(q, rq);
-}
-EXPORT_SYMBOL(blk_reinsert_request);
-
-/**
- * blk_reinsert_req_sup() - check whether the scheduler supports
- *          reinsertion of requests
- * @q:		request queue
- *
- * Returns true if the current scheduler supports reinserting
- * request. False otherwise
- */
-bool blk_reinsert_req_sup(struct request_queue *q)
-{
-	if (unlikely(!q))
-		return false;
-	return q->elevator->type->ops.elevator_reinsert_req_fn ? true : false;
-}
-EXPORT_SYMBOL(blk_reinsert_req_sup);
 
 static void add_acct_request(struct request_queue *q, struct request *rq,
 			     int where)
@@ -1554,8 +1475,10 @@ static bool should_fail_request(struct hd_struct *part, unsigned int bytes)
 
 static int __init fail_make_request_debugfs(void)
 {
-	return init_fault_attr_dentries(&fail_make_request,
-					"fail_make_request");
+	struct dentry *dir = fault_create_debugfs_attr("fail_make_request",
+						NULL, &fail_make_request);
+
+	return IS_ERR(dir) ? PTR_ERR(dir) : 0;
 }
 
 late_initcall(fail_make_request_debugfs);
@@ -1607,9 +1530,6 @@ generic_make_request_checks(struct bio *bio)
 	int err = -EIO;
 	char b[BDEVNAME_SIZE];
 	struct hd_struct *part;
-
-	if (bio)
-		nr_sectors = bio_sectors(bio);
 
 	might_sleep();
 
@@ -2012,10 +1932,6 @@ struct request *blk_peek_request(struct request_queue *q)
 			 * not be passed by new incoming requests
 			 */
 			rq->cmd_flags |= REQ_STARTED;
-			if (rq->cmd_flags & REQ_URGENT) {
-				WARN_ON(q->dispatched_urgent);
-				q->dispatched_urgent = true;
-			}
 			trace_block_rq_issue(q, rq);
 		}
 
@@ -2829,6 +2745,14 @@ void blk_start_plug(struct blk_plug *plug)
 }
 EXPORT_SYMBOL(blk_start_plug);
 
+static int plug_rq_cmp(void *priv, struct list_head *a, struct list_head *b)
+{
+	struct request *rqa = container_of(a, struct request, queuelist);
+	struct request *rqb = container_of(b, struct request, queuelist);
+
+	return !(rqa->q <= rqb->q);
+}
+
 /*
  * If 'from_schedule' is true, then postpone the dispatch of requests
  * until a safe kblockd context. We due this to avoid accidental big
@@ -2897,6 +2821,11 @@ void blk_flush_plug_list(struct blk_plug *plug, bool from_schedule)
 		return;
 
 	list_splice_init(&plug->list, &list);
+
+	if (plug->should_sort) {
+		list_sort(NULL, &list, plug_rq_cmp);
+		plug->should_sort = 0;
+	}
 
 	q = NULL;
 	depth = 0;
