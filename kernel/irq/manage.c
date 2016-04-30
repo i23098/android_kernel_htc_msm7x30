@@ -816,7 +816,7 @@ static void wake_threads_waitq(struct irq_desc *desc)
 		wake_up(&desc->wait_for_threads);
 }
 
-static void irq_thread_dtor(struct task_work *unused)
+static void irq_thread_dtor(struct callback_head *unused)
 {
 	struct task_struct *tsk = current;
 	struct irq_desc *desc;
@@ -848,7 +848,7 @@ static void irq_thread_dtor(struct task_work *unused)
  */
 static int irq_thread(void *data)
 {
-	struct task_work on_exit_work;
+	struct callback_head on_exit_work;
 	static const struct sched_param param = {
 		.sched_priority = MAX_USER_RT_PRIO/2,
 	};
@@ -865,7 +865,7 @@ static int irq_thread(void *data)
 
 	sched_setscheduler(current, SCHED_FIFO, &param);
 
-	init_task_work(&on_exit_work, irq_thread_dtor, NULL);
+	init_task_work(&on_exit_work, irq_thread_dtor);
 	task_work_add(current, &on_exit_work, false);
 
 	while (!irq_wait_for_interrupt(action)) {
