@@ -108,9 +108,9 @@ struct msm_mmc_pin_data {
 };
 
 struct mmc_platform_data {
-	unsigned int ocr_mask;			/* available voltages */
-	int built_in;				/* built-in device flag */
-	int card_present;			/* card detect state */
+	unsigned int ocr_mask;	/* available voltages */
+	int built_in;		/* built-in device flag */
+	int card_present;	/* card detect state */
 	u32 (*translate_vdd)(struct device *, unsigned int);
 	unsigned int (*status)(struct device *);
 	struct embedded_sdio_data *embedded_sdio;
@@ -120,18 +120,16 @@ struct mmc_platform_data {
 	 * default speed mode of SDXC card.
 	 */
 	unsigned int *slot_type;
-	unsigned int xpc_cap;
 	/* Supported UHS-I Modes */
 	unsigned int uhs_caps;
 	void (*sdio_lpm_gpio_setup)(struct device *, unsigned int);
-        unsigned int status_irq;
+	unsigned int status_irq;
 	unsigned int status_gpio;
-        unsigned int sdiowakeup_irq;
-        unsigned long irq_flags;
+	unsigned int sdiowakeup_irq;
+	unsigned long irq_flags;
 	unsigned dat0_gpio;
-        unsigned long mmc_bus_width;
-        int (*wpswitch) (struct device *);
-    int dummy52_required;
+	unsigned long mmc_bus_width;
+	int (*wpswitch) (struct device *);
 	unsigned int msmsdcc_fmin;
 	unsigned int msmsdcc_fmid;
 	unsigned int msmsdcc_fmax;

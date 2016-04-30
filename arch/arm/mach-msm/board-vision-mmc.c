@@ -241,20 +241,18 @@ static unsigned int vision_wifi_status(struct device *dev)
 
 static unsigned int vision_wifislot_type = MMC_TYPE_SDIO_WIFI;
 static struct mmc_platform_data vision_wifi_data = {
-		.ocr_mask               = MMC_VDD_28_29,
-		.status                 = vision_wifi_status,
-		.register_status_notify = vision_wifi_status_register,
-		.embedded_sdio          = &vision_wifi_emb_data,
-		.slot_type	= &vision_wifislot_type,
-		.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
-		.msmsdcc_fmin   = 144000,
-		.msmsdcc_fmid   = 24576000,
-                //	.msmsdcc_fmax	= 49152000,
-                .msmsdcc_fmax	= 50000000,
-		//.msmsdcc_fmax   = 49152000,
-		.nonremovable   = 0,
-		/* HTC_WIFI_MOD, temp remove dummy52
-		.dummy52_required = 1, */
+	.ocr_mask               = MMC_VDD_28_29,
+	.status                 = vision_wifi_status,
+	.register_status_notify = vision_wifi_status_register,
+	.embedded_sdio          = &vision_wifi_emb_data,
+	.slot_type	= &vision_wifislot_type,
+	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
+	.msmsdcc_fmin   = 144000,
+	.msmsdcc_fmid   = 24576000,
+	//.msmsdcc_fmax	= 49152000,
+	.msmsdcc_fmax	= 50000000,
+	//.msmsdcc_fmax   = 49152000,
+	.nonremovable   = 0,
 };
 
 int vision_wifi_set_carddetect(int val)

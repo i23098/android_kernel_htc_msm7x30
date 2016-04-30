@@ -242,20 +242,18 @@ static unsigned int spade_wifi_status(struct device *dev)
 
 static unsigned int spade_wifislot_type = MMC_TYPE_SDIO_WIFI;
 static struct mmc_platform_data spade_wifi_data = {
-		.ocr_mask               = MMC_VDD_20_21,
-		.status                 = spade_wifi_status,
-		.register_status_notify = spade_wifi_status_register,
-		.embedded_sdio          = &spade_wifi_emb_data,
-		.slot_type	= &spade_wifislot_type,
-		.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
-		.msmsdcc_fmin   = 144000,
-		.msmsdcc_fmid   = 24576000,
-                //	.msmsdcc_fmax	= 49152000,
-                .msmsdcc_fmax	= 50000000,
-		//.msmsdcc_fmax   = 49152000,
-		.nonremovable   = 0,
-		/* HTC_WIFI_MOD, temp remove dummy52
-		.dummy52_required = 1, */
+	.ocr_mask               = MMC_VDD_20_21,
+	.status                 = spade_wifi_status,
+	.register_status_notify = spade_wifi_status_register,
+	.embedded_sdio          = &spade_wifi_emb_data,
+	.slot_type	= &spade_wifislot_type,
+	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
+	.msmsdcc_fmin   = 144000,
+	.msmsdcc_fmid   = 24576000,
+	//	.msmsdcc_fmax	= 49152000,
+	.msmsdcc_fmax	= 50000000,
+	//.msmsdcc_fmax   = 49152000,
+	.nonremovable   = 0,
 };
 
 int spade_wifi_set_carddetect(int val)
