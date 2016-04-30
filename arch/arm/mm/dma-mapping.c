@@ -322,7 +322,7 @@ static struct arm_vmregion_head coherent_head = {
 	.vm_list	= LIST_HEAD_INIT(coherent_head.vm_list),
 };
 
-size_t coherent_pool_size = DEFAULT_CONSISTENT_DMA_SIZE / 8;
+static size_t coherent_pool_size = DEFAULT_CONSISTENT_DMA_SIZE / 8;
 
 static int __init early_coherent_pool(char *p)
 {
