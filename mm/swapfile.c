@@ -988,7 +988,8 @@ static int unuse_mm(struct mm_struct *mm,
 }
 
 /*
- * Scan swap_map from current position to next entry still in use.
+ * Scan swap_map (or frontswap_map if frontswap parameter is true)
+ * from current position to next entry still in use.
  * Recycle to start on reaching the end, returning 0 when empty.
  */
 static unsigned int find_next_to_unuse(struct swap_info_struct *si,
