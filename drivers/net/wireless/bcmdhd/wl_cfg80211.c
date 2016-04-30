@@ -3921,7 +3921,7 @@ wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
 	s32 err = BCME_OK;
 	struct wl_priv *wl = wiphy_priv(wiphy);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
-	struct net_device *dev = wl_to_prmry_ndev(wl);
+	struct net_device *dev = wl->wdev?wl_to_prmry_ndev(wl) : NULL;
 #endif
 
 	if (wl->p2p_net == dev) {
