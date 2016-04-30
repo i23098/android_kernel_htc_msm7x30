@@ -153,6 +153,7 @@
 #include "prm44xx.h"
 #include "prminst44xx.h"
 #include "mux.h"
+#include "pm.h"
 
 /* Maximum microseconds to wait for OMAP module to softreset */
 #define MAX_MODULE_SOFTRESET_WAIT	10000
@@ -196,6 +197,9 @@ static LIST_HEAD(omap_hwmod_list);
 
 /* mpu_oh: used to add/remove MPU initiator from sleepdep list */
 static struct omap_hwmod *mpu_oh;
+
+/* io_chain_lock: used to serialize reconfigurations of the I/O chain */
+static DEFINE_SPINLOCK(io_chain_lock);
 
 /*
  * linkspace: ptr to a buffer that struct omap_hwmod_link records are
@@ -411,6 +415,49 @@ static int _set_softreset(struct omap_hwmod *oh, u32 *v)
 	softrst_mask = (0x1 << oh->class->sysc->sysc_fields->srst_shift);
 
 	*v |= softrst_mask;
+
+	return 0;
+}
+
+/**
+ * _set_dmadisable: set OCP_SYSCONFIG.DMADISABLE bit in @v
+ * @oh: struct omap_hwmod *
+ *
+ * The DMADISABLE bit is a semi-automatic bit present in sysconfig register
+ * of some modules. When the DMA must perform read/write accesses, the
+ * DMADISABLE bit is cleared by the hardware. But when the DMA must stop
+ * for power management, software must set the DMADISABLE bit back to 1.
+ *
+ * Set the DMADISABLE bit in @v for hwmod @oh.  Returns -EINVAL upon
+ * error or 0 upon success.
+ */
+static int _set_dmadisable(struct omap_hwmod *oh)
+{
+	u32 v;
+	u32 dmadisable_mask;
+
+	if (!oh->class->sysc ||
+	    !(oh->class->sysc->sysc_flags & SYSC_HAS_DMADISABLE))
+		return -EINVAL;
+
+	if (!oh->class->sysc->sysc_fields) {
+		WARN(1, "omap_hwmod: %s: offset struct for sysconfig not provided in class\n", oh->name);
+		return -EINVAL;
+	}
+
+	/* clocks must be on for this operation */
+	if (oh->_state != _HWMOD_STATE_ENABLED) {
+		pr_warn("omap_hwmod: %s: dma can be disabled only from enabled state\n", oh->name);
+		return -EINVAL;
+	}
+
+	pr_debug("omap_hwmod: %s: setting DMADISABLE\n", oh->name);
+
+	v = oh->_sysc_cache;
+	dmadisable_mask =
+		(0x1 << oh->class->sysc->sysc_fields->dmadisable_shift);
+	v |= dmadisable_mask;
+	_write_sysconfig(v, oh);
 
 	return 0;
 }
@@ -1668,11 +1715,17 @@ dis_opt_clks:
  * therefore have no OCP header registers to access.  Others (like the
  * IVA) have idiosyncratic reset sequences.  So for these relatively
  * rare cases, custom reset code can be supplied in the struct
- * omap_hwmod_class .reset function pointer.  Passes along the return
- * value from either _ocp_softreset() or the custom reset function -
- * these must return -EINVAL if the hwmod cannot be reset this way or
- * if the hwmod is in the wrong state, -ETIMEDOUT if the module did
- * not reset in time, or 0 upon success.
+ * omap_hwmod_class .reset function pointer.
+ *
+ * _set_dmadisable() is called to set the DMADISABLE bit so that it
+ * does not prevent idling of the system. This is necessary for cases
+ * where ROMCODE/BOOTLOADER uses dma and transfers control to the
+ * kernel without disabling dma.
+ *
+ * Passes along the return value from either _ocp_softreset() or the
+ * custom reset function - these must return -EINVAL if the hwmod
+ * cannot be reset this way or if the hwmod is in the wrong state,
+ * -ETIMEDOUT if the module did not reset in time, or 0 upon success.
  */
 static int _reset(struct omap_hwmod *oh)
 {
@@ -1694,6 +1747,8 @@ static int _reset(struct omap_hwmod *oh)
 		}
 	}
 
+	_set_dmadisable(oh);
+
 	/*
 	 * OCP_SYSCONFIG bits need to be reprogrammed after a
 	 * softreset.  The _enable() function should be split to avoid
@@ -1705,6 +1760,32 @@ static int _reset(struct omap_hwmod *oh)
 	}
 
 	return r;
+}
+
+/**
+ * _reconfigure_io_chain - clear any I/O chain wakeups and reconfigure chain
+ *
+ * Call the appropriate PRM function to clear any logged I/O chain
+ * wakeups and to reconfigure the chain.  This apparently needs to be
+ * done upon every mux change.  Since hwmods can be concurrently
+ * enabled and idled, hold a spinlock around the I/O chain
+ * reconfiguration sequence.  No return value.
+ *
+ * XXX When the PRM code is moved to drivers, this function can be removed,
+ * as the PRM infrastructure should abstract this.
+ */
+static void _reconfigure_io_chain(void)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&io_chain_lock, flags);
+
+	if (cpu_is_omap34xx() && omap3_has_io_chain_ctrl())
+		omap3xxx_prm_reconfigure_io_chain();
+	else if (cpu_is_omap44xx())
+		omap44xx_prm_reconfigure_io_chain();
+
+	spin_unlock_irqrestore(&io_chain_lock, flags);
 }
 
 /**
@@ -1763,8 +1844,10 @@ static int _enable(struct omap_hwmod *oh)
 	/* Mux pins for device runtime if populated */
 	if (oh->mux && (!oh->mux->enabled ||
 			((oh->_state == _HWMOD_STATE_IDLE) &&
-			 oh->mux->pads_dynamic)))
+			 oh->mux->pads_dynamic))) {
 		omap_hwmod_mux(oh->mux, _HWMOD_STATE_ENABLED);
+		_reconfigure_io_chain();
+	}
 
 	_add_initiator_dep(oh, mpu_oh);
 
@@ -1856,8 +1939,10 @@ static int _idle(struct omap_hwmod *oh)
 		clkdm_hwmod_disable(oh->clkdm, oh);
 
 	/* Mux pins for device idle if populated */
-	if (oh->mux && oh->mux->pads_dynamic)
+	if (oh->mux && oh->mux->pads_dynamic) {
 		omap_hwmod_mux(oh->mux, _HWMOD_STATE_IDLE);
+		_reconfigure_io_chain();
+	}
 
 	oh->_state = _HWMOD_STATE_IDLE;
 
@@ -3584,7 +3669,7 @@ void __init omap_hwmod_init(void)
 		soc_ops.assert_hardreset = _omap2_assert_hardreset;
 		soc_ops.deassert_hardreset = _omap2_deassert_hardreset;
 		soc_ops.is_hardreset_asserted = _omap2_is_hardreset_asserted;
-	} else if (cpu_is_omap44xx()) {
+	} else if (cpu_is_omap44xx() || soc_is_omap54xx()) {
 		soc_ops.enable_module = _omap4_enable_module;
 		soc_ops.disable_module = _omap4_disable_module;
 		soc_ops.wait_target_ready = _omap4_wait_target_ready;
@@ -3597,4 +3682,19 @@ void __init omap_hwmod_init(void)
 	}
 
 	inited = true;
+}
+
+/**
+ * omap_hwmod_get_main_clk - get pointer to main clock name
+ * @oh: struct omap_hwmod *
+ *
+ * Returns the main clock name assocated with @oh upon success,
+ * or NULL if @oh is NULL.
+ */
+const char *omap_hwmod_get_main_clk(struct omap_hwmod *oh)
+{
+	if (!oh)
+		return NULL;
+
+	return oh->main_clk;
 }

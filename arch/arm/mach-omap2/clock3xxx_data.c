@@ -93,18 +93,6 @@ static struct clk virt_16_8m_ck = {
 	.rate		= 16800000,
 };
 
-static struct clk virt_19_2m_ck = {
-	.name		= "virt_19_2m_ck",
-	.ops		= &clkops_null,
-	.rate		= 19200000,
-};
-
-static struct clk virt_26m_ck = {
-	.name		= "virt_26m_ck",
-	.ops		= &clkops_null,
-	.rate		= 26000000,
-};
-
 static struct clk virt_38_4m_ck = {
 	.name		= "virt_38_4m_ck",
 	.ops		= &clkops_null,
@@ -145,8 +133,8 @@ static const struct clksel osc_sys_clksel[] = {
 	{ .parent = &virt_12m_ck,   .rates = osc_sys_12m_rates },
 	{ .parent = &virt_13m_ck,   .rates = osc_sys_13m_rates },
 	{ .parent = &virt_16_8m_ck, .rates = osc_sys_16_8m_rates },
-	{ .parent = &virt_19_2m_ck, .rates = osc_sys_19_2m_rates },
-	{ .parent = &virt_26m_ck,   .rates = osc_sys_26m_rates },
+	{ .parent = &virt_19200000_ck, .rates = osc_sys_19_2m_rates },
+	{ .parent = &virt_26000000_ck,   .rates = osc_sys_26m_rates },
 	{ .parent = &virt_38_4m_ck, .rates = osc_sys_38_4m_rates },
 	{ .parent = NULL },
 };
@@ -3234,8 +3222,8 @@ static struct omap_clk omap3xxx_clks[] = {
 	CLK(NULL,	"virt_12m_ck",	&virt_12m_ck,	CK_3XXX),
 	CLK(NULL,	"virt_13m_ck",	&virt_13m_ck,	CK_3XXX),
 	CLK(NULL,	"virt_16_8m_ck", &virt_16_8m_ck, CK_3430ES2PLUS | CK_AM35XX  | CK_36XX),
-	CLK(NULL,	"virt_19_2m_ck", &virt_19_2m_ck, CK_3XXX),
-	CLK(NULL,	"virt_26m_ck",	&virt_26m_ck,	CK_3XXX),
+	CLK(NULL,	"virt_19200000_ck", &virt_19200000_ck, CK_3XXX),
+	CLK(NULL,	"virt_26000000_ck",	&virt_26000000_ck,	CK_3XXX),
 	CLK(NULL,	"virt_38_4m_ck", &virt_38_4m_ck, CK_3XXX),
 	CLK(NULL,	"osc_sys_ck",	&osc_sys_ck,	CK_3XXX),
 	CLK(NULL,	"sys_ck",	&sys_ck,	CK_3XXX),
@@ -3476,30 +3464,8 @@ static struct omap_clk omap3xxx_clks[] = {
 	CLK(NULL,	"hsotgusb_fck",		&hsotgusb_fck_am35xx,	CK_AM35XX),
 	CLK(NULL,	"hecc_ck",	&hecc_ck,	CK_AM35XX),
 	CLK(NULL,	"uart4_ick",	&uart4_ick_am35xx,	CK_AM35XX),
-	CLK("omap_timer.1",	"32k_ck",	&omap_32k_fck,  CK_3XXX),
-	CLK("omap_timer.2",	"32k_ck",	&omap_32k_fck,  CK_3XXX),
-	CLK("omap_timer.3",	"32k_ck",	&omap_32k_fck,  CK_3XXX),
-	CLK("omap_timer.4",	"32k_ck",	&omap_32k_fck,  CK_3XXX),
-	CLK("omap_timer.5",	"32k_ck",	&omap_32k_fck,  CK_3XXX),
-	CLK("omap_timer.6",	"32k_ck",	&omap_32k_fck,  CK_3XXX),
-	CLK("omap_timer.7",	"32k_ck",	&omap_32k_fck,  CK_3XXX),
-	CLK("omap_timer.8",	"32k_ck",	&omap_32k_fck,  CK_3XXX),
-	CLK("omap_timer.9",	"32k_ck",	&omap_32k_fck,  CK_3XXX),
-	CLK("omap_timer.10",	"32k_ck",	&omap_32k_fck,  CK_3XXX),
-	CLK("omap_timer.11",	"32k_ck",	&omap_32k_fck,  CK_3XXX),
-	CLK("omap_timer.12",	"32k_ck",	&omap_32k_fck,  CK_3XXX),
-	CLK("omap_timer.1",	"sys_ck",	&sys_ck,	CK_3XXX),
-	CLK("omap_timer.2",	"sys_ck",	&sys_ck,	CK_3XXX),
-	CLK("omap_timer.3",	"sys_ck",	&sys_ck,	CK_3XXX),
-	CLK("omap_timer.4",	"sys_ck",	&sys_ck,	CK_3XXX),
-	CLK("omap_timer.5",	"sys_ck",	&sys_ck,	CK_3XXX),
-	CLK("omap_timer.6",	"sys_ck",	&sys_ck,	CK_3XXX),
-	CLK("omap_timer.7",	"sys_ck",	&sys_ck,	CK_3XXX),
-	CLK("omap_timer.8",	"sys_ck",	&sys_ck,	CK_3XXX),
-	CLK("omap_timer.9",	"sys_ck",	&sys_ck,	CK_3XXX),
-	CLK("omap_timer.10",	"sys_ck",	&sys_ck,	CK_3XXX),
-	CLK("omap_timer.11",	"sys_ck",	&sys_ck,	CK_3XXX),
-	CLK("omap_timer.12",	"sys_ck",	&sys_ck,	CK_3XXX),
+	CLK(NULL,	"timer_32k_ck",	&omap_32k_fck,  CK_3XXX),
+	CLK(NULL,	"timer_sys_ck",	&sys_ck,	CK_3XXX),
 };
 
 
@@ -3517,7 +3483,7 @@ int __init omap3xxx_clk_init(void)
 	} else if (cpu_is_ti816x()) {
 		cpu_mask = RATE_IN_TI816X;
 		cpu_clkflg = CK_TI816X;
-	} else if (cpu_is_am33xx()) {
+	} else if (soc_is_am33xx()) {
 		cpu_mask = RATE_IN_AM33XX;
 	} else if (cpu_is_ti814x()) {
 		cpu_mask = RATE_IN_TI814X;
