@@ -531,13 +531,6 @@ struct msm_vidc_platform_data {
 	int memtype_pmem;
 };
 
-#if defined(CONFIG_USB_PEHCI_HCD) || defined(CONFIG_USB_PEHCI_HCD_MODULE)
-struct isp1763_platform_data {
-	unsigned reset_gpio;
-	int (*setup_gpio)(int enable);
-};
-#endif
-
 #define SHIP_BUILD	0
 #define MFG_BUILD	1
 #define ENG_BUILD	2
