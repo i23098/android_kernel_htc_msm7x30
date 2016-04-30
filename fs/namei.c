@@ -1426,7 +1426,7 @@ static inline int nested_symlink(struct path *path, struct nameidata *nd)
 
 	do {
 		struct path link = *path;
-		void *cookie;
+		void *cookie = NULL;
 
 		res = follow_link(&link, nd, &cookie);
 		if (res)
@@ -1816,7 +1816,7 @@ static int path_lookupat(int dfd, const char *name,
 	if (!err && !(flags & LOOKUP_PARENT)) {
 		err = lookup_last(nd, &path);
 		while (err > 0) {
-			void *cookie;
+			void *cookie = NULL;
 			struct path link = path;
 			nd->flags |= LOOKUP_PARENT;
 			err = follow_link(&link, nd, &cookie);
@@ -2770,7 +2770,7 @@ static struct file *path_openat(int dfd, const char *pathname,
 	error = do_last(nd, &path, file, op, &opened, pathname);
 	while (unlikely(error > 0)) { /* trailing symlink */
 		struct path link = path;
-		void *cookie;
+		void *cookie = NULL;
 		if (!(nd->flags & LOOKUP_FOLLOW)) {
 			path_put_conditional(&path, nd);
 			path_put(&nd->path);

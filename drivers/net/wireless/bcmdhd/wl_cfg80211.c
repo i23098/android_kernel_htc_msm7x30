@@ -3905,14 +3905,24 @@ wl_cfg80211_change_bss(struct wiphy *wiphy,
 	return 0;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
+static s32
+wl_cfg80211_set_monitor_channel(struct wiphy *wiphy,
+	struct ieee80211_channel *chan,
+	enum nl80211_channel_type channel_type)
+#else
 static s32
 wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
 	struct ieee80211_channel *chan,
 	enum nl80211_channel_type channel_type)
+#endif
 {
 	s32 channel;
 	s32 err = BCME_OK;
 	struct wl_priv *wl = wiphy_priv(wiphy);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
+	struct net_device *dev = wl_to_prmry_ndev(wl);
+#endif
 
 	if (wl->p2p_net == dev) {
 		dev = wl_to_prmry_ndev(wl);
@@ -4686,7 +4696,11 @@ static struct cfg80211_ops wl_cfg80211_ops = {
 	.mgmt_tx = wl_cfg80211_mgmt_tx,
 	.mgmt_frame_register = wl_cfg80211_mgmt_frame_register,
 	.change_bss = wl_cfg80211_change_bss,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
+	.set_monitor_channel = wl_cfg80211_set_monitor_channel,
+#else
 	.set_channel = wl_cfg80211_set_channel,
+#endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0))
 #else
 	.set_beacon = wl_cfg80211_add_set_beacon,
