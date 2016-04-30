@@ -1604,7 +1604,6 @@ struct task_struct {
 #endif
 #ifdef CONFIG_UPROBES
 	struct uprobe_task *utask;
-	int uprobe_srcu_id;
 #endif
 };
 
