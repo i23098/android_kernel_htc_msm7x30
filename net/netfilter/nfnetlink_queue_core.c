@@ -30,6 +30,7 @@
 #include <linux/list.h>
 #include <net/sock.h>
 #include <net/netfilter/nf_queue.h>
+#include <net/netfilter/nfnetlink_queue.h>
 
 #include <linux/atomic.h>
 
@@ -233,6 +234,8 @@ nfqnl_build_packet_message(struct nfqnl_instance *queue,
 	struct sk_buff *entskb = entry->skb;
 	struct net_device *indev;
 	struct net_device *outdev;
+	struct nf_conn *ct = NULL;
+	enum ip_conntrack_info uninitialized_var(ctinfo);
 
 	size =    NLMSG_SPACE(sizeof(struct nfgenmsg))
 		+ nla_total_size(sizeof(struct nfqnl_msg_packet_hdr))
@@ -266,6 +269,8 @@ nfqnl_build_packet_message(struct nfqnl_instance *queue,
 		break;
 	}
 
+	if (queue->flags & NFQA_CFG_F_CONNTRACK)
+		ct = nfqnl_ct_get(entskb, &size, &ctinfo);
 
 	skb = alloc_skb(size, GFP_ATOMIC);
 	if (!skb)
@@ -389,6 +394,9 @@ nfqnl_build_packet_message(struct nfqnl_instance *queue,
 			BUG();
 	}
 
+	if (ct && nfqnl_ct_put(skb, ct, ctinfo) < 0)
+		goto nla_put_failure;
+
 	nlh->nlmsg_len = skb->tail - old_tail;
 	return skb;
 
@@ -469,12 +477,10 @@ err_out:
 }
 
 static int
-nfqnl_mangle(void *data, int data_len, struct nf_queue_entry *e)
+nfqnl_mangle(void *data, int data_len, struct nf_queue_entry *e, int diff)
 {
 	struct sk_buff *nskb;
-	int diff;
 
-	diff = data_len - e->skb->len;
 	if (diff < 0) {
 		if (pskb_trim(e->skb, data_len))
 			return -ENOMEM;
@@ -632,6 +638,7 @@ static const struct nla_policy nfqa_verdict_policy[NFQA_MAX+1] = {
 	[NFQA_VERDICT_HDR]	= { .len = sizeof(struct nfqnl_msg_verdict_hdr) },
 	[NFQA_MARK]		= { .type = NLA_U32 },
 	[NFQA_PAYLOAD]		= { .type = NLA_UNSPEC },
+	[NFQA_CT]		= { .type = NLA_UNSPEC },
 };
 
 static const struct nla_policy nfqa_verdict_batch_policy[NFQA_MAX+1] = {
@@ -732,6 +739,8 @@ nfqnl_recv_verdict(struct sock *ctnl, struct sk_buff *skb,
 	struct nfqnl_instance *queue;
 	unsigned int verdict;
 	struct nf_queue_entry *entry;
+	enum ip_conntrack_info uninitialized_var(ctinfo);
+	struct nf_conn *ct = NULL;
 
 	queue = instance_lookup(queue_num);
 	if (!queue)
@@ -750,11 +759,22 @@ nfqnl_recv_verdict(struct sock *ctnl, struct sk_buff *skb,
 	if (entry == NULL)
 		return -ENOENT;
 
+	rcu_read_lock();
+	if (nfqa[NFQA_CT] && (queue->flags & NFQA_CFG_F_CONNTRACK))
+		ct = nfqnl_ct_parse(entry->skb, nfqa[NFQA_CT], &ctinfo);
+
 	if (nfqa[NFQA_PAYLOAD]) {
+		u16 payload_len = nla_len(nfqa[NFQA_PAYLOAD]);
+		int diff = payload_len - entry->skb->len;
+
 		if (nfqnl_mangle(nla_data(nfqa[NFQA_PAYLOAD]),
-				 nla_len(nfqa[NFQA_PAYLOAD]), entry) < 0)
+				 payload_len, entry, diff) < 0)
 			verdict = NF_DROP;
+
+		if (ct)
+			nfqnl_ct_seq_adjust(skb, ct, ctinfo, diff);
 	}
+	rcu_read_unlock();
 
 	if (nfqa[NFQA_MARK])
 		entry->skb->mark = ntohl(nla_get_be32(nfqa[NFQA_MARK]));

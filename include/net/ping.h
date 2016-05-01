@@ -64,9 +64,9 @@ struct pingfakehdr {
 	__wsum wcheck;
 };
 
-int  ping_get_port(struct sock *sk, unsigned short ident);
-void ping_hash(struct sock *sk);
-void ping_unhash(struct sock *sk);
+int  ping_v4_get_port(struct sock *sk, unsigned short ident);
+void ping_v4_hash(struct sock *sk);
+void ping_v4_unhash(struct sock *sk);
 
 int  ping_init_sock(struct sock *sk);
 void ping_close(struct sock *sk, long timeout);
@@ -80,7 +80,7 @@ int  ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		  size_t len, int noblock, int flags, int *addr_len);
 int  ping_common_sendmsg(int family, struct msghdr *msg, size_t len,
 			 void *user_icmph, size_t icmph_len);
-int  ping_v4_sendmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
+int  ping_sendmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		     size_t len);
 int  ping_v6_sendmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		     size_t len);

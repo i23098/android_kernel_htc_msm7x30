@@ -40,9 +40,9 @@ struct proto pingv6_prot = {
 	.recvmsg =	ping_recvmsg,
 	.bind =		ping_bind,
 	.backlog_rcv =	ping_queue_rcv_skb,
-	.hash =		ping_hash,
-	.unhash =	ping_unhash,
-	.get_port =	ping_get_port,
+	.hash =		ping_v4_hash,
+	.unhash =	ping_v4_unhash,
+	.get_port =	ping_v4_get_port,
 	.obj_size =	sizeof(struct raw6_sock),
 };
 EXPORT_SYMBOL_GPL(pingv6_prot);
