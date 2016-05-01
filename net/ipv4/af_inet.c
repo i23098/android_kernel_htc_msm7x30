@@ -170,6 +170,7 @@ void inet_sock_destruct(struct sock *sk)
 
 	kfree(rcu_dereference_protected(inet->inet_opt, 1));
 	dst_release(rcu_dereference_check(sk->sk_dst_cache, 1));
+	dst_release(sk->sk_rx_dst);
 	sk_refcnt_debug_dec(sk);
 }
 EXPORT_SYMBOL(inet_sock_destruct);
@@ -255,20 +256,18 @@ void build_ehash_secret(void)
 }
 EXPORT_SYMBOL(build_ehash_secret);
 
-static inline int inet_netns_ok(struct net *net, int protocol)
+static inline int inet_netns_ok(struct net *net, __u8 protocol)
 {
-	int hash;
 	const struct net_protocol *ipprot;
 
 	if (net_eq(net, &init_net))
 		return 1;
 
-	hash = protocol & (MAX_INET_PROTOS - 1);
-	ipprot = rcu_dereference(inet_protos[hash]);
-
-	if (ipprot == NULL)
+	ipprot = rcu_dereference(inet_protos[protocol]);
+	if (ipprot == NULL) {
 		/* raw IP is OK */
 		return 1;
+	}
 	return ipprot->netns_ok;
 }
 
@@ -1233,8 +1232,8 @@ EXPORT_SYMBOL(inet_sk_rebuild_header);
 
 static int inet_gso_send_check(struct sk_buff *skb)
 {
-	const struct iphdr *iph;
 	const struct net_protocol *ops;
+	const struct iphdr *iph;
 	int proto;
 	int ihl;
 	int err = -EINVAL;
@@ -1253,7 +1252,7 @@ static int inet_gso_send_check(struct sk_buff *skb)
 	__skb_pull(skb, ihl);
 	skb_reset_transport_header(skb);
 	iph = ip_hdr(skb);
-	proto = iph->protocol & (MAX_INET_PROTOS - 1);
+	proto = iph->protocol;
 	err = -EPROTONOSUPPORT;
 
 	rcu_read_lock();
@@ -1270,8 +1269,8 @@ static struct sk_buff *inet_gso_segment(struct sk_buff *skb,
 	netdev_features_t features)
 {
 	struct sk_buff *segs = ERR_PTR(-EINVAL);
-	struct iphdr *iph;
 	const struct net_protocol *ops;
+	struct iphdr *iph;
 	int proto;
 	int ihl;
 	int id;
@@ -1303,7 +1302,7 @@ static struct sk_buff *inet_gso_segment(struct sk_buff *skb,
 	skb_reset_transport_header(skb);
 	iph = ip_hdr(skb);
 	id = ntohs(iph->id);
-	proto = iph->protocol & (MAX_INET_PROTOS - 1);
+	proto = iph->protocol;
 	segs = ERR_PTR(-EPROTONOSUPPORT);
 
 	rcu_read_lock();
@@ -1357,7 +1356,7 @@ static struct sk_buff **inet_gro_receive(struct sk_buff **head,
 			goto out;
 	}
 
-	proto = iph->protocol & (MAX_INET_PROTOS - 1);
+	proto = iph->protocol;
 
 	rcu_read_lock();
 	ops = rcu_dereference(inet_protos[proto]);
@@ -1415,11 +1414,11 @@ out:
 
 static int inet_gro_complete(struct sk_buff *skb)
 {
-	const struct net_protocol *ops;
-	struct iphdr *iph = ip_hdr(skb);
-	int proto = iph->protocol & (MAX_INET_PROTOS - 1);
-	int err = -ENOSYS;
 	__be16 newlen = htons(skb->len - skb_network_offset(skb));
+	struct iphdr *iph = ip_hdr(skb);
+	const struct net_protocol *ops;
+	int proto = iph->protocol;
+	int err = -ENOSYS;
 
 	csum_replace2(&iph->check, iph->tot_len, newlen);
 	iph->tot_len = newlen;
@@ -1537,14 +1536,15 @@ static const struct net_protocol igmp_protocol = {
 #endif
 
 static const struct net_protocol tcp_protocol = {
-	.handler =	tcp_v4_rcv,
-	.err_handler =	tcp_v4_err,
-	.gso_send_check = tcp_v4_gso_send_check,
-	.gso_segment =	tcp_tso_segment,
-	.gro_receive =	tcp4_gro_receive,
-	.gro_complete =	tcp4_gro_complete,
-	.no_policy =	1,
-	.netns_ok =	1,
+	.early_demux	=	tcp_v4_early_demux,
+	.handler	=	tcp_v4_rcv,
+	.err_handler	=	tcp_v4_err,
+	.gso_send_check	=	tcp_v4_gso_send_check,
+	.gso_segment	=	tcp_tso_segment,
+	.gro_receive	=	tcp4_gro_receive,
+	.gro_complete	=	tcp4_gro_complete,
+	.no_policy	=	1,
+	.netns_ok	=	1,
 };
 
 static const struct net_protocol udp_protocol = {
