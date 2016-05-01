@@ -241,36 +241,6 @@ err:
 	return status;
 }
 
-/* using a counter to merge subdriver requests with our own into a combined state */
-static int qmi_wwan_manage_power(struct usbnet *dev, int on)
-{
-	atomic_t *pmcount = (void *)&dev->data[1];
-	int rv = 0;
-
-	dev_dbg(&dev->intf->dev, "%s() pmcount=%d, on=%d\n", __func__, atomic_read(pmcount), on);
-
-	if ((on && atomic_add_return(1, pmcount) == 1) || (!on && atomic_dec_and_test(pmcount))) {
-		/* need autopm_get/put here to ensure the usbcore sees the new value */
-		rv = usb_autopm_get_interface(dev->intf);
-		if (rv < 0)
-			goto err;
-		dev->intf->needs_remote_wakeup = on;
-		usb_autopm_put_interface(dev->intf);
-	}
-err:
-	return rv;
-}
-
-static int qmi_wwan_cdc_wdm_manage_power(struct usb_interface *intf, int on)
-{
-	struct usbnet *dev = usb_get_intfdata(intf);
-
-	/* can be called while disconnecting */
-	if (!dev)
-		return 0;
-	return qmi_wwan_manage_power(dev, on);
-}
-
 /* Some devices combine the "control" and "data" functions into a
  * single interface with all three endpoints: interrupt + bulk in and
  * out
@@ -299,29 +269,6 @@ static int qmi_wwan_bind_shared(struct usbnet *dev, struct usb_interface *intf)
 	info->data = intf;
 	rv = qmi_wwan_register_subdriver(dev);
 
-err:
-	return rv;
-}
-
-/* Gobi devices uses identical class/protocol codes for all interfaces regardless
- * of function. Some of these are CDC ACM like and have the exact same endpoints
- * we are looking for. This leaves two possible strategies for identifying the
- * correct interface:
- *   a) hardcoding interface number, or
- *   b) use the fact that the wwan interface is the only one lacking additional
- *      (CDC functional) descriptors
- *
- * Let's see if we can get away with the generic b) solution.
- */
-static int qmi_wwan_bind_gobi(struct usbnet *dev, struct usb_interface *intf)
-{
-	int rv = -EINVAL;
-
-	/* ignore any interface with additional descriptors */
-	if (intf->cur_altsetting->extralen)
-		goto err;
-
-	rv = qmi_wwan_bind_shared(dev, intf);
 err:
 	return rv;
 }

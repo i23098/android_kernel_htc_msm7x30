@@ -58,8 +58,8 @@
 #include "bnx2_fw.h"
 
 #define DRV_MODULE_NAME		"bnx2"
-#define DRV_MODULE_VERSION	"2.2.2"
-#define DRV_MODULE_RELDATE	"June 16, 2012"
+#define DRV_MODULE_VERSION	"2.2.3"
+#define DRV_MODULE_RELDATE	"June 27, 2012"
 #define FW_MIPS_FILE_06		"bnx2/bnx2-mips-06-6.2.3.fw"
 #define FW_RV2P_FILE_06		"bnx2/bnx2-rv2p-06-6.0.15.fw"
 #define FW_MIPS_FILE_09		"bnx2/bnx2-mips-09-6.2.1b.fw"
@@ -1972,22 +1972,26 @@ bnx2_remote_phy_event(struct bnx2 *bp)
 		switch (speed) {
 			case BNX2_LINK_STATUS_10HALF:
 				bp->duplex = DUPLEX_HALF;
+				/* fall through */
 			case BNX2_LINK_STATUS_10FULL:
 				bp->line_speed = SPEED_10;
 				break;
 			case BNX2_LINK_STATUS_100HALF:
 				bp->duplex = DUPLEX_HALF;
+				/* fall through */
 			case BNX2_LINK_STATUS_100BASE_T4:
 			case BNX2_LINK_STATUS_100FULL:
 				bp->line_speed = SPEED_100;
 				break;
 			case BNX2_LINK_STATUS_1000HALF:
 				bp->duplex = DUPLEX_HALF;
+				/* fall through */
 			case BNX2_LINK_STATUS_1000FULL:
 				bp->line_speed = SPEED_1000;
 				break;
 			case BNX2_LINK_STATUS_2500HALF:
 				bp->duplex = DUPLEX_HALF;
+				/* fall through */
 			case BNX2_LINK_STATUS_2500FULL:
 				bp->line_speed = SPEED_2500;
 				break;
@@ -6246,7 +6250,7 @@ bnx2_enable_msix(struct bnx2 *bp, int msix_vecs)
 static int
 bnx2_setup_int_mode(struct bnx2 *bp, int dis_msi)
 {
-	int cpus = num_online_cpus();
+	int cpus = netif_get_num_default_rss_queues();
 	int msix_vecs;
 
 	if (!bp->num_req_rx_rings)
@@ -6699,6 +6703,7 @@ bnx2_close(struct net_device *dev)
 
 	bnx2_disable_int_sync(bp);
 	bnx2_napi_disable(bp);
+	netif_tx_disable(dev);
 	del_timer_sync(&bp->timer);
 	bnx2_shutdown_chip(bp);
 	bnx2_free_irq(bp);

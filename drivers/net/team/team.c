@@ -508,24 +508,29 @@ static void team_set_no_mode(struct team *team)
 	team->mode = &__team_no_mode;
 }
 
-static void team_adjust_ops(struct team *team)
+static void __team_adjust_ops(struct team *team, int en_port_count)
 {
 	/*
 	 * To avoid checks in rx/tx skb paths, ensure here that non-null and
 	 * correct ops are always set.
 	 */
 
-	if (list_empty(&team->port_list) ||
-	    !team_is_mode_set(team) || !team->mode->ops->transmit)
+	if (!en_port_count || !team_is_mode_set(team) ||
+	    !team->mode->ops->transmit)
 		team->ops.transmit = team_dummy_transmit;
 	else
 		team->ops.transmit = team->mode->ops->transmit;
 
-	if (list_empty(&team->port_list) ||
-	    !team_is_mode_set(team) || !team->mode->ops->receive)
+	if (!en_port_count || !team_is_mode_set(team) ||
+	    !team->mode->ops->receive)
 		team->ops.receive = team_dummy_receive;
 	else
 		team->ops.receive = team->mode->ops->receive;
+}
+
+static void team_adjust_ops(struct team *team)
+{
+	__team_adjust_ops(team, team->en_port_count);
 }
 
 /*
@@ -609,8 +614,6 @@ static int team_change_mode(struct team *team, const char *kind)
  * Rx path frame handler
  ************************/
 
-static bool team_port_enabled(struct team_port *port);
-
 /* note: already called with rcu_read_lock */
 static rx_handler_result_t team_handle_frame(struct sk_buff **pskb)
 {
@@ -668,10 +671,11 @@ static bool team_port_find(const struct team *team,
 	return false;
 }
 
-static bool team_port_enabled(struct team_port *port)
+bool team_port_enabled(struct team_port *port)
 {
 	return port->index != -1;
 }
+EXPORT_SYMBOL(team_port_enabled);
 
 /*
  * Enable/disable port by adding to enabled port hashlist and setting
@@ -687,6 +691,7 @@ static void team_port_enable(struct team *team,
 	port->index = team->en_port_count++;
 	hlist_add_head_rcu(&port->hlist,
 			   team_port_index_hash(team, port->index));
+	team_adjust_ops(team);
 	if (team->ops.port_enabled)
 		team->ops.port_enabled(team, port);
 }
@@ -708,16 +713,20 @@ static void __reconstruct_port_hlist(struct team *team, int rm_index)
 static void team_port_disable(struct team *team,
 			      struct team_port *port)
 {
-	int rm_index = port->index;
-
 	if (!team_port_enabled(port))
 		return;
 	if (team->ops.port_disabled)
 		team->ops.port_disabled(team, port);
 	hlist_del_rcu(&port->hlist);
-	__reconstruct_port_hlist(team, rm_index);
-	team->en_port_count--;
+	__reconstruct_port_hlist(team, port->index);
 	port->index = -1;
+	__team_adjust_ops(team, team->en_port_count - 1);
+	/*
+	 * Wait until readers see adjusted ops. This ensures that
+	 * readers never see team->en_port_count == 0
+	 */
+	synchronize_rcu();
+	team->en_port_count--;
 }
 
 #define TEAM_VLAN_FEATURES (NETIF_F_ALL_CSUM | NETIF_F_SG | \
@@ -874,7 +883,6 @@ static int team_port_add(struct team *team, struct net_device *port_dev)
 	port->index = -1;
 	team_port_enable(team, port);
 	list_add_tail_rcu(&port->list, &team->port_list);
-	team_adjust_ops(team);
 	__team_compute_features(team);
 	__team_port_change_check(port, !!netif_carrier_ok(port_dev));
 	__team_options_change_check(team);
@@ -928,7 +936,6 @@ static int team_port_del(struct team *team, struct net_device *port_dev)
 	__team_port_change_check(port, false);
 	team_port_disable(team, port);
 	list_del_rcu(&port->list);
-	team_adjust_ops(team);
 	netdev_rx_handler_unregister(port_dev);
 	netdev_set_master(port_dev, NULL);
 	vlan_vids_del_by_dev(port_dev, dev);
@@ -1181,10 +1188,11 @@ static int team_set_mac_address(struct net_device *dev, void *p)
 {
 	struct team *team = netdev_priv(dev);
 	struct team_port *port;
-	struct sockaddr *addr = p;
+	int err;
 
-	dev->addr_assign_type &= ~NET_ADDR_RANDOM;
-	memcpy(dev->dev_addr, addr->sa_data, ETH_ALEN);
+	err = eth_mac_addr(dev, p);
+	if (err)
+		return err;
 	rcu_read_lock();
 	list_for_each_entry_rcu(port, &team->port_list, list)
 		if (team->ops.port_change_mac)
@@ -1386,7 +1394,7 @@ static void team_setup(struct net_device *dev)
 	 * bring us to promisc mode in case a unicast addr is added.
 	 * Let this up to underlay drivers.
 	 */
-	dev->priv_flags |= IFF_UNICAST_FLT;
+	dev->priv_flags |= IFF_UNICAST_FLT | IFF_LIVE_ADDR_CHANGE;
 
 	dev->features |= NETIF_F_LLTX;
 	dev->features |= NETIF_F_GRO;
@@ -1469,7 +1477,7 @@ static int team_nl_cmd_noop(struct sk_buff *skb, struct genl_info *info)
 	void *hdr;
 	int err;
 
-	msg = nlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
+	msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
 	if (!msg)
 		return -ENOMEM;
 
@@ -1531,7 +1539,7 @@ static int team_nl_send_generic(struct genl_info *info, struct team *team,
 	struct sk_buff *skb;
 	int err;
 
-	skb = nlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
+	skb = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
 	if (!skb)
 		return -ENOMEM;
 
@@ -1641,7 +1649,7 @@ static int __send_and_alloc_skb(struct sk_buff **pskb,
 		if (err)
 			return err;
 	}
-	*pskb = genlmsg_new(NLMSG_DEFAULT_SIZE - GENL_HDRLEN, GFP_KERNEL);
+	*pskb = genlmsg_new(GENLMSG_DEFAULT_SIZE, GFP_KERNEL);
 	if (!*pskb)
 		return -ENOMEM;
 	return 0;
@@ -2009,7 +2017,7 @@ static int team_nl_send_event_port_list_get(struct team *team)
 	int err;
 	struct net *net = dev_net(team->dev);
 
-	skb = nlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
+	skb = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
 	if (!skb)
 		return -ENOMEM;
 

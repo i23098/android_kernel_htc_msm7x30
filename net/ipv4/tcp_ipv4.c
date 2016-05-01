@@ -698,8 +698,8 @@ static void tcp_v4_send_reset(struct sock *sk, struct sk_buff *skb)
 
 	net = dev_net(skb_dst(skb)->dev);
 	arg.tos = ip_hdr(skb)->tos;
-	ip_send_reply(net->ipv4.tcp_sock, skb, ip_hdr(skb)->saddr,
-		      &arg, arg.iov[0].iov_len);
+	ip_send_unicast_reply(net->ipv4.tcp_sock, skb, ip_hdr(skb)->saddr,
+			      ip_hdr(skb)->daddr, &arg, arg.iov[0].iov_len);
 
 	TCP_INC_STATS_BH(net, TCP_MIB_OUTSEGS);
 	TCP_INC_STATS_BH(net, TCP_MIB_OUTRSTS);
@@ -781,8 +781,8 @@ static void tcp_v4_send_ack(struct sk_buff *skb, u32 seq, u32 ack,
 	if (oif)
 		arg.bound_dev_if = oif;
 	arg.tos = tos;
-	ip_send_reply(net->ipv4.tcp_sock, skb, ip_hdr(skb)->saddr,
-		      &arg, arg.iov[0].iov_len);
+	ip_send_unicast_reply(net->ipv4.tcp_sock, skb, ip_hdr(skb)->saddr,
+			      ip_hdr(skb)->daddr, &arg, arg.iov[0].iov_len);
 
 	TCP_INC_STATS_BH(net, TCP_MIB_OUTSEGS);
 }
@@ -825,7 +825,8 @@ static void tcp_v4_reqsk_send_ack(struct sock *sk, struct sk_buff *skb,
 static int tcp_v4_send_synack(struct sock *sk, struct dst_entry *dst,
 			      struct request_sock *req,
 			      struct request_values *rvp,
-			      u16 queue_mapping)
+			      u16 queue_mapping,
+			      bool nocache)
 {
 	const struct inet_request_sock *ireq = inet_rsk(req);
 	struct flowi4 fl4;
@@ -833,7 +834,7 @@ static int tcp_v4_send_synack(struct sock *sk, struct dst_entry *dst,
 	struct sk_buff * skb;
 
 	/* First, grab a route. */
-	if (!dst && (dst = inet_csk_route_req(sk, &fl4, req)) == NULL)
+	if (!dst && (dst = inet_csk_route_req(sk, &fl4, req, nocache)) == NULL)
 		return -1;
 
 	skb = tcp_make_synack(sk, dst, req, rvp);
@@ -855,7 +856,7 @@ static int tcp_v4_rtx_synack(struct sock *sk, struct request_sock *req,
 			      struct request_values *rvp)
 {
 	TCP_INC_STATS_BH(sock_net(sk), TCP_MIB_RETRANSSEGS);
-	return tcp_v4_send_synack(sk, NULL, req, rvp, 0);
+	return tcp_v4_send_synack(sk, NULL, req, rvp, 0, false);
 }
 
 /*
@@ -1388,7 +1389,7 @@ int tcp_v4_conn_request(struct sock *sk, struct sk_buff *skb)
 		 */
 		if (tmp_opt.saw_tstamp &&
 		    tcp_death_row.sysctl_tw_recycle &&
-		    (dst = inet_csk_route_req(sk, &fl4, req)) != NULL &&
+		    (dst = inet_csk_route_req(sk, &fl4, req, want_cookie)) != NULL &&
 		    fl4.daddr == saddr &&
 		    (peer = rt_get_peer((struct rtable *)dst, fl4.daddr)) != NULL) {
 			inet_peer_refcheck(peer);
@@ -1424,7 +1425,8 @@ int tcp_v4_conn_request(struct sock *sk, struct sk_buff *skb)
 
 	if (tcp_v4_send_synack(sk, dst, req,
 			       (struct request_values *)&tmp_ext,
-			       skb_get_queue_mapping(skb)) ||
+			       skb_get_queue_mapping(skb),
+			       want_cookie) ||
 	    want_cookie)
 		goto drop_and_free;
 
@@ -1671,34 +1673,34 @@ csum_err:
 }
 EXPORT_SYMBOL(tcp_v4_do_rcv);
 
-int tcp_v4_early_demux(struct sk_buff *skb)
+void tcp_v4_early_demux(struct sk_buff *skb)
 {
 	struct net *net = dev_net(skb->dev);
 	const struct iphdr *iph;
 	const struct tcphdr *th;
+	struct net_device *dev;
 	struct sock *sk;
-	int err;
 
-	err = -ENOENT;
 	if (skb->pkt_type != PACKET_HOST)
-		goto out_err;
+		return;
 
 	if (!pskb_may_pull(skb, ip_hdrlen(skb) + sizeof(struct tcphdr)))
-		goto out_err;
+		return;
 
 	iph = ip_hdr(skb);
 	th = (struct tcphdr *) ((char *)iph + ip_hdrlen(skb));
 
 	if (th->doff < sizeof(struct tcphdr) / 4)
-		goto out_err;
+		return;
 
 	if (!pskb_may_pull(skb, ip_hdrlen(skb) + th->doff * 4))
-		goto out_err;
+		return;
 
+	dev = skb->dev;
 	sk = __inet_lookup_established(net, &tcp_hashinfo,
 				       iph->saddr, th->source,
-				       iph->daddr, th->dest,
-				       skb->dev->ifindex);
+				       iph->daddr, ntohs(th->dest),
+				       dev->ifindex);
 	if (sk) {
 		skb->sk = sk;
 		skb->destructor = sock_edemux;
@@ -1707,14 +1709,13 @@ int tcp_v4_early_demux(struct sk_buff *skb)
 			if (dst)
 				dst = dst_check(dst, 0);
 			if (dst) {
-				skb_dst_set_noref(skb, dst);
-				err = 0;
+				struct rtable *rt = (struct rtable *) dst;
+
+				if (rt->rt_iif == dev->ifindex)
+					skb_dst_set_noref(skb, dst);
 			}
 		}
 	}
-
-out_err:
-	return err;
 }
 
 /*

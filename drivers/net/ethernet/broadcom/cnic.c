@@ -256,11 +256,16 @@ static void cnic_ulp_ctl(struct cnic_dev *dev, int ulp_type, bool reg)
 	struct cnic_local *cp = dev->cnic_priv;
 	struct cnic_eth_dev *ethdev = cp->ethdev;
 	struct drv_ctl_info info;
+	struct fcoe_capabilities *fcoe_cap =
+		&info.data.register_data.fcoe_features;
 
-	if (reg)
+	if (reg) {
 		info.cmd = DRV_CTL_ULP_REGISTER_CMD;
-	else
+		if (ulp_type == CNIC_ULP_FCOE && dev->fcoe_cap)
+			memcpy(fcoe_cap, dev->fcoe_cap, sizeof(*fcoe_cap));
+	} else {
 		info.cmd = DRV_CTL_ULP_UNREGISTER_CMD;
+	}
 
 	info.data.ulp_type = ulp_type;
 	ethdev->drv_ctl(dev->netdev, &info);
@@ -285,6 +290,9 @@ static void cnic_spq_completion(struct cnic_dev *dev, int cmd, u32 count)
 static int cnic_get_l5_cid(struct cnic_local *cp, u32 cid, u32 *l5_cid)
 {
 	u32 i;
+
+	if (!cp->ctx_tbl)
+		return -EINVAL;
 
 	for (i = 0; i < cp->max_cid_space; i++) {
 		if (cp->ctx_tbl[i].cid == cid) {
@@ -612,6 +620,8 @@ static int cnic_unregister_device(struct cnic_dev *dev, int ulp_type)
 
 	if (ulp_type == CNIC_ULP_ISCSI)
 		cnic_send_nlmsg(cp, ISCSI_KEVENT_IF_DOWN, NULL);
+	else if (ulp_type == CNIC_ULP_FCOE)
+		dev->fcoe_cap = NULL;
 
 	synchronize_rcu();
 
@@ -3217,6 +3227,9 @@ static int cnic_ctl(void *data, struct cnic_ctl_info *info)
 		u32 l5_cid;
 		struct cnic_local *cp = dev->cnic_priv;
 
+		if (!test_bit(CNIC_F_CNIC_UP, &dev->flags))
+			break;
+
 		if (cnic_get_l5_cid(cp, cid, &l5_cid) == 0) {
 			struct cnic_context *ctx = &cp->ctx_tbl[l5_cid];
 
@@ -3947,6 +3960,15 @@ static void cnic_cm_process_kcqe(struct cnic_dev *dev, struct kcqe *kcqe)
 		cnic_cm_upcall(cp, csk, opcode);
 		break;
 
+	case L5CM_RAMROD_CMD_ID_CLOSE:
+		if (l4kcqe->status != 0) {
+			netdev_warn(dev->netdev, "RAMROD CLOSE compl with "
+				    "status 0x%x\n", l4kcqe->status);
+			opcode = L4_KCQE_OPCODE_VALUE_CLOSE_COMP;
+			/* Fall through */
+		} else {
+			break;
+		}
 	case L4_KCQE_OPCODE_VALUE_RESET_RECEIVED:
 	case L4_KCQE_OPCODE_VALUE_CLOSE_COMP:
 	case L4_KCQE_OPCODE_VALUE_RESET_COMP:
@@ -4249,8 +4271,6 @@ static int cnic_cm_shutdown(struct cnic_dev *dev)
 {
 	struct cnic_local *cp = dev->cnic_priv;
 	int i;
-
-	cp->stop_cm(dev);
 
 	if (!cp->csk_tbl)
 		return 0;
@@ -4981,8 +5001,14 @@ static int cnic_start_bnx2x_hw(struct cnic_dev *dev)
 	cp->port_mode = CHIP_PORT_MODE_NONE;
 
 	if (BNX2X_CHIP_IS_E2_PLUS(cp->chip_id)) {
-		u32 val = CNIC_RD(dev, MISC_REG_PORT4MODE_EN_OVWR);
+		u32 val;
 
+		pci_read_config_dword(dev->pcidev, PCICFG_ME_REGISTER, &val);
+		cp->func = (u8) ((val & ME_REG_ABS_PF_NUM) >>
+				 ME_REG_ABS_PF_NUM_SHIFT);
+		func = CNIC_FUNC(cp);
+
+		val = CNIC_RD(dev, MISC_REG_PORT4MODE_EN_OVWR);
 		if (!(val & 1))
 			val = CNIC_RD(dev, MISC_REG_PORT4MODE_EN);
 		else
@@ -5287,6 +5313,7 @@ static void cnic_stop_hw(struct cnic_dev *dev)
 			i++;
 		}
 		cnic_shutdown_rings(dev);
+		cp->stop_cm(dev);
 		clear_bit(CNIC_F_CNIC_UP, &dev->flags);
 		RCU_INIT_POINTER(cp->ulp_ops[CNIC_ULP_L4], NULL);
 		synchronize_rcu();

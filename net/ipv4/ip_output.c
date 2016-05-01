@@ -170,6 +170,7 @@ static inline int ip_finish_output2(struct sk_buff *skb)
 	struct net_device *dev = dst->dev;
 	unsigned int hh_len = LL_RESERVED_SPACE(dev);
 	struct neighbour *neigh;
+	u32 nexthop;
 
 	if (rt->rt_type == RTN_MULTICAST) {
 		IP_UPD_PO_STATS(dev_net(dev), IPSTATS_MIB_OUTMCAST, skb->len);
@@ -191,15 +192,18 @@ static inline int ip_finish_output2(struct sk_buff *skb)
 		skb = skb2;
 	}
 
-	rcu_read_lock();
-	neigh = dst_get_neighbour_noref(dst);
+	rcu_read_lock_bh();
+	nexthop = rt->rt_gateway ? rt->rt_gateway : ip_hdr(skb)->daddr;
+	neigh = __ipv4_neigh_lookup_noref(dev, nexthop);
+	if (unlikely(!neigh))
+		neigh = __neigh_create(&arp_tbl, &nexthop, dev, false);
 	if (neigh) {
-		int res = neigh_output(neigh, skb);
+		int res = dst_neigh_output(dst, neigh, skb);
 
-		rcu_read_unlock();
+		rcu_read_unlock_bh();
 		return res;
 	}
-	rcu_read_unlock();
+	rcu_read_unlock_bh();
 
 	net_dbg_ratelimited("%s: No header cache and no neighbour!\n",
 			    __func__);
@@ -1459,13 +1463,14 @@ static int ip_reply_glue_bits(void *dptr, char *to, int offset,
 
 /*
  *	Generic function to send a packet as reply to another packet.
- *	Used to send TCP resets so far. ICMP should use this function too.
+ *	Used to send TCP resets so far.
  *
  *	Should run single threaded per socket because it uses the sock
  *     	structure to pass arguments.
  */
-void ip_send_reply(struct sock *sk, struct sk_buff *skb, __be32 daddr,
-		   const struct ip_reply_arg *arg, unsigned int len)
+void ip_send_unicast_reply(struct sock *sk, struct sk_buff *skb, __be32 daddr,
+			   __be32 saddr, const struct ip_reply_arg *arg,
+			   unsigned int len)
 {
 	struct inet_sock *inet = inet_sk(sk);
 	struct ip_options_data replyopts;
@@ -1491,7 +1496,7 @@ void ip_send_reply(struct sock *sk, struct sk_buff *skb, __be32 daddr,
 			   RT_TOS(arg->tos),
 			   RT_SCOPE_UNIVERSE, sk->sk_protocol,
 			   ip_reply_arg_flowi_flags(arg),
-			   daddr, rt->rt_spec_dst,
+			   daddr, saddr,
 			   tcp_hdr(skb)->source, tcp_hdr(skb)->dest,
 			   arg->uid);
 	security_skb_classify_flow(skb, flowi4_to_flowi(&fl4));

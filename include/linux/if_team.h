@@ -60,9 +60,10 @@ struct team_port {
 		unsigned int mtu;
 	} orig;
 
-	struct rcu_head rcu;
 	long mode_priv[0];
 };
+
+extern bool team_port_enabled(struct team_port *port);
 
 struct team_mode_ops {
 	int (*init)(struct team *team);

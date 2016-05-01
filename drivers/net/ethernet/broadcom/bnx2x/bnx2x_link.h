@@ -41,6 +41,7 @@
 #define SPEED_AUTO_NEG		0
 #define SPEED_20000		20000
 
+#define SFP_EEPROM_PAGE_SIZE			16
 #define SFP_EEPROM_VENDOR_NAME_ADDR		0x14
 #define SFP_EEPROM_VENDOR_NAME_SIZE		16
 #define SFP_EEPROM_VENDOR_OUI_ADDR		0x25
@@ -125,6 +126,11 @@ typedef void (*set_link_led_t)(struct bnx2x_phy *phy,
 			       struct link_params *params, u8 mode);
 typedef void (*phy_specific_func_t)(struct bnx2x_phy *phy,
 				    struct link_params *params, u32 action);
+struct bnx2x_reg_set {
+	u8  devad;
+	u16 reg;
+	u16 val;
+};
 
 struct bnx2x_phy {
 	u32 type;
@@ -163,14 +169,15 @@ struct bnx2x_phy {
 	u32 supported;
 
 	u32 media_type;
-#define	ETH_PHY_UNSPECIFIED 0x0
-#define	ETH_PHY_SFP_FIBER   0x1
-#define	ETH_PHY_XFP_FIBER   0x2
-#define	ETH_PHY_DA_TWINAX   0x3
-#define	ETH_PHY_BASE_T      0x4
-#define	ETH_PHY_KR          0xf0
-#define	ETH_PHY_CX4         0xf1
-#define	ETH_PHY_NOT_PRESENT 0xff
+#define	ETH_PHY_UNSPECIFIED	0x0
+#define	ETH_PHY_SFPP_10G_FIBER	0x1
+#define	ETH_PHY_XFP_FIBER		0x2
+#define	ETH_PHY_DA_TWINAX		0x3
+#define	ETH_PHY_BASE_T		0x4
+#define	ETH_PHY_SFP_1G_FIBER	0x5
+#define	ETH_PHY_KR		0xf0
+#define	ETH_PHY_CX4		0xf1
+#define	ETH_PHY_NOT_PRESENT	0xff
 
 	/* The address in which version is located*/
 	u32 ver_addr;
@@ -307,6 +314,7 @@ struct link_vars {
 #define PHY_PHYSICAL_LINK_FLAG		(1<<2)
 #define PHY_HALF_OPEN_CONN_FLAG		(1<<3)
 #define PHY_OVER_CURRENT_FLAG		(1<<4)
+#define PHY_SFP_TX_FAULT_FLAG		(1<<5)
 
 	u8 mac_type;
 #define MAC_TYPE_NONE		0

@@ -558,6 +558,7 @@ static inline void wrb_fill(struct be_eth_wrb *wrb, u64 addr, int len)
 	wrb->frag_pa_hi = upper_32_bits(addr);
 	wrb->frag_pa_lo = addr & 0xFFFFFFFF;
 	wrb->frag_len = len & ETH_WRB_FRAG_LEN_MASK;
+	wrb->rsvd0 = 0;
 }
 
 static inline u16 be_get_tx_vlan_tag(struct be_adapter *adapter,
@@ -574,6 +575,11 @@ static inline u16 be_get_tx_vlan_tag(struct be_adapter *adapter,
 				adapter->recommended_prio;
 
 	return vlan_tag;
+}
+
+static int be_vlan_tag_chk(struct be_adapter *adapter, struct sk_buff *skb)
+{
+	return vlan_tx_tag_present(skb) || adapter->pvid;
 }
 
 static void wrb_fill_hdr(struct be_adapter *adapter, struct be_eth_hdr_wrb *hdr,
@@ -703,33 +709,56 @@ dma_err:
 	return 0;
 }
 
+static struct sk_buff *be_insert_vlan_in_pkt(struct be_adapter *adapter,
+					     struct sk_buff *skb)
+{
+	u16 vlan_tag = 0;
+
+	skb = skb_share_check(skb, GFP_ATOMIC);
+	if (unlikely(!skb))
+		return skb;
+
+	if (vlan_tx_tag_present(skb)) {
+		vlan_tag = be_get_tx_vlan_tag(adapter, skb);
+		__vlan_put_tag(skb, vlan_tag);
+		skb->vlan_tci = 0;
+	}
+
+	return skb;
+}
+
 static netdev_tx_t be_xmit(struct sk_buff *skb,
 			struct net_device *netdev)
 {
 	struct be_adapter *adapter = netdev_priv(netdev);
 	struct be_tx_obj *txo = &adapter->tx_obj[skb_get_queue_mapping(skb)];
 	struct be_queue_info *txq = &txo->q;
+	struct iphdr *ip = NULL;
 	u32 wrb_cnt = 0, copied = 0;
-	u32 start = txq->head;
+	u32 start = txq->head, eth_hdr_len;
 	bool dummy_wrb, stopped = false;
 
-	/* For vlan tagged pkts, BE
-	 * 1) calculates checksum even when CSO is not requested
-	 * 2) calculates checksum wrongly for padded pkt less than
-	 * 60 bytes long.
-	 * As a workaround disable TX vlan offloading in such cases.
+	eth_hdr_len = ntohs(skb->protocol) == ETH_P_8021Q ?
+		VLAN_ETH_HLEN : ETH_HLEN;
+
+	/* HW has a bug which considers padding bytes as legal
+	 * and modifies the IPv4 hdr's 'tot_len' field
 	 */
-	if (vlan_tx_tag_present(skb) &&
-	    (skb->ip_summed != CHECKSUM_PARTIAL || skb->len <= 60)) {
-		skb = skb_share_check(skb, GFP_ATOMIC);
+	if (skb->len <= 60 && be_vlan_tag_chk(adapter, skb) &&
+			is_ipv4_pkt(skb)) {
+		ip = (struct iphdr *)ip_hdr(skb);
+		pskb_trim(skb, eth_hdr_len + ntohs(ip->tot_len));
+	}
+
+	/* HW has a bug wherein it will calculate CSUM for VLAN
+	 * pkts even though it is disabled.
+	 * Manually insert VLAN in pkt.
+	 */
+	if (skb->ip_summed != CHECKSUM_PARTIAL &&
+			be_vlan_tag_chk(adapter, skb)) {
+		skb = be_insert_vlan_in_pkt(adapter, skb);
 		if (unlikely(!skb))
 			goto tx_drop;
-
-		skb = __vlan_put_tag(skb, be_get_tx_vlan_tag(adapter, skb));
-		if (unlikely(!skb))
-			goto tx_drop;
-
-		skb->vlan_tci = 0;
 	}
 
 	wrb_cnt = wrb_cnt_for_skb(adapter, skb, &dummy_wrb);
@@ -1058,7 +1087,8 @@ static int be_find_vfs(struct be_adapter *adapter, int vf_state)
 	dev = pci_get_device(pdev->vendor, PCI_ANY_ID, NULL);
 	while (dev) {
 		vf_fn = (pdev->devfn + offset + stride * vfs) & 0xFFFF;
-		if (dev->is_virtfn && dev->devfn == vf_fn) {
+		if (dev->is_virtfn && dev->devfn == vf_fn &&
+			dev->bus->number == pdev->bus->number) {
 			vfs++;
 			if (dev->dev_flags & PCI_DEV_FLAGS_ASSIGNED)
 				assigned_vfs++;
@@ -2142,12 +2172,14 @@ static void be_msix_disable(struct be_adapter *adapter)
 
 static uint be_num_rss_want(struct be_adapter *adapter)
 {
+	u32 num = 0;
 	if ((adapter->function_caps & BE_FUNCTION_CAPS_RSS) &&
 	     !sriov_want(adapter) && be_physfn(adapter) &&
-	     !be_is_mc(adapter))
-		return (adapter->be3_native) ? BE3_MAX_RSS_QS : BE2_MAX_RSS_QS;
-	else
-		return 0;
+	     !be_is_mc(adapter)) {
+		num = (adapter->be3_native) ? BE3_MAX_RSS_QS : BE2_MAX_RSS_QS;
+		num = min_t(u32, num, (u32)netif_get_num_default_rss_queues());
+	}
+	return num;
 }
 
 static void be_msix_enable(struct be_adapter *adapter)
