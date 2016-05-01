@@ -118,6 +118,7 @@ static void dn_dst_ifdown(struct dst_entry *, struct net_device *dev, int how);
 static struct dst_entry *dn_dst_negative_advice(struct dst_entry *);
 static void dn_dst_link_failure(struct sk_buff *);
 static void dn_dst_update_pmtu(struct dst_entry *dst, u32 mtu);
+static void dn_dst_redirect(struct dst_entry *dst, struct sk_buff *skb);
 static struct neighbour *dn_dst_neigh_lookup(const struct dst_entry *dst,
 					     struct sk_buff *skb,
 					     const void *daddr);
@@ -145,6 +146,7 @@ static struct dst_ops dn_dst_ops = {
 	.negative_advice =	dn_dst_negative_advice,
 	.link_failure =		dn_dst_link_failure,
 	.update_pmtu =		dn_dst_update_pmtu,
+	.redirect =		dn_dst_redirect,
 	.neigh_lookup =		dn_dst_neigh_lookup,
 };
 
@@ -290,6 +292,10 @@ static void dn_dst_update_pmtu(struct dst_entry *dst, u32 mtu)
 				dst_metric_set(dst, RTAX_ADVMSS, mss);
 		}
 	}
+}
+
+static void dn_dst_redirect(struct dst_entry *dst, struct sk_buff *skb)
+{
 }
 
 /*
@@ -1590,7 +1596,7 @@ static int dn_rt_fill_info(struct sk_buff *skb, u32 pid, u32 seq,
 		goto errout;
 
 	expires = rt->dst.expires ? rt->dst.expires - jiffies : 0;
-	if (rtnl_put_cacheinfo(skb, &rt->dst, 0, 0, 0, expires,
+	if (rtnl_put_cacheinfo(skb, &rt->dst, 0, expires,
 			       rt->dst.error) < 0)
 		goto errout;
 
@@ -1812,12 +1818,11 @@ static int dn_rt_cache_seq_show(struct seq_file *seq, void *v)
 	char buf1[DN_ASCBUF_LEN], buf2[DN_ASCBUF_LEN];
 
 	seq_printf(seq, "%-8s %-7s %-7s %04d %04d %04d\n",
-			rt->dst.dev ? rt->dst.dev->name : "*",
-			dn_addr2asc(le16_to_cpu(rt->rt_daddr), buf1),
-			dn_addr2asc(le16_to_cpu(rt->rt_saddr), buf2),
-			atomic_read(&rt->dst.__refcnt),
-			rt->dst.__use,
-			(int) dst_metric(&rt->dst, RTAX_RTT));
+		   rt->dst.dev ? rt->dst.dev->name : "*",
+		   dn_addr2asc(le16_to_cpu(rt->rt_daddr), buf1),
+		   dn_addr2asc(le16_to_cpu(rt->rt_saddr), buf2),
+		   atomic_read(&rt->dst.__refcnt),
+		   rt->dst.__use, 0);
 	return 0;
 }
 

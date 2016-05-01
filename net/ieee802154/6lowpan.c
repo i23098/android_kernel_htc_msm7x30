@@ -113,7 +113,6 @@ struct lowpan_dev_record {
 
 struct lowpan_fragment {
 	struct sk_buff		*skb;		/* skb to be assembled */
-	spinlock_t		lock;		/* concurency lock */
 	u16			length;		/* length to be assemled */
 	u32			bytes_rcv;	/* bytes received */
 	u16			tag;		/* current fragment tag */
@@ -123,7 +122,7 @@ struct lowpan_fragment {
 
 static unsigned short fragment_tag;
 static LIST_HEAD(lowpan_fragments);
-spinlock_t flist_lock;
+static DEFINE_SPINLOCK(flist_lock);
 
 static inline struct
 lowpan_dev_info *lowpan_dev_info(const struct net_device *dev)
@@ -637,16 +636,13 @@ static void lowpan_fragment_timer_expired(unsigned long entry_addr)
 
 	pr_debug("timer expired for frame with tag %d\n", entry->tag);
 
-	spin_lock(&flist_lock);
 	list_del(&entry->list);
-	spin_unlock(&flist_lock);
-
 	dev_kfree_skb(entry->skb);
 	kfree(entry);
 }
 
 static struct lowpan_fragment *
-lowpan_alloc_new_frame(struct sk_buff *skb, u8 iphc0, u8 len, u8 tag)
+lowpan_alloc_new_frame(struct sk_buff *skb, u8 iphc0, u8 len, u16 tag)
 {
 	struct lowpan_fragment *frame;
 
@@ -661,8 +657,8 @@ lowpan_alloc_new_frame(struct sk_buff *skb, u8 iphc0, u8 len, u8 tag)
 	frame->tag = tag;
 
 	/* allocate buffer for frame assembling */
-	frame->skb = alloc_skb(frame->length +
-			       sizeof(struct ipv6hdr), GFP_ATOMIC);
+	frame->skb = netdev_alloc_skb_ip_align(skb->dev, frame->length +
+					       sizeof(struct ipv6hdr));
 
 	if (!frame->skb)
 		goto skb_err;
@@ -727,7 +723,7 @@ lowpan_process_data(struct sk_buff *skb)
 		 * check if frame assembling with the same tag is
 		 * already in progress
 		 */
-		spin_lock(&flist_lock);
+		spin_lock_bh(&flist_lock);
 
 		list_for_each_entry(frame, &lowpan_fragments, list)
 			if (frame->tag == tag) {
@@ -761,9 +757,9 @@ lowpan_process_data(struct sk_buff *skb)
 		if ((frame->bytes_rcv == frame->length) &&
 		     frame->timer.expires > jiffies) {
 			/* if timer haven't expired - first of all delete it */
-			del_timer(&frame->timer);
+			del_timer_sync(&frame->timer);
 			list_del(&frame->list);
-			spin_unlock(&flist_lock);
+			spin_unlock_bh(&flist_lock);
 
 			dev_kfree_skb(skb);
 			skb = frame->skb;
@@ -774,7 +770,7 @@ lowpan_process_data(struct sk_buff *skb)
 
 			break;
 		}
-		spin_unlock(&flist_lock);
+		spin_unlock_bh(&flist_lock);
 
 		return kfree_skb(skb), 0;
 	}
@@ -929,7 +925,7 @@ lowpan_process_data(struct sk_buff *skb)
 	return lowpan_skb_deliver(skb, &hdr);
 
 unlock_and_drop:
-	spin_unlock(&flist_lock);
+	spin_unlock_bh(&flist_lock);
 drop:
 	kfree_skb(skb);
 	return -EINVAL;
@@ -1186,8 +1182,6 @@ static int lowpan_newlink(struct net *src_net, struct net_device *dev,
 	list_add_tail(&entry->list, &lowpan_devices);
 	mutex_unlock(&lowpan_dev_info(dev)->dev_list_mtx);
 
-	spin_lock_init(&flist_lock);
-
 	register_netdevice(dev);
 
 	return 0;
@@ -1198,18 +1192,8 @@ static void lowpan_dellink(struct net_device *dev, struct list_head *head)
 	struct lowpan_dev_info *lowpan_dev = lowpan_dev_info(dev);
 	struct net_device *real_dev = lowpan_dev->real_dev;
 	struct lowpan_dev_record *entry, *tmp;
-	struct lowpan_fragment *frame, *tframe;
 
 	ASSERT_RTNL();
-
-	spin_lock(&flist_lock);
-	list_for_each_entry_safe(frame, tframe, &lowpan_fragments, list) {
-		del_timer(&frame->timer);
-		list_del(&frame->list);
-		dev_kfree_skb(frame->skb);
-		kfree(frame);
-	}
-	spin_unlock(&flist_lock);
 
 	mutex_lock(&lowpan_dev_info(dev)->dev_list_mtx);
 	list_for_each_entry_safe(entry, tmp, &lowpan_devices, list) {
@@ -1266,9 +1250,24 @@ out:
 
 static void __exit lowpan_cleanup_module(void)
 {
+	struct lowpan_fragment *frame, *tframe;
+
 	lowpan_netlink_fini();
 
 	dev_remove_pack(&lowpan_packet_type);
+
+	/* Now 6lowpan packet_type is removed, so no new fragments are
+	 * expected on RX, therefore that's the time to clean incomplete
+	 * fragments.
+	 */
+	spin_lock_bh(&flist_lock);
+	list_for_each_entry_safe(frame, tframe, &lowpan_fragments, list) {
+		del_timer_sync(&frame->timer);
+		list_del(&frame->list);
+		dev_kfree_skb(frame->skb);
+		kfree(frame);
+	}
+	spin_unlock_bh(&flist_lock);
 }
 
 module_init(lowpan_init_module);

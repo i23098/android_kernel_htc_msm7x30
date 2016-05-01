@@ -39,7 +39,7 @@ struct hw_addr_filt_notify_work {
 	unsigned long changed;
 };
 
-struct mac802154_priv *mac802154_slave_get_priv(struct net_device *dev)
+static struct mac802154_priv *mac802154_slave_get_priv(struct net_device *dev)
 {
 	struct mac802154_sub_if_data *priv = netdev_priv(dev);
 
@@ -98,6 +98,20 @@ void mac802154_dev_set_short_addr(struct net_device *dev, u16 val)
 		priv->hw->hw.hw_filt.short_addr = priv->short_addr;
 		set_hw_addr_filt(dev, IEEE802515_AFILT_SADDR_CHANGED);
 	}
+}
+
+u16 mac802154_dev_get_short_addr(const struct net_device *dev)
+{
+	struct mac802154_sub_if_data *priv = netdev_priv(dev);
+	u16 ret;
+
+	BUG_ON(dev->type != ARPHRD_IEEE802154);
+
+	spin_lock_bh(&priv->mib_lock);
+	ret = priv->short_addr;
+	spin_unlock_bh(&priv->mib_lock);
+
+	return ret;
 }
 
 void mac802154_dev_set_ieee_addr(struct net_device *dev)

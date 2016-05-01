@@ -155,7 +155,7 @@ static void be_intr_set(struct be_adapter *adapter, bool enable)
 {
 	u32 reg, enabled;
 
-	if (adapter->eeh_err)
+	if (adapter->eeh_error)
 		return;
 
 	pci_read_config_dword(adapter->pdev, PCICFG_MEMBAR_CTRL_INT_CTRL_OFFSET,
@@ -201,7 +201,7 @@ static void be_eq_notify(struct be_adapter *adapter, u16 qid,
 	val |= ((qid & DB_EQ_RING_ID_EXT_MASK) <<
 			DB_EQ_RING_ID_EXT_MASK_SHIFT);
 
-	if (adapter->eeh_err)
+	if (adapter->eeh_error)
 		return;
 
 	if (arm)
@@ -220,7 +220,7 @@ void be_cq_notify(struct be_adapter *adapter, u16 qid, bool arm, u16 num_popped)
 	val |= ((qid & DB_CQ_RING_ID_EXT_MASK) <<
 			DB_CQ_RING_ID_EXT_MASK_SHIFT);
 
-	if (adapter->eeh_err)
+	if (adapter->eeh_error)
 		return;
 
 	if (arm)
@@ -1734,9 +1734,10 @@ static void be_evt_queues_destroy(struct be_adapter *adapter)
 	int i;
 
 	for_all_evt_queues(adapter, eqo, i) {
-		be_eq_clean(eqo);
-		if (eqo->q.created)
+		if (eqo->q.created) {
+			be_eq_clean(eqo);
 			be_cmd_q_destroy(adapter, &eqo->q, QTYPE_EQ);
+		}
 		be_queue_free(adapter, &eqo->q);
 	}
 }
@@ -2098,13 +2099,13 @@ int be_poll(struct napi_struct *napi, int budget)
 	return max_work;
 }
 
-void be_detect_dump_ue(struct be_adapter *adapter)
+void be_detect_error(struct be_adapter *adapter)
 {
 	u32 ue_lo = 0, ue_hi = 0, ue_lo_mask = 0, ue_hi_mask = 0;
 	u32 sliport_status = 0, sliport_err1 = 0, sliport_err2 = 0;
 	u32 i;
 
-	if (adapter->eeh_err || adapter->ue_detected)
+	if (be_crit_error(adapter))
 		return;
 
 	if (lancer_chip(adapter)) {
@@ -2125,16 +2126,24 @@ void be_detect_dump_ue(struct be_adapter *adapter)
 		pci_read_config_dword(adapter->pdev,
 				PCICFG_UE_STATUS_HI_MASK, &ue_hi_mask);
 
-		ue_lo = (ue_lo & (~ue_lo_mask));
-		ue_hi = (ue_hi & (~ue_hi_mask));
+		ue_lo = (ue_lo & ~ue_lo_mask);
+		ue_hi = (ue_hi & ~ue_hi_mask);
 	}
 
 	if (ue_lo || ue_hi ||
 		sliport_status & SLIPORT_STATUS_ERR_MASK) {
-		adapter->ue_detected = true;
-		adapter->eeh_err = true;
+		adapter->hw_error = true;
 		dev_err(&adapter->pdev->dev,
-			"Unrecoverable error in the card\n");
+			"Error detected in the card\n");
+	}
+
+	if (sliport_status & SLIPORT_STATUS_ERR_MASK) {
+		dev_err(&adapter->pdev->dev,
+			"ERR: sliport status 0x%x\n", sliport_status);
+		dev_err(&adapter->pdev->dev,
+			"ERR: sliport error1 0x%x\n", sliport_err1);
+		dev_err(&adapter->pdev->dev,
+			"ERR: sliport error2 0x%x\n", sliport_err2);
 	}
 
 	if (ue_lo) {
@@ -2144,6 +2153,7 @@ void be_detect_dump_ue(struct be_adapter *adapter)
 				"UE: %s bit set\n", ue_status_low_desc[i]);
 		}
 	}
+
 	if (ue_hi) {
 		for (i = 0; ue_hi; ue_hi >>= 1, i++) {
 			if (ue_hi & 1)
@@ -2152,14 +2162,6 @@ void be_detect_dump_ue(struct be_adapter *adapter)
 		}
 	}
 
-	if (sliport_status & SLIPORT_STATUS_ERR_MASK) {
-		dev_err(&adapter->pdev->dev,
-			"sliport status 0x%x\n", sliport_status);
-		dev_err(&adapter->pdev->dev,
-			"sliport error1 0x%x\n", sliport_err1);
-		dev_err(&adapter->pdev->dev,
-			"sliport error2 0x%x\n", sliport_err2);
-	}
 }
 
 static void be_msix_disable(struct be_adapter *adapter)
@@ -2572,9 +2574,6 @@ static int be_clear(struct be_adapter *adapter)
 	be_rx_cqs_destroy(adapter);
 	be_tx_queues_destroy(adapter);
 	be_evt_queues_destroy(adapter);
-
-	/* tell fw we're done with firing cmds */
-	be_cmd_fw_clean(adapter);
 
 	be_msix_disable(adapter);
 	return 0;
@@ -3070,6 +3069,40 @@ static int get_ufigen_type(struct flash_file_hdr_g2 *fhdr)
 		return 0;
 }
 
+static int lancer_wait_idle(struct be_adapter *adapter)
+{
+#define SLIPORT_IDLE_TIMEOUT 30
+	u32 reg_val;
+	int status = 0, i;
+
+	for (i = 0; i < SLIPORT_IDLE_TIMEOUT; i++) {
+		reg_val = ioread32(adapter->db + PHYSDEV_CONTROL_OFFSET);
+		if ((reg_val & PHYSDEV_CONTROL_INP_MASK) == 0)
+			break;
+
+		ssleep(1);
+	}
+
+	if (i == SLIPORT_IDLE_TIMEOUT)
+		status = -1;
+
+	return status;
+}
+
+static int lancer_fw_reset(struct be_adapter *adapter)
+{
+	int status = 0;
+
+	status = lancer_wait_idle(adapter);
+	if (status)
+		return status;
+
+	iowrite32(PHYSDEV_CONTROL_FW_RESET_MASK, adapter->db +
+		  PHYSDEV_CONTROL_OFFSET);
+
+	return status;
+}
+
 static int lancer_fw_download(struct be_adapter *adapter,
 				const struct firmware *fw)
 {
@@ -3084,6 +3117,7 @@ static int lancer_fw_download(struct be_adapter *adapter,
 	u32 offset = 0;
 	int status = 0;
 	u8 add_status = 0;
+	u8 change_status;
 
 	if (!IS_ALIGNED(fw->size, sizeof(u32))) {
 		dev_err(&adapter->pdev->dev,
@@ -3116,9 +3150,10 @@ static int lancer_fw_download(struct be_adapter *adapter,
 		memcpy(dest_image_ptr, data_ptr, chunk_size);
 
 		status = lancer_cmd_write_object(adapter, &flash_cmd,
-				chunk_size, offset, LANCER_FW_DOWNLOAD_LOCATION,
-				&data_written, &add_status);
-
+						 chunk_size, offset,
+						 LANCER_FW_DOWNLOAD_LOCATION,
+						 &data_written, &change_status,
+						 &add_status);
 		if (status)
 			break;
 
@@ -3130,8 +3165,10 @@ static int lancer_fw_download(struct be_adapter *adapter,
 	if (!status) {
 		/* Commit the FW written */
 		status = lancer_cmd_write_object(adapter, &flash_cmd,
-					0, offset, LANCER_FW_DOWNLOAD_LOCATION,
-					&data_written, &add_status);
+						 0, offset,
+						 LANCER_FW_DOWNLOAD_LOCATION,
+						 &data_written, &change_status,
+						 &add_status);
 	}
 
 	dma_free_coherent(&adapter->pdev->dev, flash_cmd.size, flash_cmd.va,
@@ -3142,6 +3179,20 @@ static int lancer_fw_download(struct be_adapter *adapter,
 			"Status code: 0x%x Additional Status: 0x%x\n",
 			status, add_status);
 		goto lancer_fw_exit;
+	}
+
+	if (change_status == LANCER_FW_RESET_NEEDED) {
+		status = lancer_fw_reset(adapter);
+		if (status) {
+			dev_err(&adapter->pdev->dev,
+				"Adapter busy for FW reset.\n"
+				"New FW will not be active.\n");
+			goto lancer_fw_exit;
+		}
+	} else if (change_status != LANCER_NO_RESET_NEEDED) {
+			dev_err(&adapter->pdev->dev,
+				"System reboot required for new FW"
+				" to be active\n");
 	}
 
 	dev_info(&adapter->pdev->dev, "Firmware flashed successfully\n");
@@ -3472,9 +3523,14 @@ static void __devexit be_remove(struct pci_dev *pdev)
 
 	be_roce_dev_remove(adapter);
 
+	cancel_delayed_work_sync(&adapter->func_recovery_work);
+
 	unregister_netdev(adapter->netdev);
 
 	be_clear(adapter);
+
+	/* tell fw we're done with firing cmds */
+	be_cmd_fw_clean(adapter);
 
 	be_stats_cleanup(adapter);
 
@@ -3567,6 +3623,9 @@ static int be_get_initial_config(struct be_adapter *adapter)
 	if (be_is_wol_supported(adapter))
 		adapter->wol = true;
 
+	/* Must be a power of 2 or else MODULO will BUG_ON */
+	adapter->be_get_temp_freq = 64;
+
 	level = be_get_fw_log_level(adapter);
 	adapter->msg_enable = level <= FW_LOG_LEVEL_DEFAULT ? NETIF_MSG_HW : 0;
 
@@ -3622,101 +3681,68 @@ static int be_dev_type_check(struct be_adapter *adapter)
 	return 0;
 }
 
-static int lancer_wait_ready(struct be_adapter *adapter)
-{
-#define SLIPORT_READY_TIMEOUT 30
-	u32 sliport_status;
-	int status = 0, i;
-
-	for (i = 0; i < SLIPORT_READY_TIMEOUT; i++) {
-		sliport_status = ioread32(adapter->db + SLIPORT_STATUS_OFFSET);
-		if (sliport_status & SLIPORT_STATUS_RDY_MASK)
-			break;
-
-		msleep(1000);
-	}
-
-	if (i == SLIPORT_READY_TIMEOUT)
-		status = -1;
-
-	return status;
-}
-
-static int lancer_test_and_set_rdy_state(struct be_adapter *adapter)
+static int lancer_recover_func(struct be_adapter *adapter)
 {
 	int status;
-	u32 sliport_status, err, reset_needed;
-	status = lancer_wait_ready(adapter);
-	if (!status) {
-		sliport_status = ioread32(adapter->db + SLIPORT_STATUS_OFFSET);
-		err = sliport_status & SLIPORT_STATUS_ERR_MASK;
-		reset_needed = sliport_status & SLIPORT_STATUS_RN_MASK;
-		if (err && reset_needed) {
-			iowrite32(SLI_PORT_CONTROL_IP_MASK,
-					adapter->db + SLIPORT_CONTROL_OFFSET);
 
-			/* check adapter has corrected the error */
-			status = lancer_wait_ready(adapter);
-			sliport_status = ioread32(adapter->db +
-							SLIPORT_STATUS_OFFSET);
-			sliport_status &= (SLIPORT_STATUS_ERR_MASK |
-						SLIPORT_STATUS_RN_MASK);
-			if (status || sliport_status)
-				status = -1;
-		} else if (err || reset_needed) {
-			status = -1;
-		}
-	}
-	return status;
-}
+	status = lancer_test_and_set_rdy_state(adapter);
+	if (status)
+		goto err;
 
-static void lancer_test_and_recover_fn_err(struct be_adapter *adapter)
-{
-	int status;
-	u32 sliport_status;
+	if (netif_running(adapter->netdev))
+		be_close(adapter->netdev);
 
-	if (adapter->eeh_err || adapter->ue_detected)
-		return;
+	be_clear(adapter);
 
-	sliport_status = ioread32(adapter->db + SLIPORT_STATUS_OFFSET);
+	adapter->hw_error = false;
+	adapter->fw_timeout = false;
 
-	if (sliport_status & SLIPORT_STATUS_ERR_MASK) {
-		dev_err(&adapter->pdev->dev,
-				"Adapter in error state."
-				"Trying to recover.\n");
+	status = be_setup(adapter);
+	if (status)
+		goto err;
 
-		status = lancer_test_and_set_rdy_state(adapter);
+	if (netif_running(adapter->netdev)) {
+		status = be_open(adapter->netdev);
 		if (status)
 			goto err;
-
-		netif_device_detach(adapter->netdev);
-
-		if (netif_running(adapter->netdev))
-			be_close(adapter->netdev);
-
-		be_clear(adapter);
-
-		adapter->fw_timeout = false;
-
-		status = be_setup(adapter);
-		if (status)
-			goto err;
-
-		if (netif_running(adapter->netdev)) {
-			status = be_open(adapter->netdev);
-			if (status)
-				goto err;
-		}
-
-		netif_device_attach(adapter->netdev);
-
-		dev_err(&adapter->pdev->dev,
-				"Adapter error recovery succeeded\n");
 	}
-	return;
+
+	dev_err(&adapter->pdev->dev,
+		"Adapter SLIPORT recovery succeeded\n");
+	return 0;
 err:
 	dev_err(&adapter->pdev->dev,
-			"Adapter error recovery failed\n");
+		"Adapter SLIPORT recovery failed\n");
+
+	return status;
+}
+
+static void be_func_recovery_task(struct work_struct *work)
+{
+	struct be_adapter *adapter =
+		container_of(work, struct be_adapter,  func_recovery_work.work);
+	int status;
+
+	be_detect_error(adapter);
+
+	if (adapter->hw_error && lancer_chip(adapter)) {
+
+		if (adapter->eeh_error)
+			goto out;
+
+		rtnl_lock();
+		netif_device_detach(adapter->netdev);
+		rtnl_unlock();
+
+		status = lancer_recover_func(adapter);
+
+		if (!status)
+			netif_device_attach(adapter->netdev);
+	}
+
+out:
+	schedule_delayed_work(&adapter->func_recovery_work,
+			      msecs_to_jiffies(1000));
 }
 
 static void be_worker(struct work_struct *work)
@@ -3726,11 +3752,6 @@ static void be_worker(struct work_struct *work)
 	struct be_rx_obj *rxo;
 	struct be_eq_obj *eqo;
 	int i;
-
-	if (lancer_chip(adapter))
-		lancer_test_and_recover_fn_err(adapter);
-
-	be_detect_dump_ue(adapter);
 
 	/* when interrupts are not yet enabled, just reap any pending
 	* mcc completions */
@@ -3746,6 +3767,9 @@ static void be_worker(struct work_struct *work)
 		else
 			be_cmd_get_stats(adapter, &adapter->stats_cmd);
 	}
+
+	if (MODULO(adapter->work_counter, adapter->be_get_temp_freq) == 0)
+		be_cmd_get_die_temperature(adapter);
 
 	for_all_rx_queues(adapter, rxo, i) {
 		if (rxo->rx_post_starved) {
@@ -3773,6 +3797,7 @@ static int __devinit be_probe(struct pci_dev *pdev,
 	int status = 0;
 	struct be_adapter *adapter;
 	struct net_device *netdev;
+	char port_name;
 
 	status = pci_enable_device(pdev);
 	if (status)
@@ -3814,22 +3839,9 @@ static int __devinit be_probe(struct pci_dev *pdev,
 	if (status)
 		goto free_netdev;
 
-	if (lancer_chip(adapter)) {
-		status = lancer_wait_ready(adapter);
-		if (!status) {
-			iowrite32(SLI_PORT_CONTROL_IP_MASK,
-					adapter->db + SLIPORT_CONTROL_OFFSET);
-			status = lancer_test_and_set_rdy_state(adapter);
-		}
-		if (status) {
-			dev_err(&pdev->dev, "Adapter in non recoverable error\n");
-			goto ctrl_clean;
-		}
-	}
-
 	/* sync up with fw's ready state */
 	if (be_physfn(adapter)) {
-		status = be_cmd_POST(adapter);
+		status = be_fw_wait_ready(adapter);
 		if (status)
 			goto ctrl_clean;
 	}
@@ -3860,6 +3872,7 @@ static int __devinit be_probe(struct pci_dev *pdev,
 		goto stats_clean;
 
 	INIT_DELAYED_WORK(&adapter->work, be_worker);
+	INIT_DELAYED_WORK(&adapter->func_recovery_work, be_func_recovery_task);
 	adapter->rx_fc = adapter->tx_fc = true;
 
 	status = be_setup(adapter);
@@ -3873,8 +3886,13 @@ static int __devinit be_probe(struct pci_dev *pdev,
 
 	be_roce_dev_add(adapter);
 
-	dev_info(&pdev->dev, "%s: %s port %d\n", netdev->name, nic_name(pdev),
-		adapter->port_num);
+	schedule_delayed_work(&adapter->func_recovery_work,
+			      msecs_to_jiffies(1000));
+
+	be_cmd_query_port_name(adapter, &port_name);
+
+	dev_info(&pdev->dev, "%s: %s port %c\n", netdev->name, nic_name(pdev),
+		 port_name);
 
 	return 0;
 
@@ -3905,6 +3923,8 @@ static int be_suspend(struct pci_dev *pdev, pm_message_t state)
 
 	if (adapter->wol)
 		be_setup_wol(adapter, true);
+
+	cancel_delayed_work_sync(&adapter->func_recovery_work);
 
 	netif_device_detach(netdev);
 	if (netif_running(netdev)) {
@@ -3946,6 +3966,9 @@ static int be_resume(struct pci_dev *pdev)
 		be_open(netdev);
 		rtnl_unlock();
 	}
+
+	schedule_delayed_work(&adapter->func_recovery_work,
+			      msecs_to_jiffies(1000));
 	netif_device_attach(netdev);
 
 	if (adapter->wol)
@@ -3965,6 +3988,7 @@ static void be_shutdown(struct pci_dev *pdev)
 		return;
 
 	cancel_delayed_work_sync(&adapter->work);
+	cancel_delayed_work_sync(&adapter->func_recovery_work);
 
 	netif_device_detach(adapter->netdev);
 
@@ -3984,9 +4008,13 @@ static pci_ers_result_t be_eeh_err_detected(struct pci_dev *pdev,
 
 	dev_err(&adapter->pdev->dev, "EEH error detected\n");
 
-	adapter->eeh_err = true;
+	adapter->eeh_error = true;
 
+	cancel_delayed_work_sync(&adapter->func_recovery_work);
+
+	rtnl_lock();
 	netif_device_detach(netdev);
+	rtnl_unlock();
 
 	if (netif_running(netdev)) {
 		rtnl_lock();
@@ -4014,9 +4042,7 @@ static pci_ers_result_t be_eeh_reset(struct pci_dev *pdev)
 	int status;
 
 	dev_info(&adapter->pdev->dev, "EEH reset\n");
-	adapter->eeh_err = false;
-	adapter->ue_detected = false;
-	adapter->fw_timeout = false;
+	be_clear_all_error(adapter);
 
 	status = pci_enable_device(pdev);
 	if (status)
@@ -4027,7 +4053,7 @@ static pci_ers_result_t be_eeh_reset(struct pci_dev *pdev)
 	pci_restore_state(pdev);
 
 	/* Check if card is ok and fw is ready */
-	status = be_cmd_POST(adapter);
+	status = be_fw_wait_ready(adapter);
 	if (status)
 		return PCI_ERS_RESULT_DISCONNECT;
 
@@ -4049,6 +4075,10 @@ static void be_eeh_resume(struct pci_dev *pdev)
 	if (status)
 		goto err;
 
+	status = be_cmd_reset_function(adapter);
+	if (status)
+		goto err;
+
 	status = be_setup(adapter);
 	if (status)
 		goto err;
@@ -4058,6 +4088,9 @@ static void be_eeh_resume(struct pci_dev *pdev)
 		if (status)
 			goto err;
 	}
+
+	schedule_delayed_work(&adapter->func_recovery_work,
+			      msecs_to_jiffies(1000));
 	netif_device_attach(netdev);
 	return;
 err:

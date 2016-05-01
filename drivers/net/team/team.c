@@ -671,12 +671,6 @@ static bool team_port_find(const struct team *team,
 	return false;
 }
 
-bool team_port_enabled(struct team_port *port)
-{
-	return port->index != -1;
-}
-EXPORT_SYMBOL(team_port_enabled);
-
 /*
  * Enable/disable port by adding to enabled port hashlist and setting
  * port->index (Might be racy so reader could see incorrect ifindex when

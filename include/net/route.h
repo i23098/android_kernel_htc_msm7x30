@@ -40,7 +40,6 @@
 #define RT_CONN_FLAGS(sk)   (RT_TOS(inet_sk(sk)->tos) | sock_flag(sk, SOCK_LOCALROUTE))
 
 struct fib_nh;
-struct inet_peer;
 struct fib_info;
 struct rtable {
 	struct dst_entry	dst;
@@ -66,44 +65,9 @@ struct rtable {
 	__be32			rt_gateway;
 
 	/* Miscellaneous cached information */
-	u32			rt_peer_genid;
-	unsigned long		_peer; /* long-living peer info */
+	u32			rt_pmtu;
 	struct fib_info		*fi; /* for client ref to shared metrics */
 };
-
-static inline struct inet_peer *rt_peer_ptr(struct rtable *rt)
-{
-	return inetpeer_ptr(rt->_peer);
-}
-
-static inline bool rt_has_peer(struct rtable *rt)
-{
-	return inetpeer_ptr_is_peer(rt->_peer);
-}
-
-static inline void __rt_set_peer(struct rtable *rt, struct inet_peer *peer)
-{
-	__inetpeer_ptr_set_peer(&rt->_peer, peer);
-}
-
-static inline bool rt_set_peer(struct rtable *rt, struct inet_peer *peer)
-{
-	return inetpeer_ptr_set_peer(&rt->_peer, peer);
-}
-
-static inline void rt_init_peer(struct rtable *rt, struct inet_peer_base *base)
-{
-	inetpeer_init_ptr(&rt->_peer, base);
-}
-
-static inline void rt_transfer_peer(struct rtable *rt, struct rtable *ort)
-{
-	rt->_peer = ort->_peer;
-	if (rt_has_peer(ort)) {
-		struct inet_peer *peer = rt_peer_ptr(ort);
-		atomic_inc(&peer->refcnt);
-	}
-}
 
 static inline bool rt_is_input_route(const struct rtable *rt)
 {
@@ -145,8 +109,6 @@ extern struct ip_rt_acct __percpu *ip_rt_acct;
 
 struct in_device;
 extern int		ip_rt_init(void);
-extern void		ip_rt_redirect(__be32 old_gw, __be32 dst, __be32 new_gw,
-				       __be32 src, struct net_device *dev);
 extern void		rt_cache_flush(struct net *net, int how);
 extern void		rt_cache_flush_batch(struct net *net);
 extern struct rtable *__ip_route_output_key(struct net *, struct flowi4 *flp);
@@ -218,6 +180,9 @@ static inline int ip_route_input_noref(struct sk_buff *skb, __be32 dst, __be32 s
 extern void ipv4_update_pmtu(struct sk_buff *skb, struct net *net, u32 mtu,
 			     int oif, u32 mark, u8 protocol, int flow_flags);
 extern void ipv4_sk_update_pmtu(struct sk_buff *skb, struct sock *sk, u32 mtu);
+extern void ipv4_redirect(struct sk_buff *skb, struct net *net,
+			  int oif, u32 mark, u8 protocol, int flow_flags);
+extern void ipv4_sk_redirect(struct sk_buff *skb, struct sock *sk);
 extern void ip_rt_send_redirect(struct sk_buff *skb);
 
 extern unsigned int		inet_addr_type(struct net *net, __be32 addr);
@@ -279,8 +244,6 @@ static inline void ip_route_connect_init(struct flowi4 *fl4, __be32 dst, __be32 
 
 	if (inet_sk(sk)->transparent)
 		flow_flags |= FLOWI_FLAG_ANYSRC;
-	if (protocol == IPPROTO_TCP)
-		flow_flags |= FLOWI_FLAG_PRECOW_METRICS;
 	if (can_sleep)
 		flow_flags |= FLOWI_FLAG_CAN_SLEEP;
 
@@ -328,27 +291,6 @@ static inline struct rtable *ip_route_newports(struct flowi4 *fl4, struct rtable
 		return ip_route_output_flow(sock_net(sk), fl4, sk);
 	}
 	return rt;
-}
-
-extern void rt_bind_peer(struct rtable *rt, __be32 daddr, int create);
-
-static inline struct inet_peer *__rt_get_peer(struct rtable *rt, __be32 daddr, int create)
-{
-	if (rt_has_peer(rt))
-		return rt_peer_ptr(rt);
-
-	rt_bind_peer(rt, daddr, create);
-	return (rt_has_peer(rt) ? rt_peer_ptr(rt) : NULL);
-}
-
-static inline struct inet_peer *rt_get_peer(struct rtable *rt, __be32 daddr)
-{
-	return __rt_get_peer(rt, daddr, 0);
-}
-
-static inline struct inet_peer *rt_get_peer_create(struct rtable *rt, __be32 daddr)
-{
-	return __rt_get_peer(rt, daddr, 1);
 }
 
 static inline int inet_iif(const struct sk_buff *skb)
