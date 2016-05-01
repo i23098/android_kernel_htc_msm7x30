@@ -36,12 +36,6 @@ static void tcp_write_timer(unsigned long);
 static void tcp_delack_timer(unsigned long);
 static void tcp_keepalive_timer (unsigned long data);
 
-/*Function to reset tcp_ack related sysctl on resetting master control */
-void set_tcp_default(void)
-{
-       sysctl_tcp_delack_seg  = TCP_DELACK_SEG;
-}
-
 /*sysctl handler for tcp_ack realted master control */
 int tcp_proc_delayed_ack_control(ctl_table *table, int write,
 			void __user *buffer, size_t *length, loff_t *ppos)
@@ -61,7 +55,7 @@ int tcp_use_userconfig_sysctl_handler(ctl_table *table, int write,
 	int ret = proc_dointvec_minmax(table, write, buffer, length, ppos);
 	if (write && ret == 0) {
 		if (!sysctl_tcp_use_userconfig)
-			set_tcp_default();
+			sysctl_tcp_delack_seg  = TCP_DELACK_SEG;
 	}
 	return ret;
 }

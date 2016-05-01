@@ -316,8 +316,8 @@ static void mip6_addr_swap(struct sk_buff *skb)
 static inline void mip6_addr_swap(struct sk_buff *skb) {}
 #endif
 
-struct dst_entry *icmpv6_route_lookup(struct net *net, struct sk_buff *skb,
-				     struct sock *sk, struct flowi6 *fl6)
+static struct dst_entry *icmpv6_route_lookup(struct net *net, struct sk_buff *skb,
+					     struct sock *sk, struct flowi6 *fl6)
 {
 	struct dst_entry *dst, *dst2;
 	struct flowi6 fl2;
@@ -614,9 +614,9 @@ void icmpv6_notify(struct sk_buff *skb, u8 type, u8 code, __be32 info)
 {
 	const struct inet6_protocol *ipprot;
 	int inner_offset;
+	__be16 frag_off;
 	int hash;
 	u8 nexthdr;
-	__be16 frag_off;
 
 	if (!pskb_may_pull(skb, sizeof(struct ipv6hdr)))
 		return;
@@ -675,7 +675,7 @@ static int icmpv6_rcv(struct sk_buff *skb)
 				 XFRM_STATE_ICMP))
 			goto drop_no_count;
 
-		if (!pskb_may_pull(skb, sizeof(*hdr) + sizeof(*orig_hdr)))
+		if (!pskb_may_pull(skb, sizeof(*hdr) + sizeof(struct ipv6hdr)))
 			goto drop_no_count;
 
 		nh = skb_network_offset(skb);
