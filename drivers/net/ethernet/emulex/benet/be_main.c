@@ -1228,16 +1228,16 @@ static void skb_fill_rx_data(struct be_rx_obj *rxo, struct sk_buff *skb,
 	/* Copy data in the first descriptor of this completion */
 	curr_frag_len = min(rxcp->pkt_size, rx_frag_size);
 
-	/* Copy the header portion into skb_data */
-	hdr_len = min(BE_HDR_LEN, curr_frag_len);
-	memcpy(skb->data, start, hdr_len);
 	skb->len = curr_frag_len;
 	if (curr_frag_len <= BE_HDR_LEN) { /* tiny packet */
+		memcpy(skb->data, start, curr_frag_len);
 		/* Complete packet has now been moved to data */
 		put_page(page_info->page);
 		skb->data_len = 0;
 		skb->tail += curr_frag_len;
 	} else {
+		hdr_len = ETH_HLEN;
+		memcpy(skb->data, start, hdr_len);
 		skb_shinfo(skb)->nr_frags = 1;
 		skb_frag_set_page(skb, 0, page_info->page);
 		skb_shinfo(skb)->frags[0].page_offset =
@@ -2770,6 +2770,13 @@ static int be_setup(struct be_adapter *adapter)
 	if (adapter->function_caps & BE_FUNCTION_CAPS_RSS) {
 		cap_flags |= BE_IF_FLAGS_RSS;
 		en_flags |= BE_IF_FLAGS_RSS;
+	}
+
+	if (lancer_chip(adapter) && !be_physfn(adapter)) {
+		en_flags = BE_IF_FLAGS_UNTAGGED |
+			    BE_IF_FLAGS_BROADCAST |
+			    BE_IF_FLAGS_MULTICAST;
+		cap_flags = en_flags;
 	}
 
 	status = be_cmd_if_create(adapter, cap_flags, en_flags,

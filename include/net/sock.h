@@ -1638,7 +1638,7 @@ static inline void sock_graft(struct sock *sk, struct socket *parent)
 	write_unlock_bh(&sk->sk_callback_lock);
 }
 
-extern int sock_i_uid(struct sock *sk);
+extern int sock_i_uid(const struct sock *sk);
 extern unsigned long sock_i_ino(struct sock *sk);
 
 static inline struct dst_entry *

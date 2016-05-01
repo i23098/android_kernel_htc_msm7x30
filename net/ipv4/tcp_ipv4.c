@@ -289,16 +289,9 @@ static void do_pmtu_discovery(struct sock *sk, const struct iphdr *iph, u32 mtu)
 	if (sk->sk_state == TCP_LISTEN)
 		return;
 
-	/* We don't check in the destentry if pmtu discovery is forbidden
-	 * on this route. We just assume that no packet_to_big packets
-	 * are send back when pmtu discovery is not active.
-	 * There is a small race when the user changes this flag in the
-	 * route, but I think that's acceptable.
-	 */
-	if ((dst = __sk_dst_check(sk, 0)) == NULL)
+	dst = inet_csk_update_pmtu(sk, mtu);
+	if (!dst)
 		return;
-
-	dst->ops->update_pmtu(dst, mtu);
 
 	/* Something is about to be wrong... Remember soft error
 	 * for the case, if this connection will not able to recover.
@@ -326,7 +319,7 @@ static void do_redirect(struct sk_buff *skb, struct sock *sk)
 	struct dst_entry *dst = __sk_dst_check(sk, 0);
 
 	if (dst)
-		dst->ops->redirect(dst, skb);
+		dst->ops->redirect(dst, sk, skb);
 }
 
 /*
@@ -695,7 +688,7 @@ static void tcp_v4_send_reset(struct sock *sk, struct sk_buff *skb)
 
 	net = dev_net(skb_dst(skb)->dev);
 	arg.tos = ip_hdr(skb)->tos;
-	ip_send_unicast_reply(net->ipv4.tcp_sock, skb, ip_hdr(skb)->saddr,
+	ip_send_unicast_reply(net, skb, ip_hdr(skb)->saddr,
 			      ip_hdr(skb)->daddr, &arg, arg.iov[0].iov_len);
 
 	TCP_INC_STATS_BH(net, TCP_MIB_OUTSEGS);
@@ -778,7 +771,7 @@ static void tcp_v4_send_ack(struct sk_buff *skb, u32 seq, u32 ack,
 	if (oif)
 		arg.bound_dev_if = oif;
 	arg.tos = tos;
-	ip_send_unicast_reply(net->ipv4.tcp_sock, skb, ip_hdr(skb)->saddr,
+	ip_send_unicast_reply(net, skb, ip_hdr(skb)->saddr,
 			      ip_hdr(skb)->daddr, &arg, arg.iov[0].iov_len);
 
 	TCP_INC_STATS_BH(net, TCP_MIB_OUTSEGS);
@@ -1314,7 +1307,7 @@ int tcp_v4_conn_request(struct sock *sk, struct sk_buff *skb)
 	tcp_clear_options(&tmp_opt);
 	tmp_opt.mss_clamp = TCP_MSS_DEFAULT;
 	tmp_opt.user_mss  = tp->rx_opt.user_mss;
-	tcp_parse_options(skb, &tmp_opt, &hash_location, 0);
+	tcp_parse_options(skb, &tmp_opt, &hash_location, 0, NULL);
 
 	if (tmp_opt.cookie_plus > 0 &&
 	    tmp_opt.saw_tstamp &&
@@ -1958,6 +1951,9 @@ void tcp_v4_destroy_sock(struct sock *sk)
 			 tcp_cookie_values_release);
 		tp->cookie_values = NULL;
 	}
+
+	/* If socket is aborted during connect operation */
+	tcp_free_fastopen_req(tp);
 
 	sk_sockets_allocated_dec(sk);
 	sock_release_memcg(sk);
@@ -2631,13 +2627,11 @@ EXPORT_SYMBOL(tcp_prot);
 
 static int __net_init tcp_sk_init(struct net *net)
 {
-	return inet_ctl_sock_create(&net->ipv4.tcp_sock,
-				    PF_INET, SOCK_RAW, IPPROTO_TCP, net);
+	return 0;
 }
 
 static void __net_exit tcp_sk_exit(struct net *net)
 {
-	inet_ctl_sock_destroy(net->ipv4.tcp_sock);
 }
 
 static void __net_exit tcp_sk_exit_batch(struct list_head *net_exit_list)

@@ -148,8 +148,10 @@ static unsigned int	 ipv4_mtu(const struct dst_entry *dst);
 static void		 ipv4_dst_destroy(struct dst_entry *dst);
 static struct dst_entry *ipv4_negative_advice(struct dst_entry *dst);
 static void		 ipv4_link_failure(struct sk_buff *skb);
-static void		 ip_rt_update_pmtu(struct dst_entry *dst, u32 mtu);
-static void		 ip_do_redirect(struct dst_entry *dst, struct sk_buff *skb);
+static void		 ip_rt_update_pmtu(struct dst_entry *dst, struct sock *sk,
+					   struct sk_buff *skb, u32 mtu);
+static void		 ip_do_redirect(struct dst_entry *dst, struct sock *sk,
+					struct sk_buff *skb);
 static int rt_garbage_collect(struct dst_ops *ops);
 
 static void ipv4_dst_ifdown(struct dst_entry *dst, struct net_device *dev,
@@ -1274,14 +1276,158 @@ static void rt_del(unsigned int hash, struct rtable *rt)
 	spin_unlock_bh(rt_hash_lock_addr(hash));
 }
 
-static void ip_do_redirect(struct dst_entry *dst, struct sk_buff *skb)
+static void __build_flow_key(struct flowi4 *fl4, const struct sock *sk,
+			     const struct iphdr *iph,
+			     int oif, u8 tos,
+			     u8 prot, u32 mark, int flow_flags)
+{
+	if (sk) {
+		const struct inet_sock *inet = inet_sk(sk);
+
+		oif = sk->sk_bound_dev_if;
+		mark = sk->sk_mark;
+		tos = RT_CONN_FLAGS(sk);
+		prot = inet->hdrincl ? IPPROTO_RAW : sk->sk_protocol;
+	}
+	flowi4_init_output(fl4, oif, mark, tos,
+			   RT_SCOPE_UNIVERSE, prot,
+			   flow_flags,
+			   iph->daddr, iph->saddr, 0, 0, 
+			   sk ? sock_i_uid(sk) : 0);
+}
+
+static void build_skb_flow_key(struct flowi4 *fl4, const struct sk_buff *skb,
+			       const struct sock *sk)
+{
+	const struct iphdr *iph = ip_hdr(skb);
+	int oif = skb->dev->ifindex;
+	u8 tos = RT_TOS(iph->tos);
+	u8 prot = iph->protocol;
+	u32 mark = skb->mark;
+
+	__build_flow_key(fl4, sk, iph, oif, tos, prot, mark, 0);
+}
+
+static void build_sk_flow_key(struct flowi4 *fl4, const struct sock *sk)
+{
+	const struct inet_sock *inet = inet_sk(sk);
+	const struct ip_options_rcu *inet_opt;
+	__be32 daddr = inet->inet_daddr;
+
+	rcu_read_lock();
+	inet_opt = rcu_dereference(inet->inet_opt);
+	if (inet_opt && inet_opt->opt.srr)
+		daddr = inet_opt->opt.faddr;
+	flowi4_init_output(fl4, sk->sk_bound_dev_if, sk->sk_mark,
+			   RT_CONN_FLAGS(sk), RT_SCOPE_UNIVERSE,
+			   inet->hdrincl ? IPPROTO_RAW : sk->sk_protocol,
+			   inet_sk_flowi_flags(sk),
+			   daddr, inet->inet_saddr, 0, 0,
+			   sk ? sock_i_uid(sk) : 0);
+	rcu_read_unlock();
+}
+
+static void ip_rt_build_flow_key(struct flowi4 *fl4, const struct sock *sk,
+				 const struct sk_buff *skb)
+{
+	if (skb)
+		build_skb_flow_key(fl4, skb, sk);
+	else
+		build_sk_flow_key(fl4, sk);
+}
+
+static DEFINE_SEQLOCK(fnhe_seqlock);
+
+static struct fib_nh_exception *fnhe_oldest(struct fnhe_hash_bucket *hash)
+{
+	struct fib_nh_exception *fnhe, *oldest;
+
+	oldest = rcu_dereference(hash->chain);
+	for (fnhe = rcu_dereference(oldest->fnhe_next); fnhe;
+	     fnhe = rcu_dereference(fnhe->fnhe_next)) {
+		if (time_before(fnhe->fnhe_stamp, oldest->fnhe_stamp))
+			oldest = fnhe;
+	}
+	return oldest;
+}
+
+static inline u32 fnhe_hashfun(__be32 daddr)
+{
+	u32 hval;
+
+	hval = (__force u32) daddr;
+	hval ^= (hval >> 11) ^ (hval >> 22);
+
+	return hval & (FNHE_HASH_SIZE - 1);
+}
+
+static void update_or_create_fnhe(struct fib_nh *nh, __be32 daddr, __be32 gw,
+				  u32 pmtu, unsigned long expires)
+{
+	struct fnhe_hash_bucket *hash;
+	struct fib_nh_exception *fnhe;
+	int depth;
+	u32 hval = fnhe_hashfun(daddr);
+
+	write_seqlock_bh(&fnhe_seqlock);
+
+	hash = nh->nh_exceptions;
+	if (!hash) {
+		hash = kzalloc(FNHE_HASH_SIZE * sizeof(*hash), GFP_ATOMIC);
+		if (!hash)
+			goto out_unlock;
+		nh->nh_exceptions = hash;
+	}
+
+	hash += hval;
+
+	depth = 0;
+	for (fnhe = rcu_dereference(hash->chain); fnhe;
+	     fnhe = rcu_dereference(fnhe->fnhe_next)) {
+		if (fnhe->fnhe_daddr == daddr)
+			break;
+		depth++;
+	}
+
+	if (fnhe) {
+		if (gw)
+			fnhe->fnhe_gw = gw;
+		if (pmtu) {
+			fnhe->fnhe_pmtu = pmtu;
+			fnhe->fnhe_expires = expires;
+		}
+	} else {
+		if (depth > FNHE_RECLAIM_DEPTH)
+			fnhe = fnhe_oldest(hash);
+		else {
+			fnhe = kzalloc(sizeof(*fnhe), GFP_ATOMIC);
+			if (!fnhe)
+				goto out_unlock;
+
+			fnhe->fnhe_next = hash->chain;
+			rcu_assign_pointer(hash->chain, fnhe);
+		}
+		fnhe->fnhe_daddr = daddr;
+		fnhe->fnhe_gw = gw;
+		fnhe->fnhe_pmtu = pmtu;
+		fnhe->fnhe_expires = expires;
+	}
+
+	fnhe->fnhe_stamp = jiffies;
+
+out_unlock:
+	write_sequnlock_bh(&fnhe_seqlock);
+	return;
+}
+
+static void __ip_do_redirect(struct rtable *rt, struct sk_buff *skb, struct flowi4 *fl4)
 {
 	__be32 new_gw = icmp_hdr(skb)->un.gateway;
 	__be32 old_gw = ip_hdr(skb)->saddr;
 	struct net_device *dev = skb->dev;
 	struct in_device *in_dev;
+	struct fib_result res;
 	struct neighbour *n;
-	struct rtable *rt;
 	struct net *net;
 
 	switch (icmp_hdr(skb)->code & 7) {
@@ -1295,7 +1441,6 @@ static void ip_do_redirect(struct dst_entry *dst, struct sk_buff *skb)
 		return;
 	}
 
-	rt = (struct rtable *) dst;
 	if (rt->rt_gateway != old_gw)
 		return;
 
@@ -1319,11 +1464,17 @@ static void ip_do_redirect(struct dst_entry *dst, struct sk_buff *skb)
 			goto reject_redirect;
 	}
 
-	n = ipv4_neigh_lookup(dst, NULL, &new_gw);
+	n = ipv4_neigh_lookup(&rt->dst, NULL, &new_gw);
 	if (n) {
 		if (!(n->nud_state & NUD_VALID)) {
 			neigh_event_send(n, NULL);
 		} else {
+			if (fib_lookup(net, fl4, &res) == 0) {
+				struct fib_nh *nh = &FIB_RES_NH(res);
+
+				update_or_create_fnhe(nh, fl4->daddr, new_gw,
+						      0, 0);
+			}
 			rt->rt_gateway = new_gw;
 			rt->rt_flags |= RTCF_REDIRECTED;
 			call_netevent_notifiers(NETEVENT_NEIGH_UPDATE, n);
@@ -1346,6 +1497,17 @@ reject_redirect:
 	}
 #endif
 	;
+}
+
+static void ip_do_redirect(struct dst_entry *dst, struct sock *sk, struct sk_buff *skb)
+{
+	struct rtable *rt;
+	struct flowi4 fl4;
+
+	rt = (struct rtable *) dst;
+
+	ip_rt_build_flow_key(&fl4, sk, skb);
+	__ip_do_redirect(rt, skb, &fl4);
 }
 
 static struct dst_entry *ipv4_negative_advice(struct dst_entry *dst)
@@ -1507,33 +1669,45 @@ out:	kfree_skb(skb);
 	return 0;
 }
 
-static void ip_rt_update_pmtu(struct dst_entry *dst, u32 mtu)
+static void __ip_rt_update_pmtu(struct rtable *rt, struct flowi4 *fl4, u32 mtu)
 {
-	struct rtable *rt = (struct rtable *) dst;
-
-	dst_confirm(dst);
+	struct fib_result res;
 
 	if (mtu < ip_rt_min_pmtu)
 		mtu = ip_rt_min_pmtu;
 
+	if (fib_lookup(dev_net(rt->dst.dev), fl4, &res) == 0) {
+		struct fib_nh *nh = &FIB_RES_NH(res);
+
+		update_or_create_fnhe(nh, fl4->daddr, 0, mtu,
+				      jiffies + ip_rt_mtu_expires);
+	}
 	rt->rt_pmtu = mtu;
 	dst_set_expires(&rt->dst, ip_rt_mtu_expires);
+}
+
+static void ip_rt_update_pmtu(struct dst_entry *dst, struct sock *sk,
+			      struct sk_buff *skb, u32 mtu)
+{
+	struct rtable *rt = (struct rtable *) dst;
+	struct flowi4 fl4;
+
+	ip_rt_build_flow_key(&fl4, sk, skb);
+	__ip_rt_update_pmtu(rt, &fl4, mtu);
 }
 
 void ipv4_update_pmtu(struct sk_buff *skb, struct net *net, u32 mtu,
 		      int oif, u32 mark, u8 protocol, int flow_flags)
 {
-	const struct iphdr *iph = (const struct iphdr *)skb->data;
+	const struct iphdr *iph = (const struct iphdr *) skb->data;
 	struct flowi4 fl4;
 	struct rtable *rt;
 
-	flowi4_init_output(&fl4, oif, mark, RT_TOS(iph->tos), RT_SCOPE_UNIVERSE,
-			   protocol, flow_flags,
-			   iph->daddr, iph->saddr, 0, 0, 
-			   skb->sk ? sock_i_uid(skb->sk) : 0);
+	__build_flow_key(&fl4, NULL, iph, oif,
+			 RT_TOS(iph->tos), protocol, mark, flow_flags);
 	rt = __ip_route_output_key(net, &fl4);
 	if (!IS_ERR(rt)) {
-		ip_rt_update_pmtu(&rt->dst, mtu);
+		__ip_rt_update_pmtu(rt, &fl4, mtu);
 		ip_rt_put(rt);
 	}
 }
@@ -1541,28 +1715,31 @@ EXPORT_SYMBOL_GPL(ipv4_update_pmtu);
 
 void ipv4_sk_update_pmtu(struct sk_buff *skb, struct sock *sk, u32 mtu)
 {
-	const struct inet_sock *inet = inet_sk(sk);
+	const struct iphdr *iph = (const struct iphdr *) skb->data;
+	struct flowi4 fl4;
+	struct rtable *rt;
 
-	return ipv4_update_pmtu(skb, sock_net(sk), mtu,
-				sk->sk_bound_dev_if, sk->sk_mark,
-				inet->hdrincl ? IPPROTO_RAW : sk->sk_protocol,
-				inet_sk_flowi_flags(sk));
+	__build_flow_key(&fl4, sk, iph, 0, 0, 0, 0, 0);
+	rt = __ip_route_output_key(sock_net(sk), &fl4);
+	if (!IS_ERR(rt)) {
+		__ip_rt_update_pmtu(rt, &fl4, mtu);
+		ip_rt_put(rt);
+	}
 }
 EXPORT_SYMBOL_GPL(ipv4_sk_update_pmtu);
 
 void ipv4_redirect(struct sk_buff *skb, struct net *net,
 		   int oif, u32 mark, u8 protocol, int flow_flags)
 {
-	const struct iphdr *iph = (const struct iphdr *)skb->data;
+	const struct iphdr *iph = (const struct iphdr *) skb->data;
 	struct flowi4 fl4;
 	struct rtable *rt;
 
-	flowi4_init_output(&fl4, oif, mark, RT_TOS(iph->tos), RT_SCOPE_UNIVERSE,
-			   protocol, flow_flags, iph->daddr, iph->saddr, 0, 0, 
-			   skb->sk ? sock_i_uid(skb->sk) : 0);
+	__build_flow_key(&fl4, NULL, iph, oif,
+			 RT_TOS(iph->tos), protocol, mark, flow_flags);
 	rt = __ip_route_output_key(net, &fl4);
 	if (!IS_ERR(rt)) {
-		ip_do_redirect(&rt->dst, skb);
+		__ip_do_redirect(rt, skb, &fl4);
 		ip_rt_put(rt);
 	}
 }
@@ -1570,12 +1747,16 @@ EXPORT_SYMBOL_GPL(ipv4_redirect);
 
 void ipv4_sk_redirect(struct sk_buff *skb, struct sock *sk)
 {
-	const struct inet_sock *inet = inet_sk(sk);
+	const struct iphdr *iph = (const struct iphdr *) skb->data;
+	struct flowi4 fl4;
+	struct rtable *rt;
 
-	return ipv4_redirect(skb, sock_net(sk), sk->sk_bound_dev_if,
-			     sk->sk_mark,
-			     inet->hdrincl ? IPPROTO_RAW : sk->sk_protocol,
-			     inet_sk_flowi_flags(sk));
+	__build_flow_key(&fl4, sk, iph, 0, 0, 0, 0, 0);
+	rt = __ip_route_output_key(sock_net(sk), &fl4);
+	if (!IS_ERR(rt)) {
+		__ip_do_redirect(rt, skb, &fl4);
+		ip_rt_put(rt);
+	}
 }
 EXPORT_SYMBOL_GPL(ipv4_sk_redirect);
 
@@ -1723,14 +1904,57 @@ static void rt_init_metrics(struct rtable *rt, const struct flowi4 *fl4,
 	dst_init_metrics(&rt->dst, fi->fib_metrics, true);
 }
 
+static void rt_bind_exception(struct rtable *rt, struct fib_nh *nh, __be32 daddr)
+{
+	struct fnhe_hash_bucket *hash = nh->nh_exceptions;
+	struct fib_nh_exception *fnhe;
+	u32 hval;
+
+	hval = fnhe_hashfun(daddr);
+
+restart:
+	for (fnhe = rcu_dereference(hash[hval].chain); fnhe;
+	     fnhe = rcu_dereference(fnhe->fnhe_next)) {
+		__be32 fnhe_daddr, gw;
+		unsigned long expires;
+		unsigned int seq;
+		u32 pmtu;
+
+		seq = read_seqbegin(&fnhe_seqlock);
+		fnhe_daddr = fnhe->fnhe_daddr;
+		gw = fnhe->fnhe_gw;
+		pmtu = fnhe->fnhe_pmtu;
+		expires = fnhe->fnhe_expires;
+		if (read_seqretry(&fnhe_seqlock, seq))
+			goto restart;
+		if (daddr != fnhe_daddr)
+			continue;
+		if (pmtu) {
+			unsigned long diff = expires - jiffies;
+
+			if (time_before(jiffies, expires)) {
+				rt->rt_pmtu = pmtu;
+				dst_set_expires(&rt->dst, diff);
+			}
+		}
+		if (gw)
+			rt->rt_gateway = gw;
+		fnhe->fnhe_stamp = jiffies;
+		break;
+	}
+}
+
 static void rt_set_nexthop(struct rtable *rt, const struct flowi4 *fl4,
 			   const struct fib_result *res,
 			   struct fib_info *fi, u16 type, u32 itag)
 {
 	if (fi) {
-		if (FIB_RES_GW(*res) &&
-		    FIB_RES_NH(*res).nh_scope == RT_SCOPE_LINK)
-			rt->rt_gateway = FIB_RES_GW(*res);
+		struct fib_nh *nh = &FIB_RES_NH(*res);
+
+		if (nh->nh_gw && nh->nh_scope == RT_SCOPE_LINK)
+			rt->rt_gateway = nh->nh_gw;
+		if (unlikely(nh->nh_exceptions))
+			rt_bind_exception(rt, nh, fl4->daddr);
 		rt_init_metrics(rt, fl4, fi);
 #ifdef CONFIG_IP_ROUTE_CLASSID
 		rt->dst.tclassid = FIB_RES_NH(*res).nh_tclassid;
@@ -2600,11 +2824,13 @@ static unsigned int ipv4_blackhole_mtu(const struct dst_entry *dst)
 	return mtu ? : dst->dev->mtu;
 }
 
-static void ipv4_rt_blackhole_update_pmtu(struct dst_entry *dst, u32 mtu)
+static void ipv4_rt_blackhole_update_pmtu(struct dst_entry *dst, struct sock *sk,
+					  struct sk_buff *skb, u32 mtu)
 {
 }
 
-static void ipv4_rt_blackhole_redirect(struct dst_entry *dst, struct sk_buff *skb)
+static void ipv4_rt_blackhole_redirect(struct dst_entry *dst, struct sock *sk,
+				       struct sk_buff *skb)
 {
 }
 

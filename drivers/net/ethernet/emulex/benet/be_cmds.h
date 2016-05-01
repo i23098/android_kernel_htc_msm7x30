@@ -93,6 +93,7 @@ enum {
 	LINK_UP		= 0x1
 };
 #define LINK_STATUS_MASK			0x1
+#define LOGICAL_LINK_STATUS_MASK		0x2
 
 /* When the event code of an async trailer is link-state, the mcc_compl
  * must be interpreted as follows
@@ -1082,8 +1083,18 @@ struct be_cmd_resp_query_fw_cfg {
 	u32 function_caps;
 };
 
-/******************** RSS Config *******************/
-/* RSS types */
+/******************** RSS Config ****************************************/
+/* RSS type		Input parameters used to compute RX hash
+ * RSS_ENABLE_IPV4	SRC IPv4, DST IPv4
+ * RSS_ENABLE_TCP_IPV4	SRC IPv4, DST IPv4, TCP SRC PORT, TCP DST PORT
+ * RSS_ENABLE_IPV6	SRC IPv6, DST IPv6
+ * RSS_ENABLE_TCP_IPV6	SRC IPv6, DST IPv6, TCP SRC PORT, TCP DST PORT
+ * RSS_ENABLE_UDP_IPV4	SRC IPv4, DST IPv4, UDP SRC PORT, UDP DST PORT
+ * RSS_ENABLE_UDP_IPV6	SRC IPv6, DST IPv6, UDP SRC PORT, UDP DST PORT
+ *
+ * When multiple RSS types are enabled, HW picks the best hash policy
+ * based on the type of the received packet.
+ */
 #define RSS_ENABLE_NONE				0x0
 #define RSS_ENABLE_IPV4				0x1
 #define RSS_ENABLE_TCP_IPV4			0x2

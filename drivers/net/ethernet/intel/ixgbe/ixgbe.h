@@ -284,6 +284,10 @@ struct ixgbe_ring_feature {
 	u16 offset;	/* offset to start of feature */
 } ____cacheline_internodealigned_in_smp;
 
+#define IXGBE_82599_VMDQ_8Q_MASK 0x78
+#define IXGBE_82599_VMDQ_4Q_MASK 0x7C
+#define IXGBE_82599_VMDQ_2Q_MASK 0x7E
+
 /*
  * FCoE requires that all Rx buffers be over 2200 bytes in length.  Since
  * this is twice the size of a half page we need to double the page order
@@ -429,35 +433,33 @@ struct ixgbe_adapter {
 	 * thus the additional *_CAPABLE flags.
 	 */
 	u32 flags;
-#define IXGBE_FLAG_MSI_CAPABLE                  (u32)(1 << 1)
-#define IXGBE_FLAG_MSI_ENABLED                  (u32)(1 << 2)
-#define IXGBE_FLAG_MSIX_CAPABLE                 (u32)(1 << 3)
-#define IXGBE_FLAG_MSIX_ENABLED                 (u32)(1 << 4)
-#define IXGBE_FLAG_RX_1BUF_CAPABLE              (u32)(1 << 6)
-#define IXGBE_FLAG_RX_PS_CAPABLE                (u32)(1 << 7)
-#define IXGBE_FLAG_RX_PS_ENABLED                (u32)(1 << 8)
-#define IXGBE_FLAG_IN_NETPOLL                   (u32)(1 << 9)
-#define IXGBE_FLAG_DCA_ENABLED                  (u32)(1 << 10)
-#define IXGBE_FLAG_DCA_CAPABLE                  (u32)(1 << 11)
-#define IXGBE_FLAG_IMIR_ENABLED                 (u32)(1 << 12)
-#define IXGBE_FLAG_MQ_CAPABLE                   (u32)(1 << 13)
-#define IXGBE_FLAG_DCB_ENABLED                  (u32)(1 << 14)
-#define IXGBE_FLAG_RSS_ENABLED                  (u32)(1 << 16)
-#define IXGBE_FLAG_RSS_CAPABLE                  (u32)(1 << 17)
-#define IXGBE_FLAG_VMDQ_CAPABLE                 (u32)(1 << 18)
-#define IXGBE_FLAG_VMDQ_ENABLED                 (u32)(1 << 19)
-#define IXGBE_FLAG_FAN_FAIL_CAPABLE             (u32)(1 << 20)
-#define IXGBE_FLAG_NEED_LINK_UPDATE             (u32)(1 << 22)
-#define IXGBE_FLAG_NEED_LINK_CONFIG             (u32)(1 << 23)
-#define IXGBE_FLAG_FDIR_HASH_CAPABLE            (u32)(1 << 24)
-#define IXGBE_FLAG_FDIR_PERFECT_CAPABLE         (u32)(1 << 25)
-#define IXGBE_FLAG_FCOE_CAPABLE                 (u32)(1 << 26)
-#define IXGBE_FLAG_FCOE_ENABLED                 (u32)(1 << 27)
-#define IXGBE_FLAG_SRIOV_CAPABLE                (u32)(1 << 28)
-#define IXGBE_FLAG_SRIOV_ENABLED                (u32)(1 << 29)
+#define IXGBE_FLAG_MSI_CAPABLE                  (u32)(1 << 0)
+#define IXGBE_FLAG_MSI_ENABLED                  (u32)(1 << 1)
+#define IXGBE_FLAG_MSIX_CAPABLE                 (u32)(1 << 2)
+#define IXGBE_FLAG_MSIX_ENABLED                 (u32)(1 << 3)
+#define IXGBE_FLAG_RX_1BUF_CAPABLE              (u32)(1 << 4)
+#define IXGBE_FLAG_RX_PS_CAPABLE                (u32)(1 << 5)
+#define IXGBE_FLAG_RX_PS_ENABLED                (u32)(1 << 6)
+#define IXGBE_FLAG_IN_NETPOLL                   (u32)(1 << 7)
+#define IXGBE_FLAG_DCA_ENABLED                  (u32)(1 << 8)
+#define IXGBE_FLAG_DCA_CAPABLE                  (u32)(1 << 9)
+#define IXGBE_FLAG_IMIR_ENABLED                 (u32)(1 << 10)
+#define IXGBE_FLAG_MQ_CAPABLE                   (u32)(1 << 11)
+#define IXGBE_FLAG_DCB_ENABLED                  (u32)(1 << 12)
+#define IXGBE_FLAG_VMDQ_CAPABLE                 (u32)(1 << 13)
+#define IXGBE_FLAG_VMDQ_ENABLED                 (u32)(1 << 14)
+#define IXGBE_FLAG_FAN_FAIL_CAPABLE             (u32)(1 << 15)
+#define IXGBE_FLAG_NEED_LINK_UPDATE             (u32)(1 << 16)
+#define IXGBE_FLAG_NEED_LINK_CONFIG             (u32)(1 << 17)
+#define IXGBE_FLAG_FDIR_HASH_CAPABLE            (u32)(1 << 18)
+#define IXGBE_FLAG_FDIR_PERFECT_CAPABLE         (u32)(1 << 19)
+#define IXGBE_FLAG_FCOE_CAPABLE                 (u32)(1 << 20)
+#define IXGBE_FLAG_FCOE_ENABLED                 (u32)(1 << 21)
+#define IXGBE_FLAG_SRIOV_CAPABLE                (u32)(1 << 22)
+#define IXGBE_FLAG_SRIOV_ENABLED                (u32)(1 << 23)
 
 	u32 flags2;
-#define IXGBE_FLAG2_RSC_CAPABLE                 (u32)(1)
+#define IXGBE_FLAG2_RSC_CAPABLE                 (u32)(1 << 0)
 #define IXGBE_FLAG2_RSC_ENABLED                 (u32)(1 << 1)
 #define IXGBE_FLAG2_TEMP_SENSOR_CAPABLE         (u32)(1 << 2)
 #define IXGBE_FLAG2_TEMP_SENSOR_EVENT           (u32)(1 << 3)
@@ -707,6 +709,7 @@ extern u8 ixgbe_fcoe_setapp(struct ixgbe_adapter *adapter, u8 up);
 extern int ixgbe_fcoe_get_wwn(struct net_device *netdev, u64 *wwn, int type);
 extern int ixgbe_fcoe_get_hbainfo(struct net_device *netdev,
 				  struct netdev_fcoe_hbainfo *info);
+extern u8 ixgbe_fcoe_get_tc(struct ixgbe_adapter *adapter);
 #endif /* IXGBE_FCOE */
 
 static inline struct netdev_queue *txring_txq(const struct ixgbe_ring *ring)

@@ -78,8 +78,10 @@ static int		 ip6_dst_gc(struct dst_ops *ops);
 static int		ip6_pkt_discard(struct sk_buff *skb);
 static int		ip6_pkt_discard_out(struct sk_buff *skb);
 static void		ip6_link_failure(struct sk_buff *skb);
-static void		ip6_rt_update_pmtu(struct dst_entry *dst, u32 mtu);
-static void		rt6_do_redirect(struct dst_entry *dst, struct sk_buff *skb);
+static void		ip6_rt_update_pmtu(struct dst_entry *dst, struct sock *sk,
+					   struct sk_buff *skb, u32 mtu);
+static void		rt6_do_redirect(struct dst_entry *dst, struct sock *sk,
+					struct sk_buff *skb);
 
 #ifdef CONFIG_IPV6_ROUTE_INFO
 static struct rt6_info *rt6_add_route_info(struct net *net,
@@ -187,11 +189,13 @@ static unsigned int ip6_blackhole_mtu(const struct dst_entry *dst)
 	return mtu ? : dst->dev->mtu;
 }
 
-static void ip6_rt_blackhole_update_pmtu(struct dst_entry *dst, u32 mtu)
+static void ip6_rt_blackhole_update_pmtu(struct dst_entry *dst, struct sock *sk,
+					 struct sk_buff *skb, u32 mtu)
 {
 }
 
-static void ip6_rt_blackhole_redirect(struct dst_entry *dst, struct sk_buff *skb)
+static void ip6_rt_blackhole_redirect(struct dst_entry *dst, struct sock *sk,
+				      struct sk_buff *skb)
 {
 }
 
@@ -280,8 +284,9 @@ static inline struct rt6_info *ip6_dst_alloc(struct net *net,
 					0, 0, flags);
 
 	if (rt) {
-		memset(&rt->n, 0,
-		       sizeof(*rt) - sizeof(struct dst_entry));
+		struct dst_entry *dst = &rt->dst;
+
+		memset(dst + 1, 0, sizeof(*rt) - sizeof(*dst));
 		rt6_init_peer(rt, table ? &table->tb6_peers : net->ipv6.peers);
 	}
 	return rt;
@@ -982,10 +987,10 @@ struct dst_entry *ip6_blackhole_route(struct net *net, struct dst_entry *dst_ori
 
 	rt = dst_alloc(&ip6_dst_blackhole_ops, ort->dst.dev, 1, 0, 0);
 	if (rt) {
-		memset(&rt->rt6i_table, 0, sizeof(*rt) - sizeof(struct dst_entry));
-		rt6_init_peer(rt, net->ipv6.peers);
-
 		new = &rt->dst;
+
+		memset(new + 1, 0, sizeof(*rt) - sizeof(*new));
+		rt6_init_peer(rt, net->ipv6.peers);
 
 		new->__use = 1;
 		new->input = dst_discard;
@@ -1070,7 +1075,8 @@ static void ip6_link_failure(struct sk_buff *skb)
 	}
 }
 
-static void ip6_rt_update_pmtu(struct dst_entry *dst, u32 mtu)
+static void ip6_rt_update_pmtu(struct dst_entry *dst, struct sock *sk,
+			       struct sk_buff *skb, u32 mtu)
 {
 	struct rt6_info *rt6 = (struct rt6_info*)dst;
 
@@ -1107,7 +1113,7 @@ void ip6_update_pmtu(struct sk_buff *skb, struct net *net, __be32 mtu,
 
 	dst = ip6_route_output(net, NULL, &fl6);
 	if (!dst->error)
-		ip6_rt_update_pmtu(dst, ntohl(mtu));
+		ip6_rt_update_pmtu(dst, NULL, skb, ntohl(mtu));
 	dst_release(dst);
 }
 EXPORT_SYMBOL_GPL(ip6_update_pmtu);
@@ -1135,7 +1141,7 @@ void ip6_redirect(struct sk_buff *skb, struct net *net, int oif, u32 mark)
 
 	dst = ip6_route_output(net, NULL, &fl6);
 	if (!dst->error)
-		rt6_do_redirect(dst, skb);
+		rt6_do_redirect(dst, NULL, skb);
 	dst_release(dst);
 }
 EXPORT_SYMBOL_GPL(ip6_redirect);
@@ -1638,7 +1644,7 @@ static int ip6_route_del(struct fib6_config *cfg)
 	return err;
 }
 
-static void rt6_do_redirect(struct dst_entry *dst, struct sk_buff *skb)
+static void rt6_do_redirect(struct dst_entry *dst, struct sock *sk, struct sk_buff *skb)
 {
 	struct net *net = dev_net(skb->dev);
 	struct netevent_redirect netevent;
@@ -2399,10 +2405,12 @@ static int rt6_fill_node(struct net *net,
 	rtm->rtm_protocol = rt->rt6i_protocol;
 	if (rt->rt6i_flags & RTF_DYNAMIC)
 		rtm->rtm_protocol = RTPROT_REDIRECT;
-	else if (rt->rt6i_flags & RTF_ADDRCONF)
-		rtm->rtm_protocol = RTPROT_KERNEL;
-	else if (rt->rt6i_flags & RTF_DEFAULT)
-		rtm->rtm_protocol = RTPROT_RA;
+	else if (rt->rt6i_flags & RTF_ADDRCONF) {
+		if (rt->rt6i_flags & (RTF_DEFAULT | RTF_ROUTEINFO))
+			rtm->rtm_protocol = RTPROT_RA;
+		else
+			rtm->rtm_protocol = RTPROT_KERNEL;
+	}
 
 	if (rt->rt6i_flags & RTF_CACHE)
 		rtm->rtm_flags |= RTM_F_CLONED;

@@ -172,6 +172,11 @@ extern void tcp_time_wait(struct sock *sk, int state, int timeo);
 #define TCPOPT_TIMESTAMP	8	/* Better RTT estimations/PAWS */
 #define TCPOPT_MD5SIG		19	/* MD5 Signature (RFC2385) */
 #define TCPOPT_COOKIE		253	/* Cookie extension (experimental) */
+#define TCPOPT_EXP		254	/* Experimental */
+/* Magic number to be after the option value for sharing TCP
+ * experimental options. See draft-ietf-tcpm-experimental-options-00.txt
+ */
+#define TCPOPT_FASTOPEN_MAGIC	0xF989
 
 /*
  *     TCP option lengths
@@ -182,6 +187,7 @@ extern void tcp_time_wait(struct sock *sk, int state, int timeo);
 #define TCPOLEN_SACK_PERM      2
 #define TCPOLEN_TIMESTAMP      10
 #define TCPOLEN_MD5SIG         18
+#define TCPOLEN_EXP_FASTOPEN_BASE  4
 #define TCPOLEN_COOKIE_BASE    2	/* Cookie-less header extension */
 #define TCPOLEN_COOKIE_PAIR    3	/* Cookie pair header extension */
 #define TCPOLEN_COOKIE_MIN     (TCPOLEN_COOKIE_BASE+TCP_COOKIE_MIN)
@@ -208,6 +214,10 @@ extern void tcp_time_wait(struct sock *sk, int state, int timeo);
 /* TCP initial congestion window as per draft-hkchu-tcpm-initcwnd-01 */
 #define TCP_INIT_CWND		10
 
+/* Bit Flags for sysctl_tcp_fastopen */
+#define	TFO_CLIENT_ENABLE	1
+#define	TFO_CLIENT_NO_COOKIE	4	/* Data in SYN w/o cookie option */
+
 extern struct inet_timewait_death_row tcp_death_row;
 
 /* sysctl variables for tcp */
@@ -224,6 +234,7 @@ extern int sysctl_tcp_retries1;
 extern int sysctl_tcp_retries2;
 extern int sysctl_tcp_orphan_retries;
 extern int sysctl_tcp_syncookies;
+extern int sysctl_tcp_fastopen;
 extern int sysctl_tcp_retrans_collapse;
 extern int sysctl_tcp_stdurg;
 extern int sysctl_tcp_rfc1337;
@@ -257,6 +268,7 @@ extern int sysctl_tcp_thin_dupack;
 extern int sysctl_tcp_default_init_rwnd;
 extern int sysctl_tcp_early_retrans;
 extern int sysctl_tcp_limit_output_bytes;
+extern int sysctl_tcp_challenge_ack_limit;
 
 extern atomic_long_t tcp_memory_allocated;
 
@@ -409,6 +421,12 @@ extern void tcp_metrics_init(void);
 extern bool tcp_peer_is_proven(struct request_sock *req, struct dst_entry *dst, bool paws_check);
 extern bool tcp_remember_stamp(struct sock *sk);
 extern bool tcp_tw_remember_stamp(struct inet_timewait_sock *tw);
+extern void tcp_fastopen_cache_get(struct sock *sk, u16 *mss,
+				   struct tcp_fastopen_cookie *cookie,
+				   int *syn_loss, unsigned long *last_syn_loss);
+extern void tcp_fastopen_cache_set(struct sock *sk, u16 mss,
+				   struct tcp_fastopen_cookie *cookie,
+				   bool syn_lost);
 extern void tcp_fetch_timewait_stamp(struct sock *sk, struct dst_entry *dst);
 extern void tcp_disable_fack(struct tcp_sock *tp);
 extern void tcp_close(struct sock *sk, long timeout);
@@ -429,7 +447,7 @@ extern int tcp_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		       size_t len, int nonblock, int flags, int *addr_len);
 extern void tcp_parse_options(const struct sk_buff *skb,
 			      struct tcp_options_received *opt_rx, const u8 **hvpp,
-			      int estab);
+			      int estab, struct tcp_fastopen_cookie *foc);
 extern const u8 *tcp_parse_md5sig_option(const struct tcphdr *th);
 
 /*
@@ -1288,6 +1306,15 @@ extern int tcp_md5_hash_skb_data(struct tcp_md5sig_pool *, const struct sk_buff 
 				 unsigned int header_len);
 extern int tcp_md5_hash_key(struct tcp_md5sig_pool *hp,
 			    const struct tcp_md5sig_key *key);
+
+struct tcp_fastopen_request {
+	/* Fast Open cookie. Size 0 means a cookie request */
+	struct tcp_fastopen_cookie	cookie;
+	struct msghdr			*data;  /* data in MSG_FASTOPEN */
+	u16				copied;	/* queued in tcp_connect() */
+};
+
+void tcp_free_fastopen_req(struct tcp_sock *tp);
 
 /* write queue abstraction */
 static inline void tcp_write_queue_purge(struct sock *sk)

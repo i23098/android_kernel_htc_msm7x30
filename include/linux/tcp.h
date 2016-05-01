@@ -243,6 +243,16 @@ static inline unsigned int tcp_optlen(const struct sk_buff *skb)
 	return (tcp_hdr(skb)->doff - 5) * 4;
 }
 
+/* TCP Fast Open */
+#define TCP_FASTOPEN_COOKIE_MIN	4	/* Min Fast Open Cookie size in bytes */
+#define TCP_FASTOPEN_COOKIE_MAX	16	/* Max Fast Open Cookie size in bytes */
+
+/* TCP Fast Open Cookie as stored in memory */
+struct tcp_fastopen_cookie {
+	s8	len;
+	u8	val[TCP_FASTOPEN_COOKIE_MAX];
+};
+
 /* This defines a selective acknowledgement block. */
 struct tcp_sack_block_wire {
 	__be32	start_seq;
@@ -376,7 +386,9 @@ struct tcp_sock {
 		unused      : 1;
 	u8	repair_queue;
 	u8	do_early_retrans:1,/* Enable RFC5827 early-retransmit  */
-		early_retrans_delayed:1; /* Delayed ER timer installed */
+		early_retrans_delayed:1, /* Delayed ER timer installed */
+		syn_data:1,	/* SYN includes data */
+		syn_fastopen:1;	/* SYN includes Fast Open option */
 
 /* RTT measurement */
 	u32	srtt;		/* smoothed round trip time << 3	*/
@@ -489,6 +501,9 @@ struct tcp_sock {
 /* TCP MD5 Signature Option information */
 	struct tcp_md5sig_info	__rcu *md5sig_info;
 #endif
+
+/* TCP fastopen related information */
+	struct tcp_fastopen_request *fastopen_req;
 
 	/* When the cookie options are generated and exchanged, then this
 	 * object holds a reference to them (cookie_values->kref).  Also

@@ -30,6 +30,13 @@ enum tcp_metric_index {
 	TCP_METRIC_MAX,
 };
 
+struct tcp_fastopen_metrics {
+	u16	mss;
+	u16	syn_loss:10;		/* Recurring Fast Open SYN losses */
+	unsigned long	last_syn_loss;	/* Last Fast Open SYN loss */
+	struct	tcp_fastopen_cookie	cookie;
+};
+
 struct tcp_metrics_block {
 	struct tcp_metrics_block __rcu	*tcpm_next;
 	struct inetpeer_addr		tcpm_addr;
@@ -38,6 +45,7 @@ struct tcp_metrics_block {
 	u32				tcpm_ts_stamp;
 	u32				tcpm_lock;
 	u32				tcpm_vals[TCP_METRIC_MAX];
+	struct tcp_fastopen_metrics	tcpm_fastopen;
 };
 
 static bool tcp_metric_locked(struct tcp_metrics_block *tm,
@@ -118,6 +126,9 @@ static void tcpm_suck_dst(struct tcp_metrics_block *tm, struct dst_entry *dst)
 	tm->tcpm_vals[TCP_METRIC_REORDERING] = dst_metric_raw(dst, RTAX_REORDERING);
 	tm->tcpm_ts = 0;
 	tm->tcpm_ts_stamp = 0;
+	tm->tcpm_fastopen.mss = 0;
+	tm->tcpm_fastopen.syn_loss = 0;
+	tm->tcpm_fastopen.cookie.len = 0;
 }
 
 static struct tcp_metrics_block *tcpm_new(struct dst_entry *dst,
@@ -211,10 +222,7 @@ static struct tcp_metrics_block *__tcp_get_metrics_req(struct request_sock *req,
 		break;
 	case AF_INET6:
 		*(struct in6_addr *)addr.addr.a6 = inet6_rsk(req)->rmt_addr;
-		hash = ((__force unsigned int) addr.addr.a6[0] ^
-			(__force unsigned int) addr.addr.a6[1] ^
-			(__force unsigned int) addr.addr.a6[2] ^
-			(__force unsigned int) addr.addr.a6[3]);
+		hash = ipv6_addr_hash(&inet6_rsk(req)->rmt_addr);
 		break;
 	default:
 		return NULL;
@@ -251,10 +259,7 @@ static struct tcp_metrics_block *__tcp_get_metrics_tw(struct inet_timewait_sock 
 	case AF_INET6:
 		tw6 = inet6_twsk((struct sock *)tw);
 		*(struct in6_addr *)addr.addr.a6 = tw6->tw_v6_daddr;
-		hash = ((__force unsigned int) addr.addr.a6[0] ^
-			(__force unsigned int) addr.addr.a6[1] ^
-			(__force unsigned int) addr.addr.a6[2] ^
-			(__force unsigned int) addr.addr.a6[3]);
+		hash = ipv6_addr_hash(&tw6->tw_v6_daddr);
 		break;
 	default:
 		return NULL;
@@ -291,10 +296,7 @@ static struct tcp_metrics_block *tcp_get_metrics(struct sock *sk,
 		break;
 	case AF_INET6:
 		*(struct in6_addr *)addr.addr.a6 = inet6_sk(sk)->daddr;
-		hash = ((__force unsigned int) addr.addr.a6[0] ^
-			(__force unsigned int) addr.addr.a6[1] ^
-			(__force unsigned int) addr.addr.a6[2] ^
-			(__force unsigned int) addr.addr.a6[3]);
+		hash = ipv6_addr_hash(&inet6_sk(sk)->daddr);
 		break;
 	default:
 		return NULL;
@@ -640,6 +642,56 @@ bool tcp_tw_remember_stamp(struct inet_timewait_sock *tw)
 	rcu_read_unlock();
 
 	return ret;
+}
+
+static DEFINE_SEQLOCK(fastopen_seqlock);
+
+void tcp_fastopen_cache_get(struct sock *sk, u16 *mss,
+			    struct tcp_fastopen_cookie *cookie,
+			    int *syn_loss, unsigned long *last_syn_loss)
+{
+	struct tcp_metrics_block *tm;
+
+	rcu_read_lock();
+	tm = tcp_get_metrics(sk, __sk_dst_get(sk), false);
+	if (tm) {
+		struct tcp_fastopen_metrics *tfom = &tm->tcpm_fastopen;
+		unsigned int seq;
+
+		do {
+			seq = read_seqbegin(&fastopen_seqlock);
+			if (tfom->mss)
+				*mss = tfom->mss;
+			*cookie = tfom->cookie;
+			*syn_loss = tfom->syn_loss;
+			*last_syn_loss = *syn_loss ? tfom->last_syn_loss : 0;
+		} while (read_seqretry(&fastopen_seqlock, seq));
+	}
+	rcu_read_unlock();
+}
+
+void tcp_fastopen_cache_set(struct sock *sk, u16 mss,
+			    struct tcp_fastopen_cookie *cookie, bool syn_lost)
+{
+	struct tcp_metrics_block *tm;
+
+	rcu_read_lock();
+	tm = tcp_get_metrics(sk, __sk_dst_get(sk), true);
+	if (tm) {
+		struct tcp_fastopen_metrics *tfom = &tm->tcpm_fastopen;
+
+		write_seqlock_bh(&fastopen_seqlock);
+		tfom->mss = mss;
+		if (cookie->len > 0)
+			tfom->cookie = *cookie;
+		if (syn_lost) {
+			++tfom->syn_loss;
+			tfom->last_syn_loss = jiffies;
+		} else
+			tfom->syn_loss = 0;
+		write_sequnlock_bh(&fastopen_seqlock);
+	}
+	rcu_read_unlock();
 }
 
 static unsigned long tcpmhash_entries;

@@ -302,7 +302,7 @@ static inline int lowpan_fetch_skb_u16(struct sk_buff *skb, u16 *val)
 	if (unlikely(!pskb_may_pull(skb, 2)))
 		return -EINVAL;
 
-	*val = skb->data[0] | (skb->data[1] << 8);
+	*val = (skb->data[0] << 8) | skb->data[1];
 	skb_pull(skb, 2);
 
 	return 0;
@@ -313,6 +313,9 @@ lowpan_uncompress_udp_header(struct sk_buff *skb)
 {
 	struct udphdr *uh = udp_hdr(skb);
 	u8 tmp;
+
+	if (!uh)
+		goto err;
 
 	if (lowpan_fetch_skb_u8(skb, &tmp))
 		goto err;
@@ -642,7 +645,7 @@ static void lowpan_fragment_timer_expired(unsigned long entry_addr)
 }
 
 static struct lowpan_fragment *
-lowpan_alloc_new_frame(struct sk_buff *skb, u8 iphc0, u8 len, u16 tag)
+lowpan_alloc_new_frame(struct sk_buff *skb, u8 len, u16 tag)
 {
 	struct lowpan_fragment *frame;
 
@@ -653,7 +656,7 @@ lowpan_alloc_new_frame(struct sk_buff *skb, u8 iphc0, u8 len, u16 tag)
 
 	INIT_LIST_HEAD(&frame->list);
 
-	frame->length = (iphc0 & 7) | (len << 3);
+	frame->length = len;
 	frame->tag = tag;
 
 	/* allocate buffer for frame assembling */
@@ -711,13 +714,17 @@ lowpan_process_data(struct sk_buff *skb)
 	case LOWPAN_DISPATCH_FRAGN:
 	{
 		struct lowpan_fragment *frame;
-		u8 len, offset;
-		u16 tag;
+		/* slen stores the rightmost 8 bits of the 11 bits length */
+		u8 slen, offset;
+		u16 len, tag;
 		bool found = false;
 
-		if (lowpan_fetch_skb_u8(skb, &len) || /* frame length */
+		if (lowpan_fetch_skb_u8(skb, &slen) || /* frame length */
 		    lowpan_fetch_skb_u16(skb, &tag))  /* fragment tag */
 			goto drop;
+
+		/* adds the 3 MSB to the 8 LSB to retrieve the 11 bits length */
+		len = ((iphc0 & 7) << 8) | slen;
 
 		/*
 		 * check if frame assembling with the same tag is
@@ -733,7 +740,7 @@ lowpan_process_data(struct sk_buff *skb)
 
 		/* alloc new frame structure */
 		if (!found) {
-			frame = lowpan_alloc_new_frame(skb, iphc0, len, tag);
+			frame = lowpan_alloc_new_frame(skb, len, tag);
 			if (!frame)
 				goto unlock_and_drop;
 		}
@@ -1001,10 +1008,10 @@ lowpan_skb_fragmentation(struct sk_buff *skb)
 	tag = fragment_tag++;
 
 	/* first fragment header */
-	head[0] = LOWPAN_DISPATCH_FRAG1 | (payload_length & 0x7);
-	head[1] = (payload_length >> 3) & 0xff;
-	head[2] = tag & 0xff;
-	head[3] = tag >> 8;
+	head[0] = LOWPAN_DISPATCH_FRAG1 | ((payload_length >> 8) & 0x7);
+	head[1] = payload_length & 0xff;
+	head[2] = tag >> 8;
+	head[3] = tag & 0xff;
 
 	err = lowpan_fragment_xmit(skb, head, header_length, 0, 0);
 
