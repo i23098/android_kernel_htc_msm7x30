@@ -14,28 +14,9 @@
 
 static unsigned int nf_ct_generic_timeout __read_mostly = 600*HZ;
 
-static bool nf_generic_should_process(u8 proto)
+static inline struct nf_generic_net *generic_pernet(struct net *net)
 {
-	switch (proto) {
-#ifdef CONFIG_NF_CT_PROTO_SCTP_MODULE
-	case IPPROTO_SCTP:
-		return false;
-#endif
-#ifdef CONFIG_NF_CT_PROTO_DCCP_MODULE
-	case IPPROTO_DCCP:
-		return false;
-#endif
-#ifdef CONFIG_NF_CT_PROTO_GRE_MODULE
-	case IPPROTO_GRE:
-		return false;
-#endif
-#ifdef CONFIG_NF_CT_PROTO_UDPLITE_MODULE
-	case IPPROTO_UDPLITE:
-		return false;
-#endif
-	default:
-		return true;
-	}
+	return &net->ct.nf_ct_proto.generic;
 }
 
 static bool generic_pkt_to_tuple(const struct sk_buff *skb,
@@ -66,7 +47,7 @@ static int generic_print_tuple(struct seq_file *s,
 
 static unsigned int *generic_get_timeouts(struct net *net)
 {
-	return &nf_ct_generic_timeout;
+	return &(generic_pernet(net)->timeout);
 }
 
 /* Returns verdict for packet, or -1 for invalid. */
@@ -82,6 +63,30 @@ static int generic_packet(struct nf_conn *ct,
 	return NF_ACCEPT;
 }
 
+static bool nf_generic_should_process(u8 proto)
+{
+	switch (proto) {
+#ifdef CONFIG_NF_CT_PROTO_SCTP_MODULE
+	case IPPROTO_SCTP:
+		return false;
+#endif
+#ifdef CONFIG_NF_CT_PROTO_DCCP_MODULE
+	case IPPROTO_DCCP:
+		return false;
+#endif
+#ifdef CONFIG_NF_CT_PROTO_GRE_MODULE
+	case IPPROTO_GRE:
+		return false;
+#endif
+#ifdef CONFIG_NF_CT_PROTO_UDPLITE_MODULE
+	case IPPROTO_UDPLITE:
+		return false;
+#endif
+	default:
+		return true;
+	}
+}
+
 /* Called when a new connection for this protocol found. */
 static bool generic_new(struct nf_conn *ct, const struct sk_buff *skb,
 			unsigned int dataoff, unsigned int *timeouts)
@@ -94,16 +99,18 @@ static bool generic_new(struct nf_conn *ct, const struct sk_buff *skb,
 #include <linux/netfilter/nfnetlink.h>
 #include <linux/netfilter/nfnetlink_cttimeout.h>
 
-static int generic_timeout_nlattr_to_obj(struct nlattr *tb[], void *data)
+static int generic_timeout_nlattr_to_obj(struct nlattr *tb[],
+					 struct net *net, void *data)
 {
 	unsigned int *timeout = data;
+	struct nf_generic_net *gn = generic_pernet(net);
 
 	if (tb[CTA_TIMEOUT_GENERIC_TIMEOUT])
 		*timeout =
 		    ntohl(nla_get_be32(tb[CTA_TIMEOUT_GENERIC_TIMEOUT])) * HZ;
 	else {
 		/* Set default generic timeout. */
-		*timeout = nf_ct_generic_timeout;
+		*timeout = gn->timeout;
 	}
 
 	return 0;
@@ -130,11 +137,9 @@ generic_timeout_nla_policy[CTA_TIMEOUT_GENERIC_MAX+1] = {
 #endif /* CONFIG_NF_CT_NETLINK_TIMEOUT */
 
 #ifdef CONFIG_SYSCTL
-static struct ctl_table_header *generic_sysctl_header;
 static struct ctl_table generic_sysctl_table[] = {
 	{
 		.procname	= "nf_conntrack_generic_timeout",
-		.data		= &nf_ct_generic_timeout,
 		.maxlen		= sizeof(unsigned int),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_jiffies,
@@ -145,7 +150,6 @@ static struct ctl_table generic_sysctl_table[] = {
 static struct ctl_table generic_compat_sysctl_table[] = {
 	{
 		.procname	= "ip_conntrack_generic_timeout",
-		.data		= &nf_ct_generic_timeout,
 		.maxlen		= sizeof(unsigned int),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_jiffies,
@@ -154,6 +158,34 @@ static struct ctl_table generic_compat_sysctl_table[] = {
 };
 #endif /* CONFIG_NF_CONNTRACK_PROC_COMPAT */
 #endif /* CONFIG_SYSCTL */
+
+static int generic_init_net(struct net *net)
+{
+	struct nf_generic_net *gn = generic_pernet(net);
+	struct nf_proto_net *pn = (struct nf_proto_net *)gn;
+	gn->timeout = nf_ct_generic_timeout;
+#ifdef CONFIG_SYSCTL
+	pn->ctl_table = kmemdup(generic_sysctl_table,
+				sizeof(generic_sysctl_table),
+				GFP_KERNEL);
+	if (!pn->ctl_table)
+		return -ENOMEM;
+	pn->ctl_table[0].data = &gn->timeout;
+
+#ifdef CONFIG_NF_CONNTRACK_PROC_COMPAT
+	pn->ctl_compat_table = kmemdup(generic_compat_sysctl_table,
+				       sizeof(generic_compat_sysctl_table),
+				       GFP_KERNEL);
+	if (!pn->ctl_compat_table) {
+		kfree(pn->ctl_table);
+		pn->ctl_table = NULL;
+		return -ENOMEM;
+	}
+	pn->ctl_compat_table[0].data = &gn->timeout;
+#endif
+#endif
+	return 0;
+}
 
 struct nf_conntrack_l4proto nf_conntrack_l4proto_generic __read_mostly =
 {
@@ -175,11 +207,5 @@ struct nf_conntrack_l4proto nf_conntrack_l4proto_generic __read_mostly =
 		.nla_policy	= generic_timeout_nla_policy,
 	},
 #endif /* CONFIG_NF_CT_NETLINK_TIMEOUT */
-#ifdef CONFIG_SYSCTL
-	.ctl_table_header	= &generic_sysctl_header,
-	.ctl_table		= generic_sysctl_table,
-#ifdef CONFIG_NF_CONNTRACK_PROC_COMPAT
-	.ctl_compat_table	= generic_compat_sysctl_table,
-#endif
-#endif
+	.init_net		= generic_init_net,
 };
