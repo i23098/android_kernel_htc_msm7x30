@@ -1176,7 +1176,7 @@ make_route:
 	if (dev_out->flags & IFF_LOOPBACK)
 		flags |= RTCF_LOCAL;
 
-	rt = dst_alloc(&dn_dst_ops, dev_out, 1, 0, DST_HOST);
+	rt = dst_alloc(&dn_dst_ops, dev_out, 1, DST_OBSOLETE_NONE, DST_HOST);
 	if (rt == NULL)
 		goto e_nobufs;
 
@@ -1424,7 +1424,6 @@ static int dn_route_input_slow(struct sk_buff *skb)
 		/* Packet was intra-ethernet, so we know its on-link */
 		if (cb->rt_flags & DN_RT_F_IE) {
 			gateway = cb->src;
-			flags |= RTCF_DIRECTSRC;
 			goto make_route;
 		}
 
@@ -1437,14 +1436,13 @@ static int dn_route_input_slow(struct sk_buff *skb)
 
 		/* Close eyes and pray */
 		gateway = cb->src;
-		flags |= RTCF_DIRECTSRC;
 		goto make_route;
 	default:
 		goto e_inval;
 	}
 
 make_route:
-	rt = dst_alloc(&dn_dst_ops, out_dev, 0, 0, DST_HOST);
+	rt = dst_alloc(&dn_dst_ops, out_dev, 0, DST_OBSOLETE_NONE, DST_HOST);
 	if (rt == NULL)
 		goto e_nobufs;
 

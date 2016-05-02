@@ -371,7 +371,7 @@ int ip_queue_xmit(struct sk_buff *skb, struct flowi *fl)
 	skb_dst_set_noref(skb, &rt->dst);
 
 packet_routed:
-	if (inet_opt && inet_opt->opt.is_strictroute && fl4->daddr != rt->rt_gateway)
+	if (inet_opt && inet_opt->opt.is_strictroute && rt->rt_gateway)
 		goto no_route;
 
 	/* OK, we know where to send it, allocate and build IP header. */
@@ -1476,7 +1476,8 @@ static DEFINE_PER_CPU(struct inet_sock, unicast_sock) = {
 		.sk_allocation	= GFP_ATOMIC,
 		.sk_flags	= (1UL << SOCK_USE_WRITE_QUEUE),
 	},
-	.pmtudisc = IP_PMTUDISC_WANT,
+	.pmtudisc	= IP_PMTUDISC_WANT,
+	.uc_ttl		= -1,
 };
 
 void ip_send_unicast_reply(struct net *net, struct sk_buff *skb, __be32 daddr,
