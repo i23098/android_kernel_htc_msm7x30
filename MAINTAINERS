@@ -1186,6 +1186,17 @@ S:	Maintained
 F:	arch/arm/mach-pxa/vpac270.c
 F:	arch/arm/mach-pxa/include/mach/vpac270.h
 
+ARM/VT8500 ARM ARCHITECTURE
+M:	Tony Prisk <linux@prisktech.co.nz>
+L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
+S:	Maintained
+F:	arch/arm/mach-vt8500/
+F:	drivers/video/vt8500lcdfb.*
+F:	drivers/video/wm8505fb*
+F:	drivers/video/wmt_ge_rops.*
+F:	drivers/tty/serial/vt8500_serial.c
+F:	drivers/rtc/rtc-vt8500-c
+
 ARM/ZIPIT Z2 SUPPORT
 M:	Marek Vasut <marek.vasut@gmail.com>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
@@ -1528,6 +1539,11 @@ L:	uclinux-dist-devel@blackfin.uclinux.org
 W:	http://blackfin.uclinux.org/
 S:	Supported
 F:	drivers/i2c/busses/i2c-bfin-twi.c
+
+BLINKM RGB LED DRIVER
+M:	Jan-Simon Moeller <jansimon.moeller@gmx.de>
+S:	Maintained
+F:	drivers/leds/leds-blinkm.c
 
 BLOCK LAYER
 M:	Jens Axboe <axboe@kernel.dk>
