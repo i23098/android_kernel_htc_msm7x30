@@ -71,6 +71,13 @@ enum usb_phy_events {
 	USB_EVENT_ENUMERATED,   /* gadget driver enumerated */
 };
 
+/* associate a type with PHY */
+enum usb_phy_type {
+	USB_PHY_TYPE_UNDEFINED,
+	USB_PHY_TYPE_USB2,
+	USB_PHY_TYPE_USB3,
+};
+
 struct usb_phy;
 
 /* for transceivers connected thru an ULPI interface, the user must
@@ -117,6 +124,7 @@ struct usb_phy {
 	const char		*label;
 	unsigned int		 flags;
 
+	enum usb_phy_type	type;
 	enum usb_otg_state	state;
 	enum usb_phy_events	last_event;
 
@@ -132,6 +140,9 @@ struct usb_phy {
 	/* to pass extra port status to the root hub */
 	u16			port_status;
 	u16			port_change;
+
+	/* to support controllers that have multiple transceivers */
+	struct list_head	head;
 
 	/* initialize/shutdown the OTG controller */
 	int	(*init)(struct usb_phy *x);
@@ -158,11 +169,15 @@ struct usb_phy {
 	void	(*notify_charger)(struct usb_phy *otg,
 			int connect_type);
 
+	/* notify phy connect status change */
+	int	(*notify_connect)(struct usb_phy *x, int port);
+	int	(*notify_disconnect)(struct usb_phy *x, int port);
 };
 
 
 /* for board-specific init logic */
-extern int usb_set_transceiver(struct usb_phy *);
+extern int usb_add_phy(struct usb_phy *, enum usb_phy_type type);
+extern void usb_remove_phy(struct usb_phy *);
 
 #if defined(CONFIG_NOP_USB_XCEIV) || (defined(CONFIG_NOP_USB_XCEIV_MODULE) && defined(MODULE))
 /* sometimes transceivers are accessed only through e.g. ULPI */
@@ -217,16 +232,29 @@ extern int otg_send_event(enum usb_otg_event event);
 
 /* for usb host and peripheral controller drivers */
 #ifdef CONFIG_USB_OTG_UTILS
-extern struct usb_phy *usb_get_transceiver(void);
-extern void usb_put_transceiver(struct usb_phy *);
+extern struct usb_phy *usb_get_phy(enum usb_phy_type type);
+extern struct usb_phy *devm_usb_get_phy(struct device *dev,
+	enum usb_phy_type type);
+extern void usb_put_phy(struct usb_phy *);
+extern void devm_usb_put_phy(struct device *dev, struct usb_phy *x);
 extern const char *otg_state_string(enum usb_otg_state state);
 #else
-static inline struct usb_phy *usb_get_transceiver(void)
+static inline struct usb_phy *usb_get_phy(enum usb_phy_type type)
 {
 	return NULL;
 }
 
-static inline void usb_put_transceiver(struct usb_phy *x)
+static inline struct usb_phy *devm_usb_get_phy(struct device *dev,
+	enum usb_phy_type type)
+{
+	return NULL;
+}
+
+static inline void usb_put_phy(struct usb_phy *x)
+{
+}
+
+static inline void devm_usb_put_phy(struct device *dev, struct usb_phy *x)
 {
 }
 
@@ -285,12 +313,31 @@ usb_phy_set_power(struct usb_phy *x, unsigned mA)
 		return x->set_power(x, mA);
 	return 0;
 }
+
 /* Context: can sleep */
 static inline int
 usb_phy_set_suspend(struct usb_phy *x, int suspend)
 {
 	if (x->set_suspend != NULL)
 		return x->set_suspend(x, suspend);
+	else
+		return 0;
+}
+
+static inline int
+usb_phy_notify_connect(struct usb_phy *x, int port)
+{
+	if (x->notify_connect)
+		return x->notify_connect(x, port);
+	else
+		return 0;
+}
+
+static inline int
+usb_phy_notify_disconnect(struct usb_phy *x, int port)
+{
+	if (x->notify_disconnect)
+		return x->notify_disconnect(x, port);
 	else
 		return 0;
 }
@@ -320,4 +367,15 @@ usb_unregister_notifier(struct usb_phy *x, struct notifier_block *nb)
 /* for OTG controller drivers (and maybe other stuff) */
 extern int usb_bus_start_enum(struct usb_bus *bus, unsigned port_num);
 
+static inline const char *usb_phy_type_string(enum usb_phy_type type)
+{
+	switch (type) {
+	case USB_PHY_TYPE_USB2:
+		return "USB2 PHY";
+	case USB_PHY_TYPE_USB3:
+		return "USB3 PHY";
+	default:
+		return "UNKNOWN PHY TYPE";
+	}
+}
 #endif /* __LINUX_USB_OTG_H */

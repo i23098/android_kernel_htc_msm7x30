@@ -11,12 +11,6 @@ git checkout HEAD -- drivers/staging/zsmalloc
 ####v3.17
 git checkout HEAD -- crypto/sha512_generic.c
 
-####v3.6
-git checkout HEAD -- drivers/char/random.c
-
-####v3.5
-git checkout HEAD -- arch/arm/include/asm/dma-mapping.h arch/arm/mm/dma-mapping.c arch/arm/common/dmabounce.c
-
 # cleanup
 find * | grep "\.h" | awk '{print "chmod 664 " $1}' | sh -
 find * | grep "\.c" | awk '{print "chmod 664 " $1}' | sh -
