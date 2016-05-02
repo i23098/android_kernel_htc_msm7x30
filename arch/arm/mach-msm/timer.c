@@ -40,6 +40,9 @@
 #include "smd_private.h"
 #endif
 
+extern void set_delay_fn(void (*fn)(unsigned long));
+extern void read_current_timer_delay_loop(unsigned long loops);
+
 enum {
 	MSM_TIMER_DEBUG_SYNC = 1U << 0,
 };
