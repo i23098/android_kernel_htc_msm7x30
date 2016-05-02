@@ -28,6 +28,20 @@
 #include <proto/802.11.h>
 #include <proto/p2p.h>
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
+#define bcm_struct_cfgdev	struct wireless_dev
+#define ndev_to_wdev(ndev)	(ndev->ieee80211_ptr)
+#define wdev_to_ndev(wdev)	(wdev->netdev)
+#define ndev_to_cfgdev(ndev)	ndev_to_wdev(ndev)
+#define cfgdev_to_ndev(wdev)	wdev_to_ndev(wdev)
+#define scan_req_to_ndev(scan)	wdev_to_ndev(scan->wdev)
+#else
+#define bcm_struct_cfgdev	struct net_device
+#define ndev_to_cfgdev(ndev)	(ndev)
+#define cfgdev_to_ndev(ndev)	(ndev)
+#define scan_req_to_ndev(scan)	(scan->dev)
+#endif
+
 struct wl_priv;
 extern u32 wl_dbg_level;
 
@@ -208,7 +222,7 @@ wl_cfgp2p_find_idx(struct wl_priv *wl, struct net_device *ndev);
 
 
 extern s32
-wl_cfgp2p_listen_complete(struct wl_priv *wl, struct net_device *ndev,
+wl_cfgp2p_listen_complete(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
             const wl_event_msg_t *e, void *data);
 extern s32
 wl_cfgp2p_discover_listen(struct wl_priv *wl, s32 channel, u32 duration_ms);
@@ -217,7 +231,7 @@ extern s32
 wl_cfgp2p_discover_enable_search(struct wl_priv *wl, u8 enable);
 
 extern s32
-wl_cfgp2p_action_tx_complete(struct wl_priv *wl, struct net_device *ndev,
+wl_cfgp2p_action_tx_complete(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
             const wl_event_msg_t *e, void *data);
 extern s32
 wl_cfgp2p_tx_action_frame(struct wl_priv *wl, struct net_device *dev,

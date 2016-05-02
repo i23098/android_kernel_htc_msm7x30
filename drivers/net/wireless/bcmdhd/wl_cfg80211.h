@@ -230,7 +230,7 @@ struct wl_conf {
 };
 
 typedef s32(*EVENT_HANDLER) (struct wl_priv *wl,
-                            struct net_device *ndev, const wl_event_msg_t *e, void *data);
+                             bcm_struct_cfgdev *cfgdev, const wl_event_msg_t *e, void *data);
 
 /* bss inform structure for cfg80211 interface */
 struct wl_cfg80211_bss_info {

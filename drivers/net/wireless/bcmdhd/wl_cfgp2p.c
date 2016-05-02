@@ -59,7 +59,7 @@ static int wl_cfgp2p_start_xmit(struct sk_buff *skb, struct net_device *ndev);
 static int wl_cfgp2p_do_ioctl(struct net_device *net, struct ifreq *ifr, int cmd);
 static int wl_cfgp2p_if_open(struct net_device *net);
 static int wl_cfgp2p_if_stop(struct net_device *net);
-static s32 wl_cfgp2p_cancel_listen(struct wl_priv *wl, struct net_device *ndev,
+static s32 wl_cfgp2p_cancel_listen(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 	bool notify);
 
 static const struct net_device_ops wl_cfgp2p_if_ops = {
@@ -1212,7 +1212,7 @@ exit:
  * Callback function for WLC_E_P2P_DISC_LISTEN_COMPLETE
  */
 s32
-wl_cfgp2p_listen_complete(struct wl_priv *wl, struct net_device *ndev,
+wl_cfgp2p_listen_complete(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
             const wl_event_msg_t *e, void *data)
 {
 	s32 ret = BCME_OK;
@@ -1228,7 +1228,7 @@ wl_cfgp2p_listen_complete(struct wl_priv *wl, struct net_device *ndev,
 		if (timer_pending(&wl->p2p->listen_timer)) {
 			del_timer_sync(&wl->p2p->listen_timer);
 		}
-		cfg80211_remain_on_channel_expired(ndev, wl->last_roc_id, &wl->remain_on_chan,
+		cfg80211_remain_on_channel_expired(cfgdev, wl->last_roc_id, &wl->remain_on_chan,
 		    wl->remain_on_chan_type, GFP_KERNEL);
 		if (wl_add_remove_eventmsg(wl_to_prmry_ndev(wl),
 			WLC_E_P2P_PROBREQ_MSG, false) != BCME_OK) {
@@ -1262,7 +1262,7 @@ wl_cfgp2p_listen_expired(unsigned long data)
  *  Routine for cancelling the P2P LISTEN
  */
 static s32
-wl_cfgp2p_cancel_listen(struct wl_priv *wl, struct net_device *ndev,
+wl_cfgp2p_cancel_listen(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
                          bool notify)
 {
 	WL_DBG(("Enter \n"));
@@ -1277,7 +1277,7 @@ wl_cfgp2p_cancel_listen(struct wl_priv *wl, struct net_device *ndev,
 		del_timer_sync(&wl->p2p->listen_timer);
 
 		if (notify)
-			cfg80211_remain_on_channel_expired(ndev, wl->last_roc_id,
+			cfg80211_remain_on_channel_expired(cfgdev, wl->last_roc_id,
 				&wl->remain_on_chan, wl->remain_on_chan_type, GFP_KERNEL);
 	}
 
@@ -1375,7 +1375,7 @@ wl_cfgp2p_discover_enable_search(struct wl_priv *wl, u8 enable)
  * Callback function for WLC_E_ACTION_FRAME_COMPLETE, WLC_E_ACTION_FRAME_OFF_CHAN_COMPLETE
  */
 s32
-wl_cfgp2p_action_tx_complete(struct wl_priv *wl, struct net_device *ndev,
+wl_cfgp2p_action_tx_complete(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
             const wl_event_msg_t *e, void *data)
 {
 	s32 ret = BCME_OK;
@@ -1608,7 +1608,7 @@ wl_cfgp2p_down(struct wl_priv *wl)
 {
 
 	wl_cfgp2p_cancel_listen(wl,
-		wl->p2p_net ? wl->p2p_net : wl_to_prmry_ndev(wl), TRUE);
+		wl->p2p_net ? ndev_to_cfgdev(wl->p2p_net) : ndev_to_cfgdev(wl_to_prmry_ndev(wl)), TRUE);
 
 	wl_cfgp2p_deinit_priv(wl);
 	return 0;
