@@ -18,7 +18,7 @@
  * Inputs:	r0 contains the address
  *		r1 contains the address limit, which must be preserved
  * Outputs:	r0 is the error code
- *		r2, r3 contains the zero-extended value
+ *		r2 contains the zero-extended value
  *		lr corrupted
  *
  * No other registers must be altered.  (see <asm/uaccess.h>
@@ -41,17 +41,19 @@ ENDPROC(__get_user_1)
 
 ENTRY(__get_user_2)
 	check_uaccess r0, 2, r1, r2, __get_user_bad
-#ifdef CONFIG_THUMB2_KERNEL
-2: TUSER(ldrb)	r2, [r0]
-3: TUSER(ldrb)	r3, [r0, #1]
+#ifdef CONFIG_CPU_USE_DOMAINS
+rb	.req	ip
+2:	ldrbt	r2, [r0], #1
+3:	ldrbt	rb, [r0], #0
 #else
-2: TUSER(ldrb)	r2, [r0], #1
-3: TUSER(ldrb)	r3, [r0]
+rb	.req	r0
+2:	ldrb	r2, [r0]
+3:	ldrb	rb, [r0, #1]
 #endif
 #ifndef __ARMEB__
-	orr	r2, r2, r3, lsl #8
+	orr	r2, r2, rb, lsl #8
 #else
-	orr	r2, r3, r2, lsl #8
+	orr	r2, rb, r2, lsl #8
 #endif
 	mov	r0, #0
 	mov	pc, lr
