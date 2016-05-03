@@ -448,41 +448,28 @@ static void vfp_enable(void *unused)
 #ifdef CONFIG_CPU_PM
 int vfp_pm_suspend(void)
 {
-	unsigned long flags;
-	struct thread_info *ti;
-	u32 fpexc;
-	u32 cpu;
-	int saved = 0;
+	struct thread_info *ti = current_thread_info();
+	u32 fpexc = fmrx(FPEXC);
 
-	local_irq_save(flags);
-
-	ti = current_thread_info();
-	fpexc = fmrx(FPEXC);
-	cpu = ti->cpu;
-
-#ifdef CONFIG_SMP
-	/* On SMP, if VFP is enabled, save the old state */
-	if ((fpexc & FPEXC_EN) && vfp_current_hw_state[cpu]) {
-		vfp_current_hw_state[cpu]->hard.cpu = cpu;
-#else
-	/* If there is a VFP context we must save it. */
-	if (vfp_current_hw_state[cpu]) {
-		/* Enable VFP so we can save the old state. */
-		fmxr(FPEXC, fpexc | FPEXC_EN);
-		isb();
-#endif
+	/* if vfp is on, then save state for resumption */
+	if (fpexc & FPEXC_EN) {
 		pr_debug("%s: saving vfp state\n", __func__);
-		vfp_save_state(vfp_current_hw_state[cpu], fpexc);
+		vfp_save_state(&ti->vfpstate, fpexc);
+
 		/* disable, just in case */
-		fmxr(FPEXC, fpexc & ~FPEXC_EN);
-		saved = 1;
+		fmxr(FPEXC, fmrx(FPEXC) & ~FPEXC_EN);
+	} else if (vfp_current_hw_state[ti->cpu]) {
+#ifndef CONFIG_SMP
+		fmxr(FPEXC, fpexc | FPEXC_EN);
+		vfp_save_state(vfp_current_hw_state[ti->cpu], fpexc);
+		fmxr(FPEXC, fpexc);
+#endif
 	}
-	vfp_current_hw_state[cpu] = NULL;
 
 	/* clear any information we had about last context state */
-	memset(vfp_current_hw_state, 0, sizeof(vfp_current_hw_state));
+	vfp_current_hw_state[ti->cpu] = NULL;
 
-	return saved;
+	return 0;
 }
 
 void vfp_pm_resume(void)
