@@ -208,6 +208,7 @@ static void input_repeat_key(unsigned long data)
 static int input_handle_abs_event(struct input_dev *dev,
 				  unsigned int code, int *pval)
 {
+	struct input_mt *mt = dev->mt;
 	bool is_mt_event;
 	int *pold;
 
@@ -216,8 +217,8 @@ static int input_handle_abs_event(struct input_dev *dev,
 		 * "Stage" the event; we'll flush it later, when we
 		 * get actual touch data.
 		 */
-		if (*pval >= 0 && *pval < dev->mtsize)
-			dev->slot = *pval;
+		if (mt && *pval >= 0 && *pval < mt->num_slots)
+			mt->slot = *pval;
 
 		return INPUT_IGNORE_EVENT;
 	}
@@ -226,9 +227,8 @@ static int input_handle_abs_event(struct input_dev *dev,
 
 	if (!is_mt_event) {
 		pold = &dev->absinfo[code].value;
-	} else if (dev->mt) {
-		struct input_mt_slot *mtslot = &dev->mt[dev->slot];
-		pold = &mtslot->abs[code - ABS_MT_FIRST];
+	} else if (mt) {
+		pold = &mt->slots[mt->slot].abs[code - ABS_MT_FIRST];
 	} else {
 		/*
 		 * Bypass filtering for multi-touch events when
@@ -247,8 +247,8 @@ static int input_handle_abs_event(struct input_dev *dev,
 	}
 
 	/* Flush pending "slot" event */
-	if (is_mt_event && dev->slot != input_abs_get_val(dev, ABS_MT_SLOT)) {
-		input_abs_set_val(dev, ABS_MT_SLOT, dev->slot);
+	if (is_mt_event && mt && mt->slot != input_abs_get_val(dev, ABS_MT_SLOT)) {
+		input_abs_set_val(dev, ABS_MT_SLOT, mt->slot);
 		return INPUT_PASS_TO_HANDLERS | INPUT_SLOT;
 	}
 
@@ -278,24 +278,25 @@ static int input_get_disposition(struct input_dev *dev,
 		break;
 
 	case EV_KEY:
-		if (is_event_supported(code, dev->keybit, KEY_MAX) &&
-		    !!test_bit(code, dev->key) != value) {
+		if (is_event_supported(code, dev->keybit, KEY_MAX)) {
 
-			if (value != 2) {
-				__change_bit(code, dev->key);
-				if (value)
-					input_start_autorepeat(dev, code);
-				else
-					input_stop_autorepeat(dev);
+			/* auto-repeat bypasses state updates */
+			if (value == 2) {
+				disposition = INPUT_PASS_TO_HANDLERS;
+				break;
 			}
 
-			disposition = INPUT_PASS_TO_HANDLERS;
+			if (!!test_bit(code, dev->key) != !!value) {
+
+				__change_bit(code, dev->key);
+				disposition = INPUT_PASS_TO_HANDLERS;
+			}
 		}
 		break;
 
 	case EV_SW:
 		if (is_event_supported(code, dev->swbit, SW_MAX) &&
-		    !!test_bit(code, dev->sw) != value) {
+		    !!test_bit(code, dev->sw) != !!value) {
 
 			__change_bit(code, dev->sw);
 			disposition = INPUT_PASS_TO_HANDLERS;
@@ -322,7 +323,7 @@ static int input_get_disposition(struct input_dev *dev,
 
 	case EV_LED:
 		if (is_event_supported(code, dev->ledbit, LED_MAX) &&
-		    !!test_bit(code, dev->led) != value) {
+		    !!test_bit(code, dev->led) != !!value) {
 
 			__change_bit(code, dev->led);
 			disposition = INPUT_PASS_TO_ALL;
@@ -378,7 +379,7 @@ static void input_handle_event(struct input_dev *dev,
 			v = &dev->vals[dev->num_vals++];
 			v->type = EV_ABS;
 			v->code = ABS_MT_SLOT;
-			v->value = dev->slot;
+			v->value = dev->mt->slot;
 		}
 
 		v = &dev->vals[dev->num_vals++];
@@ -1827,8 +1828,8 @@ static unsigned int input_estimate_events_per_packet(struct input_dev *dev)
 	int i;
 	unsigned int events;
 
-	if (dev->mtsize) {
-		mt_slots = dev->mtsize;
+	if (dev->mt) {
+		mt_slots = dev->mt->num_slots;
 	} else if (test_bit(ABS_MT_TRACKING_ID, dev->absbit)) {
 		mt_slots = dev->absinfo[ABS_MT_TRACKING_ID].maximum -
 			   dev->absinfo[ABS_MT_TRACKING_ID].minimum + 1,
