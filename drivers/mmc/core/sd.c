@@ -375,7 +375,6 @@ out:
 
 	return err;
 }
-EXPORT_SYMBOL(mmc_sd_switch);
 
 static int sd_select_driver_type(struct mmc_card *card, u8 *status)
 {
@@ -1042,7 +1041,6 @@ static void mmc_sd_remove(struct mmc_host *host)
 	BUG_ON(!host->card);
 
 	mmc_remove_card(host->card);
-
 	mmc_claim_host(host);
 	host->card = NULL;
 	mmc_release_host(host);

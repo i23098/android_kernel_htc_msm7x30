@@ -136,11 +136,11 @@ static int crc32c_cra_init(struct crypto_tfm *tfm)
 static struct shash_alg alg = {
 	.digestsize		=	CHKSUM_DIGEST_SIZE,
 	.setkey			=	chksum_setkey,
-	.init   		= 	chksum_init,
-	.update 		=	chksum_update,
-	.final  		=	chksum_final,
-	.finup  		=	chksum_finup,
-	.digest  		=	chksum_digest,
+	.init		=	chksum_init,
+	.update		=	chksum_update,
+	.final		=	chksum_final,
+	.finup		=	chksum_finup,
+	.digest		=	chksum_digest,
 	.descsize		=	sizeof(struct chksum_desc_ctx),
 	.base			=	{
 		.cra_name		=	"crc32c",
@@ -170,4 +170,3 @@ module_exit(crc32c_mod_fini);
 MODULE_AUTHOR("Clay Haapala <chaapala@cisco.com>");
 MODULE_DESCRIPTION("CRC32c (Castagnoli) calculations wrapper for lib/crc32c");
 MODULE_LICENSE("GPL");
-MODULE_ALIAS_CRYPTO("crc32c");

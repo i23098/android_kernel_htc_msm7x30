@@ -1983,7 +1983,6 @@ static int musb_gadget_start(struct usb_gadget *g,
 			otg_set_vbus(otg, 1);
 
 		hcd->self.uses_pio_for_control = 1;
-		hcd->self.dma_align = 1;
 	}
 	if (musb->xceiv->last_event == USB_EVENT_NONE)
 		pm_runtime_put(musb->controller);

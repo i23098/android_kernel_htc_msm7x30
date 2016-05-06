@@ -2251,29 +2251,6 @@ pgoff_t __page_file_index(struct page *page)
 EXPORT_SYMBOL_GPL(__page_file_index);
 
 /*
- * swap_lock prevents swap_map being freed. Don't grab an extra
- * reference on the swaphandle, it doesn't matter if it becomes unused.
- */
-void get_swap_cluster(swp_entry_t entry, unsigned long *begin,
-			unsigned long *end)
-{
-	struct swap_info_struct *si;
-	unsigned long offset = swp_offset(entry);
-
-	spin_lock(&swap_lock);
-	si = swap_info[swp_type(entry)];
-	/* Round the begin down to a page_cluster boundary. */
-	offset = (offset >> page_cluster) << page_cluster;
-	*begin = offset;
-	/* Round the end up, but not beyond the end of the swap device. */
-	offset = offset + (1 << page_cluster);
-	if (offset > si->max)
-		offset = si->max;
-	*end = offset;
-	spin_unlock(&swap_lock);
-}
-
-/*
  * add_swap_count_continuation - called when a swap count is duplicated
  * beyond SWAP_MAP_MAX, it allocates a new page and links that to the entry's
  * page of the original vmalloc'ed swap_map, to hold the continuation count

@@ -63,16 +63,13 @@ enum pm8xxx_version {
 #define PM8XXX_REVISION_8922_2p0	3
 
 struct pm8xxx_drvdata {
-	int			(*pmic_readb) (const struct device *dev,
-						u16 addr, u8 *val);
-	int			(*pmic_writeb) (const struct device *dev,
-						u16 addr, u8 val);
-	int			(*pmic_read_buf) (const struct device *dev,
-						u16 addr, u8 *buf, int n);
-	int			(*pmic_write_buf) (const struct device *dev,
-						u16 addr, u8 *buf, int n);
-	int			(*pmic_read_irq_stat) (const struct device *dev,
-						int irq);
+	int	(*pmic_readb) (const struct device *dev, u16 addr, u8 *val);
+	int	(*pmic_writeb) (const struct device *dev, u16 addr, u8 val);
+	int	(*pmic_read_buf) (const struct device *dev, u16 addr, u8 *buf,
+									int n);
+	int	(*pmic_write_buf) (const struct device *dev, u16 addr, u8 *buf,
+									int n);
+	int	(*pmic_read_irq_stat) (const struct device *dev, int irq);
 	enum pm8xxx_version	(*pmic_get_version) (const struct device *dev);
 	int			(*pmic_get_revision) (const struct device *dev);
 	void			*pm_chip_data;

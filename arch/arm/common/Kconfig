@@ -5,7 +5,6 @@ config ARM_GIC
 
 config GIC_NON_BANKED
 	bool
-	select MSM_SHOW_RESUME_IRQ
 
 config ARM_VIC
 	select IRQ_DOMAIN

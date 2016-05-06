@@ -6,7 +6,6 @@
 #include <linux/net.h>
 #include <linux/radix-tree.h>
 #include <linux/uio.h>
-#include <linux/version.h>
 #include <linux/workqueue.h>
 
 #include "types.h"
@@ -92,6 +91,7 @@ struct ceph_msg {
 	bool more_to_follow;
 	bool needs_out_seq;
 	int front_max;
+	unsigned long ack_stamp;        /* tx: when we were acked */
 
 	struct ceph_msgpool *pool;
 };
@@ -216,7 +216,8 @@ extern void ceph_msg_revoke_incoming(struct ceph_msg *msg);
 
 extern void ceph_con_keepalive(struct ceph_connection *con);
 
-extern struct ceph_msg *ceph_msg_new(int type, int front_len, gfp_t flags);
+extern struct ceph_msg *ceph_msg_new(int type, int front_len, gfp_t flags,
+				     bool can_fail);
 extern void ceph_msg_kfree(struct ceph_msg *m);
 
 

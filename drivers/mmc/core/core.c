@@ -1460,29 +1460,6 @@ void mmc_detect_change(struct mmc_host *host, unsigned long delay)
 
 EXPORT_SYMBOL(mmc_detect_change);
 
-int mmc_reinit_card(struct mmc_host *host)
-{
-	int err = 0;
-	printk(KERN_INFO "%s: %s\n", mmc_hostname(host),
-		__func__);
-
-	mmc_bus_get(host);
-	if (host->bus_ops && !host->bus_dead &&
-		host->bus_ops->resume) {
-		if (host->card && mmc_card_sd(host->card)) {
-			mmc_power_off(host);
-			mdelay(5);
-		}
-		mmc_power_up(host);
-		err = host->bus_ops->resume(host);
-	}
-
-	mmc_bus_put(host);
-	printk(KERN_INFO "%s: %s return %d\n", mmc_hostname(host),
-		__func__, err);
-	return err;
-}
-
 void mmc_remove_sd_card(struct work_struct *work)
 {
 	struct mmc_host *host =

@@ -268,7 +268,7 @@ extern void _memset_io(volatile void __iomem *, int, size_t);
 						MT_DEVICE_STRONGLY_ORDERED)
 #define ioremap_cached(cookie,size)	__arm_ioremap((cookie), (size), MT_DEVICE_CACHED)
 #define ioremap_wc(cookie,size)		__arm_ioremap((cookie), (size), MT_DEVICE_WC)
-#define iounmap				__iounmap
+#define iounmap				__arm_iounmap
 
 /*
  * io{read,write}{8,16,32} macros
