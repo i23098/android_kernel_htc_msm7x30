@@ -1353,7 +1353,7 @@ void usb_hnp_polling_work(struct work_struct *work)
 	int ret;
 	struct usb_bus *bus =
 		container_of(work, struct usb_bus, hnp_polling.work);
-	struct usb_device *udev = bus->root_hub->children[bus->otg_port - 1];
+	struct usb_device *udev = usb_hub_find_child(bus->root_hub, bus->otg_port);
 	u8 *status = kmalloc(sizeof(*status), GFP_KERNEL);
 
 	if (!status)
