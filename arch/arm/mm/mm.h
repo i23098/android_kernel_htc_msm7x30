@@ -34,7 +34,12 @@ static inline pmd_t *pmd_off_k(unsigned long virt)
 	return pmd_offset(pud_offset(pgd_offset_k(virt), virt), virt);
 }
 
-struct mem_type;
+struct mem_type {
+	pteval_t prot_pte;
+	pmdval_t prot_l1;
+	pmdval_t prot_sect;
+	unsigned int domain;
+};
 
 const struct mem_type *get_mem_type(unsigned int type);
 

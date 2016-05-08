@@ -20,22 +20,21 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/io.h>
-#include <linux/percpu.h>
-#include <linux/moduleparam.h>
-#include <linux/stat.h>
-#include <linux/rtc-msm.h>
 
 #include <asm/mach/time.h>
 #include <asm/hardware/gic.h>
 #include <asm/localtimer.h>
-
 #include <asm/sched_clock.h>
-#include <asm/smp_plat.h>
+
 #include <mach/msm_iomap.h>
+#include <linux/percpu.h>
+#include <linux/moduleparam.h>
+#include <linux/stat.h>
+#include <linux/rtc-msm.h>
+#include <asm/smp_plat.h>
 #include <mach/irqs.h>
 #include <mach/socinfo.h>
 #include <linux/delay.h>
-
 #if defined(CONFIG_MSM_SMD)
 #include "smd_private.h"
 #endif
@@ -1096,13 +1095,7 @@ static void __init msm_timer_init(void)
 		global_timer_offset = MSM_TMR0_BASE - MSM_TMR_BASE;
 		dgt->freq = 6750000;
 		__raw_writel(DGT_CLK_CTL_DIV_4, MSM_TMR_BASE + DGT_CLK_CTL);
-	} else if (cpu_is_msm9615()) {
-		dgt->freq = 6750000;
-		__raw_writel(DGT_CLK_CTL_DIV_4, MSM_TMR_BASE + DGT_CLK_CTL);
-		gpt->freq = 32765;
-		gpt_hz = 32765;
-		sclk_hz = 32765;
-	} else if (cpu_is_msm8960() || cpu_is_apq8064() || cpu_is_msm8930()) {
+	} else if (cpu_is_msm8960()) {
 		global_timer_offset = MSM_TMR0_BASE - MSM_TMR_BASE;
 		dgt->freq = 6750000;
 		__raw_writel(DGT_CLK_CTL_DIV_4, MSM_TMR_BASE + DGT_CLK_CTL);
@@ -1191,8 +1184,7 @@ int __cpuinit local_timer_setup(struct clock_event_device *evt)
 	if (!smp_processor_id())
 		return 0;
 
-	if (cpu_is_msm8x60() || cpu_is_msm8960() || cpu_is_apq8064()
-			|| cpu_is_msm8930())
+	if (cpu_is_msm8x60() || cpu_is_msm8960())
 		__raw_writel(DGT_CLK_CTL_DIV_4, MSM_TMR_BASE + DGT_CLK_CTL);
 
 	if (__get_cpu_var(first_boot)) {

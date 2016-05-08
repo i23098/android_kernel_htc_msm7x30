@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2007 Google Inc,
  *  Copyright (C) 2003 Deep Blue Solutions, Ltd, All Rights Reserved.
- *  Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
+ *  Copyright (C) 2009, Code Aurora Forum. All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -21,14 +21,12 @@
 #include <linux/ioport.h>
 #include <linux/device.h>
 #include <linux/interrupt.h>
-#include <linux/irq.h>
 #include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/highmem.h>
 #include <linux/log2.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
-#include <linux/mmc/mmc.h>
 #include <linux/mmc/sdio.h>
 #include <linux/clk.h>
 #include <linux/scatterlist.h>
@@ -37,17 +35,19 @@
 #include <linux/debugfs.h>
 #include <linux/io.h>
 #include <linux/memory.h>
-#include <linux/pm_runtime.h>
-#include <linux/wakelock.h>
 #include <linux/gpio.h>
-#include <linux/regulator/consumer.h>
-#include <linux/slab.h>
-#include <linux/pm_qos.h>
 
 #include <asm/cacheflush.h>
 #include <asm/div64.h>
 #include <asm/sizes.h>
 
+#include <linux/irq.h>
+#include <linux/mmc/mmc.h>
+#include <linux/pm_runtime.h>
+#include <linux/wakelock.h>
+#include <linux/regulator/consumer.h>
+#include <linux/slab.h>
+#include <linux/pm_qos.h>
 #include <asm/mach/mmc.h>
 #include <mach/msm_iomap.h>
 #include <mach/clk.h>

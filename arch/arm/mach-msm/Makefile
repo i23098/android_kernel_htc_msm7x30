@@ -29,9 +29,6 @@ obj-$(CONFIG_ARCH_MSM7X30) += gpiomux-v1.o gpiomux.o
 obj-$(CONFIG_ARCH_QSD8X50) += gpiomux-8x50.o gpiomux-v1.o gpiomux.o
 obj-$(CONFIG_ARCH_MSM8X60) += gpiomux-8x60.o gpiomux-v2.o gpiomux.o
 obj-$(CONFIG_ARCH_MSM8960) += gpiomux-v2.o gpiomux.o
-obj-$(CONFIG_ARCH_APQ8064) += gpiomux-v2.o gpiomux.o
-obj-$(CONFIG_ARCH_MSM9615) += gpiomux-v2.o gpiomux.o
-obj-$(CONFIG_ARCH_MSMCOPPER) += gpiomux-v2.o gpiomux.o
 
 obj-$(CONFIG_MSM_IOMMU) += iommu.o iommu_dev.o iommu_domains.o
 obj-y += memory.o clock-voter.o clock-dummy.o
@@ -105,25 +102,17 @@ obj-$(CONFIG_MSM_FIQ_SUPPORT) += fiq_glue.o
 obj-$(CONFIG_MACH_TROUT) += board-trout-rfkill.o
 obj-$(CONFIG_MSM_BAM_DMUX) += bam_dmux.o
 obj-$(CONFIG_MSM_SMD) += remote_spinlock.o socinfo.o
-ifndef CONFIG_ARCH_MSM9615
-ifndef CONFIG_ARCH_APQ8064
 ifndef CONFIG_ARCH_MSM8960
 ifndef CONFIG_ARCH_MSM8X60
 	obj-$(CONFIG_MSM_SMD) += pmic.o
 	obj-$(CONFIG_MSM_ONCRPCROUTER) += rpc_hsusb.o rpc_fsusb.o
 endif
 endif
-endif
-endif
 ifndef CONFIG_ARCH_MSM8960
 ifndef CONFIG_ARCH_MSM8X60
 ifndef CONFIG_ARCH_MSM7X30
-ifndef CONFIG_ARCH_APQ8064
-ifndef CONFIG_ARCH_MSMCOPPER
 ifndef CONFIG_ARCH_MSM7X27A
 	obj-y += nand_partitions.o
-endif
-endif
 endif
 endif
 endif
@@ -186,7 +175,6 @@ obj-$(CONFIG_MSM_HW3D) += hw3d.o
 ifdef CONFIG_PM
 	obj-$(CONFIG_ARCH_MSM8960) += pm-8x60.o
 	obj-$(CONFIG_ARCH_MSM8X60) += pm-8x60.o
-	obj-$(CONFIG_ARCH_MSM9615) += pm-8x60.o
 	obj-$(CONFIG_ARCH_QSD8X50) += pm2.o
 	obj-$(CONFIG_ARCH_MSM7X30) += pm2.o arch-init-7x30.o
 	obj-$(CONFIG_ARCH_MSM7X27) += pm2.o
@@ -233,7 +221,6 @@ obj-$(CONFIG_MSM_WCNSS_SSR_8960) += wcnss-ssr-8960.o
 ifdef CONFIG_CPU_IDLE
 	obj-$(CONFIG_ARCH_MSM8960) += cpuidle.o
 	obj-$(CONFIG_ARCH_MSM8X60) += cpuidle.o
-	obj-$(CONFIG_ARCH_MSM9615) += cpuidle.o
 endif
 
 obj-$(CONFIG_MSM_WATCHDOG) += msm_watchdog.o
@@ -293,11 +280,6 @@ obj-$(CONFIG_MACH_MSM8960_CDP) += board-msm8960.o board-msm8960-regulator.o
 obj-$(CONFIG_MACH_MSM8960_MTP) += board-msm8960.o board-msm8960-regulator.o
 obj-$(CONFIG_MACH_MSM8960_FLUID) += board-msm8960.o board-msm8960-regulator.o
 obj-$(CONFIG_ARCH_MSM8960) += bms-batterydata.o
-obj-$(CONFIG_ARCH_APQ8064) += board-apq8064.o devices-8064.o board-apq8064-regulator.o
-obj-$(CONFIG_ARCH_MSM9615) += board-9615.o devices-9615.o board-9615-regulator.o
-obj-$(CONFIG_ARCH_MSM9615) += clock-local.o clock-9615.o acpuclock-9615.o clock-rpm.o
-obj-$(CONFIG_ARCH_MSM9615) += rpm-regulator.o rpm-regulator-9615.o
-obj-$(CONFIG_ARCH_MSMCOPPER) += board-copper.o board-dt.o
 obj-$(CONFIG_ARCH_MSM8960) += devices_htc.o htc_wifi_nvs.o htc_awb_cal.o
 obj-$(CONFIG_ARCH_MSM8X60) += devices_htc.o htc_wifi_nvs.o sysinfo-8x60.o emmc_partitions.o htc_awb_cal.o
 

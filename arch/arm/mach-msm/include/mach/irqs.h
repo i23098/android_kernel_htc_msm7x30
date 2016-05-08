@@ -19,19 +19,10 @@
 
 #define MSM_IRQ_BIT(irq)     (1 << ((irq) & 31))
 
-#if defined(CONFIG_ARCH_MSM8960) || defined(CONFIG_ARCH_APQ8064) || \
-	defined(CONFIG_ARCH_MSM8930)
+#if defined(CONFIG_ARCH_MSM8960)
 
 #ifdef CONFIG_ARCH_MSM8960
 #include "irqs-8960.h"
-#endif
-
-#ifdef CONFIG_ARCH_MSM8930
-#include "irqs-8930.h"
-#endif
-
-#ifdef CONFIG_ARCH_APQ8064
-#include "irqs-8064.h"
 #endif
 
 /* For now, use the maximum number of interrupts until a pending GIC issue
@@ -49,11 +40,7 @@
 
 #else
 
-#if defined(CONFIG_ARCH_MSMCOPPER)
-#include "irqs-copper.h"
-#elif defined(CONFIG_ARCH_MSM9615)
-#include "irqs-9615.h"
-#elif defined(CONFIG_ARCH_MSM7X30)
+#if defined(CONFIG_ARCH_MSM7X30)
 #include "irqs-7x30.h"
 #elif defined(CONFIG_ARCH_QSD8X50)
 #include "irqs-8x50.h"

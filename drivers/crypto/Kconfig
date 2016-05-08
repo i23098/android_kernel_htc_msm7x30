@@ -314,7 +314,7 @@ config CRYPTO_DEV_QCRYPTO
 
 config CRYPTO_DEV_QCE
 	tristate "Qualcomm Crypto Engine (QCE) module"
-	select  CRYPTO_DEV_QCE40 if ARCH_MSM8960 || ARCH_MSM9615
+	select  CRYPTO_DEV_QCE40 if ARCH_MSM8960
 	default n
 	help
           This driver supports Qualcomm Crypto Engine in MSM7x30, MSM8660

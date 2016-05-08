@@ -131,40 +131,6 @@ config ARCH_MSM8960
 	select ARCH_MEMORY_REMOVE
 	select HAS_MSM_DEBUG_UART_PHYS
 
-config ARCH_APQ8064
-	bool "APQ8064"
-	select ARCH_MSM_KRAITMP
-	select MACH_APQ8064_SIM if !MACH_APQ8064_RUMI3
-	select MSM_V2_TLMM
-	select ARM_GIC
-	select CPU_V7
-	select MSM_SCM if SMP
-	select MSM_GPIOMUX
-	select MSM_REMOTE_SPINLOCK_SFPB
-	select HAS_MSM_DEBUG_UART_PHYS
-
-config ARCH_MSMCOPPER
-	bool "MSM Copper"
-	select ARCH_MSM_KRAITMP
-	select MSM_V2_TLMM
-	select ARM_GIC
-	select CPU_V7
-	select MSM_SCM if SMP
-	select MSM_GPIOMUX
-	select HAS_MSM_DEBUG_UART_PHYS
-
-config ARCH_MSM9615
-	bool "MSM9615"
-	select ARM_GIC
-	select ARCH_MSM_CORTEX_A5
-	select CPU_V7
-	select MSM_V2_TLMM
-	select MSM_GPIOMUX
-	select MSM_RPM
-	select MSM_SPM_V2
-	select MSM_NATIVE_RESTART
-	select HAS_MSM_DEBUG_UART_PHYS
-
 endchoice
 
 choice
@@ -812,18 +778,6 @@ config MACH_MSM8960_LIQUID
 	help
 	  Support for the Qualcomm MSM8960 LIQUID device.
 
-config MACH_MSM9615_CDP
-	depends on ARCH_MSM9615
-	bool "MSM9615 CDP"
-	help
-	  Support for the Qualcomm MSM9615 CDP device.
-
-config MACH_MSM9615_MTP
-	depends on ARCH_MSM9615
-	bool "MSM9615 MTP"
-	help
-	  Support for the Qualcomm MSM9615 MTP device.
-
 config MSM_USE_TSIF1
 	depends on ARCH_MSM8X60
 	bool "MSM8x60 use TSIF1"
@@ -831,18 +785,6 @@ config MSM_USE_TSIF1
 	  Selects TSIF1 core to be used rather than TSIF0.
 	  The two TSIF cores share the same DM configuration
 	  so they cannot be used simultaneously.
-
-config MACH_APQ8064_SIM
-	depends on ARCH_APQ8064
-	bool "APQ8064 Simulator"
-	help
-	  Support for the Qualcomm APQ8064 simulator.
-
-config MACH_APQ8064_RUMI3
-	depends on ARCH_APQ8064
-	bool "APQ8064 RUMI3"
-	help
-	  Support for the Qualcomm APQ8064 RUMI3 emulator.
 
 config MACH_VILLE
 	depends on ARCH_MSM8960
@@ -896,7 +838,7 @@ endmenu
 
 config MSM_IOMMU
 	bool "MSM IOMMU Support"
-	depends on ARCH_MSM8X60 || ARCH_MSM8960 || ARCH_APQ8064
+	depends on ARCH_MSM8X60 || ARCH_MSM8960
 	select IOMMU_API
 	default n
 	help
@@ -971,10 +913,7 @@ config MSM_STACKED_MEMORY
 
 config PHYS_OFFSET
 	hex "Kernel physical start address"
-	default "0x40800000" if ARCH_MSM9615
-	default "0x80200000" if ARCH_APQ8064
 	default "0x80400000" if ARCH_MSM8960
-	default "0x80200000" if ARCH_MSMCOPPER
 	default "0x00200000" if !MSM_STACKED_MEMORY
 	default "0x00000000" if ARCH_QSD8X50 && MSM_SOC_REV_A
 	default "0x20000000" if ARCH_QSD8X50
@@ -2017,7 +1956,7 @@ config MSM_SCM
 
 config MSM_SUBSYSTEM_RESTART
 	bool "MSM Subsystem Restart Driver"
-	depends on (ARCH_MSM8X60 || ARCH_MSM8960 || ARCH_MSM9615)
+	depends on (ARCH_MSM8X60 || ARCH_MSM8960)
 	default n
 	help
 	  This option enables the MSM subsystem restart driver, which provides
@@ -2034,7 +1973,7 @@ config MSM_SYSMON_COMM
 
 config MSM_MODEM_8960
 	bool "MSM 8960 Modem driver"
-	depends on (ARCH_MSM8960 || ARCH_MSM9615)
+	depends on (ARCH_MSM8960)
 	help
 	 This option enables the modem driver for the MSM8960 and MSM9615, which monitors
 	 modem hardware watchdog interrupt lines and plugs into the subsystem
@@ -2042,7 +1981,7 @@ config MSM_MODEM_8960
 
 config MSM_LPASS_8960
 	tristate "MSM 8960 Lpass driver"
-	depends on (ARCH_MSM8960 || ARCH_MSM9615)
+	depends on (ARCH_MSM8960)
 	help
 	 This option enables the lpass driver for the MSM8960 and MSM9615. This monitors
 	 lpass hardware watchdog interrupt lines and plugs into the subsystem
@@ -2129,7 +2068,7 @@ config MSM_BUS_RPM_MULTI_TIER_ENABLED
 
 config MSM_WATCHDOG
 	bool "MSM Watchdog Support"
-	depends on ARCH_MSM8X60 || ARCH_MSM8960 || ARCH_MSM9615
+	depends on ARCH_MSM8X60 || ARCH_MSM8960
 	help
 	  This enables the watchdog as is present on 8x60. Currently we use
 	  core 0's watchdog, and reset the entire SoC if it times out. It does
@@ -2138,7 +2077,7 @@ config MSM_WATCHDOG
 
 config MSM_DLOAD_MODE
 	bool "Enable download mode on crashes"
-	depends on ARCH_MSM8X60 || ARCH_MSM8960 || ARCH_MSM9615
+	depends on ARCH_MSM8X60 || ARCH_MSM8960
 	default n
 	help
 	  This makes the SoC enter download mode when it resets
@@ -2210,7 +2149,7 @@ config MSM_SHARED_GPIO_FOR_UART2DM
 
 config MSM_SHOW_RESUME_IRQ
 	bool "Enable logging of interrupts that could have caused resume"
-	depends on (ARCH_MSM7X30 || ARCH_MSM8X60 || ARCH_MSM8960 || ARCH_MSMCOPPER)
+	depends on (ARCH_MSM7X30 || ARCH_MSM8X60 || ARCH_MSM8960)
 	default n
 	help
 	  This option logs wake up interrupts that have triggered just before

@@ -290,9 +290,6 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 	struct cpufreq_work_struct *cpu_work = NULL;
 #endif
 
-	if (cpu_is_apq8064())
-		return -ENODEV;
-
 	table = cpufreq_frequency_get_table(policy->cpu);
 	if (cpufreq_frequency_table_cpuinfo(policy, table)) {
 #ifdef CONFIG_MSM_CPU_FREQ_SET_MIN_MAX

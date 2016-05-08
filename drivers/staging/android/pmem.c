@@ -34,6 +34,7 @@
 #include <asm/cacheflush.h>
 #include <asm/sizes.h>
 #include <asm/mach/map.h>
+#include <../mm/mm.h>
 #include <asm/page.h>
 #include <linux/export.h>
 

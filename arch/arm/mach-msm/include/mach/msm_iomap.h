@@ -37,9 +37,7 @@
  *
  */
 
-#if defined(CONFIG_ARCH_MSM8960) || defined(CONFIG_ARCH_APQ8064) || \
-	defined(CONFIG_ARCH_MSM8930) || defined(CONFIG_ARCH_MSM9615) || \
-	defined(CONFIG_ARCH_MSMCOPPER)
+#if defined(CONFIG_ARCH_MSM8960)
 /* Unified iomap */
 
 #define MSM_TMR_BASE		IOMEM(0xFA000000)	/*  4K	*/
@@ -72,16 +70,11 @@
 #define MSM_L2CC_BASE		IOMEM(0xFA701000)	/* 4K */
 #define MSM_APCS_GLB_BASE	IOMEM(0xFA702000)	/* 4K */
 
-#if defined(CONFIG_ARCH_MSM9615)
-#define MSM_SHARED_RAM_SIZE	SZ_1M
-#else
 #define MSM_SHARED_RAM_SIZE	SZ_2M
-#endif
 
 #include "msm_iomap-8960.h"
 #include "msm_iomap-8930.h"
 #include "msm_iomap-8064.h"
-#include "msm_iomap-9615.h"
 #include "msm_iomap-copper.h"
 
 #else

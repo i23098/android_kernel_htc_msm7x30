@@ -229,20 +229,6 @@ int msm_dmov_exec_cmd(unsigned id, unsigned int cmdptr);
 #define DMOV_HSUART_GSBI6_RX_CHAN	8
 #define DMOV_HSUART_GSBI6_RX_CRCI	11
 
-#elif defined(CONFIG_ARCH_MSM9615)
-
-#define DMOV_GP_CHAN          4
-
-#define DMOV_CE_IN_CHAN       0
-#define DMOV_CE_IN_CRCI       12
-
-#define DMOV_CE_OUT_CHAN      1
-#define DMOV_CE_OUT_CRCI      13
-
-#define DMOV_NAND_CHAN        3
-#define DMOV_NAND_CRCI_CMD    15
-#define DMOV_NAND_CRCI_DATA   3
-
 #else
 #define DMOV_GP_CHAN          4
 
