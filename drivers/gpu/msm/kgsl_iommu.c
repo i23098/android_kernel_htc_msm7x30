@@ -63,6 +63,11 @@ static struct kgsl_iommu_register_list kgsl_iommuv2_reg[KGSL_IOMMU_REG_MAX] = {
 
 struct remote_iommu_petersons_spinlock kgsl_iommu_sync_lock_vars;
 
+/* msm_shared_ram_phys default value of 0x00100000 is the most common value
+ * and should work as-is for any target without stacked memory.
+ */
+unsigned int msm_shared_ram_phys = 0x00100000;
+
 /*
  * One page allocation for a guard region to protect against over-zealous
  * GPU pre-fetch
