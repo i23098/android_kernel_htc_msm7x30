@@ -1679,8 +1679,8 @@ gadgetfs_unbind (struct usb_gadget *gadget)
 
 static struct dev_data		*the_device;
 
-static int gadgetfs_bind(struct usb_gadget *gadget,
-		struct usb_gadget_driver *driver)
+static int
+gadgetfs_bind (struct usb_gadget *gadget)
 {
 	struct dev_data		*dev = the_device;
 
@@ -1758,7 +1758,6 @@ gadgetfs_suspend (struct usb_gadget *gadget)
 
 static struct usb_gadget_driver gadgetfs_driver = {
 	.function	= (char *) driver_desc,
-	.bind		= gadgetfs_bind,
 	.unbind		= gadgetfs_unbind,
 	.setup		= gadgetfs_setup,
 	.disconnect	= gadgetfs_disconnect,
@@ -1773,8 +1772,7 @@ static struct usb_gadget_driver gadgetfs_driver = {
 
 static void gadgetfs_nop(struct usb_gadget *arg) { }
 
-static int gadgetfs_probe(struct usb_gadget *gadget,
-		struct usb_gadget_driver *driver)
+static int gadgetfs_probe (struct usb_gadget *gadget)
 {
 	CHIP = gadget->name;
 	return -EISNAM;
@@ -1782,7 +1780,6 @@ static int gadgetfs_probe(struct usb_gadget *gadget,
 
 static struct usb_gadget_driver probe_driver = {
 	.max_speed	= USB_SPEED_HIGH,
-	.bind		= gadgetfs_probe,
 	.unbind		= gadgetfs_nop,
 	.setup		= (void *)gadgetfs_nop,
 	.disconnect	= gadgetfs_nop,
@@ -1896,8 +1893,7 @@ dev_config (struct file *fd, const char __user *buf, size_t len, loff_t *ptr)
 		gadgetfs_driver.max_speed = USB_SPEED_HIGH;
 	else
 		gadgetfs_driver.max_speed = USB_SPEED_FULL;
-
-	value = usb_gadget_probe_driver(&gadgetfs_driver);
+	value = usb_gadget_probe_driver(&gadgetfs_driver, gadgetfs_bind);
 	if (value != 0) {
 		kfree (dev->buf);
 		dev->buf = NULL;
@@ -2036,7 +2032,7 @@ gadgetfs_fill_super (struct super_block *sb, void *opts, int silent)
 		return -ESRCH;
 
 	/* fake probe to determine $CHIP */
-	usb_gadget_probe_driver(&probe_driver);
+	(void) usb_gadget_probe_driver(&probe_driver, gadgetfs_probe);
 	if (!CHIP)
 		return -ENODEV;
 
