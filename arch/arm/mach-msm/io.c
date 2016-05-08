@@ -29,49 +29,36 @@
 
 #include <mach/board.h>
 
-#define MSM_CHIP_DEVICE(name, chip) {			      \
+#define MSM_CHIP_DEVICE_TYPE(name, chip, mem_type) {			      \
 		.virtual = (unsigned long) MSM_##name##_BASE, \
 		.pfn = __phys_to_pfn(chip##_##name##_PHYS), \
 		.length = chip##_##name##_SIZE, \
-		.type = MT_DEVICE_NONSHARED, \
+		.type = mem_type, \
 	 }
 
+#define MSM_DEVICE_TYPE(name, mem_type) \
+		MSM_CHIP_DEVICE_TYPE(name, MSM, mem_type)
+#define MSM_CHIP_DEVICE(name, chip) \
+		MSM_CHIP_DEVICE_TYPE(name, chip, MT_DEVICE)
 #define MSM_DEVICE(name) MSM_CHIP_DEVICE(name, MSM)
-
-/* msm_shared_ram_phys default value of 0x00100000 is the most common value
- * and should work as-is for any target without stacked memory.
- */
-unsigned int msm_shared_ram_phys = 0x00100000;
-
-static void msm_map_io(struct map_desc *io_desc, int size)
-{
-	int i;
-
-	BUG_ON(!size);
-	for (i = 0; i < size; i++)
-		if (io_desc[i].virtual == (unsigned long)MSM_SHARED_RAM_BASE)
-			io_desc[i].pfn = __phys_to_pfn(msm_shared_ram_phys);
-
-	iotable_init(io_desc, size);
-}
 
 #if defined(CONFIG_ARCH_MSM7X00A) || defined(CONFIG_ARCH_MSM7X27) \
 	|| defined(CONFIG_ARCH_MSM7X25)
 static struct map_desc msm_io_desc[] __initdata = {
-	MSM_DEVICE(VIC),
-	MSM_DEVICE(CSR),
+	MSM_DEVICE_TYPE(VIC, MT_DEVICE_NONSHARED),
+	MSM_DEVICE_TYPE(CSR, MT_DEVICE_NONSHARED),
 #if defined(CONFIG_ARCH_MSM7X27)
-	MSM_DEVICE(DMOV),
+	MSM_DEVICE_TYPE(DMOV, MT_DEVICE_NONSHARED),
 #endif
-	MSM_CHIP_DEVICE(GPIO1, MSM7X00),
-	MSM_CHIP_DEVICE(GPIO2, MSM7X00),
-	MSM_DEVICE(CLK_CTL),
-	MSM_DEVICE(TMR),
-	MSM_DEVICE(AD5),
-	MSM_DEVICE(MDC),
+	MSM_CHIP_DEVICE_TYPE(GPIO1, MSM7X00, MT_DEVICE_NONSHARED),
+	MSM_CHIP_DEVICE_TYPE(GPIO2, MSM7X00, MT_DEVICE_NONSHARED),
+	MSM_DEVICE_TYPE(CLK_CTL, MT_DEVICE_NONSHARED),
+	MSM_DEVICE_TYPE(TMR, MT_DEVICE_NONSHARED),
+	MSM_DEVICE_TYPE(AD5, MT_DEVICE_NONSHARED),
+	MSM_DEVICE_TYPE(MDC, MT_DEVICE_NONSHARED),
 #if defined(CONFIG_MSM_DEBUG_UART) || defined(CONFIG_DEBUG_MSM_UART1) || defined(CONFIG_DEBUG_MSM_UART2) || \
 	defined(CONFIG_DEBUG_MSM_UART3)
-	MSM_DEVICE(DEBUG_UART),
+	MSM_DEVICE_TYPE(DEBUG_UART, MT_DEVICE_NONSHARED),
 #endif
 #ifdef CONFIG_CACHE_L2X0
 	{
@@ -83,6 +70,7 @@ static struct map_desc msm_io_desc[] __initdata = {
 #endif
 	{
 		.virtual =  (unsigned long) MSM_SHARED_RAM_BASE,
+		.pfn = __phys_to_pfn(MSM_SHARED_RAM_PHYS),
 		.length =   MSM_SHARED_RAM_SIZE,
 		.type =     MT_DEVICE,
 	},
@@ -100,7 +88,7 @@ void __init msm_map_common_io(void)
 	 */
 	asm("mcr p15, 0, %0, c15, c2, 4" : : "r" (0));
 #endif
-	msm_map_io(msm_io_desc, ARRAY_SIZE(msm_io_desc));
+	iotable_init(msm_io_desc, ARRAY_SIZE(msm_io_desc));
 }
 #endif
 
@@ -123,6 +111,7 @@ static struct map_desc qsd8x50_io_desc[] __initdata = {
 #endif
 	{
 		.virtual =  (unsigned long) MSM_SHARED_RAM_BASE,
+		.pfn = __phys_to_pfn(MSM_SHARED_RAM_PHYS),
 		.length =   MSM_SHARED_RAM_SIZE,
 		.type =     MT_DEVICE,
 	},
@@ -130,7 +119,7 @@ static struct map_desc qsd8x50_io_desc[] __initdata = {
 
 void __init msm_map_qsd8x50_io(void)
 {
-	msm_map_io(qsd8x50_io_desc, ARRAY_SIZE(qsd8x50_io_desc));
+	iotable_init(qsd8x50_io_desc, ARRAY_SIZE(qsd8x50_io_desc));
 }
 #endif /* CONFIG_ARCH_QSD8X50 */
 
@@ -162,6 +151,7 @@ static struct map_desc msm8x60_io_desc[] __initdata = {
 	MSM_DEVICE(SIC_NON_SECURE),
 	{
 		.virtual =  (unsigned long) MSM_SHARED_RAM_BASE,
+		.pfn = __phys_to_pfn(MSM_SHARED_RAM_PHYS),
 		.length =   MSM_SHARED_RAM_SIZE,
 		.type =     MT_DEVICE,
 	},
@@ -175,7 +165,7 @@ static struct map_desc msm8x60_io_desc[] __initdata = {
 
 void __init msm_map_msm8x60_io(void)
 {
-	msm_map_io(msm8x60_io_desc, ARRAY_SIZE(msm8x60_io_desc));
+	iotable_init(msm8x60_io_desc, ARRAY_SIZE(msm8x60_io_desc));
 }
 #endif /* CONFIG_ARCH_MSM8X60 */
 
@@ -203,6 +193,7 @@ static struct map_desc msm8960_io_desc[] __initdata = {
 	MSM_CHIP_DEVICE(HDMI, MSM8960),
 	{
 		.virtual =  (unsigned long) MSM_SHARED_RAM_BASE,
+		.pfn = __phys_to_pfn(MSM_SHARED_RAM_PHYS),
 		.length =   MSM_SHARED_RAM_SIZE,
 		.type =     MT_DEVICE,
 	},
@@ -217,7 +208,7 @@ static struct map_desc msm8960_io_desc[] __initdata = {
 
 void __init msm_map_msm8960_io(void)
 {
-	msm_map_io(msm8960_io_desc, ARRAY_SIZE(msm8960_io_desc));
+	iotable_init(msm8960_io_desc, ARRAY_SIZE(msm8960_io_desc));
 }
 #endif /* CONFIG_ARCH_MSM8960 */
 
@@ -242,6 +233,7 @@ static struct map_desc msm7x30_io_desc[] __initdata = {
 #endif
 	{
 		.virtual =  (unsigned long) MSM_SHARED_RAM_BASE,
+		.pfn = __phys_to_pfn(MSM_SHARED_RAM_PHYS),
 		.length =   MSM_SHARED_RAM_SIZE,
 		.type =     MT_DEVICE,
 	},
@@ -249,7 +241,7 @@ static struct map_desc msm7x30_io_desc[] __initdata = {
 
 void __init msm_map_msm7x30_io(void)
 {
-	msm_map_io(msm7x30_io_desc, ARRAY_SIZE(msm7x30_io_desc));
+	iotable_init(msm7x30_io_desc, ARRAY_SIZE(msm7x30_io_desc));
 }
 #endif /* CONFIG_ARCH_MSM7X30 */
 
