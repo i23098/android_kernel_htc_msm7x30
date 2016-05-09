@@ -111,4 +111,6 @@ char *board_serialno(void);
 unsigned long get_kernel_flag(void);
 unsigned int get_radio_flag(void);
 char *get_model_id(void);
+
+extern void (*msm_hw_reset_hook)(void);
 #endif

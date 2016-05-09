@@ -49,7 +49,6 @@
 #include <mach/panel_id.h>
 #include <linux/rtc-msm.h>
 
-#include <mach/system.h>
 #include <mach/mpp.h>
 #include <mach/board.h>
 #include <mach/camera-7x30.h>

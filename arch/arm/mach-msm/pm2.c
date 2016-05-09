@@ -61,6 +61,8 @@
 #include "sirc.h"
 #include "pm-boot.h"
 #include <mach/board.h>
+#include <mach/board_htc.h>
+
 
 /******************************************************************************
  * Debug Definitions
