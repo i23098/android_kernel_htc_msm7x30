@@ -57,6 +57,7 @@ extern int ioremap_pages(unsigned long virt, unsigned long phys,
 			unsigned long size, const struct mem_type *mtype);
 #else
 #define iotable_init(map,num)	do { } while (0)
+#define vm_reserve_area_early(a,s,c)	do { } while (0)
 #endif
 
 #endif
