@@ -95,7 +95,6 @@ config ARCH_MSM8X60
 	select MSM_DALRPC
 	select MSM_QDSP6_APR
 	select MSM_NATIVE_RESTART
-	select CPU_HAS_L2_PMU
 	select MSM_SPM_V1
 	select HAS_MSM_DEBUG_UART_PHYS
 
@@ -114,7 +113,6 @@ config ARCH_MSM8960
 	select MSM_QDSP6_APR
 	select MSM_PIL
 	select MSM_AUDIO_QDSP6 if SND_SOC
-	select CPU_HAS_L2_PMU
 	select MSM_SPM_V2
 	select HAS_QDSS
 	select MSM_L2_SPM
@@ -1142,11 +1140,6 @@ config MSM_SUSPEND_STATS_FIRST_BUCKET
 	  histogram.  This is for collecting statistics on suspend.
 
 endif # MSM_IDLE_STATS
-
-config CPU_HAS_L2_PMU
-	bool "L2CC PMU Support"
-	help
-	  Select this if the L2 cache controller has a Performance Monitoring Unit.
 
 config HTC_HEADSET
 	tristate "HTC 2 Wire detection driver"

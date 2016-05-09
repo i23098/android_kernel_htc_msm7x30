@@ -20,34 +20,15 @@ static struct resource cpu_pmu_resource = {
 	.flags	= IORESOURCE_IRQ,
 };
 
-#ifdef CONFIG_CPU_HAS_L2_PMU
-static struct resource l2_pmu_resource = {
-	.start = SC_SICL2PERFMONIRPTREQ,
-	.end = SC_SICL2PERFMONIRPTREQ,
-	.flags = IORESOURCE_IRQ,
-};
-
-static struct platform_device l2_pmu_device = {
-	.name		= "l2-pmu",
-	.id		= ARM_PMU_DEVICE_L2,
-	.resource	= &l2_pmu_resource,
-	.num_resources	= 1,
-};
-
-#endif
-
 static struct platform_device cpu_pmu_device = {
 	.name		= "arm-pmu",
-	.id		= ARM_PMU_DEVICE_CPU,
+	.id		= -1,
 	.resource	= &cpu_pmu_resource,
 	.num_resources	= 1,
 };
 
 static struct platform_device *pmu_devices[] = {
 	&cpu_pmu_device,
-#ifdef CONFIG_CPU_HAS_L2_PMU
-	&l2_pmu_device,
-#endif
 };
 
 static int __init msm_pmu_init(void)
