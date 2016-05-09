@@ -103,3 +103,6 @@ endif
 
 # MSM8960
    zreladdr-$(CONFIG_ARCH_MSM8960)	:= 0x80408000
+
+dtb-$(CONFIG_ARCH_MSM8X60) += msm8660-surf.dtb
+dtb-$(CONFIG_ARCH_MSM8960) += msm8960-cdp.dtb

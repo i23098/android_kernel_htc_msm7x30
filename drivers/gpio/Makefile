@@ -82,6 +82,7 @@ obj-$(CONFIG_GPIO_PM8XXX_MPP) 	+= pm8xxx-mpp.o
 obj-$(CONFIG_GPIO_PM8XXX_RPC)	+= gpio-pm8xxx-rpc.o
 obj-$(CONFIG_GPIO_UCB1400)	+= gpio-ucb1400.o
 obj-$(CONFIG_GPIO_VR41XX)	+= gpio-vr41xx.o
+obj-$(CONFIG_GPIO_VT8500)	+= gpio-vt8500.o
 obj-$(CONFIG_GPIO_VX855)	+= gpio-vx855.o
 obj-$(CONFIG_GPIO_WM831X)	+= gpio-wm831x.o
 obj-$(CONFIG_GPIO_WM8350)	+= gpio-wm8350.o

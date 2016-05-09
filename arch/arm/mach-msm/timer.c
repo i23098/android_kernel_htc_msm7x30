@@ -1,7 +1,7 @@
 /*
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -20,12 +20,16 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/io.h>
+#include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/of_irq.h>
 
 #include <asm/mach/time.h>
 #include <asm/hardware/gic.h>
 #include <asm/localtimer.h>
 #include <asm/sched_clock.h>
 
+#include "common.h"
 #include <mach/msm_iomap.h>
 #include <linux/percpu.h>
 #include <linux/moduleparam.h>
@@ -1046,7 +1050,7 @@ static int __cpuinit msm_local_timer_setup(struct clock_event_device *evt)
 
 	*__this_cpu_ptr(msm_evt.percpu_evt) = evt;
 	clockevents_register_device(evt);
-	enable_percpu_irq(evt->irq, 0);
+	enable_percpu_irq(evt->irq, IRQ_TYPE_EDGE_RISING);
 	return 0;
 }
 
