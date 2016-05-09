@@ -1,8 +1,12 @@
 if ARCH_MSM
 
+comment "Qualcomm MSM SoC Type"
+	depends on (ARCH_MSM8X60 || ARCH_MSM8960)
+
 choice
 	prompt "Qualcomm MSM SoC Type"
 	default ARCH_MSM7X00A
+	depends on !(ARCH_MSM8X60 || ARCH_MSM8960)
 
 config ARCH_MSM7X00A
 	bool "MSM7x00A / MSM7x01A"
@@ -46,6 +50,8 @@ config ARCH_QSD8X50
 	select MSM_PROC_COMM
 	select MSM_DALRPC
 	select HAS_MSM_DEBUG_UART_PHYS
+
+endchoice
 
 config ARCH_MSM8X60
 	bool "MSM8X60"
@@ -108,8 +114,6 @@ config ARCH_MSM8960
 	select ARCH_MEMORY_REMOVE
 	select HAS_MSM_DEBUG_UART_PHYS
 	select USE_OF
-
-endchoice
 
 choice
 	prompt "MSM SoC Revision"
