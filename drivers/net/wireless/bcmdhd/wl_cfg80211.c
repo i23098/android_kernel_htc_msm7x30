@@ -384,7 +384,7 @@ static void get_primary_mac(struct wl_priv *wl, struct ether_addr *mac);
 /*
  * Some external functions, TODO: move them to dhd_linux.h
  */
-int dhd_add_monitor(char *name, struct net_device **new_ndev);
+int dhd_add_monitor(const char *name, struct net_device **new_ndev);
 int dhd_del_monitor(struct net_device *ndev);
 int dhd_monitor_init(void *dhd_pub);
 int dhd_monitor_uninit(void);
@@ -728,7 +728,7 @@ static chanspec_t wl_cfg80211_get_shared_freq(struct wiphy *wiphy)
 }
 
 static bcm_struct_cfgdev*
-wl_cfg80211_add_monitor_if(char *name)
+wl_cfg80211_add_monitor_if(const char *name)
 {
 	int ret = 0;
 	struct net_device* ndev = NULL;
@@ -739,7 +739,7 @@ wl_cfg80211_add_monitor_if(char *name)
 }
 
 static bcm_struct_cfgdev *
-wl_cfg80211_add_virtual_iface(struct wiphy *wiphy, char *name,
+wl_cfg80211_add_virtual_iface(struct wiphy *wiphy, const char *name,
 	enum nl80211_iftype type, u32 *flags,
 	struct vif_params *params)
 {
