@@ -974,36 +974,6 @@ static int projector_keypad_init(struct projector_dev *dev)
 	return 0;
 }
 
-/* TODO: It's the way tools to enable projector */
-#if 0
-static ssize_t store_enable(struct device *dev, struct device_attribute *attr,
-		const char *buf, size_t count)
-{
-	int _enabled, ret;
-	ret = strict_strtol(buf, 10, (unsigned long *)&_enabled);
-	if (ret < 0) {
-		printk(KERN_INFO "%s: %d\n", __func__, ret);
-		return 0;
-	}
-	printk(KERN_INFO "projector: %d\n", _enabled);
-
-	android_enable_function(&_projector_dev.function, _enabled);
-	_projector_dev.enabled = _enabled;
-	return count;
-}
-
-static ssize_t show_enable(struct device *dev, struct device_attribute *attr,
-		char *buf)
-{
-	buf[0] = '0' + _projector_dev.enabled;
-	buf[1] = '\n';
-	return 2;
-
-}
-static DEVICE_ATTR(enable, 0664, show_enable, store_enable);
-#endif
-
-
 static void cand_online_notify(struct work_struct *w)
 {
 	struct projector_dev *dev = container_of(w,

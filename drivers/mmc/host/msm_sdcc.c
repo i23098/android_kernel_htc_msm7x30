@@ -144,60 +144,6 @@ msmsdcc_print_status(struct msmsdcc_host *host, char *hdr, uint32_t status)
 }
 #endif
 
-static inline void
-msmsdcc_disable_clocks(struct msmsdcc_host *host, int deferr)
-{
-#if 0
-	WARN_ON(!host->clks_on);
-
-	BUG_ON(host->curr.mrq);
-
-	if (deferr) {
-		mod_timer(&host->busclk_timer, jiffies + BUSCLK_TIMEOUT);
-	} else {
-		del_timer_sync(&host->busclk_timer);
-		/* Need to check clks_on again in case the busclk
-		 * timer fired
-		 */
-		if (host->clks_on) {
-			clk_disable(host->clk);
-			clk_disable(host->pclk);
-			host->clks_on = 0;
-		}
-	}
-#endif
-	return;
-}
-EXPORT_SYMBOL(msmsdcc_disable_clocks);
-
-static inline int
-msmsdcc_enable_clocks(struct msmsdcc_host *host)
-{
-	/*runtime resume would enable the CLK,
-	so we dont need this part to en-clk again*/
-#if 0
-	int rc;
-
-	del_timer_sync(&host->busclk_timer);
-
-	if (!host->clks_on) {
-		rc = clk_enable(host->pclk);
-		if (rc)
-			return rc;
-		rc = clk_enable(host->clk);
-		if (rc) {
-			clk_disable(host->pclk);
-			return rc;
-		}
-		udelay(1 + ((3 * USEC_PER_SEC) /
-		       (host->clk_rate ? host->clk_rate : msmsdcc_fmin)));
-		host->clks_on = 1;
-	}
-#endif
-	return 0;
-}
-EXPORT_SYMBOL(msmsdcc_enable_clocks);
-
 int
 msmsdcc_get_sdc_clocks(struct msmsdcc_host *host)
 {
@@ -2644,14 +2590,6 @@ static int msmsdcc_enable(struct mmc_host *mmc)
 
 	msmsdcc_pm_qos_update_latency(host, 1);
 
-#if 0
-	if (dev->power.runtime_status == RPM_SUSPENDING) {
-		if (mmc->suspend_task == current) {
-			pm_runtime_get_noresume(dev);
-			goto out;
-		}
-	}
-#endif
 	if (!pm_runtime_enabled(dev))
 		return 0;
 	rc = pm_runtime_get_sync(dev);
@@ -2662,9 +2600,6 @@ static int msmsdcc_enable(struct mmc_host *mmc)
 		return rc;
 	}
 
-#if 0
-out:
-#endif
 	return 0;
 }
 
@@ -2675,10 +2610,7 @@ static int msmsdcc_disable(struct mmc_host *mmc)
 	struct msmsdcc_host *host = mmc_priv(mmc);
 
 	msmsdcc_pm_qos_update_latency(host, 0);
-#if 0
-	if (mmc->card && mmc_card_sdio(mmc->card))
-		return 0;
-#endif
+
 	if (host->plat->disable_runtime_pm)
 		return -ENOTSUPP;
 
@@ -4412,19 +4344,6 @@ static int msmsdcc_resume(struct device *dev)
 			msmsdcc_switch_clock(host->mmc, 1);
 			msmsdcc_writel(host, host->mci_irqenable | host->cmd_pio_irqmask,
 					MMCIMASK0);
-			mb();
-		}
-#endif
-#if 0
-		/*
-		 * No need to turn on clock here, or clock might be kept on till
-		 * deferred resume.
-		 * Clock will be turned on when necessary (runtime_resume).
-		 */
-		if (!is_wifi_slot(host->plat) && !is_sd_platform(host->plat)) {
-			msmsdcc_switch_clock(host->mmc, 1);
-			msmsdcc_writel(host, host->mci_irqenable | host->cmd_pio_irqmask,
-			MMCIMASK0);
 			mb();
 		}
 #endif

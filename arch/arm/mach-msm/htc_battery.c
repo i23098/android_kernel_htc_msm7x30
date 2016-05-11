@@ -514,18 +514,12 @@ static int htc_battery_status_update(u32 curr_level)
 	htc_batt_info.rep.level = curr_level;
 #endif
 	mutex_unlock(&htc_batt_info.lock);
-#if 0
-	if (notify) {
-		power_supply_changed(&htc_power_supplies[BATTERY_SUPPLY]);
-		if (htc_batt_debug_mask & HTC_BATT_DEBUG_UEVT)
-			BATT_LOG("power_supply_changed: battery");
-	}
-#else
+
 	/* we don't check level here for charging over temp RPC call */
 		power_supply_changed(&htc_power_supplies[BATTERY_SUPPLY]);
 	if (htc_batt_debug_mask & HTC_BATT_DEBUG_UEVT)
 		BATT_LOG("power_supply_changed: battery");
-#endif
+
 	return 0;
 }
 
@@ -965,12 +959,6 @@ static int htc_get_batt_info_smem(struct battery_info_reply *buffer)
 	 * matter charging is enable or not (may negative) */
 	buffer->batt_current = buffer->batt_current - buffer->eval_current;
 
-	/* Fix issue that recharging percent drop to 99%. */
-	/* The level in SMEM is for A9 internal use,
-	 * always use value reported by M2A level update RPC. */
-#if 0
-	buffer->level 	= smem_batt_info->percent_update;
-#endif
 	/* Move the rules of charging_source to cable_status_update. */
 	/* buffer->charging_source 	= be32_to_cpu(smem_batt_info->charging_source); */
 	buffer->charging_enabled = smem_batt_info->charging_enabled;
@@ -1407,12 +1395,7 @@ static int htc_rpc_charger_switch(unsigned enable)
 			if (ret < 0)
 				BATT_ERR("%s: msm_rpc_call failed (%d)!", __func__, ret);
 		}
-#if 0
-#if defined(CONFIG_BATTERY_DS2746)
-		if (htc_batt_info.guage_driver == GUAGE_DS2746)
-			ds2746_charger_switch(enable);
-#endif
-#endif
+
 		power_supply_changed(&htc_power_supplies[CHARGER_BATTERY]);
 	}
 
@@ -1956,11 +1939,6 @@ static int handle_battery_call(struct msm_rpc_server *server,
 		args->status = be32_to_cpu(args->status);
 		if (htc_batt_debug_mask & HTC_BATT_DEBUG_M2A_RPC)
 			BATT_LOG("M2A_RPC: cable_update: %s", charger_tags[args->status]);
-#if 0
-		/* FIXME: work arround for usb function, remove it after battery driver ready */
-		if (machine_is_incrediblec() && args->status == CHARGER_AC)
-			args->status = CHARGER_USB;
-#endif
 		htc_cable_status_update(args->status);
 #if defined(CONFIG_TROUT_BATTCHG_DOCK)
 		dock_detect_start(args->status);
