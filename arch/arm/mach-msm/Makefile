@@ -535,13 +535,6 @@ ifdef CONFIG_VCM
 obj-$(CONFIG_ARCH_MSM8X60) += board-msm8x60-vcm.o
 endif
 
-ifdef CONFIG_MSM_V2_TLMM
-ifndef CONFIG_ARCH_MSM8960
-# TODO: TLMM Mapping issues need to be resolved
-obj-y	+= gpio-v2.o
-endif
-endif
-
 obj-$(CONFIG_MSM_SLEEP_STATS) += msm_rq_stats.o idle_stats.o idle_stats_device.o
 obj-$(CONFIG_MSM_SHOW_RESUME_IRQ) += msm_show_resume_irq.o
 obj-$(CONFIG_BT_MSM_PINTEST)  += btpintest.o

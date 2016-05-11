@@ -29,7 +29,7 @@
 #include <media/msm_v4l2_overlay.h>
 
 #include <mach/board.h>
-#include <mach/msm_fb.h>
+#include <linux/platform_data/video-msm_fb.h>
 
 #include "msm_v4l2_video.h"
 

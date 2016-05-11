@@ -20,7 +20,7 @@
 
 #include <linux/types.h>
 #include <linux/device.h>
-#include <mach/msm_fb.h>
+#include <linux/platform_data/video-msm_fb.h>
 #include <linux/switch.h>
 #include <linux/workqueue.h>
 #include <linux/kthread.h>

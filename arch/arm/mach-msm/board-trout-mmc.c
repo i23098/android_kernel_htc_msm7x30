@@ -15,7 +15,7 @@
 
 #include <mach/vreg.h>
 
-#include <mach/mmc.h>
+#include <linux/platform_data/mmc-msm_sdcc.h>
 
 #include "devices.h"
 
@@ -61,7 +61,7 @@ static uint opt_disable_sdcard;
 static int __init trout_disablesdcard_setup(char *str)
 {
 	int cal = simple_strtol(str, NULL, 0);
-	
+
 	opt_disable_sdcard = cal;
 	return 1;
 }

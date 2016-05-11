@@ -69,33 +69,6 @@ struct msm_mmc_gpio_data {
 	u8 size;
 };
 
-struct msm_mmc_pad_pull {
-	enum msm_tlmm_pull_tgt no;
-	u32 val;
-};
-
-struct msm_mmc_pad_pull_data {
-	struct msm_mmc_pad_pull *on;
-	struct msm_mmc_pad_pull *off;
-	u8 size;
-};
-
-struct msm_mmc_pad_drv {
-	enum msm_tlmm_hdrive_tgt no;
-	u32 val;
-};
-
-struct msm_mmc_pad_drv_data {
-	struct msm_mmc_pad_drv *on;
-	struct msm_mmc_pad_drv *off;
-	u8 size;
-};
-
-struct msm_mmc_pad_data {
-	struct msm_mmc_pad_pull_data *pull;
-	struct msm_mmc_pad_drv_data *drv;
-};
-
 struct msm_mmc_pin_data {
 	/*
 	 * = 1 if controller pins are using gpios
@@ -104,7 +77,6 @@ struct msm_mmc_pin_data {
 	u8 is_gpio;
 	u8 cfg_sts;
 	struct msm_mmc_gpio_data *gpio_data;
-	struct msm_mmc_pad_data *pad_data;
 };
 
 struct mmc_platform_data {

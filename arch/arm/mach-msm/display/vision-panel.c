@@ -10,7 +10,7 @@
 
 #include <asm/io.h>
 #include <asm/mach-types.h>
-#include <mach/msm_fb.h>
+#include <linux/platform_data/video-msm_fb.h>
 #include <mach/msm_iomap-7x30.h>
 #include <mach/msm_panel.h>
 #include <mach/vreg.h>

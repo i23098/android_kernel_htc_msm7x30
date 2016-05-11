@@ -21,7 +21,7 @@
 #include <linux/interrupt.h>
 #include <linux/sched.h>
 #include <linux/gpio.h>
-#include <mach/msm_fb.h>
+#include <linux/platform_data/video-msm_fb.h>
 
 static DECLARE_WAIT_QUEUE_HEAD(nt35399_vsync_wait);
 

@@ -2253,33 +2253,6 @@ out:
 	return rc;
 }
 
-static int msmsdcc_setup_pad(struct msmsdcc_host *host, bool enable)
-{
-	struct msm_mmc_pad_data *curr;
-	int i;
-
-	curr = host->plat->pin_data->pad_data;
-	for (i = 0; i < curr->drv->size; i++) {
-		if (enable)
-			msm_tlmm_set_hdrive(curr->drv->on[i].no,
-				curr->drv->on[i].val);
-		else
-			msm_tlmm_set_hdrive(curr->drv->off[i].no,
-				curr->drv->off[i].val);
-	}
-
-	for (i = 0; i < curr->pull->size; i++) {
-		if (enable)
-			msm_tlmm_set_pull(curr->pull->on[i].no,
-				curr->pull->on[i].val);
-		else
-			msm_tlmm_set_pull(curr->pull->off[i].no,
-				curr->pull->off[i].val);
-	}
-
-	return 0;
-}
-
 static u32 msmsdcc_setup_pins(struct msmsdcc_host *host, bool enable)
 {
 	int rc = 0;
@@ -2289,8 +2262,6 @@ static u32 msmsdcc_setup_pins(struct msmsdcc_host *host, bool enable)
 
 	if (host->plat->pin_data->is_gpio)
 		rc = msmsdcc_setup_gpio(host, enable);
-	else
-		rc = msmsdcc_setup_pad(host, enable);
 
 	if (!rc)
 		host->plat->pin_data->cfg_sts = enable;

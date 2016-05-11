@@ -27,7 +27,7 @@
 #include <asm/io.h>
 #include <asm/mach-types.h>
 
-#include <mach/msm_fb.h>
+#include <linux/platform_data/video-msm_fb.h>
 
 #include "mdp_hw.h"
 

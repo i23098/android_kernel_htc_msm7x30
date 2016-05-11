@@ -2472,7 +2472,7 @@ static int vivow_pmic_init(struct device *dev)
 
 static struct pm8058_platform_data vivow_pm8058_pdata = {
 	.irq_base	= PM8058_FIRST_IRQ,
-	.gpio_base	= FIRST_BOARD_GPIO,
+	.gpio_base	= NR_GPIO_IRQS,
 	.init		= vivow_pmic_init,
 	.num_subdevs = 3,
 	.sub_devices_htc = {
