@@ -48,7 +48,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 #include <linux/pm_qos.h>
-#include <asm/mach/mmc.h>
+#include <linux/platform_data/mmc-msm_sdcc.h>
 #include <mach/msm_iomap.h>
 #include <mach/clk.h>
 #include <mach/dma.h>
@@ -187,7 +187,7 @@ void msmsdcc_dumpreg(struct mmc_host *mmc)
 }
 
 /* HTC_CSP_START */
-static int is_wifi_slot(struct mmc_platform_data *plat)
+static int is_wifi_slot(struct msm_mmc_platform_data *plat)
 {
 	if (plat->slot_type && *plat->slot_type == MMC_TYPE_SDIO_WIFI)
 		return 1;
@@ -208,7 +208,7 @@ static char *mmc_type_str(unsigned int slot_type)
 	}
 }
 
-static int is_svlte_platform(struct mmc_platform_data *plat)
+static int is_svlte_platform(struct msm_mmc_platform_data *plat)
 {
 	if (plat->slot_type && *plat->slot_type == MMC_TYPE_SDIO_SVLTE)
 		return 1;
@@ -216,7 +216,7 @@ static int is_svlte_platform(struct mmc_platform_data *plat)
 	return 0;
 }
 
-static int is_sd_platform(struct mmc_platform_data *plat)
+static int is_sd_platform(struct msm_mmc_platform_data *plat)
 {
 	if (plat->slot_type && *plat->slot_type == MMC_TYPE_SD)
 		return 1;
@@ -224,7 +224,7 @@ static int is_sd_platform(struct mmc_platform_data *plat)
 	return 0;
 }
 
-static int is_mmc_platform(struct mmc_platform_data *plat)
+static int is_mmc_platform(struct msm_mmc_platform_data *plat)
 {
 	if (plat->slot_type && *plat->slot_type == MMC_TYPE_MMC)
 		return 1;
@@ -239,7 +239,7 @@ int is_svlte_type_mmc_card(struct mmc_card *card)
 	return is_svlte_platform(host->plat);
 }
 
-int is_wimax_platform(struct mmc_platform_data *plat)
+int is_wimax_platform(struct msm_mmc_platform_data *plat)
 {
 	if (plat->slot_type && *plat->slot_type == MMC_TYPE_SDIO_WIMAX)
 		return 1;
@@ -3551,7 +3551,7 @@ static void msmsdcc_req_tout_timer_hdlr(unsigned long data)
 static int
 msmsdcc_probe(struct platform_device *pdev)
 {
-	struct mmc_platform_data *plat = pdev->dev.platform_data;
+	struct msm_mmc_platform_data *plat = pdev->dev.platform_data;
 	struct msmsdcc_host *host;
 	struct mmc_host *mmc;
 	unsigned long flags;
@@ -4090,7 +4090,7 @@ msmsdcc_probe(struct platform_device *pdev)
 static int msmsdcc_remove(struct platform_device *pdev)
 {
 	struct mmc_host *mmc = mmc_get_drvdata(pdev);
-	struct mmc_platform_data *plat;
+	struct msm_mmc_platform_data *plat;
 	struct msmsdcc_host *host;
 
 	if (!mmc)

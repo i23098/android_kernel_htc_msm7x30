@@ -30,7 +30,7 @@
 #include <mach/sps.h>
 
 #include <asm/sizes.h>
-#include <asm/mach/mmc.h>
+#include <linux/platform_data/mmc-msm_sdcc.h>
 #include <mach/dma.h>
 
 #define MMCIPOWER		0x000
@@ -356,7 +356,7 @@ struct msmsdcc_host {
 	unsigned int		ddr_doubled_clk_rate;
 
 	u32			pwr;
-	struct mmc_platform_data *plat;
+	struct msm_mmc_platform_data *plat;
 
 	unsigned int		oldstat;
 #ifdef CONFIG_WIMAX

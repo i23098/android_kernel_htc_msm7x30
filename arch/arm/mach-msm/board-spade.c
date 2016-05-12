@@ -76,7 +76,7 @@
 #include <mach/msm_tsif.h>
 #include <mach/socinfo.h>
 #include <mach/msm_memtypes.h>
-#include <asm/mach/mmc.h>
+#include <linux/platform_data/mmc-msm_sdcc.h>
 #include <asm/mach/flash.h>
 #include <mach/vreg.h>
 #include <linux/platform_data/qcom_crypto_device.h>
@@ -2650,7 +2650,7 @@ static unsigned int msm7x30_sdcc_slot_status(struct device *dev)
 
 #ifdef CONFIG_MMC_MSM_SDC2_SUPPORT
 static unsigned int spade_sdc2_slot_type = MMC_TYPE_MMC;
-static struct mmc_platform_data msm7x30_sdc2_data = {
+static struct msm_mmc_platform_data msm7x30_sdc2_data = {
 	.ocr_mask       = MMC_VDD_165_195 | MMC_VDD_27_28,
 #ifdef CONFIG_MMC_MSM_SDC2_8_BIT_SUPPORT
 	.mmc_bus_width  = MMC_CAP_8_BIT_DATA,
@@ -2669,7 +2669,7 @@ static struct mmc_platform_data msm7x30_sdc2_data = {
 
 #ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
 static unsigned int spade_sdc4_slot_type = MMC_TYPE_SD;
-static struct mmc_platform_data msm7x30_sdc4_data = {
+static struct msm_mmc_platform_data msm7x30_sdc4_data = {
 	.ocr_mask	= MMC_VDD_27_28 | MMC_VDD_28_29,
 	.translate_vdd	= msm_sdcc_setup_power,
 	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,

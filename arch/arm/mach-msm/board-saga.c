@@ -75,7 +75,7 @@
 #include <mach/msm_tsif.h>
 #include <mach/socinfo.h>
 #include <mach/msm_memtypes.h>
-#include <asm/mach/mmc.h>
+#include <linux/platform_data/mmc-msm_sdcc.h>
 #include <asm/mach/flash.h>
 #include <linux/htc_flashlight.h>
 #include <mach/vreg.h>
@@ -4746,7 +4746,7 @@ static int msm_sdcc_get_wpswitch(struct device *dv)
 #if defined(CONFIG_CSDIO_VENDOR_ID) && \
 	defined(CONFIG_CSDIO_DEVICE_ID) && \
 	(CONFIG_CSDIO_VENDOR_ID == 0x70 && CONFIG_CSDIO_DEVICE_ID == 0x1117)
-static struct mmc_platform_data msm7x30_sdc1_data = {
+static struct msm_mmc_platform_data msm7x30_sdc1_data = {
 	.ocr_mask	= MMC_VDD_165_195 | MMC_VDD_27_28 | MMC_VDD_28_29,
 	.translate_vdd	= msm_sdcc_setup_power_mbp,
 	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
@@ -4758,7 +4758,7 @@ static struct mmc_platform_data msm7x30_sdc1_data = {
 	.nonremovable	= 0,
 };
 #else
-static struct mmc_platform_data msm7x30_sdc1_data = {
+static struct msm_mmc_platform_data msm7x30_sdc1_data = {
 	.ocr_mask	= MMC_VDD_165_195,
 	.translate_vdd	= msm_sdcc_setup_power,
 	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
@@ -4772,7 +4772,7 @@ static struct mmc_platform_data msm7x30_sdc1_data = {
 
 #ifdef CONFIG_MMC_MSM_SDC2_SUPPORT
 static unsigned int saga_sdc2_slot_type = MMC_TYPE_MMC;
-static struct mmc_platform_data msm7x30_sdc2_data = {
+static struct msm_mmc_platform_data msm7x30_sdc2_data = {
 	.ocr_mask       = MMC_VDD_165_195 | MMC_VDD_27_28,
 #ifdef CONFIG_MMC_MSM_SDC2_8_BIT_SUPPORT
 	.mmc_bus_width  = MMC_CAP_8_BIT_DATA,
@@ -4791,7 +4791,7 @@ static struct mmc_platform_data msm7x30_sdc2_data = {
 /* HTC_WIFI_START */
 /*
 static unsigned int saga_sdc3_slot_type = MMC_TYPE_SDIO_WIFI;
-static struct mmc_platform_data msm7x30_sdc3_data = {
+static struct msm_mmc_platform_data msm7x30_sdc3_data = {
 	.ocr_mask	= MMC_VDD_27_28 | MMC_VDD_28_29,
 	.translate_vdd	= msm_sdcc_setup_power,
 	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
@@ -4810,7 +4810,7 @@ static struct mmc_platform_data msm7x30_sdc3_data = {
 
 #ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
 static unsigned int saga_sdc4_slot_type = MMC_TYPE_SD;
-static struct mmc_platform_data msm7x30_sdc4_data = {
+static struct msm_mmc_platform_data msm7x30_sdc4_data = {
 	.ocr_mask	= MMC_VDD_27_28 | MMC_VDD_28_29,
 	.translate_vdd	= msm_sdcc_setup_power,
 	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,

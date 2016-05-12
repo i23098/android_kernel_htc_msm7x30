@@ -15,13 +15,15 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+
+#include <linux/platform_device.h>
 #include <linux/module.h>
+#include <linux/fb.h>
 #include <linux/moduleparam.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/delay.h>
 #include <linux/mm.h>
-#include <linux/fb.h>
 #include <linux/msm_mdp.h>
 #include <linux/init.h>
 #include <linux/ioport.h>
@@ -29,6 +31,7 @@
 #include <linux/dma-mapping.h>
 #include <mach/board.h>
 #include <linux/uaccess.h>
+#include <linux/platform_data/video-msm_fb.h>
 #include <mach/iommu_domains.h>
 
 #include <linux/workqueue.h>

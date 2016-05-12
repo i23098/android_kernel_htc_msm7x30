@@ -35,7 +35,7 @@
 
 #include <asm/mach/flash.h>
 
-#include <asm/mach/mmc.h>
+#include <linux/platform_data/mmc-msm_sdcc.h>
 #include <mach/msm_hsusb.h>
 #ifdef CONFIG_PMIC8058
 #include <linux/mfd/pmic8058.h>
@@ -860,7 +860,7 @@ static struct platform_device *msm_sdcc_devices[] __initdata = {
 	&msm_device_sdc4,
 };
 
-int __init msm_add_sdcc(unsigned int controller, struct mmc_platform_data *plat)
+int __init msm_add_sdcc(unsigned int controller, struct msm_mmc_platform_data *plat)
 {
 	struct platform_device	*pdev;
 

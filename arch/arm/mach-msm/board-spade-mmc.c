@@ -30,7 +30,7 @@
 #include <mach/vreg.h>
 #include <mach/htc_pwrsink.h>
 
-#include <asm/mach/mmc.h>
+#include <linux/platform_data/mmc-msm_sdcc.h>
 
 #include "devices.h"
 #include "board-spade.h"
@@ -107,7 +107,7 @@ static unsigned int spade_wifi_status(struct device *dev)
 }
 
 static unsigned int spade_wifislot_type = MMC_TYPE_SDIO_WIFI;
-static struct mmc_platform_data spade_wifi_data = {
+static struct msm_mmc_platform_data spade_wifi_data = {
 	.ocr_mask               = MMC_VDD_20_21,
 	.status                 = spade_wifi_status,
 	.register_status_notify = spade_wifi_status_register,

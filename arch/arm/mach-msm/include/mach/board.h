@@ -552,9 +552,9 @@ void msm_map_copper_io(void);
 void  msm_init_irq(void);
 void msm_copper_init_irq(void);
 
-struct mmc_platform_data;
+struct msm_mmc_platform_data;
 int  msm_add_sdcc(unsigned int controller,
-		struct mmc_platform_data *plat);
+		struct msm_mmc_platform_data *plat);
 
 struct msm_usb_host_platform_data;
 int  msm_add_host(unsigned int host,

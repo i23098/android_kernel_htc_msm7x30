@@ -29,7 +29,7 @@
 #include <mach/vreg.h>
 #include <mach/htc_pwrsink.h>
 
-#include <asm/mach/mmc.h>
+#include <linux/platform_data/mmc-msm_sdcc.h>
 
 #include "devices.h"
 #include "board-saga.h"
@@ -37,7 +37,7 @@
 
 #define SAGA_SDMC_CD_N_SYS	PM8058_GPIO_PM_TO_SYS(SAGA_SDMC_CD_N)
 
-extern int msm_add_sdcc(unsigned int controller, struct mmc_platform_data *plat);
+extern int msm_add_sdcc(unsigned int controller, struct msm_mmc_platform_data *plat);
 
 /* ---- SDCARD ---- */
 #if 0
@@ -154,7 +154,7 @@ static unsigned int saga_sdslot_status(struct device *dev)
 #if 0
 static unsigned int saga_sdslot_type = MMC_TYPE_SD;
 
-static struct mmc_platform_data saga_sdslot_data = {
+static struct msm_mmc_platform_data saga_sdslot_data = {
 	.ocr_mask	= SAGA_MMC_VDD,
 	.status_irq	= MSM_GPIO_TO_INT(SAGA_SDMC_CD_N_SYS),
 	.status		= saga_sdslot_status,
@@ -164,7 +164,7 @@ static struct mmc_platform_data saga_sdslot_data = {
 };
 
 static unsigned int saga_emmcslot_type = MMC_TYPE_MMC;
-static struct mmc_platform_data saga_movinand_data = {
+static struct msm_mmc_platform_data saga_movinand_data = {
 	.ocr_mask	= SAGA_MMC_VDD,
 	.slot_type	= &saga_emmcslot_type,
 	.mmc_bus_width  = MMC_CAP_8_BIT_DATA,
@@ -229,7 +229,7 @@ static unsigned int saga_wifi_status(struct device *dev)
 }
 
 static unsigned int saga_wifislot_type = MMC_TYPE_SDIO_WIFI;
-static struct mmc_platform_data saga_wifi_data = {
+static struct msm_mmc_platform_data saga_wifi_data = {
 	.ocr_mask		= MMC_VDD_20_21,
 	.status			= saga_wifi_status,
 	.register_status_notify	= saga_wifi_status_register,
