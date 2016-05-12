@@ -15,10 +15,10 @@
 #define SDC_DAT1_DISWAKE 3
 
 struct embedded_sdio_data {
-        struct sdio_cis cis;
-        struct sdio_cccr cccr;
-        struct sdio_embedded_func *funcs;
-        int num_funcs;
+	struct sdio_cis cis;
+	struct sdio_cccr cccr;
+	struct sdio_embedded_func *funcs;
+	int num_funcs;
 };
 
 /* This structure keeps information per regulator */
@@ -69,24 +69,19 @@ struct msm_mmc_gpio_data {
 	u8 size;
 };
 
-struct msm_mmc_pin_data {
+struct msm_mmc_platform_data {
+	unsigned int ocr_mask;			/* available voltages */
+	u32 (*translate_vdd)(struct device *, unsigned int);
+	unsigned int (*status)(struct device *);
+	int (*register_status_notify)(void (*callback)(int card_present, void *dev_id), void *dev_id);
+	struct msm_mmc_gpio_data *gpio_data;
 	/*
 	 * = 1 if controller pins are using gpios
 	 * = 0 if controller has dedicated MSM pads
 	 */
 	u8 is_gpio;
 	u8 cfg_sts;
-	struct msm_mmc_gpio_data *gpio_data;
-};
-
-struct msm_mmc_platform_data {
-	unsigned int ocr_mask;			/* available voltages */
-	u32 (*translate_vdd)(struct device *, unsigned int);
-	unsigned int (*status)(struct device *);
-	int (*register_status_notify)(void (*callback)(int card_present, void *dev_id), void *dev_id);
 	struct embedded_sdio_data *embedded_sdio;
-	int built_in;		/* built-in device flag */
-	int card_present;	/* card detect state */
 	/*
 	 * XPC controls the maximum current in the
 	 * default speed mode of SDXC card.
@@ -99,7 +94,6 @@ struct msm_mmc_platform_data {
 	unsigned int status_gpio;
 	unsigned int sdiowakeup_irq;
 	unsigned long irq_flags;
-	unsigned dat0_gpio;
 	unsigned long mmc_bus_width;
 	int (*wpswitch) (struct device *);
 	unsigned int msmsdcc_fmin;
@@ -107,8 +101,6 @@ struct msm_mmc_platform_data {
 	unsigned int msmsdcc_fmax;
 	bool nonremovable;
 	bool pclk_src_dfab;
-	int (*cfg_mpm_sdiowakeup)(struct device *, unsigned);
-	bool sdcc_v4_sup;
 	unsigned int wpswitch_gpio;
 	unsigned char wpswitch_polarity;
 	struct msm_mmc_slot_reg_data *vreg_data;
@@ -119,10 +111,6 @@ struct msm_mmc_platform_data {
 #endif
 	unsigned int *sup_clk_table;
 	unsigned char sup_clk_cnt;
-	struct msm_mmc_pin_data *pin_data;
-	bool disable_bam;
-	bool disable_runtime_pm;
-	bool disable_cmd23;
 	int emmc_dma_ch;
 	u32 swfi_latency;
 };
