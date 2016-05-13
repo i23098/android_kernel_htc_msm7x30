@@ -507,10 +507,10 @@ __build_packet_message(struct nfulnl_instance *inst,
 		read_lock_bh(&sk->sk_callback_lock);
 		if (sk->sk_socket && sk->sk_socket->file) {
 			struct file *file = sk->sk_socket->file;
-			__be32 uid = htonl(from_kuid_munged(inst->peer_user_ns,
-							    file->f_cred->fsuid));
-			__be32 gid = htonl(from_kgid_munged(inst->peer_user_ns,
-							    file->f_cred->fsgid));
+			const struct cred *cred = file->f_cred;
+			struct user_namespace *user_ns = inst->peer_user_ns;
+			__be32 uid = htonl(from_kuid_munged(user_ns, cred->fsuid));
+			__be32 gid = htonl(from_kgid_munged(user_ns, cred->fsgid));
 			read_unlock_bh(&sk->sk_callback_lock);
 			if (nla_put_be32(inst->skb, NFULA_UID, uid) ||
 			    nla_put_be32(inst->skb, NFULA_GID, gid))
