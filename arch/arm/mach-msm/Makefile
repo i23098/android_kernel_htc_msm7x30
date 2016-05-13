@@ -266,6 +266,7 @@ obj-$(CONFIG_MACH_SAGA) += board-saga.o
 obj-$(CONFIG_MACH_SAGA) += board-saga-keypad.o
 obj-$(CONFIG_MACH_SAGA) += board-saga-mmc.o board-saga-wifi.o board-saga-rfkill.o
 obj-$(CONFIG_MACH_SAGA) += board-saga-audio.o
+obj-$(CONFIG_MACH_SAGA) += htc_bdaddress.o
 
 obj-$(CONFIG_ARCH_MSM_FLASHLIGHT) += msm_flashlight.o
 

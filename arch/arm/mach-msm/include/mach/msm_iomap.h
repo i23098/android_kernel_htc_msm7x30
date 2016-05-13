@@ -103,7 +103,7 @@
 #define MSM_DEBUG_UART_PHYS	MSM_UART3_PHYS
 #endif
 
-#if !defined(CONFIG_MACH_SPADE)
+#if !defined(CONFIG_MACH_SPADE) && !defined(CONFIG_MACH_SAGA)
 /* Virtual addresses shared across all MSM targets. */
 #define MSM_CSR_BASE		IOMEM(0xE0001000)
 #define MSM_QGIC_DIST_BASE	IOMEM(0xF0000000)

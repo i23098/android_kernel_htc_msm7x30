@@ -35,6 +35,7 @@
 #endif
 #include <linux/stat.h>
 #include <linux/pl_sensor.h>
+#include <linux/input/mt.h>
 
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
 #include <linux/leds-pm8058.h>
@@ -2391,7 +2392,7 @@ static int atmel_ts_probe(struct i2c_client *client,
 		goto err_input_dev_alloc_failed;
 	}
 	ts->input_dev->name = "atmel-touchscreen";
-	ts->input_dev->mtsize = ts->finger_support;
+	ts->input_dev->mt->num_slots = ts->finger_support;
 
 	set_bit(EV_SYN, ts->input_dev->evbit);
 	set_bit(EV_KEY, ts->input_dev->evbit);

@@ -225,7 +225,7 @@ int device_fb_detect_panel(const char *name)
 	if (!strcmp(name, LCDC_SPADE_PANEL_NAME)) {
 		return 0;
 	}
-	return 0;
+	return -1;
 }
 
 /* a hacky interface to control the panel power */

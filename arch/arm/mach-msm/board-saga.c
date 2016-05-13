@@ -46,7 +46,6 @@
 #include <asm/mach/arch.h>
 #include <asm/setup.h>
 
-#include <mach/system.h>
 #include <mach/mpp.h>
 #include <mach/board.h>
 #include <mach/camera-7x30.h>
@@ -84,7 +83,8 @@
 #include <mach/htc_headset_pmic.h>
 #include <linux/cm3628.h>
 #include "devices.h"
-#include "timer.h"
+#include <linux/rtc-msm.h>
+
 #ifdef CONFIG_USB_G_ANDROID
 #include <mach/htc_usb.h>
 #include <linux/usb/android_composite.h>
