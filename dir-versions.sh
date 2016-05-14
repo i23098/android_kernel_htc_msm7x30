@@ -17,3 +17,4 @@ find * | grep "\.c" | awk '{print "chmod 664 " $1}' | sh -
 find * | grep "Makefile" | awk '{print "chmod 664 " $1}' | sh -
 find * | grep "Kconfig" | awk '{print "chmod 664 " $1}' | sh -
 
+# for recheck: kernel/sys.c lib/genalloc.c include/linux/genalloc.h
