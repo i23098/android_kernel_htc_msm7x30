@@ -99,7 +99,7 @@ int usb_get_connect_type(void)
 }
 EXPORT_SYMBOL(usb_get_connect_type);
 
-inline int is_host(struct msm_otg *motg)
+static int is_host(struct msm_otg *motg)
 {
 	if (motg->pmic_id_notif_supp)
 		return motg->pmic_id_status ? 0 : 1;

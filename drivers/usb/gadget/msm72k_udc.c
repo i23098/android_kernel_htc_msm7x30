@@ -49,10 +49,10 @@
 
 static const char driver_name[] = "msm72k_udc";
 
-#define MSM_USB_BASE ((unsigned) ui->addr)
+#define MSM_USB_BASE	(ui->addr)
 
-#define	DRIVER_DESC		"MSM 72K USB Peripheral Controller"
-#define	DRIVER_NAME		"MSM72K_UDC"
+#define	DRIVER_DESC	"MSM 72K USB Peripheral Controller"
+#define	DRIVER_NAME	"MSM72K_UDC"
 
 #define EPT_FLAG_IN        0x0001
 
