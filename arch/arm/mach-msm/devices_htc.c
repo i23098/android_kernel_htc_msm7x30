@@ -223,9 +223,6 @@ int __init parse_tag_ddr_id(const struct tag *tags)
 }
 __tagtable(ATAG_DDR_ID, parse_tag_ddr_id);
 
-static unsigned engineerid;
-EXPORT_SYMBOL(engineerid);
-
 void __init early_init_dt_setup_engineerid(unsigned long value) {
 	pr_info("[dt]engineerid: hwid = 0x%lx\n", value);
 	engineerid = value;

@@ -155,7 +155,6 @@
 
 extern unsigned int ps_kparam1;
 extern unsigned int ps_kparam2;
-extern unsigned int als_kadc;
 enum {
 	CAPELLA_CM36282,
 	CAPELLA_CM36292,

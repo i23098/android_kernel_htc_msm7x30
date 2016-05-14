@@ -16,6 +16,9 @@
 
 /* information about the system we're running on */
 extern unsigned int system_rev;
+extern unsigned int system_rev2;
+extern unsigned int engineerid;
+extern unsigned int als_kadc;
 extern unsigned int system_serial_low;
 extern unsigned int system_serial_high;
 extern unsigned int mem_fclk_21285;

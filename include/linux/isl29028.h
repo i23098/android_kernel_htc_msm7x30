@@ -58,6 +58,4 @@ struct isl29028_platform_data {
 	uint8_t enable_polling_ignore;
 };
 
-extern unsigned int als_kadc;
-
 #endif

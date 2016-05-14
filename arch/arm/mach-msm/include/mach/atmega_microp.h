@@ -266,6 +266,4 @@ void microp_register_ops(struct microp_ops *ops);
 int microp_read_adc(uint8_t *data);
 void microp_mobeam_enable(int enable);
 
-extern unsigned int als_kadc;
-
 #endif /* _LINUX_ATMEGA_MICROP_H */
