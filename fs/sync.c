@@ -17,11 +17,6 @@
 #include <linux/backing-dev.h>
 #include "internal.h"
 
-#ifdef CONFIG_DYNAMIC_FSYNC
-extern bool early_suspend_active;
-extern bool dyn_fsync_active;
-#endif
-
 #define VALID_FLAGS (SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE| \
 			SYNC_FILE_RANGE_WAIT_AFTER)
 
@@ -207,21 +202,19 @@ void emergency_sync(void)
  */
 SYSCALL_DEFINE1(syncfs, int, fd)
 {
-	struct file *file;
+	struct fd f = fdget(fd);
 	struct super_block *sb;
 	int ret;
-	int fput_needed;
 
-	file = fget_light(fd, &fput_needed);
-	if (!file)
+	if (!f.file)
 		return -EBADF;
-	sb = file->f_dentry->d_sb;
+	sb = f.file->f_dentry->d_sb;
 
 	down_read(&sb->s_umount);
 	ret = sync_filesystem(sb);
 	up_read(&sb->s_umount);
 
-	fput_light(file, fput_needed);
+	fdput(f);
 	return ret;
 }
 
@@ -238,17 +231,9 @@ SYSCALL_DEFINE1(syncfs, int, fd)
  */
 int vfs_fsync_range(struct file *file, loff_t start, loff_t end, int datasync)
 {
-#ifdef CONFIG_DYNAMIC_FSYNC
-	if (likely(dyn_fsync_active && !early_suspend_active))
-		return 0;
-	else {
-#endif
 	if (!file->f_op || !file->f_op->fsync)
 		return -EINVAL;
 	return file->f_op->fsync(file, start, end, datasync);
-#ifdef CONFIG_DYNAMIC_FSYNC
-	}
-#endif
 }
 EXPORT_SYMBOL(vfs_fsync_range);
 
@@ -268,39 +253,18 @@ EXPORT_SYMBOL(vfs_fsync);
 
 static int do_fsync(unsigned int fd, int datasync)
 {
-	struct file *file;
+	struct fd f = fdget(fd);
 	int ret = -EBADF;
-	int fput_needed;
 
-	file = fget_light(fd, &fput_needed);
-	if (file) {
-		ktime_t fsync_t, fsync_diff;
-		char pathname[256], *path;
-		path = d_path(&(file->f_path), pathname, sizeof(pathname));
-		if (IS_ERR(path))
-			path = "(unknown)";
-		fsync_t = ktime_get();
-		ret = vfs_fsync(file, datasync);
-		fput_light(file, fput_needed);
-		fsync_diff = ktime_sub(ktime_get(), fsync_t);
-		if (ktime_to_ms(fsync_diff) >= 5000) {
-                        pr_info("VFS: %s pid:%d(%s)(parent:%d/%s)\
-				takes %lld ms to fsync %s.\n", __func__,
-				current->pid, current->comm,
-				current->parent->pid, current->parent->comm,
-				ktime_to_ms(fsync_diff), path);
-		}
+	if (f.file) {
+		ret = vfs_fsync(f.file, datasync);
+		fdput(f);
 	}
 	return ret;
 }
 
 SYSCALL_DEFINE1(fsync, unsigned int, fd)
 {
-#ifdef CONFIG_DYNAMIC_FSYNC
-	if (likely(dyn_fsync_active && !early_suspend_active))
-		return 0;
-	else
-#endif
 	return do_fsync(fd, 0);
 }
 
@@ -376,17 +340,10 @@ EXPORT_SYMBOL(generic_write_sync);
 SYSCALL_DEFINE(sync_file_range)(int fd, loff_t offset, loff_t nbytes,
 				unsigned int flags)
 {
-#ifdef CONFIG_DYNAMIC_FSYNC
-	if (likely(dyn_fsync_active && !early_suspend_active))
-		return 0;
-	else {
-#endif
-
 	int ret;
-	struct file *file;
+	struct fd f;
 	struct address_space *mapping;
 	loff_t endbyte;			/* inclusive */
-	int fput_needed;
 	umode_t i_mode;
 
 	ret = -EINVAL;
@@ -425,17 +382,17 @@ SYSCALL_DEFINE(sync_file_range)(int fd, loff_t offset, loff_t nbytes,
 		endbyte--;		/* inclusive */
 
 	ret = -EBADF;
-	file = fget_light(fd, &fput_needed);
-	if (!file)
+	f = fdget(fd);
+	if (!f.file)
 		goto out;
 
-	i_mode = file->f_path.dentry->d_inode->i_mode;
+	i_mode = f.file->f_path.dentry->d_inode->i_mode;
 	ret = -ESPIPE;
 	if (!S_ISREG(i_mode) && !S_ISBLK(i_mode) && !S_ISDIR(i_mode) &&
 			!S_ISLNK(i_mode))
 		goto out_put;
 
-	mapping = file->f_mapping;
+	mapping = f.file->f_mapping;
 	if (!mapping) {
 		ret = -EINVAL;
 		goto out_put;
@@ -458,12 +415,9 @@ SYSCALL_DEFINE(sync_file_range)(int fd, loff_t offset, loff_t nbytes,
 		ret = filemap_fdatawait_range(mapping, offset, endbyte);
 
 out_put:
-	fput_light(file, fput_needed);
+	fdput(f);
 out:
 	return ret;
-#ifdef CONFIG_DYNAMIC_FSYNC
-	}
-#endif
 }
 #ifdef CONFIG_HAVE_SYSCALL_WRAPPERS
 asmlinkage long SyS_sync_file_range(long fd, loff_t offset, loff_t nbytes,
@@ -480,11 +434,6 @@ SYSCALL_ALIAS(sys_sync_file_range, SyS_sync_file_range);
 SYSCALL_DEFINE(sync_file_range2)(int fd, unsigned int flags,
 				 loff_t offset, loff_t nbytes)
 {
-#ifdef CONFIG_DYNAMIC_FSYNC
-	if (likely(dyn_fsync_active && !early_suspend_active))
-		return 0;
-	else
-#endif
 	return sys_sync_file_range(fd, offset, nbytes, flags);
 }
 #ifdef CONFIG_HAVE_SYSCALL_WRAPPERS
