@@ -9,7 +9,7 @@ rm -rf drivers/staging/zsmalloc
 git checkout HEAD -- drivers/staging/zsmalloc
 
 ####v3.17
-git checkout HEAD -- crypto/sha512_generic.c
+git checkout HEAD -- crypto/sha512_generic.c arch/arm/crypto/aes-armv4.S  arch/arm/crypto/aes_glue.c  arch/arm/crypto/sha1-armv4-large.S arch/arm/crypto/sha1_glue.c | wc -l
 
 # cleanup
 find * | grep "\.h" | awk '{print "chmod 664 " $1}' | sh -
