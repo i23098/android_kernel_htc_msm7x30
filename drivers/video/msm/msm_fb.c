@@ -3031,7 +3031,7 @@ static inline void dma_cache_post_ops(void *virtual_addr,
 	BUG_ON(!valid_dma_direction(dir));
 	
 #if defined CONFIG_ARCH_MSM_SCORPION || defined CONFIG_ARCH_MSM_KRAIT
-	if (!arch_is_coherent() && dir != DMA_TO_DEVICE)
+	if (dir != DMA_TO_DEVICE)
 		/*
 		 * Treat DMA_BIDIRECTIONAL and DMA_FROM_DEVICE
 		 * identically: invalidate

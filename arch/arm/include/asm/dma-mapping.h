@@ -13,6 +13,7 @@
 
 #define DMA_ERROR_CODE	(~0)
 extern struct dma_map_ops arm_dma_ops;
+extern struct dma_map_ops arm_coherent_dma_ops;
 
 static inline struct dma_map_ops *get_dma_ops(struct device *dev)
 {
@@ -123,10 +124,7 @@ static inline void dma_coherent_pre_ops(void)
 #if COHERENT_IS_NORMAL == 1
 	dmb();
 #else
-	if (arch_is_coherent())
-		dmb();
-	else
-		barrier();
+	barrier();
 #endif
 }
 /*
@@ -140,10 +138,7 @@ static inline void dma_coherent_post_ops(void)
 #if COHERENT_IS_NORMAL == 1
 	dmb();
 #else
-	if (arch_is_coherent())
-		dmb();
-	else
-		barrier();
+	barrier();
 #endif
 }
 
@@ -241,45 +236,12 @@ static inline void dma_free_writecombine(struct device *dev, size_t size,
 	return dma_free_attrs(dev, size, cpu_addr, dma_handle, &attrs);
 }
 
-static inline void *dma_alloc_stronglyordered(struct device *dev, size_t size,
-				       dma_addr_t *dma_handle, gfp_t flag)
-{
-	DEFINE_DMA_ATTRS(attrs);
-	dma_set_attr(DMA_ATTR_STRONGLY_ORDERED, &attrs);
-	return dma_alloc_attrs(dev, size, dma_handle, flag, &attrs);
-}
-
-static inline void dma_free_stronglyordered(struct device *dev, size_t size,
-				     void *cpu_addr, dma_addr_t dma_handle)
-{
-	DEFINE_DMA_ATTRS(attrs);
-	dma_set_attr(DMA_ATTR_STRONGLY_ORDERED, &attrs);
-	return dma_free_attrs(dev, size, cpu_addr, dma_handle, &attrs);
-}
-
-static inline int dma_mmap_stronglyordered(struct device *dev,
-		struct vm_area_struct *vma, void *cpu_addr,
-		dma_addr_t dma_addr, size_t size)
-{
-	DEFINE_DMA_ATTRS(attrs);
-	dma_set_attr(DMA_ATTR_STRONGLY_ORDERED, &attrs);
-	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
-}
-
 static inline void *dma_alloc_nonconsistent(struct device *dev, size_t size,
 				       dma_addr_t *dma_handle, gfp_t flag)
 {
 	DEFINE_DMA_ATTRS(attrs);
 	dma_set_attr(DMA_ATTR_NON_CONSISTENT, &attrs);
 	return dma_alloc_attrs(dev, size, dma_handle, flag, &attrs);
-}
-
-static inline void dma_free_nonconsistent(struct device *dev, size_t size,
-				     void *cpu_addr, dma_addr_t dma_handle)
-{
-	DEFINE_DMA_ATTRS(attrs);
-	dma_set_attr(DMA_ATTR_NON_CONSISTENT, &attrs);
-	return dma_free_attrs(dev, size, cpu_addr, dma_handle, &attrs);
 }
 
 static inline int dma_mmap_nonconsistent(struct device *dev,
@@ -363,8 +325,7 @@ static inline void dma_cache_pre_ops(void *virtual_addr,
 
 	BUG_ON(!valid_dma_direction(dir));
 
-	if (!arch_is_coherent())
-		___dma_single_cpu_to_dev(virtual_addr, size, dir);
+	___dma_single_cpu_to_dev(virtual_addr, size, dir);
 }
 
 
