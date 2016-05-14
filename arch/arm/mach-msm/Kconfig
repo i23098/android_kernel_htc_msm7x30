@@ -274,6 +274,7 @@ config MACH_SPADE
 	depends on ARCH_MSM7X30
 	default n
 	bool "Spade"
+	select VIDEOBUF2_MSM
 	help
 	  Support for the Qualcomm Spade board.
 
@@ -281,6 +282,7 @@ config MACH_SAGA
 	depends on ARCH_MSM7X30
 	default n
 	bool "Saga"
+	select VIDEOBUF2_MSM
 	help
 	  Support for the Qualcomm Saga board.
 
