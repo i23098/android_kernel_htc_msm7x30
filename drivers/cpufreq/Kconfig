@@ -216,27 +216,21 @@ config CPU_FREQ_GOV_CONSERVATIVE
 	  If in doubt, say N.
 
 config CPU_FREQ_GOV_INTELLIACTIVE
-        tristate "'intelliactive' cpufreq policy governor"
-        help
-          'intelliactive' - This driver adds a dynamic cpufreq policy governor
-          designed for latency-sensitive workloads.
-
-          This governor attempts to reduce the latency of clock
-          increases so that the system is more responsive to
-          interactive workloads.
-
-          To compile this driver as a module, choose M here: the
-          module will be called cpufreq_interactive.
-
-          For details, take a look at linux/Documentation/cpu-freq.
-
-          If in doubt, say N.
-
-config CPU_FREQ_MIN_TICKS
-	int "Ticks between governor polling interval."
-	default 10
+	tristate "'intelliactive' cpufreq policy governor"
 	help
-	  Minimum number of ticks between polling interval for governors.
+	  'intelliactive' - This driver adds a dynamic cpufreq policy governor
+	  designed for latency-sensitive workloads.
+
+	  This governor attempts to reduce the latency of clock
+	  increases so that the system is more responsive to
+	  interactive workloads.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called cpufreq_interactive.
+
+	  For details, take a look at linux/Documentation/cpu-freq.
+
+	  If in doubt, say N.
 
 config CPU_FREQ_SAMPLING_LATENCY_MULTIPLIER
 	int "Sampling rate multiplier for governors."
@@ -259,6 +253,17 @@ config SEC_LIMIT_LCD_OFF_CPU_MAX_FREQ
 	bool
 	default y
 	depends on CPU_FREQ_GOV_ONDEMAND
+
+config GENERIC_CPUFREQ_CPU0
+	bool "Generic CPU0 cpufreq driver"
+	depends on HAVE_CLK && REGULATOR && PM_OPP && OF
+	select CPU_FREQ_TABLE
+	help
+	  This adds a generic cpufreq driver for CPU0 frequency management.
+	  It supports both uniprocessor (UP) and symmetric multiprocessor (SMP)
+	  systems which share clock and voltage across all CPUs.
+
+	  If in doubt, say N.
 
 menu "x86 CPU frequency scaling drivers"
 depends on X86
