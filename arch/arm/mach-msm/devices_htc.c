@@ -15,6 +15,7 @@
  */
 #include <mach/board.h>
 #include <asm/setup.h>
+#include <asm/system_info.h>
 #include <linux/mtd/nand.h>
 #include <linux/export.h>
 

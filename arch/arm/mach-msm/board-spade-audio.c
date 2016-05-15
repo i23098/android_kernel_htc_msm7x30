@@ -21,6 +21,7 @@
 #include <mach/dal.h>
 #include "board-spade.h"
 #include <mach/pmic.h>
+#include <asm/system_info.h>
 #ifdef CONFIG_MSM7KV2_AUDIO
 #include <mach/qdsp5v2/snddev_icodec.h>
 #include <mach/qdsp5v2/snddev_ecodec.h>

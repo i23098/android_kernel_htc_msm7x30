@@ -36,6 +36,7 @@
 #include <linux/rtc.h>
 #include <linux/slab.h>
 #include <mach/board.h>
+#include <asm/system_info.h>
 
 #define DPS(x...) printk(KERN_DEBUG "[PS][ISL29028] " x)
 #define DLS(x...) printk(KERN_DEBUG "[LS][ISL29028] " x)

@@ -467,7 +467,7 @@ static int acoustic_mmap(struct file *file, struct vm_area_struct *vma)
 		E("mmap failed: page offset %lx\n", vma->vm_pgoff);
 		goto done;
 	}
-	vma->vm_flags |= VM_RESERVED;
+	vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
 	rc = io_remap_pfn_range(vma,
 		vma->vm_start,
 		virt_to_phys((void *)htc_adie_table) >> PAGE_SHIFT,

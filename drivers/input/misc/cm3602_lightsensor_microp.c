@@ -26,6 +26,7 @@
 #include <linux/errno.h>
 #include <linux/err.h>
 #include <linux/gpio.h>
+#include <asm/system_info.h>
 
 #include <linux/miscdevice.h>
 #include <linux/lightsensor.h>

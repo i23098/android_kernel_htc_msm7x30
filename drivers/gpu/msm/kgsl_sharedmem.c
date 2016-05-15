@@ -349,7 +349,7 @@ static int kgsl_page_alloc_vmfault(struct kgsl_memdesc *memdesc,
 
 static int kgsl_page_alloc_vmflags(struct kgsl_memdesc *memdesc)
 {
-	return VM_RESERVED | VM_DONTEXPAND;
+	return VM_DONTEXPAND | VM_DONTDUMP;
 }
 
 static void kgsl_page_alloc_free(struct kgsl_memdesc *memdesc)
@@ -374,7 +374,7 @@ static void kgsl_page_alloc_free(struct kgsl_memdesc *memdesc)
 
 static int kgsl_contiguous_vmflags(struct kgsl_memdesc *memdesc)
 {
-	return VM_RESERVED | VM_IO | VM_PFNMAP | VM_DONTEXPAND;
+	return VM_DONTEXPAND | VM_DONTDUMP | VM_IO | VM_PFNMAP;
 }
 
 /*
@@ -601,8 +601,7 @@ _kgsl_sharedmem_page_alloc(struct kgsl_memdesc *memdesc,
 		 * techniques for large order allocations
 		 */
 		if (page_size != PAGE_SIZE)
-			gfp_mask |= __GFP_COMP | __GFP_NORETRY |
-				__GFP_NO_KSWAPD | __GFP_NOWARN;
+			gfp_mask |= __GFP_COMP | __GFP_NORETRY | __GFP_NOWARN;
 		else
 			gfp_mask |= GFP_KERNEL;
 

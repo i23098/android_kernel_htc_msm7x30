@@ -353,10 +353,10 @@ static void __exit lowmem_exit(void)
 #ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 static int lowmem_oom_adj_to_oom_score_adj(int oom_adj)
 {
-	if (oom_adj == OOM_ADJUST_MAX)
+	if (oom_adj == OOM_SCORE_ADJ_MAX)
 		return OOM_SCORE_ADJ_MAX;
 	else
-		return (oom_adj * OOM_SCORE_ADJ_MAX) / -OOM_DISABLE;
+		return (oom_adj * OOM_SCORE_ADJ_MAX) / (OOM_SCORE_ADJ_MAX + 1);
 }
 
 static void lowmem_autodetect_oom_adj_values(void)
@@ -373,11 +373,11 @@ static void lowmem_autodetect_oom_adj_values(void)
 		return;
 
 	oom_adj = lowmem_adj[array_size - 1];
-	if (oom_adj > OOM_ADJUST_MAX)
+	if (oom_adj > OOM_SCORE_ADJ_MAX)
 		return;
 
 	oom_score_adj = lowmem_oom_adj_to_oom_score_adj(oom_adj);
-	if (oom_score_adj <= OOM_ADJUST_MAX)
+	if (oom_score_adj <= OOM_SCORE_ADJ_MAX)
 		return;
 
 	lowmem_print(1, "lowmem_shrink: convert oom_adj to oom_score_adj:\n");
