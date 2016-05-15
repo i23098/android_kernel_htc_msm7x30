@@ -250,6 +250,14 @@ config SPI_SP8803COM
 	depends on ARCH_MSM7X30 || ARCH_MSM8X60
 	help
 	  SP 8803 COM is one modem
+
+config SPI_OCTEON
+	tristate "Cavium OCTEON SPI controller"
+	depends on CPU_CAVIUM_OCTEON
+	help
+	  SPI host driver for the hardware found on some Cavium OCTEON
+	  SOCs.
+
 config SPI_OMAP_UWIRE
 	tristate "OMAP1 MicroWire"
 	depends on ARCH_OMAP1
