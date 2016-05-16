@@ -2871,9 +2871,6 @@ static struct platform_device *devices[] __initdata = {
 #ifdef CONFIG_MSM_VPE
         &msm_vpe_device,
 #endif
-#if defined(CONFIG_TSIF) || defined(CONFIG_TSIF_MODULE)
-        &msm_device_tsif,
-#endif
 #ifdef CONFIG_MSM_SDIO_AL
         /* &msm_device_sdio_al, */
 #endif

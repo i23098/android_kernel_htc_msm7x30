@@ -7,7 +7,7 @@
 struct pwm_device;
 struct seq_file;
 
-#if IS_ENABLED(CONFIG_PWM) || IS_ENABLED(CONFIG_HAVE_PWM) || IS_ENABLED(CONFIG_PMIC8058_PWM) 
+#if IS_ENABLED(CONFIG_PWM) || IS_ENABLED(CONFIG_HAVE_PWM) || IS_ENABLED(CONFIG_PWM_PMIC8058)
 /*
  * pwm_request - request a PWM device
  */
@@ -59,7 +59,7 @@ static inline void pwm_disable(struct pwm_device *pwm)
 
 struct pwm_chip;
 
-#if !IS_ENABLED(CONFIG_PMIC8058_PWM)
+#if !IS_ENABLED(CONFIG_PWM_PMIC8058)
 /**
  * enum pwm_polarity - polarity of a PWM signal
  * @PWM_POLARITY_NORMAL: a high signal for the duration of the duty-

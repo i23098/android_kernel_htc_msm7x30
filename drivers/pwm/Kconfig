@@ -161,3 +161,13 @@ config PWM_VT8500
 	  will be called pwm-vt8500.
 
 endif
+
+config PWM_PMIC8058
+	tristate "Qualcomm PM8058 PWM support"
+	depends on PMIC8058
+	default y
+	help
+	  This option enables device driver support for the PWM channels
+	  on Qualcomm PM8058 chip. Pulse Width Modulation is used for
+	  purposes including software controlled brightness of backlight,
+	  motor control, and waveform generation.

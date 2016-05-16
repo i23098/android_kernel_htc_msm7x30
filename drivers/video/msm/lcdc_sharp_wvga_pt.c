@@ -13,7 +13,7 @@
 
 #include <linux/delay.h>
 #include <linux/pwm.h>
-#ifdef CONFIG_PMIC8058_PWM
+#ifdef CONFIG_PWM_PMIC8058
 #include <linux/mfd/pmic8058.h>
 #include <linux/pmic8058-pwm.h>
 #endif
@@ -31,7 +31,7 @@ static int lcdc_sharp_panel_off(struct platform_device *pdev);
 
 #define BL_MAX		16
 
-#ifdef CONFIG_PMIC8058_PWM
+#ifdef CONFIG_PWM_PMIC8058
 static struct pwm_device *bl_pwm;
 
 #define PWM_PERIOD	1000	/* us, period of 1Khz */
@@ -268,7 +268,7 @@ static void lcdc_sharp_panel_set_backlight(struct msm_fb_data_type *mfd)
 
 	bl_level = mfd->bl_level;
 
-#ifdef CONFIG_PMIC8058_PWM
+#ifdef CONFIG_PWM_PMIC8058
 	if (bl_pwm) {
 		pwm_config(bl_pwm, DUTY_LEVEL * bl_level, PWM_PERIOD);
 		pwm_enable(bl_pwm);
@@ -283,7 +283,7 @@ static int __devinit sharp_probe(struct platform_device *pdev)
 		return 0;
 	}
 
-#ifdef CONFIG_PMIC8058_PWM
+#ifdef CONFIG_PWM_PMIC8058
 	bl_pwm = pwm_request(lcdc_sharp_pdata->gpio, "backlight");
 	if (bl_pwm == NULL || IS_ERR(bl_pwm)) {
 		pr_err("%s pwm_request() failed\n", __func__);

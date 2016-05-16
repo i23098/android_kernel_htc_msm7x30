@@ -12,7 +12,7 @@
 
 #include <linux/delay.h>
 #include <linux/pwm.h>
-#ifdef CONFIG_PMIC8058_PWM
+#ifdef CONFIG_PWM_PMIC8058
 #include <linux/mfd/pmic8058.h>
 #include <linux/pmic8058-pwm.h>
 #endif
@@ -21,7 +21,7 @@
 
 
 
-#ifdef CONFIG_PMIC8058_PWM
+#ifdef CONFIG_PWM_PMIC8058
 static struct pwm_device *bl_pwm0;
 static struct pwm_device *bl_pwm1;
 
@@ -48,7 +48,7 @@ static struct lcdc_samsung_data *dd;
 
 static void lcdc_samsung_panel_set_backlight(struct msm_fb_data_type *mfd)
 {
-#ifdef CONFIG_PMIC8058_PWM
+#ifdef CONFIG_PWM_PMIC8058
 	int bl_level;
 	int ret;
 
@@ -143,7 +143,7 @@ static int __devinit samsung_probe(struct platform_device *pdev)
 	} else if (!dd)
 		return -ENODEV;
 
-#ifdef CONFIG_PMIC8058_PWM
+#ifdef CONFIG_PWM_PMIC8058
 	bl_pwm0 = pwm_request(dd->pdata->gpio_num[0], "backlight1");
 	if (bl_pwm0 == NULL || IS_ERR(bl_pwm0)) {
 		pr_err("%s pwm_request() failed\n", __func__);

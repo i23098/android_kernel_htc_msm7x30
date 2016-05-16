@@ -12,7 +12,7 @@
 
 #include <linux/delay.h>
 #include <linux/pwm.h>
-#ifdef CONFIG_PMIC8058_PWM
+#ifdef CONFIG_PWM_PMIC8058
 #include <linux/mfd/pmic8058.h>
 #include <linux/pmic8058-pwm.h>
 #endif

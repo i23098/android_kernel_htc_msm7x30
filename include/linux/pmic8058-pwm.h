@@ -10,8 +10,8 @@
  * GNU General Public License for more details.
  *
  */
-#ifndef __PMIC8058_PWM_H__
-#define __PMIC8058_PWM_H__
+#ifndef __PWM_PMIC8058_H__
+#define __PWM_PMIC8058_H__
 
 #include <linux/leds-pm8058.h>
 
@@ -151,4 +151,4 @@ int pm8058_pwm_set_dtest(struct pwm_device *pwm, int enable);
 int pm8058_pwm_config_led(struct pwm_device *pwm, int id,
 			  int mode, int max_current);
 
-#endif /* __PMIC8058_PWM_H__ */
+#endif /* __PWM_PMIC8058_H__ */
