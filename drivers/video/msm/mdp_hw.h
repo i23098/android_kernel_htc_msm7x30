@@ -17,7 +17,6 @@
 
 #include <linux/platform_device.h>
 #include <linux/wait.h>
-#include <mach/msm_iomap.h>
 #include <linux/platform_data/video-msm_fb.h>
 
 typedef void (*mdp_dma_start_func_t)(void *private_data, uint32_t addr,
