@@ -19,6 +19,7 @@
 #include <linux/of_device.h>
 #include <linux/msm_kgsl.h>
 #include <linux/delay.h>
+#include <linux/wait_msm.h>
 
 #include <mach/socinfo.h>
 #include <mach/msm_bus_board.h>
@@ -2140,7 +2141,7 @@ _adreno_ft_restart_device(struct kgsl_device *device,
 		KGSL_FT_ERR(device, "Device stop failed\n");
 		return 1;
 	}
-	
+
 	if (adreno_init(device)) {
 		KGSL_FT_ERR(device, "Device start failed\n");
 		return 1;

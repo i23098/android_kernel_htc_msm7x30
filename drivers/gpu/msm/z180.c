@@ -13,6 +13,7 @@
 #include <linux/module.h>
 #include <linux/uaccess.h>
 #include <linux/sched.h>
+#include <linux/wait_msm.h>
 
 #include "kgsl.h"
 #include "kgsl_cffdump.h"
