@@ -11,24 +11,23 @@ choice
 config ARCH_MSM7X00A
 	bool "MSM7x00A / MSM7x01A"
 	select ARCH_MSM_ARM11
-	select MSM_SMD
 	select CPU_V6
 	select GPIO_MSM_V1
+	select MACH_TROUT if !MACH_HALIBUT
 	select MSM_PROC_COMM
-	select MSM_VIC
-	select MSM_REMOTE_SPINLOCK_SWP
-	select HAS_MSM_DEBUG_UART_PHYS
+	select MSM_SMD
+	select MSM_SMD_PKG3
 
 config ARCH_MSM7X30
 	bool "MSM7x30"
 	select ARCH_MSM_SCORPION
-	select MSM_SMD
-	select MSM_VIC
 	select CPU_V7
 	select MSM_REMOTE_SPINLOCK_DEKKERS
 	select ARCH_HAS_HOLES_MEMORYMODEL
-	select MSM_GPIOMUX
 	select GPIO_MSM_V1
+	select MSM_GPIOMUX
+	select MSM_SMD
+	select MSM_VIC
 	select MSM_PROC_COMM
 	select RESERVE_FIRST_PAGE
 	select MSM_DALRPC
@@ -38,79 +37,36 @@ config ARCH_MSM7X30
 
 config ARCH_QSD8X50
 	bool "QSD8X50"
-	select MACH_QSD8X50_SURF if !MACH_QSD8X50A_ST1_5
 	select ARCH_MSM_SCORPION
+	select CPU_V7
+	select GPIO_MSM_V1
+	select MACH_QSD8X50_SURF if !MACH_QSD8X50A_ST1_5
+	select MSM_GPIOMUX
+	select MSM_PROC_COMM
 	select MSM_SMD
 	select MSM_VIC
-	select CPU_V7
-	select MSM_REMOTE_SPINLOCK_LDREX
-	select CPU_USE_DOMAINS
-	select MSM_GPIOMUX
-	select GPIO_MSM_V1
-	select MSM_PROC_COMM
-	select MSM_DALRPC
-	select HAS_MSM_DEBUG_UART_PHYS
 
 endchoice
 
 config ARCH_MSM8X60
 	bool "MSM8X60"
-	select MACH_MSM8X60_SURF if (!MACH_MSM8X60_RUMI3 && !MACH_MSM8X60_SIM \
-				  && !MACH_MSM8X60_FFA)
 	select ARCH_MSM_SCORPIONMP
-	select SMP_PARALLEL_START if SMP
 	select ARM_GIC
 	select CPU_V7
-	select MSM_REMOTE_SPINLOCK_LDREX
-	select ARCH_REQUIRE_GPIOLIB
-	select MSM_ADM3
-	select REGULATOR
-	select MSM_PIL
-	select MSM_SCM
-	select ARCH_HAS_CPU_IDLE_WAIT
-	select MSM_DIRECT_SCLK_ACCESS
-	select MSM_RPM
-	select MSM_XO
 	select GPIO_MSM_V2
 	select MSM_GPIOMUX
-	select MSM_BUS_SCALING
-	select MSM_SECURE_IO
-	select MSM_DALRPC
-	select MSM_QDSP6_APR
-	select MSM_NATIVE_RESTART
-	select MSM_SPM_V1
-	select HAS_MSM_DEBUG_UART_PHYS
+	select MSM_SCM if SMP
+	select MSM_V2_TLMM
 	select USE_OF
 
 config ARCH_MSM8960
 	bool "MSM8960"
-	select ARCH_MSM_KRAITMP
+	select ARCH_MSM_SCORPIONMP
 	select ARM_GIC
 	select CPU_V7
 	select MSM_GPIOMUX
 	select MSM_SCM if SMP
-	select MSM_DIRECT_SCLK_ACCESS
-	select REGULATOR
-	select MSM_RPM
-	select MSM_XO
-	select MSM_QDSP6_APR
-	select MSM_PIL
-	select MSM_AUDIO_QDSP6 if SND_SOC
-	select MSM_SPM_V2
-	select HAS_QDSS
-	select MSM_L2_SPM
-	select MSM_NATIVE_RESTART
-	select DONT_MAP_HOLE_AFTER_MEMBANK0
-	select MSM_REMOTE_SPINLOCK_SFPB
-	select ARCH_POPULATES_NODE_MAP
-	select ARCH_SPARSEMEM_ENABLE
-	select ARCH_HAS_HOLES_MEMORYMODEL
-	select MEMORY_HOTPLUG
-	select MEMORY_HOTREMOVE
-	select MIGRATION
-	select ARCH_MEMORY_PROBE
-	select ARCH_MEMORY_REMOVE
-	select HAS_MSM_DEBUG_UART_PHYS
+	select MSM_V2_TLMM
 	select USE_OF
 
 choice
@@ -297,8 +253,8 @@ config MACH_QSD8X50_SURF
 
 config MACH_QSD8X50A_ST1_5
 	depends on ARCH_QSD8X50
-	select MSM_SOC_REV_A
 	bool "QSD8x50A ST1.5"
+	select MSM_SOC_REV_A
 	help
 	  Support for the Qualcomm ST1.5.
 

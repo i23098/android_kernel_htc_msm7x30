@@ -1,11 +1,8 @@
 #ifndef _LINUX_SIGNAL_H
 #define _LINUX_SIGNAL_H
 
-#include <asm/signal.h>
-#include <asm/siginfo.h>
-
-#ifdef __KERNEL__
 #include <linux/list.h>
+#include <uapi/linux/signal.h>
 
 struct task_struct;
 
@@ -393,7 +390,5 @@ struct dying_pid {
 	pid_t pid;
 	unsigned long jiffy;
 };
-
-#endif /* __KERNEL__ */
 
 #endif /* _LINUX_SIGNAL_H */
