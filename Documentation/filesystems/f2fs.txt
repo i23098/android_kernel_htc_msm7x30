@@ -98,13 +98,8 @@ Cleaning Overhead
 MOUNT OPTIONS
 ================================================================================
 
-background_gc=%s       Turn on/off cleaning operations, namely garbage
-                       collection, triggered in background when I/O subsystem is
-                       idle. If background_gc=on, it will turn on the garbage
-                       collection and if background_gc=off, garbage collection
-                       will be truned off.
-                       Default value for this option is on. So garbage
-                       collection is on by default.
+background_gc_off      Turn off cleaning operations, namely garbage collection,
+		       triggered in background when I/O subsystem is idle.
 disable_roll_forward   Disable the roll-forward recovery routine
 discard                Issue discard/TRIM commands when a segment is cleaned.
 no_heap                Disable heap-style segment allocation which finds free
@@ -151,7 +146,7 @@ USAGE
 
 Format options
 --------------
--l [label]   : Give a volume label, up to 512 unicode name.
+-l [label]   : Give a volume label, up to 256 unicode name.
 -a [0 or 1]  : Split start location of each area for heap-based allocation.
                1 is set by default, which performs this.
 -o [int]     : Set overprovision ratio in percent over volume size.
@@ -161,8 +156,6 @@ Format options
 -z [int]     : Set the number of sections per zone.
                1 is set by default.
 -e [str]     : Set basic extension list. e.g. "mp3,gif,mov"
--t [0 or 1]  : Disable discard command or not.
-               1 is set by default, which conducts discard.
 
 ================================================================================
 DESIGN
@@ -182,9 +175,9 @@ consists of multiple segments as described below.
                                             align with the zone size <-|
                  |-> align with the segment size
      _________________________________________________________________________
-    |            |            |   Segment   |    Node     |   Segment  |      |
-    | Superblock | Checkpoint |    Info.    |   Address   |   Summary  | Main |
-    |    (SB)    |   (CP)     | Table (SIT) | Table (NAT) | Area (SSA) |      |
+    |            |            |    Node     |   Segment   |   Segment  |      |
+    | Superblock | Checkpoint |   Address   |    Info.    |   Summary  | Main |
+    |    (SB)    |   (CP)     | Table (NAT) | Table (SIT) | Area (SSA) |      |
     |____________|_____2______|______N______|______N______|______N_____|__N___|
                                                                        .      .
                                                              .                .
@@ -207,13 +200,13 @@ consists of multiple segments as described below.
  : It contains file system information, bitmaps for valid NAT/SIT sets, orphan
    inode lists, and summary entries of current active segments.
 
-- Segment Information Table (SIT)
- : It contains segment information such as valid block count and bitmap for the
-   validity of all the blocks.
-
 - Node Address Table (NAT)
  : It is composed of a block address table for all the node blocks stored in
    Main area.
+
+- Segment Information Table (SIT)
+ : It contains segment information such as valid block count and bitmap for the
+   validity of all the blocks.
 
 - Segment Summary Area (SSA)
  : It contains summary entries which contains the owner information of all the
@@ -243,13 +236,13 @@ For file system consistency, each CP points to which NAT and SIT copies are
 valid, as shown as below.
 
   +--------+----------+---------+
-  |   CP   |    SIT   |   NAT   |
+  |   CP   |    NAT   |   SIT   |
   +--------+----------+---------+
   .         .          .          .
   .            .              .              .
   .               .                 .                 .
   +-------+-------+--------+--------+--------+--------+
-  | CP #0 | CP #1 | SIT #0 | SIT #1 | NAT #0 | NAT #1 |
+  | CP #0 | CP #1 | NAT #0 | NAT #1 | SIT #0 | SIT #1 |
   +-------+-------+--------+--------+--------+--------+
      |             ^                          ^
      |             |                          |
