@@ -1138,11 +1138,6 @@ static int mipi_renesas_lcd_on(struct platform_device *pdev)
 	mipi_dsi_cmds_tx(&renesas_tx_buf, renesas_display_on_cmds,
 			ARRAY_SIZE(renesas_display_on_cmds));
 
-	if (cpu_is_msm7x25a() || cpu_is_msm7x25aa() || cpu_is_msm7x25ab()) {
-		mipi_dsi_cmds_tx(&renesas_tx_buf, renesas_hvga_on_cmds,
-			ARRAY_SIZE(renesas_hvga_on_cmds));
-	}
-
 	if (mipi->mode == DSI_VIDEO_MODE)
 		mipi_dsi_cmds_tx(&renesas_tx_buf, renesas_video_on_cmds,
 			ARRAY_SIZE(renesas_video_on_cmds));

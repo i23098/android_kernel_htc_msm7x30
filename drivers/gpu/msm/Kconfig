@@ -1,7 +1,7 @@
 config MSM_KGSL
 	tristate "MSM 3D Graphics driver"
 	default n
-	depends on ARCH_MSM && !ARCH_MSM7X00A && !ARCH_MSM7X25
+	depends on ARCH_MSM && !ARCH_MSM7X00A
 	select GENERIC_ALLOCATOR
 	select FW_LOADER
 	---help---
@@ -58,7 +58,7 @@ config MSM_KGSL_PSTMRTMDMP_RB_HEX
 config MSM_KGSL_2D
 	tristate "MSM 2D graphics driver. Required for OpenVG"
 	default y
-	depends on MSM_KGSL && !ARCH_MSM7X27 && !ARCH_MSM7X27A && !(ARCH_QSD8X50 && !MSM_SOC_REV_A)
+	depends on MSM_KGSL && !(ARCH_QSD8X50 && !MSM_SOC_REV_A)
 
 config MSM_KGSL_DRM
 	bool "Build a DRM interface for the MSM_KGSL driver"

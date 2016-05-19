@@ -41,7 +41,6 @@ obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
 obj-y += acpuclock.o
 obj-y += drv_callback.o
 obj-$(CONFIG_ARCH_MSM_SCORPION) += pmu.o
-obj-$(CONFIG_ARCH_MSM7X27A) += pmu.o
 
 ifndef CONFIG_MSM_SMP
 obj-$(CONFIG_ARCH_MSM_SCORPION) += msm_fault_handlers.o
@@ -111,9 +110,7 @@ endif
 ifndef CONFIG_ARCH_MSM8960
 ifndef CONFIG_ARCH_MSM8X60
 ifndef CONFIG_ARCH_MSM7X30
-ifndef CONFIG_ARCH_MSM7X27A
 	obj-y += nand_partitions.o
-endif
 endif
 endif
 endif
@@ -129,10 +126,7 @@ obj-$(CONFIG_ARCH_MSM7X30_SMD) += 7x30-smd/
 else # Else CONFIG_ARCH_MSM7X30_SMD
 obj-y += modem_notifier.o
 obj-$(CONFIG_MSM_SMD_LOGGING) += smem_log.o
-ifeq ($(CONFIG_ARCH_MSM7X27A),y)
-else # Else CONFIG_ARCH_MSM7X27A
 obj-$(CONFIG_MSM_SMD) += smd.o smd_debug.o
-endif # End CONFIG_ARCH_MSM7X27A
 
 obj-$(CONFIG_MSM_SMD_TTY) += smd_tty.o
 obj-$(CONFIG_MSM_SMD_QMI) += smd_qmi.o
@@ -165,9 +159,7 @@ obj-$(CONFIG_MSM_IPC_ROUTER) += ipc_router.o
 obj-$(CONFIG_MSM_IPC_ROUTER)+= ipc_socket.o
 obj-$(CONFIG_MSM_DALRPC) += dal.o
 obj-$(CONFIG_MSM_DALRPC_TEST) += dal_remotetest.o
-#obj-$(CONFIG_ARCH_MSM7X30) += dal_axi.o
 obj-$(CONFIG_ARCH_MSM7X30) += dal_axi.o htc_sdservice.o
-obj-$(CONFIG_ARCH_MSM7X27A) += dal_axi.o
 obj-$(CONFIG_MSM7KV2_AUDIO) += qdsp5v2/
 obj-$(CONFIG_MSM7KV2_AUDIO) += htc_acoustic_7x30.o htc_acdb_7x30.o
 
@@ -177,10 +169,6 @@ ifdef CONFIG_PM
 	obj-$(CONFIG_ARCH_MSM8X60) += pm-8x60.o
 	obj-$(CONFIG_ARCH_QSD8X50) += pm2.o
 	obj-$(CONFIG_ARCH_MSM7X30) += pm2.o arch-init-7x30.o
-	obj-$(CONFIG_ARCH_MSM7X27) += pm2.o
-	obj-$(CONFIG_ARCH_MSM7X27A) += pm2.o
-	obj-$(CONFIG_ARCH_MSM7X25) += pm.o
-	obj-$(CONFIG_ARCH_MSM7X00A) += pm.o
 	obj-y += pm-boot.o
 else
 	obj-y += no-pm.o hotplug.o
@@ -206,7 +194,6 @@ obj-$(CONFIG_ARCH_MSM8X60) += clock-rpm.o
 obj-$(CONFIG_ARCH_MSM8X60) += saw-regulator.o
 obj-$(CONFIG_ARCH_MSM8X60) += footswitch-8x60.o
 obj-$(CONFIG_MSM8X60_AUDIO) += htc_acoustic_8x60.o
-obj-$(CONFIG_ARCH_MSM7X27A) += htc_acoustic.o
 ifdef CONFIG_MSM_SUBSYSTEM_RESTART
 	obj-y += subsystem_notif.o
 	obj-y += subsystem_restart.o

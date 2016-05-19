@@ -79,7 +79,6 @@ config MSM_SOC_REV_NONE
 
 config MSM_SOC_REV_A
 	bool "Rev. A"
-	select ARCH_MSM7X27A if ARCH_MSM7X27
 
 endchoice
 
@@ -123,11 +122,6 @@ config  ARCH_MSM_CORTEX_A5
 	bool
 	select HAVE_HW_BRKPT_RESERVED_RW_ACCESS
 
-config ARCH_MSM7X27A
-	bool
-	select MSM_DALRPC
-	select MSM_PROC_COMM_REGULATOR
-
 config  MSM_VIC
 	bool
 
@@ -158,19 +152,19 @@ config MSM_ADM3
 
 config PERFLOCK
 	depends on CPU_FREQ
-	depends on ARCH_MSM8960 || ARCH_MSM8X60 || ARCH_QSD8X50 || ARCH_MSM7X30 || ARCH_MSM7X00A || ARCH_MSM7X27A || ARCH_MSM7X25
+	depends on ARCH_MSM8960 || ARCH_MSM8X60 || ARCH_QSD8X50 || ARCH_MSM7X30 || ARCH_MSM7X00A
 	default n
 	bool "HTC Performance Lock"
 
 config PERFLOCK_BOOT_LOCK
 	depends on PERFLOCK
-	depends on ARCH_MSM8960 || ARCH_MSM8X60 || ARCH_QSD8X50 || ARCH_MSM7X30 || ARCH_MSM7X00A || ARCH_MSM7X27A || ARCH_MSM7X25
+	depends on ARCH_MSM8960 || ARCH_MSM8X60 || ARCH_QSD8X50 || ARCH_MSM7X30 || ARCH_MSM7X00A
 	default n
 	bool "Boot Time Performance Lock"
 
 config PERFLOCK_SCREEN_POLICY
 	depends on PERFLOCK
-	depends on ARCH_MSM8960 || ARCH_MSM8X60 || ARCH_QSD8X50 || ARCH_MSM7X00A || ARCH_MSM7X27A || ARCH_MSM7X25
+	depends on ARCH_MSM8960 || ARCH_MSM8X60 || ARCH_QSD8X50 || ARCH_MSM7X00A
 	default n
 	bool "Change Cpufreq Policy while Screen ON/OFF"
 
@@ -944,7 +938,7 @@ config MSM_SDIO_SMEM
 
 config MSM_DALRPC
 	bool "DAL RPC support"
-	depends on ARCH_MSM_SCORPION || ARCH_MSM_KRAIT || ARCH_MSM7X27A
+	depends on ARCH_MSM_SCORPION || ARCH_MSM_KRAIT
 	default y
 	help
 	  Supports RPC calls to DAL devices on remote processor cores.
@@ -1024,7 +1018,7 @@ config MSM_HW3D
 	  library.
 
 config MSM_ADSP
-	depends on (ARCH_MSM7X00A || ARCH_MSM7X25 || ARCH_MSM7X27)
+	depends on ARCH_MSM7X00A
 	tristate "MSM ADSP driver"
 	depends on ANDROID_PMEM
 	default y
@@ -1033,8 +1027,8 @@ config MSM_ADSP
 
 config ADSP_RPC_VER
 	hex
-	default 0x30002 if (ARCH_MSM7X27 || (ARCH_MSM7X25 && AMSS_7X25_VERSION_2009))
-	default 0x30001 if (ARCH_MSM7X00A || (ARCH_MSM7X25 && AMSS_7X25_VERSION_2008))
+	default 0x30002 if !ARCH_MSM7X00A
+	default 0x30001 if ARCH_MSM7X00A
 	depends on MSM_ADSP
 	help
 	 Select proper ADSP RPC version
@@ -1094,13 +1088,6 @@ config RTAC
 	help
 	  Enable support for rtac. This enables calibration during
 	  audio operation
-
-config MSM7X27A_AUDIO
-	bool "MSM7X27A audio support"
-	depends on ARCH_MSM7X27A && MSM_ADSP
-	default n
-	help
-	  Enable support for 7x27a. This provides audio functionality.
 
 config MSM_PROC_COMM_REGULATOR
 	bool
@@ -1541,7 +1528,7 @@ config MSM_GSBI9_UART
 
 config MSM_SHARED_GPIO_FOR_UART2DM
 	bool "Use shared GPIOs into UART mode"
-	depends on (ARCH_MSM7X27A && !MMC_MSM_SDC4_SUPPORT)
+	depends on !MMC_MSM_SDC4_SUPPORT
 	help
 	  This option configures GPIO muxed with SDC4/MMC3
 	  8-bit mode into UART mode. It is used for serial
@@ -1559,7 +1546,7 @@ config MSM_SHOW_RESUME_IRQ
 
 config BT_MSM_PINTEST
 	tristate "MSM Bluetooth Pin Connectivity Test"
-	depends on ((ARCH_MSM8X60 || ARCH_MSM7X27A) && DEBUG_FS)
+	depends on (ARCH_MSM8X60 && DEBUG_FS)
 	default n
 	help
 	  Bluetooth MSM Pin Connectivity test module.

@@ -624,7 +624,6 @@ static int msm_dmov_probe(struct platform_device *pdev)
 
 	struct resource *irqres =
 		platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-#if !defined(CONFIG_ARCH_MSM7X27)
 	struct msm_dmov_pdata *pdata = pdev->dev.platform_data;
 	struct resource *mres =
 		platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -635,19 +634,14 @@ static int msm_dmov_probe(struct platform_device *pdev)
 	}
 	if (!dmov_conf[adm].sd_size)
 		return -ENXIO;
-#endif/*#if !defined(CONFIG_ARCH_MSM7X27)*/
 	if (!irqres || !irqres->start)
 		return -ENXIO;
 	dmov_conf[adm].irq = irqres->start;
 	/*Bugfix:the dmov base addr store in platform elememt .end
 	 * .start just a irq number*/
-#if !defined(CONFIG_ARCH_MSM7X27)
 	if (!mres || !mres->start)
 		return -ENXIO;
 	dmov_conf[adm].base = ioremap_nocache(mres->start, resource_size(mres));
-#else
-	dmov_conf[adm].base = (void *) irqres->end;
-#endif/*#if !defined(CONFIG_ARCH_MSM7X27)*/
 
 	if (!dmov_conf[adm].base)
 		return -ENOMEM;

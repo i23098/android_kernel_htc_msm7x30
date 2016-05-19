@@ -44,8 +44,7 @@ module_param_named(debug_mask, msm_gpio_debug_mask, int,
 ** macros.
 */
 
-#if defined(CONFIG_ARCH_MSM7X00A) || defined(CONFIG_ARCH_MSM7X25) ||\
-    defined(CONFIG_ARCH_MSM7X27) || defined(CONFIG_ARCH_MSM7X30)
+#if defined(CONFIG_ARCH_MSM7X00A) || defined(CONFIG_ARCH_MSM7X30)
 
 #define MSM_GPIO1_REG(off) (MSM_GPIO1_BASE + (off))
 #define MSM_GPIO2_REG(off) (MSM_GPIO2_BASE + 0x400 + (off))

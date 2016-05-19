@@ -47,8 +47,7 @@
 #include "sirc.h"
 #elif defined(CONFIG_ARCH_MSM8X60)
 #include "irqs-8x60.h"
-#elif defined(CONFIG_ARCH_MSM7X00A) || defined(CONFIG_ARCH_MSM7X25) \
-	|| defined(CONFIG_ARCH_MSM7X27)
+#elif defined(CONFIG_ARCH_MSM7X00A)
 #include "irqs-7xxx.h"
 #else
 #error "Unknown architecture specification"

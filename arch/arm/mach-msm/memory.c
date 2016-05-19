@@ -46,47 +46,6 @@ EXPORT_SYMBOL(ebi0_size);
 void *strongly_ordered_page;
 char strongly_ordered_mem[PAGE_SIZE*2-4];
 
-void map_page_strongly_ordered(void)
-{
-#if defined(CONFIG_ARCH_MSM7X27) && !defined(CONFIG_ARCH_MSM7X27A)
-	long unsigned int phys;
-	struct map_desc map;
-
-	if (strongly_ordered_page)
-		return;
-
-	strongly_ordered_page = (void*)PFN_ALIGN((int)&strongly_ordered_mem);
-	phys = __pa(strongly_ordered_page);
-
-	map.pfn = __phys_to_pfn(phys);
-	map.virtual = MSM_STRONGLY_ORDERED_PAGE;
-	map.length = PAGE_SIZE;
-	map.type = MT_DEVICE_STRONGLY_ORDERED;
-	create_mapping(&map);
-
-	printk(KERN_ALERT "Initialized strongly ordered page successfully\n");
-#endif
-}
-EXPORT_SYMBOL(map_page_strongly_ordered);
-
-void write_to_strongly_ordered_memory(void)
-{
-#if defined(CONFIG_ARCH_MSM7X27) && !defined(CONFIG_ARCH_MSM7X27A)
-	if (!strongly_ordered_page) {
-		if (!in_interrupt())
-			map_page_strongly_ordered();
-		else {
-			printk(KERN_ALERT "Cannot map strongly ordered page in "
-				"Interrupt Context\n");
-			/* capture it here before the allocation fails later */
-			BUG();
-		}
-	}
-	*(int *)MSM_STRONGLY_ORDERED_PAGE = 0;
-#endif
-}
-EXPORT_SYMBOL(write_to_strongly_ordered_memory);
-
 /* These cache related routines make the assumption (if outer cache is
  * available) that the associated physical memory is contiguous.
  * They will operate on all (L1 and L2 if present) caches.

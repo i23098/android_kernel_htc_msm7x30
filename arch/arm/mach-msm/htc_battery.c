@@ -2237,9 +2237,7 @@ static int __init htc_battery_init(void)
 	batt_register_client(&batt_notify);
 	/* Jay, The msm_fb need to consult htc_battery for power policy */
 #ifdef CONFIG_FB_MSM
-#ifndef CONFIG_ARCH_MSM7X27A
 	display_notifier(htc_power_policy, NOTIFY_POWER);
-#endif
 #endif
 	return 0;
 }

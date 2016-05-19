@@ -455,7 +455,6 @@ enum mipi_dsi_3d_ctrl {
 };
 
 #ifndef CONFIG_ARCH_MSM8X60
-#ifndef CONFIG_ARCH_MSM7X27A
 /* DSI PHY configuration */
 struct mipi_dsi_phy_ctrl {
 	uint32_t regulator[5];
@@ -464,7 +463,6 @@ struct mipi_dsi_phy_ctrl {
 	uint32_t strength[4];
 	uint32_t pll[21];
 };
-#endif
 #endif
 
 struct mipi_dsi_panel_platform_data {

@@ -163,21 +163,15 @@ static uint32_t msm_irq_idle_disable[VIC_NUM_REGS];
 
 #define SMSM_FAKE_IRQ (0xff)
 static uint8_t msm_irq_to_smsm[NR_IRQS] = {
-#if !defined(CONFIG_ARCH_MSM7X27A)
 	[INT_MDDI_EXT] = 1,
 	[INT_MDDI_PRI] = 2,
 	[INT_MDDI_CLIENT] = 3,
-#endif
 	[INT_USB_OTG] = 4,
 
 	[INT_PWB_I2C] = 5,
 	[INT_SDC1_0] = 6,
 	[INT_SDC1_1] = 7,
-#ifdef CONFIG_MACH_PRIMODS
-	[INT_SDC2_0] = 32,
-#else
 	[INT_SDC2_0] = 8,
-#endif
 
 	[INT_SDC2_1] = 9,
 	[INT_ADSP_A9_A11] = 10,

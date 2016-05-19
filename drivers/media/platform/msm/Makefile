@@ -29,14 +29,9 @@ ifeq ($(CONFIG_MSM_CAMERA_V4L2),y)
 	obj-$(CONFIG_MSM_CAMERA_FLASH) += flash.o
 else
 	obj-$(CONFIG_MSM_CAMERA) += gemini_8x60/
-ifeq ($(CONFIG_ARCH_MSM7X27A),y)
-	obj-$(CONFIG_MSM_CAMERA_FLASH) += flash.o
-else
 	obj-$(CONFIG_MSM_CAMERA_FLASH) += flash_8x60.o
 endif
-endif
 obj-$(CONFIG_ARCH_MSM_ARM11) += msm_vfe7x.o msm_io7x.o
-obj-$(CONFIG_ARCH_MSM7X27A) += msm_vfe7x27a.o msm_io_7x27a.o
 obj-$(CONFIG_ARCH_MSM7X30) += msm_vfe_7x30.o msm_io_7x30.o msm_vpe1_7x30.o
 obj-$(CONFIG_ARCH_QSD8X50) += msm_vfe8x.o msm_vfe8x_proc.o msm_io8x.o
 

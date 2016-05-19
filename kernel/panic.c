@@ -23,13 +23,9 @@
 #include <linux/init.h>
 #include <linux/nmi.h>
 #include <linux/dmi.h>
-#include <linux/console.h>
 
 #define PANIC_TIMER_STEP 100
 #define PANIC_BLINK_SPD 18
-
-/* Machine specific panic information string */
-char *mach_panic_string;
 
 int panic_on_oops = CONFIG_PANIC_ON_OOPS_VALUE;
 static unsigned long tainted_mask;
@@ -130,13 +126,6 @@ void panic(const char *fmt, ...)
 	kmsg_dump(KMSG_DUMP_PANIC);
 
 	atomic_notifier_call_chain(&panic_notifier_list, 0, buf);
-
-	/*
-	 * Unlock the console anyway here, in case it's occupied by another
-	 * one which has no chance to unlock the console thus prevents the
-	 * panic log prints on the console.
-	 */
-	console_unlock();
 
 	bust_spinlocks(0);
 
@@ -394,11 +383,6 @@ late_initcall(init_oops_id);
 void print_oops_end_marker(void)
 {
 	init_oops_id();
-
-	if (mach_panic_string)
-		printk(KERN_WARNING "Board Information: %s\n",
-		       mach_panic_string);
-
 	printk(KERN_WARNING "---[ end trace %016llx ]---\n",
 		(unsigned long long)oops_id);
 }

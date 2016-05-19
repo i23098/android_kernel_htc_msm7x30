@@ -458,16 +458,6 @@ static void msm_pm_config_hw_before_power_down(void)
 	mb();
 	__raw_writel(4, APPS_SECOP);
 	mb();
-#elif defined(CONFIG_ARCH_MSM7X27)
-	__raw_writel(0x1f, APPS_CLK_SLEEP_EN);
-	mb();
-	__raw_writel(1, APPS_PWRDOWN);
-	mb();
-#elif defined(CONFIG_ARCH_MSM7x27A)
-	__raw_writel(0x7, APPS_CLK_SLEEP_EN);
-	mb();
-	__raw_writel(1, APPS_PWRDOWN);
-	mb();
 #else
 	__raw_writel(0x1f, APPS_CLK_SLEEP_EN);
 	mb();
@@ -509,12 +499,6 @@ static void msm_pm_config_hw_before_swfi(void)
 {
 #if defined(CONFIG_ARCH_QSD8X50)
 	__raw_writel(0x1f, APPS_CLK_SLEEP_EN);
-	mb();
-#elif defined(CONFIG_ARCH_MSM7X27)
-	__raw_writel(0x0f, APPS_CLK_SLEEP_EN);
-	mb();
-#elif defined(CONFIG_ARCH_MSM7X27A)
-	__raw_writel(0x7, APPS_CLK_SLEEP_EN);
 	mb();
 #endif
 }
@@ -1838,7 +1822,7 @@ static int set_offmode_alarm(void)
 
 static void msm_pm_power_off(void)
 {
-#if !defined(CONFIG_ARCH_MSM7X30) && !defined(CONFIG_ARCH_MSM7X27)
+#if !defined(CONFIG_ARCH_MSM7X30)
 	msm_rpcrouter_close();
 #endif
 
