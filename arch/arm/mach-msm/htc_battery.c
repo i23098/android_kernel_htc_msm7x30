@@ -92,11 +92,7 @@ tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec); \
 } while (0)
 
 /* rpc related */
-#if (defined(CONFIG_MACH_PRIMODD)||defined(CONFIG_MACH_PRIMODS)||defined(CONFIG_MACH_GOLFU))
-#define APP_BATT_PDEV_NAME		"rs30100001"
-#else
 #define APP_BATT_PDEV_NAME		"rs30100001:00000000"
-#endif
 #define APP_BATT_PROG			0x30100001
 #define APP_BATT_VER			MSM_RPC_VERS(0, 0)
 #define HTC_PROCEDURE_BATTERY_NULL	0
@@ -508,11 +504,7 @@ static int htc_battery_status_update(u32 curr_level)
 
 	mutex_lock(&htc_batt_info.lock);
 	notify = (htc_batt_info.rep.level != curr_level);
-#if (defined(CONFIG_MACH_POPC))
-	htc_batt_info.rep.level = 60; /* temporarily fake capacity */
-#else
 	htc_batt_info.rep.level = curr_level;
-#endif
 	mutex_unlock(&htc_batt_info.lock);
 
 	/* we don't check level here for charging over temp RPC call */
@@ -1369,20 +1361,10 @@ static int htc_rpc_charger_switch(unsigned enable)
 
 	BATT_LOG("%s: switch charger to mode: %u", __func__, enable);
 	if (enable == ENABLE_LIMIT_CHARGER) {
-		#if (!defined(CONFIG_MACH_PRIMOU))
-			ret = tps_set_charger_ctrl(ENABLE_LIMITED_CHG);
-		#else
-			phone_call_flag = PHONE_CALL_IN;
-			BATT_LOG("phone_call_flag:%d\n",phone_call_flag);
-		#endif
+		ret = tps_set_charger_ctrl(ENABLE_LIMITED_CHG);
 	}
 	else if (enable == DISABLE_LIMIT_CHARGER) {
-		#if (!defined(CONFIG_MACH_PRIMOU))
-			ret = tps_set_charger_ctrl(CLEAR_LIMITED_CHG);
-		#else
-			phone_call_flag = PHONE_CALL_STOP;
-			BATT_LOG("phone_call_flag:%d\n",phone_call_flag);
-		#endif
+		ret = tps_set_charger_ctrl(CLEAR_LIMITED_CHG);
 	}
 	else {
 		if (htc_batt_info.guage_driver == GUAGE_MODEM) {

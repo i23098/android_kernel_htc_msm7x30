@@ -75,11 +75,6 @@ static int hs_serial_debug_mask = 1;
 module_param_named(debug_mask, hs_serial_debug_mask,
 		   int, S_IRUGO | S_IWUSR | S_IWGRP);
 
-/* tx_empty() no spin lock */
-#if defined(CONFIG_MACH_RUNNYMEDE)
-#define TX_EMPTY_NO_SPINLOCK 1
-#endif
-
 /* for brcm */
 #define USE_BCM_BT_CHIP
 #define T_LOW 0

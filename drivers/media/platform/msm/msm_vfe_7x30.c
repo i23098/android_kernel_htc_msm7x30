@@ -491,9 +491,6 @@ static void vfe31_release(struct platform_device *pdev)
 		if (sctrl)
 			sctrl->s_release();
 	}
-#if defined(CONFIG_MACH_PRIMOU) || defined(CONFIG_MACH_PRIMOC)
-        vfe_stop();
-#endif
 	vfemem = vfe31_ctrl->vfemem;
 	vfeio  = vfe31_ctrl->vfeio;
 

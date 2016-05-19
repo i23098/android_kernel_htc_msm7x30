@@ -20,14 +20,6 @@
 #include <linux/usb/composite.h>
 #include <linux/if_ether.h>
 
-#if 0
-struct android_usb_function {
-	struct list_head	list;
-	char			*name;
-	int 			(*bind_config)(struct usb_configuration *c);
-};
-#endif
-
 struct android_usb_product {
 	/* Vendor ID for this set of functions.
 	 * Default vendor_id in platform data will be used if this is zero.
@@ -142,15 +134,5 @@ struct usb_ether_platform_data {
 	u32	vendorID;
 	const char *vendorDescr;
 };
-
-#if defined(CONFIG_MACH_HOLIDAY)
-extern u8 in_usb_tethering;
-#endif
-
-#if 0
-extern void android_register_function(struct android_usb_function *f);
-extern int android_enable_function(struct usb_function *f, int enable);
-#endif
-
 
 #endif	/* __LINUX_USB_ANDROID_H */

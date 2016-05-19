@@ -91,10 +91,6 @@ int usb_get_connect_type(void)
 {
 	if (!the_msm_otg)
 		return 0;
-#ifdef CONFIG_MACH_VERDI_LTE
-	if (the_msm_otg->connect_type == CONNECT_TYPE_USB_9V_AC)
-		return CONNECT_TYPE_9V_AC;
-#endif
 	return the_msm_otg->connect_type;
 }
 EXPORT_SYMBOL(usb_get_connect_type);

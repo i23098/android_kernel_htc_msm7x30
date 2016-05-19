@@ -124,11 +124,7 @@ int tps61310_flashlight_control(int mode)
 	case FL_MODE_FLASH_LEVEL1:
 		tps61310_i2c_command(0x05, 0x6A);
 		tps61310_i2c_command(0x00, 0x00);
-#if defined(CONFIG_MACH_PRIMOU)
-		tps61310_i2c_command(0x01, 0x86);
-#else
 		tps61310_i2c_command(0x01, 0x88);
-#endif
 		gpio_set_value(this_tps61310->strb1, 0);
 		gpio_set_value(this_tps61310->strb0, 1);
 		queue_delayed_work(tps61310_work_queue, &tps61310_delayed_work,
@@ -137,11 +133,7 @@ int tps61310_flashlight_control(int mode)
 	case FL_MODE_FLASH_LEVEL2:
 		tps61310_i2c_command(0x05, 0x6A);
 		tps61310_i2c_command(0x00, 0x00);
-#if defined(CONFIG_MACH_PRIMOU)
-		tps61310_i2c_command(0x01, 0x88);
-#else
 		tps61310_i2c_command(0x01, 0x90);
-#endif
 		gpio_set_value(this_tps61310->strb1, 0);
 		gpio_set_value(this_tps61310->strb0, 1);
 		queue_delayed_work(tps61310_work_queue, &tps61310_delayed_work,
@@ -244,13 +236,8 @@ int tps61310_flashlight_control(int mode)
 	case FL_MODE_FLASH_LEVEL1:
 		tps61310_i2c_command(0x05, 0x6B);
 		tps61310_i2c_command(0x00, 0x00);
-#if defined(CONFIG_MACH_PRIMOU)
-		tps61310_i2c_command(0x02, 0x83);
-		tps61310_i2c_command(0x01, 0x83);
-#else
 		tps61310_i2c_command(0x02, 0x84);
 		tps61310_i2c_command(0x01, 0x84);
-#endif
 		gpio_set_value(this_tps61310->strb1, 0);
 		gpio_set_value(this_tps61310->strb0, 1);
 		queue_delayed_work(tps61310_work_queue, &tps61310_delayed_work,
@@ -259,13 +246,8 @@ int tps61310_flashlight_control(int mode)
 	case FL_MODE_FLASH_LEVEL2:
 		tps61310_i2c_command(0x05, 0x6B);
 		tps61310_i2c_command(0x00, 0x00);
-#if defined(CONFIG_MACH_PRIMOU)
-		tps61310_i2c_command(0x02, 0x84);
-		tps61310_i2c_command(0x01, 0x84);
-#else
 		tps61310_i2c_command(0x02, 0x88);
 		tps61310_i2c_command(0x01, 0x88);
-#endif
 		gpio_set_value(this_tps61310->strb1, 0);
 		gpio_set_value(this_tps61310->strb0, 1);
 		queue_delayed_work(tps61310_work_queue, &tps61310_delayed_work,

@@ -98,26 +98,6 @@ static void perflock_late_resume(struct early_suspend *handler)
 	unsigned long irqflags;
 	int cpu;
 
-/*
- * This workaround is for hero project
- * May cause potential bug:
- * Accidentally set cpu in high freq in screen off mode.
- * senario: in screen off early suspended state, runs the following sequence:
- * 1.perflock_late_resume():acpuclk_set_rate(high freq);screen_on_pilicy_req=1;
- * 2.perflock_early_suspend():if(screen_on_policy_req) return;
- * 3.perflock_notifier_call(): only set policy's min and max
- */
-#ifdef CONFIG_MACH_HERO
-	/* Work around for display driver,
-	 * need to increase cpu speed immediately.
-	 */
-	unsigned int lock_speed = get_perflock_speed() / 1000;
-	if (lock_speed > CONFIG_PERFLOCK_SCREEN_ON_MIN)
-		acpuclk_set_rate(lock_speed * 1000, 0);
-	else
-		acpuclk_set_rate(CONFIG_PERFLOCK_SCREEN_ON_MIN * 1000, 0);
-#endif
-
 	spin_lock_irqsave(&policy_update_lock, irqflags);
 	if (screen_off_policy_req) {
 		screen_off_policy_req--;

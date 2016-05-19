@@ -969,8 +969,10 @@ a2xx_getchipid(struct kgsl_device *device)
 	/* 8x25 returns 0 for minor id, but it should be 1 */
 	if (cpu_is_qsd8x50())
 		patchid = 1;
+	/*
 	else if (cpu_is_msm8625() && minorid == 0)
 		minorid = 1;
+	*/
 
 	chipid |= (minorid << 8) | patchid;
 

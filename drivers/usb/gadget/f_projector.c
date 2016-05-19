@@ -476,13 +476,6 @@ static void send_info(struct projector_dev *dev)
 		req->length = 20;
 		memcpy(req->buf, "okay", 4);
 		memcpy(req->buf + 4, &dev->bitsPixel, 4);
-		#if defined(CONFIG_MACH_PARADISE)
-		if (machine_is_paradise()) {
-			ctxt->framesize = 320 * 480 * 2;
-			printk(KERN_INFO "send_info: framesize %d\n",
-				ctxt->framesize);
-		}
-		#endif
 		memcpy(req->buf + 8, &dev->framesize, 4);
 		memcpy(req->buf + 12, &dev->width, 4);
 		memcpy(req->buf + 16, &dev->height, 4);

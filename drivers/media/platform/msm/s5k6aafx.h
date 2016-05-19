@@ -58,11 +58,7 @@
 #define S5K6AAFX_ADJ_FULL_SIZE_HEIGHT S5K6AAFX_QTR_SIZE_HEIGHT*2
 
 extern struct s5k6aafx_reg s5k6aafx_regs;
-#if defined(CONFIG_MACH_FLYER)
-extern struct s5k6aafx_reg s5k6aafx_regs_cob;
-#else
 #define s5k6aafx_regs_cob s5k6aafx_regs
-#endif
 
 struct s5k6aafx_i2c_reg_conf {
 	unsigned short waddr;

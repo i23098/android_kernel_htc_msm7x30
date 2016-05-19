@@ -1091,9 +1091,7 @@ static void __init msm_timer_init(void)
 		dgt->freq = 4800000;
 		gpt->regbase = MSM_TMR_BASE;
 		dgt->regbase = MSM_TMR_BASE + 0x10;
-	} else if (cpu_is_fsm9xxx())
-		dgt->freq = 4800000;
-	else if (cpu_is_msm7x30() || cpu_is_msm8x55())
+	} else if (cpu_is_msm7x30() || cpu_is_msm8x55())
 		dgt->freq = 6144000;
 	else if (cpu_is_msm8x60()) {
 		global_timer_offset = MSM_TMR0_BASE - MSM_TMR_BASE;

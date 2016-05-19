@@ -196,7 +196,6 @@ endif
 
 obj-$(CONFIG_FB_MSM_SAGA_PANEL) += lcdc_sony_wvga.o
 obj-$(CONFIG_FB_MSM_SPADE_PANEL) += lcdc_spade_wvga.o
-obj-$(CONFIG_FB_MSM_VISION_PANEL) += lcdc_sony_wvga.o lcdc_samsung_s6e63m0_wvga.o lcdc_samsung_tl2796a_wvga.o
 
 obj-$(CONFIG_MSM_VIDC_1080P) += vidc/
 obj-$(CONFIG_MSM_VIDC_720P) += vidc/

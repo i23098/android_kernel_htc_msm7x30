@@ -117,9 +117,6 @@ endif
 ifdef CONFIG_ARCH_MSM8960
 	obj-y += emmc_partitions.o
 endif
-ifdef CONFIG_MACH_PICO
-        obj-y += nand_partitions.o
-endif
 
 ifeq ($(CONFIG_ARCH_MSM7X30_SMD),y)
 obj-$(CONFIG_ARCH_MSM7X30_SMD) += 7x30-smd/
@@ -188,7 +185,6 @@ obj-$(CONFIG_MACH_TROUT) += htc_akm_cal.o htc_wifi_nvs.o htc_acoustic.o
 obj-$(CONFIG_MACH_TROUT) += board-trout-mmc.o board-trout-wifi.o
 obj-$(CONFIG_ARCH_QSD8X50) += devices-qsd8x50.o clock-pcom-lookup.o
 obj-$(CONFIG_MACH_QSD8X50_SURF) += board-qsd8x50.o
-obj-$(CONFIG_MACH_QSD8X50_FFA) += board-qsd8x50.o
 obj-$(CONFIG_ARCH_MSM8X60) += devices-msm8x60.o clock-local.o clock-8x60.o acpuclock-8x60.o
 obj-$(CONFIG_ARCH_MSM8X60) += clock-rpm.o
 obj-$(CONFIG_ARCH_MSM8X60) += saw-regulator.o
@@ -212,14 +208,6 @@ endif
 
 obj-$(CONFIG_MSM_WATCHDOG) += msm_watchdog.o
 obj-$(CONFIG_MSM_WATCHDOG) += htc_watchdog_monitor.o
-obj-$(CONFIG_MACH_MSM8X60_RUMI3) += board-msm8x60.o
-obj-$(CONFIG_MACH_MSM8X60_SIM) += board-msm8x60.o
-obj-$(CONFIG_MACH_MSM8X60_SURF) += board-msm8x60.o
-obj-$(CONFIG_MACH_MSM8X60_FFA) += board-msm8x60.o
-obj-$(CONFIG_MACH_MSM8X60_FLUID) += board-msm8x60.o
-obj-$(CONFIG_MACH_MSM8X60_DRAGON) += board-msm8x60.o
-obj-$(CONFIG_MACH_TYPE_MSM8X60_FUSION) += board-msm8x60.o mdm.o
-obj-$(CONFIG_MACH_MSM8X60_FUSN_FFA) += board-msm8x60.o mdm.o
 obj-$(CONFIG_TROUT_H2W) += board-trout-h2w.o
 obj-$(CONFIG_HTC_BATTCHG) += htc_battery.o
 obj-$(CONFIG_HTC_BATTCHG_MAX8957) += htc_battery_max8957.o
@@ -227,8 +215,6 @@ obj-$(CONFIG_TROUT_PWRSINK) += htc_pwrsink.o
 
 obj-$(CONFIG_ARCH_MSM7X30) += devices-msm7x30.o memory_topology.o devices_htc.o emmc_partitions.o msm_vibrator.o
 obj-$(CONFIG_ARCH_MSM7X30) += clock-local.o clock-7x30.o acpuclock-7x30.o htc_awb_cal.o
-obj-$(CONFIG_MACH_MSM7X25_SURF) += board-msm7x27.o devices-msm7x25.o
-obj-$(CONFIG_MACH_MSM7X25_FFA) += board-msm7x27.o devices-msm7x25.o
 
 ifeq ($(CONFIG_ARCH_MSM7X30_SMD),y)
 obj-$(CONFIG_ARCH_MSM7X30_SMD) += 7x30-smd/

@@ -26,9 +26,6 @@
 #include <linux/usb/gadget.h>
 #include <linux/workqueue.h>
 
-#if defined(CONFIG_MACH_MECHA)
-/*#include <mach/smsc251x.h>*/
-#endif
 /*#define HTC_DIAG_DEBUG*/
 #include <linux/debugfs.h>
 #if DIAG_XPST
@@ -41,9 +38,6 @@
 #include "../../char/diag/diagfwd.h"
 #include "../../char/diag/diagmem.h"
 #include "../../char/diag/diagchar_hdlc.h"
-#if defined(CONFIG_MACH_MECHA)
-#include "../../../arch/arm/mach-msm/7x30-smd/sdio_diag.h"
-#endif
 
 static void fdiag_debugfs_init(void);
 
@@ -92,16 +86,6 @@ static void fdiag_debugfs_init(void);
 #define NO_DEF_ITEM  0xff
 
 #define MAX(x, y) (x > y ? x : y)
-#endif
-
-#if defined(CONFIG_MACH_MECHA)
-int sdio_diag_init_enable;
-#endif
-
-#if DIAG_XPST
-#if defined(CONFIG_MACH_VIGOR)
-static	unsigned char *diag2arm9_buf_9k;
-#endif
 #endif
 
 int diag_configured;

@@ -29,7 +29,7 @@ static struct diag_request htc_w_diag_req;
 static struct diag_request *htc_write_diag_req;
 #define TRX_REQ_BUF_SZ 8192
 
-#if defined(CONFIG_MACH_MECHA) || defined(CONFIG_MACH_VIGOR) || defined(CONFIG_ARCH_MSM8960)
+#if defined(CONFIG_ARCH_MSM8960)
 static	uint16_t nv7K9K_table[NV_TABLE_SZ] = {82,
 0, 4, 5, 20, 21, 37, 258, 318, 460, 461,
 462, 463, 464, 465, 466, 546, 707, 714, 854, 1943,
@@ -129,7 +129,7 @@ static struct usb_request *xpst_req_get(struct diag_context *ctxt,
 	return req;
 }
 
-#if defined(CONFIG_MACH_MECHA) || defined(CONFIG_MACH_VIGOR) || defined(CONFIG_ARCH_MSM8960)
+#if defined(CONFIG_ARCH_MSM8960)
 int decode_encode_hdlc(void*data, int *len, unsigned char *buf_hdlc, int remove, int pos)
 {
 	struct diag_send_desc_type send = { NULL, NULL, DIAG_STATE_START, 0 };
@@ -186,93 +186,7 @@ int decode_encode_hdlc(void*data, int *len, unsigned char *buf_hdlc, int remove,
 #endif
 int checkcmd_modem_epst(unsigned char *buf)
 {
-#if defined(CONFIG_MACH_MECHA) || defined(CONFIG_MACH_VIGOR)
-	int j;
-	uint16_t nv_num;
-	uint16_t max_item;
-
-	if (*buf == EPST_PREFIX) {
-		if (*(buf+1) == 0x26 || *(buf+1) == 0x27) {
-			max_item = MAX(MAX(nv7K9K_table[0], nv7Konly_table[0]),
-					MAX(nv9Konly_table[0], nv7K9Kdiff_table[0]));
-			nv_num = *((uint16_t *)(buf+2));
-			DIAG_INFO("%s: id = 0x%x nv_num = %d \n", __func__, *(buf+1), nv_num);
-			for (j = 1; j < NV_TABLE_SZ; j++) {
-				if (j <= nv7K9K_table[0] && nv7K9K_table[j] == nv_num)
-					return  DM7K9K;
-				if (j <= nv7Konly_table[0] && nv7Konly_table[j] == nv_num)
-					return  DM7KONLY;
-				if (j <= nv9Konly_table[0]  && nv9Konly_table[j] == nv_num)
-					return  DM9KONLY;
-				if (j <= nv7K9Kdiff_table[0]  && nv7K9Kdiff_table[j] == nv_num)
-					return  DM7K9KDIFF;
-				if (j > max_item)
-					break;
-			}
-			return  NO_DEF_ITEM;
-		} else if (*(buf+1) == 0x48 || *(buf+1) == 0x49) {
-			max_item = MAX(MAX(PRL7K9K_table[0], PRL7Konly_table[0]),
-					MAX(PRL9Konly_table[0], PRL7K9Kdiff_table[0]));
-			nv_num = *((uint16_t *)(buf+2));
-			DIAG_INFO("%s: id = 0x%x nv_num = %d \n", __func__, *(buf+1), nv_num);
-			for (j = 1; j < PRL_TABLE_SZ; j++) {
-				if (j <= PRL7K9K_table[0] && PRL7K9K_table[j] == nv_num)
-					return  DM7K9K;
-				if (j <= PRL7Konly_table[0] && PRL7Konly_table[j] == nv_num)
-					return  DM7KONLY;
-				if (j <= PRL9Konly_table[0]  && PRL9Konly_table[j] == nv_num)
-					return  DM9KONLY;
-				if (j <= PRL7K9Kdiff_table[0]  && PRL7K9Kdiff_table[j] == nv_num)
-					return  DM7K9KDIFF;
-				if (j > max_item)
-					break;
-			}
-			return  NO_DEF_ITEM;
-		} else if (*(buf+1) == 0xC9) {
-			nv_num = *(buf+2);
-			DIAG_INFO("%s: id = 0x%x nv_num = %d \n", __func__, *(buf+1), nv_num);
-			if (*(buf+2) == 0x01 || *(buf+2) == 0x11)
-				return  DM7K9K;
-			else
-				return  NO_DEF_ITEM;
-
-		} else if (*(buf+1) == 0x29) {
-			max_item = MAX(MAX(M297K9K_table[0], M297Konly_table[0]),
-					MAX(M299Konly_table[0], M297K9Kdiff_table[0]));
-			nv_num = *((uint16_t *)(buf+2));
-			DIAG_INFO("%s: id = 0x%x nv_num = %d \n", __func__, *(buf+1), nv_num);
-			for (j = 1; j < M29_TABLE_SZ; j++) {
-				if (j <= M297K9K_table[0] && M297K9K_table[j] == nv_num)
-					return  DM7K9K;
-				if (j <= M297Konly_table[0] && M297Konly_table[j] == nv_num)
-					return  DM7KONLY;
-				if (j <= M299Konly_table[0]  && M299Konly_table[j] == nv_num)
-					return  DM9KONLY;
-				if (j <= M297K9Kdiff_table[0]  && M297K9Kdiff_table[j] == nv_num)
-					return  DM7K9KDIFF;
-				if (j > max_item)
-					break;
-			}
-			return  NO_DEF_ITEM;
-		} else if (*(buf+1) == 0x41 || *(buf+1) == 0x0C || *(buf+1) == 0x40) {
-			return  DM7K9K;
-		} else if (*(buf+1) == 0x00 || *(buf+1) == 0xCD || *(buf+1) == 0xD8
-				|| *(buf+1) == 0x35 || *(buf+1) == 0x36 || *(buf+1) == 0x59) {
-			return  DM7KONLY;
-		} else if (*(buf+1) == 0xDF || *(buf+1) == 0xEC
-				|| (*(buf+1) == 0x4B && *(buf+2) == 0x13)) {
-			return  DM9KONLY;
-		} else if (*(buf+1) == 0x4B && *(buf+2) == 0x0D) {
-			return  DM7KONLY;
-		} else
-			DIAG_INFO("%s:id = 0x%x no default routing path\n", __func__, *(buf+1));
-		return NO_DEF_ID;
-	} else {
-		/*DIAG_INFO("%s: not EPST_PREFIX id = 0x%x route to USB!!!\n", __func__, *buf);*/
-		return NO_PST;
-	}
-
-#elif defined(CONFIG_ARCH_MSM8960)
+#if defined(CONFIG_ARCH_MSM8960)
 	if (*buf == EPST_PREFIX)
 		return DM7KONLY;
 	else
@@ -290,7 +204,7 @@ int modem_to_userspace(void *buf, int r, int type, int is9k)
 
 	struct diag_context *ctxt = &_context;
 	struct usb_request *req;
-#if defined(CONFIG_MACH_MECHA) || defined(CONFIG_MACH_VIGOR) || defined(CONFIG_ARCH_MSM8960)
+#if defined(CONFIG_ARCH_MSM8960)
 	unsigned char value;
 #endif
 
@@ -303,7 +217,7 @@ int modem_to_userspace(void *buf, int r, int type, int is9k)
 	}
 	memcpy(req->buf, buf, r);
 
-#if defined(CONFIG_MACH_MECHA) || defined(CONFIG_MACH_VIGOR) || defined(CONFIG_ARCH_MSM8960)
+#if defined(CONFIG_ARCH_MSM8960)
 	if (type == DM7K9KDIFF) {
 		value = *((uint8_t *)req->buf+1);
 		if ((value == 0x27) || (value == 0x26)) {
@@ -359,16 +273,10 @@ static long htc_diag_ioctl(struct file *file, unsigned int cmd, unsigned long ar
 		if (copy_from_user(&tmp_value, argp, sizeof(int)))
 			return -EFAULT;
 		DIAG_INFO("diag: enable %d\n", tmp_value);
-#if defined(CONFIG_MACH_VIGOR)
-		htc_usb_enable_function(DIAG_MDM, tmp_value);
-#endif
+
 		htc_usb_enable_function(DIAG_LEGACY, tmp_value);
 
 		diag_smd_enable(driver->ch, "diag_ioctl", tmp_value);
-#if defined(CONFIG_MACH_MECHA)
-		/* internal hub*/
-		/*smsc251x_mdm_port_sw(tmp_value);*/
-#endif
 		/* force diag_read to return error when disable diag */
 		if (tmp_value == 0)
 			ctxt->error = 1;
@@ -701,7 +609,7 @@ static int if_route_to_userspace(struct diag_context *ctxt, unsigned int cmd)
 
 	return 0;
 }
-#if defined(CONFIG_MACH_MECHA) || defined(CONFIG_MACH_VIGOR) || defined(CONFIG_ARCH_MSM8960)
+#if defined(CONFIG_ARCH_MSM8960)
 static long diag2arm9_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	struct diag_context *ctxt = &_context;
@@ -853,9 +761,6 @@ static int diag2arm9_open(struct inode *ip, struct file *fp)
 	ctxt->diag2arm9_opened = true;
 
 	diag_smd_enable(driver->ch, "diag2arm9_open", SMD_FUNC_OPEN_DIAG);
-#if defined(CONFIG_MACH_VIGOR)
-	diag2arm9_buf_9k = kzalloc(USB_MAX_OUT_BUF, GFP_KERNEL);
-#endif
 done:
 	mutex_unlock(&ctxt->diag2arm9_lock);
 	return rc;
@@ -886,9 +791,6 @@ static int diag2arm9_release(struct inode *ip, struct file *fp)
 	 *************************************/
 	/*smd_diag_enable("diag2arm9_release", 0);*/
 	mutex_unlock(&ctxt->diag2arm9_lock);
-#if defined(CONFIG_MACH_VIGOR)
-	kfree(diag2arm9_buf_9k);
-#endif
 	return 0;
 }
 
@@ -898,13 +800,10 @@ static ssize_t diag2arm9_write(struct file *fp, const char __user *buf,
 	struct diag_context *ctxt = &_context;
 	int r = count;
 	int writed = 0;
-#if defined(CONFIG_MACH_MECHA) || defined(CONFIG_MACH_VIGOR) || defined(CONFIG_ARCH_MSM8960)
+#if defined(CONFIG_ARCH_MSM8960)
 	int path;
 	struct diag_hdlc_decode_type hdlc;
 	int ret;
-#if defined(CONFIG_MACH_MECHA)
-	unsigned char *buf_9k = NULL;
-#endif
 #endif
 
 	mutex_lock(&ctxt->diag2arm9_write_lock);
@@ -925,7 +824,7 @@ static ssize_t diag2arm9_write(struct file *fp, const char __user *buf,
 			break;
 		}
 
-#if defined(CONFIG_MACH_MECHA) || defined(CONFIG_MACH_VIGOR) || defined(CONFIG_ARCH_MSM8960)
+#if defined(CONFIG_ARCH_MSM8960)
 		path = checkcmd_modem_epst(ctxt->DM_buf);
 
 		print_hex_dump(KERN_DEBUG, "DM Packet Data"
@@ -935,27 +834,6 @@ static ssize_t diag2arm9_write(struct file *fp, const char __user *buf,
 		case DM7K9K:
 			DIAG_INFO("%s:above date to DM7K9K\n", __func__);
 			/* send to 9k before decode HDLC*/
-#if defined(CONFIG_MACH_MECHA)
-			if (sdio_diag_initialized) {
-				buf_9k = kzalloc(writed, GFP_KERNEL);
-				if (!buf_9k) {
-					DIAG_INFO("%s:out of memory\n", __func__);
-					mutex_unlock(&ctxt->diag2arm9_write_lock);
-					return -ENOMEM;
-				}
-				memcpy(buf_9k, ctxt->DM_buf, writed);
-				/*msm_sdio_diag_write((void *)buf_9k, writed);*/
-				buf_9k = NULL;
-			}
-#endif
-#if defined(CONFIG_MACH_VIGOR)
-			if (driver->sdio_ch) {
-				memcpy(diag2arm9_buf_9k, ctxt->DM_buf, writed);
-				sdio_write(driver->sdio_ch, diag2arm9_buf_9k, writed);
-			} else {
-				DIAG_INFO("%s: sdio ch fails\n", __func__);
-			}
-#endif
 #ifdef CONFIG_MODEM_DIAG_MASTER
 			smd_write(driver->ch, ctxt->DM_buf, writed);
 #else
@@ -979,64 +857,12 @@ static ssize_t diag2arm9_write(struct file *fp, const char __user *buf,
 			break;
 		case DM9KONLY:
 			DIAG_INFO("%s:above date to DM9KONLY\n", __func__);
-
-#if defined(CONFIG_MACH_MECHA)
-			if (sdio_diag_initialized) {
-				buf_9k = kzalloc(writed, GFP_KERNEL);
-				if (!buf_9k) {
-					DIAG_INFO("%s:out of memory\n", __func__);
-					mutex_unlock(&ctxt->diag2arm9_write_lock);
-					return -ENOMEM;
-				}
-				memcpy(buf_9k, ctxt->DM_buf, writed);
-				/*msm_sdio_diag_write((void *)buf_9k, writed);*/
-				buf_9k = NULL;
-			}
-#endif
-#if defined(CONFIG_MACH_VIGOR)
-			if (driver->sdio_ch) {
-				memcpy(diag2arm9_buf_9k, ctxt->DM_buf, writed);
-				sdio_write(driver->sdio_ch, diag2arm9_buf_9k, writed);
-			} else {
-				DIAG_INFO("%s: sdio ch fails\n", __func__);
-			}
-
-#endif
 			break;
 		case DM7K9KDIFF:
 			DIAG_INFO("%s:above data to DM7K9KDIFF\n", __func__);
 			/* send to 9k before decode HDLC*/
 			if ((ctxt->DM_buf[3] & 0x80) == 0x80) {
 				DIAG_INFO("%s:DM7K9KDIFF to 9K\n", __func__);
-#if defined(CONFIG_MACH_MECHA)
-				if (sdio_diag_initialized) {
-					buf_9k = kzalloc(USB_MAX_OUT_BUF, GFP_KERNEL);
-					if (!buf_9k) {
-						DIAG_INFO("%s:out of memory\n", __func__);
-						mutex_unlock(&ctxt->diag2arm9_write_lock);
-						return -ENOMEM;
-					}
-					if (decode_encode_hdlc(ctxt->DM_buf, &writed, buf_9k, 1, 3)) {
-						kfree(buf_9k);
-						mutex_unlock(&ctxt->diag2arm9_write_lock);
-						return -EINVAL;
-					}
-					/*msm_sdio_diag_write((void *)buf_9k, writed);*/
-					buf_9k = NULL;
-				}
-#endif
-#if defined(CONFIG_MACH_VIGOR)
-				if (driver->sdio_ch) {
-					if (decode_encode_hdlc(ctxt->DM_buf, &writed, diag2arm9_buf_9k, 1, 3)) {
-						mutex_unlock(&ctxt->diag2arm9_write_lock);
-						return -EINVAL;
-					}
-					sdio_write(driver->sdio_ch, diag2arm9_buf_9k, writed);
-				} else {
-					DIAG_INFO("%s: sdio ch fails\n", __func__);
-				}
-
-#endif
 			} else {
 				DIAG_INFO("%s:DM7K9KDIFF to 7K\n", __func__);
 #ifdef CONFIG_MODEM_DIAG_MASTER
@@ -1169,7 +995,7 @@ static struct file_operations diag2arm9_fops = {
 	.release = diag2arm9_release,
 	.write = diag2arm9_write,
 	.read = diag2arm9_read,
-#if defined(CONFIG_MACH_MECHA) || defined(CONFIG_MACH_VIGOR) || defined(CONFIG_ARCH_MSM8960)
+#if defined(CONFIG_ARCH_MSM8960)
 	.unlocked_ioctl = diag2arm9_ioctl,
 #endif
 };

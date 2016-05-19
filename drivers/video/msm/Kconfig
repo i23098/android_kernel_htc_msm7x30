@@ -434,10 +434,9 @@ config FB_MSM_NO_MDP_PIPE_CTRL
 
 config FB_MSM_OVERLAY0_WRITEBACK
 	depends on FB_MSM_OVERLAY
-        bool "MDP overlay0 write back mode enable"
+	bool "MDP overlay0 write back mode enable"
 	---help---
 	  Support for MDP4 OVERLAY0 write back mode
-
 
 config FB_MSM_OVERLAY1_WRITEBACK
         depends on FB_MSM_OVERLAY
@@ -453,13 +452,6 @@ config FB_MSM_WRITEBACK_MSM_PANEL
 choice
 	prompt "LCD Panel"
 	default FB_MSM_MDDI_AUTO_DETECT
-
-config FB_MSM_VISION_PANEL
-	depends on FB_MSM_LCDC_HW && MACH_VISION
-	bool "LCDC Vision WVGA Panels"
-	select FB_MSM_LCDC_PANEL
-	---help---
-	  Support for Vision WVGA (800x480) panels
 
 config FB_MSM_SAGA_PANEL
 	depends on FB_MSM_LCDC_HW && MACH_SAGA

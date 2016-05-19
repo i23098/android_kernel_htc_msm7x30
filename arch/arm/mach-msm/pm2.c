@@ -2015,14 +2015,7 @@ static int __init msm_pm_init(void)
 	}
 #endif
 
-#ifdef CONFIG_MACH_GOLFU
-	if (board_mfg_mode() == 8)
-		disable_hlt();
-	else
-		boot_lock_nohalt();
-#else
 	boot_lock_nohalt();
-#endif
 	return 0;
 }
 
