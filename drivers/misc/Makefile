@@ -47,7 +47,6 @@ obj-$(CONFIG_PCH_PHUB)		+= pch_phub.o
 obj-y				+= ti-st/
 obj-y				+= lis3lv02d/
 obj-y				+= carma/
-obj-$(CONFIG_SENSORS_AK8975)	+= akm8975.o
 obj-$(CONFIG_HAPTIC_ISA1200)		+= isa1200.o
 obj-$(CONFIG_SENSORS_BMA150_SPI)+= bma150_spi.o
 obj-$(CONFIG_PMIC8XXX_VIBRATOR) += pm8xxx-vibrator.o

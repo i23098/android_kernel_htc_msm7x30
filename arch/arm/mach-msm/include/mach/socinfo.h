@@ -59,13 +59,7 @@ enum msm_cpu socinfo_get_msm_cpu(void);
 uint32_t socinfo_get_id(void);
 uint32_t socinfo_get_version(void);
 char *socinfo_get_build_id(void);
-uint32_t socinfo_get_platform_type(void);
-uint32_t socinfo_get_platform_subtype(void);
-uint32_t socinfo_get_platform_version(void);
 int __init socinfo_init(void) __must_check;
-const int read_msm_cpu_type(void);
-const int get_core_count(void);
-const int cpu_is_krait_v1(void);
 
 static inline int cpu_is_msm7x01(void)
 {
@@ -118,7 +112,8 @@ static inline int cpu_is_msm8x55(void)
 static inline int cpu_is_msm8x60(void)
 {
 #ifdef CONFIG_ARCH_MSM8X60
-	return read_msm_cpu_type() == MSM_CPU_8X60;
+	enum msm_cpu cpu = socinfo_get_msm_cpu();
+	return cpu == MSM_CPU_8X60;
 #else
 	return 0;
 #endif
@@ -127,78 +122,11 @@ static inline int cpu_is_msm8x60(void)
 static inline int cpu_is_msm8960(void)
 {
 #ifdef CONFIG_ARCH_MSM8960
-	return read_msm_cpu_type() == MSM_CPU_8960;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_msm8960ab(void)
-{
-#ifdef CONFIG_ARCH_MSM8960
-	return read_msm_cpu_type() == MSM_CPU_8960AB;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_fsm9xxx(void)
-{
-	return 0;
-}
-
-static inline int cpu_is_msm8625(void)
-{
-#ifdef CONFIG_ARCH_MSM8625
 	enum msm_cpu cpu = socinfo_get_msm_cpu();
-
-	BUG_ON(cpu == MSM_CPU_UNKNOWN);
-	return cpu == MSM_CPU_8625;
+	return cpu == MSM_CPU_8960;
 #else
 	return 0;
 #endif
-}
-
-static inline int cpu_is_msm8974(void)
-{
-#ifdef CONFIG_ARCH_MSM8974
-	enum msm_cpu cpu = socinfo_get_msm_cpu();
-
-	BUG_ON(cpu == MSM_CPU_UNKNOWN);
-	return cpu == MSM_CPU_8974;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_mpq8092(void)
-{
-#ifdef CONFIG_ARCH_MPQ8092
-	enum msm_cpu cpu = socinfo_get_msm_cpu();
-
-	BUG_ON(cpu == MSM_CPU_UNKNOWN);
-	return cpu == MSM_CPU_8092;
-#else
-	return 0;
-#endif
-
-}
-
-static inline int cpu_is_msm8226(void)
-{
-#ifdef CONFIG_ARCH_MSM8226
-	enum msm_cpu cpu = socinfo_get_msm_cpu();
-
-	BUG_ON(cpu == MSM_CPU_UNKNOWN);
-	return cpu == MSM_CPU_8226;
-#else
-	return 0;
-#endif
-}
-
-static inline int soc_class_is_msm8960(void)
-{
-	return cpu_is_msm8960() || cpu_is_msm8960ab();
 }
 
 #endif
