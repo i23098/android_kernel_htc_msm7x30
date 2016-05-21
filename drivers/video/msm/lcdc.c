@@ -75,7 +75,6 @@ static int lcdc_off(struct platform_device *pdev)
 	if (lcdc_pdata && lcdc_pdata->lcdc_gpio_config)
 		ret = lcdc_pdata->lcdc_gpio_config(0);
 
-#ifndef CONFIG_MSM_BUS_SCALING
 	if (mfd->ebi1_clk) {
 		if (mdp_rev == MDP_REV_303) {
 			if (clk_set_rate(mfd->ebi1_clk, 0))
@@ -84,7 +83,6 @@ static int lcdc_off(struct platform_device *pdev)
 		}
 		clk_disable_unprepare(mfd->ebi1_clk);
 	}
-#endif
 
 	return ret;
 }
@@ -94,9 +92,8 @@ static int lcdc_on(struct platform_device *pdev)
 	int ret = 0;
 	struct msm_fb_data_type *mfd;
 	unsigned long panel_pixclock_freq = 0;
-#ifndef CONFIG_MSM_BUS_SCALING
 	unsigned long pm_qos_rate;
-#endif
+
 	mfd = platform_get_drvdata(pdev);
 
 	cont_splash_clk_ctrl(0);
@@ -106,7 +103,7 @@ static int lcdc_on(struct platform_device *pdev)
 
 	if (!panel_pixclock_freq)
 		panel_pixclock_freq = mfd->fbi->var.pixclock;
-#ifndef CONFIG_MSM_BUS_SCALING
+
 	if (panel_pixclock_freq > 65000000)
 		/* pm_qos_rate should be in Khz */
 		pm_qos_rate = panel_pixclock_freq / 1000 ;
@@ -124,7 +121,6 @@ static int lcdc_on(struct platform_device *pdev)
 		clk_prepare_enable(mfd->ebi1_clk);
 	}
 
-#endif
 	mfd = platform_get_drvdata(pdev);
 
 	mfd->fbi->var.pixclock = clk_round_rate(pixel_mdp_clk,
@@ -187,11 +183,9 @@ static int lcdc_probe(struct platform_device *pdev)
 			return -EINVAL;
 		}
 
-#ifndef CONFIG_MSM_BUS_SCALING
 		ebi1_clk = clk_get(&pdev->dev, "mem_clk");
 		if (IS_ERR(ebi1_clk))
 			return PTR_ERR(ebi1_clk);
-#endif
 
 		return 0;
 	}
@@ -280,13 +274,11 @@ lcdc_probe_err:
 
 static int lcdc_remove(struct platform_device *pdev)
 {
-#ifndef CONFIG_MSM_BUS_SCALING
 	struct msm_fb_data_type *mfd;
 
 	mfd = platform_get_drvdata(pdev);
 
 	clk_put(mfd->ebi1_clk);
-#endif
 	return 0;
 }
 

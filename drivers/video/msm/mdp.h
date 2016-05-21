@@ -26,11 +26,6 @@
 #include <mach/hardware.h>
 #include <linux/msm_ion.h>
 
-#ifdef CONFIG_MSM_BUS_SCALING
-#include <mach/msm_bus.h>
-#include <mach/msm_bus_board.h>
-#endif
-
 #include <linux/io.h>
 
 #include <asm/system.h>
@@ -832,9 +827,6 @@ int mdp_clk_round_rate(u32 rate);
 
 unsigned long mdp_get_core_clk(void);
 
-#ifdef CONFIG_MSM_BUS_SCALING
-int mdp_bus_scale_update_request(u64 ab_p0, u64 ib_p0, u64 ab_p1, u64 ib_p1);
-#else
 static inline int mdp_bus_scale_update_request(u64 ab_p0,
 					       u64 ib_p0,
 					       u64 ab_p1,
@@ -842,7 +834,7 @@ static inline int mdp_bus_scale_update_request(u64 ab_p0,
 {
 	return 0;
 }
-#endif
+
 void mdp_dma_vsync_ctrl(int enable);
 void mdp_dma_video_vsync_ctrl(int enable);
 void mdp_dma_lcdc_vsync_ctrl(int enable);

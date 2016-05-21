@@ -74,17 +74,6 @@ struct msm_bus_scale_pdata {
  * The function returns 0 if bus driver is unable to register a client
  */
 
-#ifdef CONFIG_MSM_BUS_SCALING
-uint32_t msm_bus_scale_register_client(struct msm_bus_scale_pdata *pdata);
-int msm_bus_scale_client_update_request(uint32_t cl, unsigned int index);
-void msm_bus_scale_unregister_client(uint32_t cl);
-struct msm_bus_scale_pdata *msm_bus_cl_get_pdata(struct platform_device *pdev);
-void msm_bus_cl_clear_pdata(struct msm_bus_scale_pdata *pdata);
-/* AXI Port configuration APIs */
-int msm_bus_axi_porthalt(int master_port);
-int msm_bus_axi_portunhalt(int master_port);
-
-#else
 static inline struct msm_bus_scale_pdata
 *msm_bus_cl_get_pdata(struct platform_device *pdev)
 {
@@ -122,6 +111,5 @@ static inline int msm_bus_axi_portunhalt(int master_port)
 {
 	return 0;
 }
-#endif
 
 #endif /*_ARCH_ARM_MACH_MSM_BUS_H*/

@@ -54,10 +54,6 @@ static struct clk *mdp_tv_clk;
 static struct clk *tv_src_clk;
 #endif
 
-#ifdef CONFIG_MSM_BUS_SCALING
-static uint32_t tvenc_bus_scale_handle;
-#endif
-
 static int tvenc_runtime_suspend(struct device *dev)
 {
 	dev_dbg(dev, "pm_runtime: suspending...\n");
@@ -190,14 +186,9 @@ static int tvenc_off(struct platform_device *pdev)
 
 	if (tvenc_pdata && tvenc_pdata->pm_vid_en)
 		ret = tvenc_pdata->pm_vid_en(0);
-#ifdef CONFIG_MSM_BUS_SCALING
-	if (tvenc_bus_scale_handle > 0)
-		msm_bus_scale_client_update_request(tvenc_bus_scale_handle,
-							0);
-#else
+
 	if (mfd->ebi1_clk)
 		clk_disable_unprepare(mfd->ebi1_clk);
-#endif
 
 	if (ret)
 		pr_err("%s: pm_vid_en(off) failed! %d\n",
@@ -210,18 +201,11 @@ static int tvenc_on(struct platform_device *pdev)
 {
 	int ret = 0;
 
-#ifndef CONFIG_MSM_BUS_SCALING
 	struct msm_fb_data_type *mfd = platform_get_drvdata(pdev);
-#endif
 
-#ifdef CONFIG_MSM_BUS_SCALING
-	if (tvenc_bus_scale_handle > 0)
-		msm_bus_scale_client_update_request(tvenc_bus_scale_handle,
-							1);
-#else
 	if (mfd->ebi1_clk)
 		clk_prepare_enable(mfd->ebi1_clk);
-#endif
+
 	mdp4_extn_disp = 1;
 	if (tvenc_pdata && tvenc_pdata->pm_vid_en)
 		ret = tvenc_pdata->pm_vid_en(1);
@@ -333,14 +317,12 @@ static int tvenc_probe(struct platform_device *pdev)
 		tvenc_pclk = clk_get(&pdev->dev, "iface_clk");
 		mdp_tv_clk = clk_get(&pdev->dev, "mdp_clk");
 
-#ifndef CONFIG_MSM_BUS_SCALING
 		ebi1_clk = clk_get(&pdev->dev, "mem_clk");
 		if (IS_ERR(ebi1_clk)) {
 			rc = PTR_ERR(ebi1_clk);
 			goto tvenc_probe_err;
 		}
 		clk_set_rate(ebi1_clk, MSM_SYSTEM_BUS_RATE);
-#endif
 
 #ifdef CONFIG_FB_MSM_MDP40
 		tv_src_clk = clk_get(&pdev->dev, "src_clk");
@@ -443,19 +425,6 @@ static int tvenc_probe(struct platform_device *pdev)
 	mfd->fb_imgType = MDP_YCRYCB_H2V1;
 #endif
 
-#ifdef CONFIG_MSM_BUS_SCALING
-	if (!tvenc_bus_scale_handle && tvenc_pdata &&
-		tvenc_pdata->bus_scale_table) {
-		tvenc_bus_scale_handle =
-			msm_bus_scale_register_client(
-				tvenc_pdata->bus_scale_table);
-		if (!tvenc_bus_scale_handle) {
-			printk(KERN_ERR "%s not able to get bus scale\n",
-				__func__);
-		}
-	}
-#endif
-
 	/*
 	 * set driver data
 	 */
@@ -478,13 +447,6 @@ static int tvenc_probe(struct platform_device *pdev)
 	return 0;
 
 tvenc_probe_err:
-#ifdef CONFIG_MSM_BUS_SCALING
-	if (tvenc_pdata && tvenc_pdata->bus_scale_table &&
-		tvenc_bus_scale_handle > 0) {
-		msm_bus_scale_unregister_client(tvenc_bus_scale_handle);
-		tvenc_bus_scale_handle = 0;
-	}
-#endif
 	platform_device_put(mdp_dev);
 	return rc;
 }
@@ -495,15 +457,7 @@ static int tvenc_remove(struct platform_device *pdev)
 
 	mfd = platform_get_drvdata(pdev);
 
-#ifdef CONFIG_MSM_BUS_SCALING
-	if (tvenc_pdata && tvenc_pdata->bus_scale_table &&
-		tvenc_bus_scale_handle > 0) {
-		msm_bus_scale_unregister_client(tvenc_bus_scale_handle);
-		tvenc_bus_scale_handle = 0;
-	}
-#else
 	clk_put(mfd->ebi1_clk);
-#endif
 
 	pm_runtime_disable(&pdev->dev);
 	return 0;

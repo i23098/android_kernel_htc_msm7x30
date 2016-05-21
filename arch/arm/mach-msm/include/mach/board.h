@@ -404,9 +404,6 @@ struct msm_panel_common_pdata {
 	u32 mdp_max_bw;
 	u32 mdp_bw_ab_factor;
 	u32 mdp_bw_ib_factor;
-#ifdef CONFIG_MSM_BUS_SCALING
-	struct msm_bus_scale_pdata *mdp_bus_scale_table;
-#endif
 	int mdp_rev;
 	u32 ov0_wb_size;  /* overlay0 writeback size */
 	u32 ov1_wb_size;  /* overlay1 writeback size */
@@ -421,17 +418,11 @@ struct lcdc_platform_data {
 	int (*lcdc_gpio_config)(int on);
 	int (*lcdc_power_save)(int);
 	unsigned int (*lcdc_get_clk)(void);
-#ifdef CONFIG_MSM_BUS_SCALING
-	struct msm_bus_scale_pdata *bus_scale_table;
-#endif
 };
 
 struct tvenc_platform_data {
 	int poll;
 	int (*pm_vid_en)(int on);
-#ifdef CONFIG_MSM_BUS_SCALING
-	struct msm_bus_scale_pdata *bus_scale_table;
-#endif
 };
 
 struct mddi_platform_data {
@@ -521,9 +512,6 @@ struct msm_vidc_platform_data {
 	int disable_dmx;
 	int disable_fullhd;
 	u32 cp_enabled;
-#ifdef CONFIG_MSM_BUS_SCALING
-	struct msm_bus_scale_pdata *vidc_bus_client_pdata;
-#endif
 	int disable_turbo;
 	int cont_mode_dpb_count;
 	int memtype_pmem;
