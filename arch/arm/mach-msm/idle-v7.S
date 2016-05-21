@@ -19,13 +19,8 @@
 #include <linux/threads.h>
 #include <asm/assembler.h>
 
-#ifdef CONFIG_MSM_CPU_AVS
-/* 11 general purpose registers (r4-r14), 10 cp15 registers, 3 AVS registers */
-#define CPU_SAVED_STATE_SIZE (4 * 11 + 4 * 10 + 4 * 3)
-#else
 /* 11 general purpose registers (r4-r14), 10 cp15 registers */
 #define CPU_SAVED_STATE_SIZE (4 * 11 + 4 * 10)
-#endif
 #ifdef CONFIG_ARCH_MSM_KRAIT
 #define SCM_SVC_BOOT 0x1
 #define SCM_CMD_TERMINATE_PC 0x2
@@ -67,20 +62,6 @@ ENTRY(msm_pm_collapse)
 	mrc     p15, 0, r9, c13, c0, 3 /* TPIDRURO */
 	mrc     p15, 0, ip, c13, c0, 1 /* context ID */
 	stmia   r0!, {r1-r9, ip}
-#ifdef CONFIG_MSM_CPU_AVS
-	mrc     p15, 7, r1, c15, c1, 7 /* AVSCSR is the Adaptive Voltage Scaling
-	                                * Control and Status Register */
-	mrc     p15, 7, r2, c15, c0, 6 /* AVSDSCR is the Adaptive Voltage
-	                                * Scaling Delay Synthesizer Control
-					* Register */
-#ifndef CONFIG_ARCH_MSM_KRAIT
-	mrc     p15, 7, r3, c15, c1, 0 /* TSCSR is the Temperature Status and
-	                                * Control Register
-					*/
-#endif
-
-	stmia   r0!, {r1-r3}
-#endif
 
 #ifdef CONFIG_MSM_DEBUG_ACROSS_PC
 	bl      msm_save_jtag_debug
@@ -172,14 +153,6 @@ _cpu_early_init_complete:
 	subeq	r1, r1, #CPU_SAVED_STATE_SIZE
 #endif
 
-#ifdef CONFIG_MSM_CPU_AVS
-	ldmdb   r1!, {r2-r4}
-#ifndef CONFIG_ARCH_MSM_KRAIT
-	mcr     p15, 7, r4, c15, c1, 0 /* TSCSR */
-#endif
-	mcr     p15, 7, r3, c15, c0, 6 /* AVSDSCR */
-	mcr     p15, 7, r2, c15, c1, 7 /* AVSCSR */
-#endif
 	ldmdb   r1!, {r2-r11}
 	mcr     p15, 0, r4, c3, c0, 0 /* dacr */
 	mcr     p15, 0, r3, c2, c0, 0 /* TTBR0 */

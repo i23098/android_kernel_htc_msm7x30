@@ -42,15 +42,9 @@ static int restart_requested;
 static void deferred_restart(struct work_struct *dummy)
 {
 	pr_info("keyreset::%s in\n", __func__);
-#ifdef CONFIG_MSM_WATCHDOG
-		msm_watchdog_suspend(NULL);
-#endif
-		/* show blocked processes to debug hang problems */
-		printk(KERN_INFO "\n### Show Blocked State ###\n");
-		show_state_filter(TASK_UNINTERRUPTIBLE);
-#ifdef CONFIG_MSM_WATCHDOG
-		msm_watchdog_resume(NULL);
-#endif
+	/* show blocked processes to debug hang problems */
+	printk(KERN_INFO "\n### Show Blocked State ###\n");
+	show_state_filter(TASK_UNINTERRUPTIBLE);
 	restart_requested = 2;
 	sys_sync();
 	restart_requested = 3;

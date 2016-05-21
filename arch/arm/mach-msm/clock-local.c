@@ -30,13 +30,6 @@
 #include "clock.h"
 #include "clock-local.h"
 
-#ifdef CONFIG_MSM_SECURE_IO
-#undef readl_relaxed
-#undef writel_relaxed
-#define readl_relaxed secure_readl
-#define writel_relaxed secure_writel
-#endif
-
 /*
  * When enabling/disabling a clock, check the halt bit up to this number
  * number of times (with a 1 us delay in between) before continuing.

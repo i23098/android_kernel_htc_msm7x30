@@ -30,7 +30,6 @@
 #include <linux/debugfs.h>
 #include <linux/uaccess.h>
 #include <mach/clk.h>
-#include <mach/msm_xo.h>
 
 #include <mach/cable_detect.h>
 
@@ -974,11 +973,6 @@ static int msm_otg_suspend(struct msm_otg *motg)
 		clk_disable(motg->iface_clk);
 
 	clk_disable(motg->core_clk);
-	/* usb phy no more require TCXO clock, hence vote for TCXO disable*/
-	ret = msm_xo_mode_vote(motg->xo_handle, MSM_XO_MODE_OFF);
-	if (ret)
-		pr_err("%s failed to devote for"
-			"TCXO D1 buffer%d\n", __func__, ret);
 
 	if (device_may_wakeup(motg->phy.dev)) {
 		enable_irq_wake(motg->irq);
@@ -1042,12 +1036,6 @@ static int msm_otg_resume(struct msm_otg *motg)
 	}
 	if (motg->pdata->ldo_set_voltage)
 		motg->pdata->ldo_set_voltage(3400);
-
-	/* Vote for TCXO when waking up the phy */
-	ret = msm_xo_mode_vote(motg->xo_handle, MSM_XO_MODE_ON);
-	if (ret)
-		pr_err("%s failed to vote for"
-			"TCXO D1 buffer%d\n", __func__, ret);
 
 	clk_enable(motg->core_clk);
 
@@ -2974,21 +2962,6 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 		ret = -ENODEV;
 		goto free_regs;
 	}
-	motg->xo_handle = msm_xo_get(MSM_XO_TCXO_D1, "usb");
-	if (IS_ERR(motg->xo_handle)) {
-		pr_err(" %s not able to get the handle"
-			"to vote for TCXO D1 buffer\n", __func__);
-		ret = PTR_ERR(motg->xo_handle);
-		goto free_regs;
-	}
-
-	ret = msm_xo_mode_vote(motg->xo_handle, MSM_XO_MODE_ON);
-	if (ret) {
-		pr_err("%s failed to vote for TCXO"
-			"D1 buffer%d\n", __func__, ret);
-		goto free_xo_handle;
-	}
-
 
 	msm_otg_init_timer(motg);
 	INIT_WORK(&motg->sm_work, msm_otg_sm_work);
@@ -3209,8 +3182,6 @@ free_wq:
 	destroy_workqueue(motg->wq);
 free_wlock:
 	wake_lock_destroy(&motg->wlock);
-free_xo_handle:
-	msm_xo_put(motg->xo_handle);
 free_regs:
 	iounmap(motg->regs);
 put_phy_clk:
@@ -3286,7 +3257,6 @@ static int __devexit msm_otg_remove(struct platform_device *pdev)
 		clk_put(motg->phy_reset_clk);
 	if (motg->pdata->rpc_connect)
 		motg->pdata->rpc_connect(0);
-	msm_xo_put(motg->xo_handle);
 	pm_qos_remove_request(&motg->pdata->pm_qos_req_dma);
 
 	pm_runtime_put(&pdev->dev);

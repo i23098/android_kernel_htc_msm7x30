@@ -36,10 +36,6 @@
 #include "smd_private.h"
 #endif
 
-#ifdef CONFIG_HTC_ACCESSORY_ONEWIRE
-#include <mach/htc_onewire.h>
-#endif
-
 #if defined(CONFIG_TROUT_BATTCHG_DOCK)
 #include <mach/htc_one_wire.h>
 #endif
@@ -224,14 +220,6 @@ static struct t_usb_status_notifier usb_status_notifier = {
 	.name = "htc_battery",
 	.func = usb_status_notifier_func,
 };
-
-#ifdef CONFIG_HTC_ACCESSORY_ONEWIRE
-static void htc_owe_notifier_func(int online);
-static struct t_owe_charging_notifier owe_charging_notifier = {
-	.name = "htc_battery",
-	.func = htc_owe_notifier_func,
-};
-#endif
 
 /* Move cable detection/notification to standard PMIC RPC. */
 static BLOCKING_NOTIFIER_HEAD(cable_status_notifier_list);
@@ -594,9 +582,6 @@ static int htc_cable_status_update(int status)
 			if (last_source == CHARGER_WIRELESS)
 				blocking_notifier_call_chain(&wireless_charger_notifier_list, status, NULL);
 			msm_otg_set_vbus_state(!!htc_batt_info.rep.charging_source);
-#ifdef CONFIG_HTC_ACCESSORY_ONEWIRE
-			onewire_detect_start(!!htc_batt_info.rep.charging_source);
-#endif
 		}
 	}
 
@@ -800,14 +785,6 @@ static void peripheral_cable_update(int online, int from_owe)
 	mutex_unlock(&htc_batt_info.lock);
 #endif
 }
-
-#ifdef CONFIG_HTC_ACCESSORY_ONEWIRE
-static void htc_owe_notifier_func(int online)
-{
-	peripheral_cable_update(online, 1);
-	return;
-}
-#endif
 
 /* A9 reports USB charging when helf AC cable in and China AC charger. */
 /* notify userspace USB charging first,
@@ -2211,9 +2188,6 @@ static int __init htc_battery_init(void)
 	mutex_init(&htc_batt_info.lock);
 	mutex_init(&htc_batt_info.rpc_lock);
 	msm_usb_register_notifier(&usb_status_notifier);
-#ifdef CONFIG_HTC_ACCESSORY_ONEWIRE
-	owe_charging_register_notifier(&owe_charging_notifier);
-#endif
 	platform_driver_register(&htc_battery_driver);
 	platform_driver_register(&htc_battery_core_driver);
 	batt_register_client(&batt_notify);

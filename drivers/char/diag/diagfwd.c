@@ -27,7 +27,7 @@
 #endif
 #include <mach/msm_smd.h>
 #include <mach/socinfo.h>
-#include <mach/restart.h>
+#include <../smd_rpcrouter.h>
 #include "diagmem.h"
 #include "diagchar.h"
 #include "diagfwd.h"
@@ -922,7 +922,6 @@ static int diag_process_apps_pkt(unsigned char *buf, int len)
 		ENCODE_RSP_AND_SEND(0);
 		msleep(5000);
 		/* call download API */
-		msm_set_restart_mode(RESTART_DLOAD);
 		printk(KERN_CRIT "diag: download mode set, Rebooting SoC..\n");
 		kernel_restart(NULL);
 		/* Not required, represents that command isnt sent to modem */

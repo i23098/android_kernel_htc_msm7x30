@@ -47,6 +47,7 @@
 #include <asm/mach/arch.h>
 #include <asm/setup.h>
 #include <mach/panel_id.h>
+#include "common.h"
 #include <linux/rtc-msm.h>
 
 #include <mach/mpp.h>
@@ -794,16 +795,6 @@ static int pm8058_gpios_init(void)
 }
 
 /* Regulator API support */
-
-#ifdef CONFIG_MSM_PROC_COMM_REGULATOR
-static struct platform_device msm_proccomm_regulator_dev = {
-	.name = PROCCOMM_REGULATOR_DEV_NAME,
-	.id   = -1,
-	.dev  = {
-		.platform_data = &msm7x30_proccomm_regulator_data
-	}
-};
-#endif
 
 static int pm8058_pwm_config(struct pwm_device *pwm, int ch, int on)
 {
@@ -2808,9 +2799,6 @@ static struct platform_device *devices[] __initdata = {
 #ifdef CONFIG_SERIAL_MSM_HS_PURE_ANDROID
         &spade_bcm_bt_lpm_device,
 #endif
-#ifdef CONFIG_MSM_PROC_COMM_REGULATOR
-        &msm_proccomm_regulator_dev,
-#endif
         &asoc_msm_pcm,
         &asoc_msm_dai0,
         &asoc_msm_dai1,
@@ -3258,7 +3246,7 @@ MACHINE_START(SPADE, "spade")
 	.reserve = spade_reserve,
 	.init_irq = msm_init_irq,
 	.init_machine = spade_init,
-	.timer = &msm_timer,
+	.timer = &msm7x30_timer,
 	.init_early = spade_init_early,
 	.dt_compat = qcom_dt_match,
 MACHINE_END

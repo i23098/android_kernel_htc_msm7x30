@@ -76,11 +76,4 @@ extern struct platform_device msm_device_rng;
 void __init msm8x60_init_irq(void);
 void __init msm8x60_check_2d_hardware(void);
 
-#ifdef CONFIG_MSM_DSPS
-extern struct platform_device msm_dsps_device;
-#endif
-
-#if defined(CONFIG_MSM_RPM_STATS_LOG)
-extern struct platform_device msm_rpm_stat_device;
-#endif
 #endif

@@ -32,13 +32,8 @@
 #define MIPI_OUTP(addr, data) writel((data), (addr))
 #define MIPI_INP(addr) readl(addr)
 
-#ifdef CONFIG_MSM_SECURE_IO
-#define MIPI_OUTP_SECURE(addr, data) secure_writel((data), (addr))
-#define MIPI_INP_SECURE(addr) secure_readl(addr)
-#else
 #define MIPI_OUTP_SECURE(addr, data) writel((data), (addr))
 #define MIPI_INP_SECURE(addr) readl(addr)
-#endif
 
 #define MIPI_DSI_PRIM 1
 #define MIPI_DSI_SECD 2

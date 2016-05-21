@@ -13,18 +13,7 @@
 #include <linux/kexec.h>
 #include <linux/io.h>
 
-#ifdef CONFIG_MSM_WATCHDOG
-#include <mach/msm_iomap.h>
-
-#define WDT0_EN        (MSM_TMR_BASE + 0x40)
-#endif
-
 void arch_kexec(void)
 {
-#ifdef CONFIG_MSM_WATCHDOG
-	/* Prevent watchdog from resetting SoC */
-	writel(0, WDT0_EN);
-	pr_crit("KEXEC: MSM Watchdog Exit - Deactivated\n");
-#endif
 	return;
 }

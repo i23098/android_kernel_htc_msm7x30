@@ -22,7 +22,6 @@
 #include <linux/usb/otg.h>
 #include <linux/wakelock.h>
 #include <mach/board.h>
-#include <mach/msm_xo.h>
 #include <linux/pm_qos.h>
 
 /**
@@ -265,7 +264,6 @@ struct msm_otg {
 	struct timer_list ac_detect_timer;
 	int ac_detect_count;
 
-	struct msm_xo_voter *xo_handle; /*handle to vote for PXO buffer*/
 	struct pm_qos_request pm_qos_req_dma;
 	int reset_phy_before_lpm;
 

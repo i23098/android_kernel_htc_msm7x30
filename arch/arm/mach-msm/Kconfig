@@ -125,16 +125,6 @@ config  ARCH_MSM_CORTEX_A5
 config  MSM_VIC
 	bool
 
-config MSM_RPM
-	bool "Resource Power Manager"
-	select MSM_MPM
-
-config MSM_MPM
-	bool "Modem Power Manager"
-
-config MSM_XO
-	bool
-
 config MSM_REMOTE_SPINLOCK_DEKKERS
 	bool
 
@@ -579,13 +569,8 @@ config HTC_BATTCHG
 	default n
 	bool "HTC battery / charger driver"
 
-config HTC_BATTCHG_MAX8957
-	depends on MSM_ONCRPCROUTER && POWER_SUPPLY
-	default n
-	bool "HTC battery / charger driver for PMIC MAX8957"
-
 config HTC_BATTCHG_SMEM
-	depends on (HTC_BATTCHG || HTC_BATTCHG_MAX8957)
+	depends on HTC_BATTCHG
 	default n
 	bool "Read Battery Info via SMEM"
 
@@ -697,16 +682,6 @@ config MSM_SDIO_DMUX
 	help
 	  Support Muxed Data Channels over SDIO interface.
 
-config MSM_BAM_DMUX
-	bool "BAM Data Mux Driver"
-	depends on SPS
-	default n
-	help
-	  Support Muxed Data Channels over BAM interface.
-	  BAM has a limited number of pipes.  This driver
-	  provides a means to support more logical channels
-	  via muxing than BAM could without muxing.
-
 config MSM_N_WAY_SMD
 	depends on (MSM_SMD && !(ARCH_MSM7X00A))
 	default y
@@ -793,18 +768,6 @@ config MSM_SDIO_CMUX
 	help
 	  Provides a Muxed port interface over SDIO QMI
 
-config MSM_DSPS
-	bool "Sensors DSPS driver"
-	depends on (MSM_PIL && (ARCH_MSM8X60 || ARCH_MSM8960))
-	default n
-	help
-	  Provides user-space interface to the sensors manager
-	  to turn on/off the Sensors Processor system clocks.
-	  It is the DSPS responsibility to turn on/off the sensors
-	  themself.
-	  The number of clocks and their name may vary between targets.
-	  It also triggers the PIL to load the DSPS firmware.
-
 config MSM_SDIO_CTL
 	bool "SDIO CTL Driver"
 	depends on MSM_SDIO_CMUX
@@ -819,22 +782,6 @@ config MSM_ONCRPCROUTER
 	help
 	  Support for the MSM ONCRPC router for communication between
 	  the ARM9 and ARM11
-
-config MSM_IPC_ROUTER
-	depends on NET
-	default n
-	bool "MSM IPC Router support"
-	help
-	  Support for the MSM IPC Router for communication between
-	  the APPs and the MODEM
-
-config MSM_IPC_ROUTER_SMD_XPRT
-	depends on MSM_SMD
-	depends on MSM_IPC_ROUTER
-	default n
-	bool "MSM SMD XPRT Layer"
-	help
-	  SMD Transport Layer for IPC Router
 
 config MSM_ONCRPCROUTER_DEBUG
 	depends on MSM_ONCRPCROUTER
@@ -927,28 +874,12 @@ config MSM_RMT_STORAGE_CLIENT_STATS
 	  Collects performance statistics and shows this information
 	  through a debugfs file rmt_storage_stats.
 
-config MSM_SDIO_SMEM
-	depends on MSM_SDIO_AL
-	default n
-	bool "SDIO SMEM for remote storage"
-	help
-	  Copies data from remote MDM9K memory to local MSM8x60
-	  memory. Used by remote storage client to shadow
-	  MDM9K filesystem.
-
 config MSM_DALRPC
 	bool "DAL RPC support"
 	depends on ARCH_MSM_SCORPION || ARCH_MSM_KRAIT
 	default y
 	help
 	  Supports RPC calls to DAL devices on remote processor cores.
-
-config MSM_DALRPC_TEST
-	tristate "DAL RPC test module"
-	depends on (MSM_DALRPC && DEBUG_FS)
-	default m
-	help
-	  Exercises DAL RPC calls to QDSP6.
 
 if CPU_FREQ_MSM
 
@@ -988,34 +919,6 @@ config ACPUCLOCK_OVERCLOCKING
 	default n
 	depends on CPU_FREQ && !PERFLOCK
 	depends on ARCH_MSM7X30
-
-config MSM_CPU_AVS
-	bool "Enable software controlled Adaptive Voltage Scaling (AVS)"
-	depends on (ARCH_MSM_SCORPION && QSD_SVS)
-	depends on ARCH_QSD8X50
-	default n
-	select MSM_AVS_HW
-	help
-	  This enables the s/w control of Adaptive Voltage Scaling feature
-	  in Qualcomm ARMv7 CPUs. It adjusts the voltage for each frequency
-	  based on feedback from three ring oscillators in the CPU.
-
-config MSM_AVS_HW
-	bool "Enable Adaptive Voltage Scaling (AVS)"
-	default n
-	help
-	  Enable AVS hardware to fine tune voltage at each frequency. The
-	  AVS hardware blocks associated with each Qualcomm ARMv7 cores can
-	  fine tune the voltages based on the feedback from the ring
-	  oscillators.
-
-config MSM_HW3D
-	tristate "MSM Hardware 3D Register Driver"
-	depends on ANDROID_PMEM
-	default y
-	help
-	  Provides access to registers needed by the userspace OpenGL|ES
-	  library.
 
 config MSM_ADSP
 	depends on ARCH_MSM7X00A
@@ -1068,33 +971,12 @@ config MSM_QDSP6
 	help
 	  Enable support for qdsp6. This provides audio and video functionality.
 
-config MSM8X60_AUDIO
-	tristate "MSM8X60 audio support"
-	depends on ARCH_MSM8X60
-	default y
-	help
-	  Enable support for qdsp6v2. This provides audio functionality.
-
-config MSM8X60_FTM_AUDIO_DEVICES
-	bool "MSM8X60 audio factory test mode support"
-	depends on MSM8X60_AUDIO
-	help
-	  Enable support audio factory test mode devices.  This is used
-	  in a production line environment.
-
 config RTAC
 	bool "MSM8K real-time audio calibration support"
 	default y
 	help
 	  Enable support for rtac. This enables calibration during
 	  audio operation
-
-config MSM_PROC_COMM_REGULATOR
-	bool
-	depends on MSM_PROC_COMM && REGULATOR
-	help
-	  Enable regulator framework support for regulators managed by PMLIB
-	  on the modem, and controlled through proccomm calls.
 
 config MSM_VREG_SWITCH_INVERTED
 	bool "Reverse vreg switch polarity"
@@ -1267,13 +1149,6 @@ config HTC_HEADSET_MGR
 	help
 	  Provides support of HTC headset manager.
 
-config HTC_HEADSET_H2W
-	tristate "HTC 2 Wire headset driver"
-	depends on HTC_HEADSET_MGR
-	default n
-	help
-	  Provides support of HTC 2 Wire headset.
-
 config HTC_HEADSET_GPIO
 	tristate "HTC GPIO headset detection driver"
 	depends on HTC_HEADSET_MGR
@@ -1295,26 +1170,12 @@ config HTC_HEADSET_PMIC
 	help
 	  Provides support of HTC PMIC headset detection.
 
-config HTC_HEADSET_MAX8957
-	tristate "HTC PMIC headset detection driver for Maxim MAX8957"
-	depends on HTC_HEADSET_MGR
-	default n
-	help
-	  Provides support of HTC PMIC headset detection.
-
 config HTC_HEADSET_MISC
 	tristate "HTC MISC headset detection driver"
 	depends on HTC_HEADSET_MGR
 	default n
 	help
 	  Provides support of HTC MISC headset detection.
-
-config HTC_HEADSET_8X60
-	tristate "HTC 8X60 headset detection driver"
-	depends on HTC_HEADSET_MGR
-	default n
-	help
-	  Provides support of HTC 8X60 headset detection.
 
 config SMD_OFFSET_TCXO_STAT
 	depends on MSM_SMD
@@ -1330,37 +1191,9 @@ config SMD_OFFSET_NEGATE_CLIENT_STAT
 	help
 	  TCXO shutdown retry conuter and negate tcxoc client counters.
 
-config MSM_PIL
-	bool "Peripheral image loading"
-	select FW_LOADER
-	depends on (ARCH_MSM8X60 || ARCH_MSM8960)
-	default n
-	help
-	  Some peripherals need to be loaded into memory before they can be
-	  brought out of reset.
-
-	  Say yes to support these devices.
-
 config MSM_SCM
 	bool "Secure Channel Manager (SCM) support"
 	default n
-
-config MSM_SUBSYSTEM_RESTART
-	bool "MSM Subsystem Restart Driver"
-	depends on (ARCH_MSM8X60 || ARCH_MSM8960)
-	default n
-	help
-	  This option enables the MSM subsystem restart driver, which provides
-	  a framework to handle subsystem crashes.
-
-config MSM_SYSMON_COMM
-	bool "MSM System Monitor communication support"
-	depends on MSM_SMD && MSM_SUBSYSTEM_RESTART
-	default y
-	help
-	  This option adds support for MSM System Monitor library, which
-	  provides an API that may be used for notifying subsystems within
-	  the SoC about other subsystems' power-up/down state-changes.
 
 config MSM_MODEM_8960
 	bool "MSM 8960 Modem driver"
@@ -1378,14 +1211,6 @@ config MSM_LPASS_8960
 	 lpass hardware watchdog interrupt lines and plugs into the subsystem
 	 restart and PIL drivers. For MSM9615, it only supports a full chip reset.
 
-config MSM_WCNSS_SSR_8960
-	tristate "MSM 8960 WCNSS restart module"
-	depends on (ARCH_MSM8960)
-	help
-	 This option enables the WCNSS restart module for MSM8960, which
-	 monitors WCNSS hardware watchdog interrupt lines and plugs WCNSS
-	 into the subsystem restart framework.
-
 config SCORPION_Uni_45nm_BUG
 	bool "Scorpion Uni 45nm(SC45U): Workaround for ICIMVAU and BPIMVA"
 	depends on ARCH_MSM7X30 || (ARCH_QSD8X50 && MSM_SOC_REV_A)
@@ -1399,37 +1224,6 @@ config SCORPION_Uni_45nm_BUG
 
 	  This bug is not applicable to any ScorpionMP or Scorpion Uni 65nm(SC65U) cores.
 
-config MSM_BUSPM_DEV
-	tristate "MSM Bus Performance Monitor Kernel Module"
-	depends on (ARCH_MSM8X60 || ARCH_MSM8960)
-	default m
-	help
-	  This kernel module is used to mmap() hardware registers for the
-	  performance monitors, counters, etc. The module can also be used to
-	  allocate physical memory which is used by bus performance hardware to
-	  dump performance data.
-
-config MSM_RPM_LOG
-	tristate "MSM Resource Power Manager Log Driver"
-	depends on DEBUG_FS
-	default n
-	help
-	  This option enables a driver which can read from a circular buffer
-	  of messages produced by the RPM. These messages provide diagnostic
-	  information about RPM operation. The driver outputs the messages
-	  via a debugfs node.
-
-config MSM_RPM_STATS_LOG
-	tristate "MSM Resource Power Manager Stat Driver"
-	depends on DEBUG_FS
-	depends on ARCH_MSM8X60
-	default n
-	  help
-	  This option enables a driver which reads RPM messages from a shared
-	  memory location. These messages provide statistical information about
-	  the low power modes that RPM enters. The drivers outputs the message
-	  via a debugfs node.
-
 config MSM_DIRECT_SCLK_ACCESS
 	bool "Direct access to the SCLK timer"
 	default n
@@ -1440,12 +1234,6 @@ config IOMMU_API
 config MSM_GPIOMUX
 	bool
 
-config MSM_SECURE_IO
-	bool
-
-config MSM_NATIVE_RESTART
-	bool
-
 config MSM_BUS_SCALING
 	bool "Bus scaling driver"
 	default n
@@ -1453,15 +1241,6 @@ config MSM_BUS_SCALING
 config MSM_BUS_RPM_MULTI_TIER_ENABLED
 	bool "RPM Multi-tiering Configuration"
 	depends on MSM_BUS_SCALING
-
-config MSM_WATCHDOG
-	bool "MSM Watchdog Support"
-	depends on ARCH_MSM8X60 || ARCH_MSM8960
-	help
-	  This enables the watchdog as is present on 8x60. Currently we use
-	  core 0's watchdog, and reset the entire SoC if it times out. It does
-	  not run during the bootup process, so it will not catch any early
-	  lockups.
 
 config MSM_DLOAD_MODE
 	bool "Enable download mode on crashes"
@@ -1496,26 +1275,6 @@ config MSM_TRACE_ACROSS_PC
 	help
 	  Enables trace state to be saved and restored across power collapse.
 
-config MSM_ETM
-	tristate "Enable MSM ETM and ETB"
-	depends on ARCH_MSM8X60 && !HAS_QDSS
-	select MSM_TRACE_ACROSS_PC
-	help
-	  Enables embedded trace collection on Qualcomm v7 CPUs.
-
-config MSM_QDSS
-	bool "Qualcomm Debug Subsystem"
-	depends on HAS_QDSS
-	select MSM_DEBUG_ACROSS_PC
-	select MSM_TRACE_ACROSS_PC
-	help
-	  Enables support for Qualcomm Debug Subsystem.
-
-config MSM_SLEEP_STATS
-	bool "Enable exporting of MSM sleep stats to userspace"
-	depends on CPU_IDLE
-	default n
-
 config MSM_STANDALONE_POWER_COLLAPSE
 	bool "Enable standalone power collapse"
 	default n
@@ -1544,27 +1303,11 @@ config MSM_SHOW_RESUME_IRQ
 	  the resume loop unrolls. Say Y if you want to debug why the system
 	  resumed.
 
-config BT_MSM_PINTEST
-	tristate "MSM Bluetooth Pin Connectivity Test"
-	depends on (ARCH_MSM8X60 && DEBUG_FS)
-	default n
-	help
-	  Bluetooth MSM Pin Connectivity test module.
-	  This driver provides support for verifying the MSM to BT pin
-	  connectivity.
-
 config SUPPORT_DQ_BATTERY
 	bool "Support DQ battery."
 	default n
 	help
 	  support DQ battery.
-
-config MSM_FAKE_BATTERY
-	depends on POWER_SUPPLY
-	default n
-	bool "MSM Fake Battery"
-	help
-	  Enables MSM fake battery driver.
 
 config MSM_QDSP6_APR
 	bool "Audio QDSP6 APR support"
@@ -1623,22 +1366,6 @@ config MSM_SPM_V1
 	  used to manage the processor power during sleep. The driver allows
 	  configuring SPM to allow different power modes.
 
-config MSM_SPM_V2
-	bool "Driver support for SPM Version 2"
-	help
-	  Enables the support for Version 2 of the SPM driver. SPM hardware is
-	  used to manage the processor power during sleep. The driver allows
-	  configuring SPM to allow different power modes.
-
-config MSM_L2_SPM
-	bool "SPM support for L2 cache"
-	depends on MSM_SPM_V2
-	help
-	  Enable SPM driver support for L2 cache. Some MSM chipsets allow
-	  control of L2 cache low power mode with a Subsystem Power manager.
-	  Enabling this driver allows configuring L2 SPM for low power modes
-	  on supported chipsets.
-
 config MSM_MULTIMEDIA_USE_ION
 	bool "Multimedia support using Ion"
 	depends on ION_MSM
@@ -1681,12 +1408,6 @@ config REMOVE_EBI1_FIXED_CLK
 	default n
 	help
 	  use for 2x Radio
-
-config HTC_ACCESSORY_ONEWIRE
-	tristate "HTC accessory one wire protocol driver"
-	default n
-	help
-	  Provides support of HTC one wire protocol driver.
 
 config FORCE_FAST_CHARGE
 	bool "Force AC charge mode at will"

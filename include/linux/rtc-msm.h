@@ -22,8 +22,6 @@
  */
 int rtc_hctosys(void);
 
-extern struct sys_timer msm_timer;
-
 extern void msm_pm_set_max_sleep_time(int64_t sleep_time_ns);
 void msmrtc_updateatsuspend(struct timespec *ts);
 int64_t msm_timer_enter_idle(void);

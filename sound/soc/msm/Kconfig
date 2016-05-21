@@ -85,7 +85,7 @@ config SND_SOC_MSM8X60_DAI
 
 config SND_SOC_MSM8X60
 	tristate "SoC Audio over DSP support for MSM8660"
-	depends on ARCH_MSM8X60 && SND_SOC && (MSM8X60_AUDIO || MSM8X60_AUDIO_LTE)
+	depends on ARCH_MSM8X60 && SND_SOC
 	select SND_SOC_MSM8X60_PCM
 	select SND_SOC_MSM8X60_DAI
 	default y

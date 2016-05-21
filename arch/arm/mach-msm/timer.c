@@ -949,15 +949,6 @@ static u32 notrace msm_update_sched_clock(void)
 	return cs->read(cs);
 }
 
-/*
-int read_current_timer(unsigned long *timer_val)
-{
-	struct msm_clock *dgt = &msm_clocks[MSM_CLOCK_DGT];
-	*timer_val = msm_read_timer_count(dgt, GLOBAL_TIMER);
-	return 0;
-}
-*/
-
 static void __init msm_sched_clock_init(void)
 {
 	struct msm_clock *clock = &msm_clocks[msm_global_timer];
@@ -1028,45 +1019,6 @@ u32 msm_read_fast_timer(void)
 	return clocksource_cyc2ns(ticks, dgt->clocksource.mult,
 					dgt->clocksource.shift);
 }
-
-#ifdef CONFIG_LOCAL_TIMERS
-static int __cpuinit msm_local_timer_setup(struct clock_event_device *evt)
-{
-	/* Use existing clock_event for cpu 0 */
-	if (!smp_processor_id())
-		return 0;
-
-	writel_relaxed(0, event_base + TIMER_ENABLE);
-	writel_relaxed(0, event_base + TIMER_CLEAR);
-	writel_relaxed(~0, event_base + TIMER_MATCH_VAL);
-	evt->irq = msm_clockevent.irq;
-	evt->name = "local_timer";
-	evt->features = msm_clockevent.features;
-	evt->rating = msm_clockevent.rating;
-	evt->set_mode = msm_timer_set_mode;
-	evt->set_next_event = msm_timer_set_next_event;
-	evt->shift = msm_clockevent.shift;
-	evt->mult = div_sc(GPT_HZ, NSEC_PER_SEC, evt->shift);
-	evt->max_delta_ns = clockevent_delta2ns(0xf0000000, evt);
-	evt->min_delta_ns = clockevent_delta2ns(4, evt);
-
-	*__this_cpu_ptr(msm_evt.percpu_evt) = evt;
-	clockevents_register_device(evt);
-	enable_percpu_irq(evt->irq, IRQ_TYPE_EDGE_RISING);
-	return 0;
-}
-
-static void msm_local_timer_stop(struct clock_event_device *evt)
-{
-	evt->set_mode(CLOCK_EVT_MODE_UNUSED, evt);
-	disable_percpu_irq(evt->irq);
-}
-
-static struct local_timer_ops msm_local_timer_ops __cpuinitdata = {
-	.setup	= msm_local_timer_setup,
-	.stop	= msm_local_timer_stop,
-};
-#endif /* CONFIG_LOCAL_TIMERS */
 
 static void __init msm_timer_init(void)
 {
@@ -1175,55 +1127,6 @@ static void __init msm_timer_init(void)
 	}
 }
 
-#ifdef CONFIG_LOCAL_TIMERS
-int __cpuinit local_timer_setup(struct clock_event_device *evt)
-{
-	unsigned long flags;
-	static DEFINE_PER_CPU(bool, first_boot) = true;
-	struct msm_clock *clock = &msm_clocks[msm_global_timer];
-
-	/* Use existing clock_event for cpu 0 */
-	if (!smp_processor_id())
-		return 0;
-
-	if (cpu_is_msm8x60() || cpu_is_msm8960())
-		__raw_writel(DGT_CLK_CTL_DIV_4, MSM_TMR_BASE + DGT_CLK_CTL);
-
-	if (__get_cpu_var(first_boot)) {
-		__raw_writel(0, clock->regbase  + TIMER_ENABLE);
-		__raw_writel(0, clock->regbase + TIMER_CLEAR);
-		__raw_writel(~0, clock->regbase + TIMER_MATCH_VAL);
-		__get_cpu_var(first_boot) = false;
-	}
-	evt->irq = clock->irq.irq;
-	evt->name = "local_timer";
-	evt->features = CLOCK_EVT_FEAT_ONESHOT;
-	evt->rating = clock->clockevent.rating;
-	evt->set_mode = msm_timer_set_mode;
-	evt->set_next_event = msm_timer_set_next_event;
-	evt->shift = clock->clockevent.shift;
-	evt->mult = div_sc(clock->freq, NSEC_PER_SEC, evt->shift);
-	evt->max_delta_ns =
-		clockevent_delta2ns(0xf0000000 >> clock->shift, evt);
-	evt->min_delta_ns = clockevent_delta2ns(4, evt);
-
-	__get_cpu_var(local_clock_event) = evt;
-
-	local_irq_save(flags);
-	gic_clear_spi_pending(clock->irq.irq);
-	local_irq_restore(flags);
-	gic_enable_ppi(clock->irq.irq);
-
-	clockevents_register_device(evt);
-	return 0;
-}
-
-inline int local_timer_ack(void)
-{
-	return 1;
-}
-#endif /* CONFIG_LOCAL_TIMERS */
-
-struct sys_timer msm_timer = {
+struct sys_timer msm7x30_timer = {
 	.init = msm_timer_init
 };

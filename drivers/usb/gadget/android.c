@@ -56,8 +56,6 @@
 #include "f_rmnet_sdio.c"
 #elif defined(CONFIG_USB_ANDROID_RMNET_SMD_SDIO)
 #include "f_rmnet_smd_sdio.c"
-#elif defined(CONFIG_USB_ANDROID_RMNET_BAM)
-#include "f_rmnet.c"
 #endif
 #include "f_audio_source.c"
 #include "f_mass_storage.c"
@@ -399,70 +397,6 @@ static struct android_usb_function rmnet_smd_sdio_function = {
 	.cleanup	= rmnet_smd_sdio_function_cleanup,
 	.bind_config	= rmnet_smd_sdio_bind_config,
 	.attributes	= rmnet_smd_sdio_attributes,
-	.performance_lock = 1,
-};
-#elif defined(CONFIG_USB_ANDROID_RMNET_BAM)
-/* RMNET - used with BAM */
-#define MAX_RMNET_INSTANCES 1
-static int rmnet_instances = 1;
-static int rmnet_function_init(struct android_usb_function *f,
-					 struct usb_composite_dev *cdev)
-{
-	return frmnet_init_port(MAX_RMNET_INSTANCES);
-}
-
-static void rmnet_function_cleanup(struct android_usb_function *f)
-{
-	frmnet_cleanup();
-}
-
-static int rmnet_function_bind_config(struct android_usb_function *f,
-					 struct usb_configuration *c)
-{
-	int i;
-	int ret = 0;
-
-	for (i = 0; i < rmnet_instances; i++) {
-		ret = frmnet_bind_config(c, i);
-		if (ret) {
-			pr_err("Could not bind rmnet%u config\n", i);
-			break;
-		}
-	}
-
-	return ret;
-}
-
-static ssize_t rmnet_instances_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	return snprintf(buf, PAGE_SIZE, "%d\n", rmnet_instances);
-}
-
-static ssize_t rmnet_instances_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	int value;
-
-	pr_info("%s, buff: %s\n", __func__, buf);
-	sscanf(buf, "%d", &value);
-	if (value > MAX_RMNET_INSTANCES)
-		value = MAX_RMNET_INSTANCES;
-	rmnet_instances = value;
-	return size;
-}
-
-static DEVICE_ATTR(instances, S_IRUGO | S_IWUSR, rmnet_instances_show,
-						 rmnet_instances_store);
-static struct device_attribute *rmnet_function_attributes[] = {
-					&dev_attr_instances, NULL };
-
-static struct android_usb_function rmnet_function = {
-	.name		= "rmnet",
-	.init		= rmnet_function_init,
-	.cleanup	= rmnet_function_cleanup,
-	.bind_config	= rmnet_function_bind_config,
-	.attributes	= rmnet_function_attributes,
 	.performance_lock = 1,
 };
 #endif
@@ -1658,11 +1592,6 @@ static struct android_usb_function *supported_functions[] = {
 	&rmnet_sdio_function,
 #elif defined(CONFIG_USB_ANDROID_RMNET_SMD_SDIO)
 	&rmnet_smd_sdio_function,
-#elif defined(CONFIG_USB_ANDROID_RMNET_BAM)
-	&rmnet_function,
-#endif
-#if 0
-	&ccid_function,
 #endif
 #ifdef CONFIG_USB_ANDROID_USBNET
 	&usbnet_function,
