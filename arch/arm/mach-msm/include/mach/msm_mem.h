@@ -43,18 +43,6 @@ extern unsigned int ebi0_size;
 #define EBI1_PHYS_OFFSET 0x40000000
 #define EBI1_PAGE_OFFSET (EBI0_PAGE_OFFSET + ebi0_size)
 
-#if (defined(CONFIG_SPARSEMEM) && defined(CONFIG_VMSPLIT_3G))
-
-#define __phys_to_virt(phys)				\
-	((phys) >= EBI1_PHYS_OFFSET ?			\
-	(phys) - EBI1_PHYS_OFFSET + EBI1_PAGE_OFFSET :	\
-	(phys) - EBI0_PHYS_OFFSET + EBI0_PAGE_OFFSET)
-
-#define __virt_to_phys(virt)				\
-	((virt) >= EBI1_PAGE_OFFSET ?			\
-	(virt) - EBI1_PAGE_OFFSET + EBI1_PHYS_OFFSET :	\
-	(virt) - EBI0_PAGE_OFFSET + EBI0_PHYS_OFFSET)
-#endif
 #endif
 #endif
 
@@ -72,28 +60,6 @@ int msm_get_memory_type_from_name(const char *memtype_name);
 #ifdef CONFIG_CACHE_L2X0
 extern void l2x0_cache_sync(void);
 #define finish_arch_switch(prev)     do { l2x0_cache_sync(); } while (0)
-#endif
-
-#ifdef CONFIG_DONT_MAP_HOLE_AFTER_MEMBANK0
-extern unsigned long membank0_size;
-extern unsigned long membank1_start;
-void find_membank0_hole(void);
-
-#define MEMBANK0_PHYS_OFFSET PHYS_OFFSET
-#define MEMBANK0_PAGE_OFFSET PAGE_OFFSET
-
-#define MEMBANK1_PHYS_OFFSET (membank1_start)
-#define MEMBANK1_PAGE_OFFSET (MEMBANK0_PAGE_OFFSET + (membank0_size))
-
-#define __phys_to_virt(phys)				\
-	((MEMBANK1_PHYS_OFFSET && ((phys) >= MEMBANK1_PHYS_OFFSET)) ?	\
-	(phys) - MEMBANK1_PHYS_OFFSET + MEMBANK1_PAGE_OFFSET :	\
-	(phys) - MEMBANK0_PHYS_OFFSET + MEMBANK0_PAGE_OFFSET)
-
-#define __virt_to_phys(virt)				\
-	((MEMBANK1_PHYS_OFFSET && ((virt) >= MEMBANK1_PAGE_OFFSET)) ?	\
-	(virt) - MEMBANK1_PAGE_OFFSET + MEMBANK1_PHYS_OFFSET :	\
-	(virt) - MEMBANK0_PAGE_OFFSET + MEMBANK0_PHYS_OFFSET)
 #endif
 
 /*

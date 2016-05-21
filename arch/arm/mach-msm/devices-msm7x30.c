@@ -569,23 +569,6 @@ struct platform_device asoc_msm_dai1 = {
 	.id     = 0,
 };
 
-#if defined (CONFIG_SND_MSM_MVS_DAI_SOC)
-struct platform_device asoc_msm_mvs = {
-	.name   = "msm-mvs-audio",
-	.id     = 0,
-};
-
-struct platform_device asoc_mvs_dai0 = {
-	.name   = "mvs-codec-dai",
-	.id     = 0,
-};
-
-struct platform_device asoc_mvs_dai1 = {
-	.name   = "mvs-cpu-dai",
-	.id     = 0,
-};
-#endif
-
 #define MSM_NAND_PHYS		0xA0200000
 #define MSM_NANDC01_PHYS	0xA0240000
 #define MSM_NANDC10_PHYS	0xA0280000

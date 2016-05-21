@@ -945,14 +945,6 @@ void __init sanity_check_meminfo(void)
 {
 	int i, j, highmem = 0;
 
-#ifdef CONFIG_DONT_MAP_HOLE_AFTER_MEMBANK0
-	find_membank0_hole();
-#endif
-
-#if (defined CONFIG_HIGHMEM) && (defined CONFIG_FIX_MOVABLE_ZONE)
-	if (movable_reserved_size && __pa(vmalloc_min) > movable_reserved_start)
-		vmalloc_min = __va(movable_reserved_start);
-#endif
 	for (i = 0, j = 0; i < meminfo.nr_banks; i++) {
 		struct membank *bank = &meminfo.bank[j];
 		*bank = meminfo.bank[i];
@@ -1220,90 +1212,6 @@ static void __init kmap_init(void)
 #endif
 }
 
-#ifdef CONFIG_STRICT_MEMORY_RWX
-static struct {
-	pmd_t *pmd_to_flush;
-	pmd_t *pmd;
-	unsigned long addr;
-	pmd_t saved_pmd;
-	bool made_writeable;
-} mem_unprotect;
-
-static DEFINE_SPINLOCK(mem_text_writeable_lock);
-
-void mem_text_writeable_spinlock(unsigned long *flags)
-{
-	spin_lock_irqsave(&mem_text_writeable_lock, *flags);
-}
-
-void mem_text_writeable_spinunlock(unsigned long *flags)
-{
-	spin_unlock_irqrestore(&mem_text_writeable_lock, *flags);
-}
-
-/*
- * mem_text_address_writeable() and mem_text_address_restore()
- * should be called as a pair. They are used to make the
- * specified address in the kernel text section temporarily writeable
- * when it has been marked read-only by STRICT_MEMORY_RWX.
- * Used by kprobes and other debugging tools to set breakpoints etc.
- * mem_text_address_writeable() is invoked before writing.
- * After the write, mem_text_address_restore() must be called
- * to restore the original state.
- * This is only effective when used on the kernel text section
- * marked as MEMORY_RX by map_lowmem()
- *
- * They must each be called with mem_text_writeable_lock locked
- * by the caller, with no unlocking between the calls.
- * The caller should release mem_text_writeable_lock immediately
- * after the call to mem_text_address_restore().
- * Only the write and associated cache operations should be performed
- * between the calls.
- */
-
-/* this function must be called with mem_text_writeable_lock held */
-void mem_text_address_writeable(unsigned long addr)
-{
-	struct task_struct *tsk = current;
-	struct mm_struct *mm = tsk->active_mm;
-	pgd_t *pgd = pgd_offset(mm, addr);
-	pud_t *pud = pud_offset(pgd, addr);
-
-	mem_unprotect.made_writeable = 0;
-
-	if ((addr < (unsigned long)RX_AREA_START) ||
-	    (addr >= (unsigned long)RX_AREA_END))
-		return;
-
-	mem_unprotect.pmd = pmd_offset(pud, addr);
-	mem_unprotect.pmd_to_flush = mem_unprotect.pmd;
-	mem_unprotect.addr = addr & PAGE_MASK;
-
-	if (addr & SECTION_SIZE)
-			mem_unprotect.pmd++;
-
-	mem_unprotect.saved_pmd = *mem_unprotect.pmd;
-	if ((mem_unprotect.saved_pmd & PMD_TYPE_MASK) != PMD_TYPE_SECT)
-		return;
-
-	*mem_unprotect.pmd &= ~PMD_SECT_APX;
-
-	flush_pmd_entry(mem_unprotect.pmd_to_flush);
-	flush_tlb_kernel_page(mem_unprotect.addr);
-	mem_unprotect.made_writeable = 1;
-}
-
-/* this function must be called with mem_text_writeable_lock held */
-void mem_text_address_restore(void)
-{
-	if (mem_unprotect.made_writeable) {
-		*mem_unprotect.pmd = mem_unprotect.saved_pmd;
-		flush_pmd_entry(mem_unprotect.pmd_to_flush);
-		flush_tlb_kernel_page(mem_unprotect.addr);
-	}
-}
-#endif
-
 void mem_text_write_kernel_word(unsigned long *addr, unsigned long word)
 {
 	unsigned long flags;
@@ -1335,39 +1243,8 @@ static void __init map_lowmem(void)
 
 		map.pfn = __phys_to_pfn(start);
 		map.virtual = __phys_to_virt(start);
-#ifdef CONFIG_STRICT_MEMORY_RWX
-		if (start <= __pa(_text) && __pa(_text) < end) {
-			map.length = (unsigned long)_text - map.virtual;
-			map.type = MT_MEMORY;
-
-			create_mapping(&map);
-
-			map.pfn = __phys_to_pfn(__pa(RX_AREA_START));
-			map.virtual = (unsigned long)RX_AREA_START;
-			map.length = RX_AREA_END - RX_AREA_START;
-			map.type = MT_MEMORY_RX;
-
-			create_mapping(&map);
-
-			map.pfn = __phys_to_pfn(__pa(__start_rodata));
-			map.virtual = (unsigned long)__start_rodata;
-			map.length = _sdata - __start_rodata;
-			map.type = MT_MEMORY_R;
-
-			create_mapping(&map);
-
-			map.pfn = __phys_to_pfn(__pa(_sdata));
-			map.virtual = (unsigned long)_sdata;
-			map.length = __phys_to_virt(end) - (unsigned int)_sdata;
-			map.type = MT_MEMORY_RW;
-		} else {
-			map.length = end - start;
-			map.type = MT_MEMORY_RW;
-		}
-#else
 		map.length = end - start;
 		map.type = MT_MEMORY;
-#endif
 
 		create_mapping(&map);
 	}

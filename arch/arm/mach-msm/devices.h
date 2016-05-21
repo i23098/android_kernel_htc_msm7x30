@@ -35,11 +35,6 @@ int device_fb_detect_panel(const char *name);
 extern struct platform_device asoc_msm_pcm;
 extern struct platform_device asoc_msm_dai0;
 extern struct platform_device asoc_msm_dai1;
-#if defined (CONFIG_SND_MSM_MVS_DAI_SOC)
-extern struct platform_device asoc_msm_mvs;
-extern struct platform_device asoc_mvs_dai0;
-extern struct platform_device asoc_mvs_dai1;
-#endif
 
 extern struct platform_device msm_ebi0_thermal;
 extern struct platform_device msm_ebi1_thermal;

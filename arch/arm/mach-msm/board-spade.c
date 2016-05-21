@@ -2802,11 +2802,6 @@ static struct platform_device *devices[] __initdata = {
         &asoc_msm_pcm,
         &asoc_msm_dai0,
         &asoc_msm_dai1,
-#if defined(CONFIG_SND_MSM_MVS_DAI_SOC)
-        &asoc_msm_mvs,
-        &asoc_mvs_dai0,
-        &asoc_mvs_dai1,
-#endif
         &msm_device_smd,
         &msm_device_dmov,
         &qsd_device_spi,

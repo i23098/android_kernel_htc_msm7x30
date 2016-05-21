@@ -473,40 +473,6 @@ static void ipi_timer(void)
 	evt->event_handler(evt);
 }
 
-#ifdef CONFIG_LOCAL_TIMERS
-asmlinkage void __exception_irq_entry do_local_timer(struct pt_regs *regs)
-{
-	handle_local_timer(regs);
-}
-
-void handle_local_timer(struct pt_regs *regs)
-{
-	struct pt_regs *old_regs = set_irq_regs(regs);
-	int cpu = smp_processor_id();
-
-	if (local_timer_ack()) {
-		__inc_irq_stat(cpu, local_timer_irqs);
-		irq_enter();
-		ipi_timer();
-		irq_exit();
-	}
-
-	set_irq_regs(old_regs);
-}
-
-void show_local_irqs(struct seq_file *p, int prec)
-{
-	unsigned int cpu;
-
-	seq_printf(p, "%*s: ", prec, "LOC");
-
-	for_each_present_cpu(cpu)
-		seq_printf(p, "%10u ", __get_irq_stat(cpu, local_timer_irqs));
-
-	seq_printf(p, " Local timer interrupts\n");
-}
-#endif
-
 #ifdef CONFIG_GENERIC_CLOCKEVENTS_BROADCAST
 static void smp_timer_broadcast(const struct cpumask *mask)
 {
@@ -593,7 +559,7 @@ static void ipi_cpu_stop(unsigned int cpu)
 		raw_spin_unlock(&stop_lock);
 	}
 
-	set_cpu_active(cpu, false);
+	set_cpu_online(cpu, false);
 
 	local_fiq_disable();
 	local_irq_disable();
@@ -686,10 +652,10 @@ void smp_send_stop(void)
 
 	/* Wait up to one second for other CPUs to stop */
 	timeout = USEC_PER_SEC;
-	while (num_active_cpus() > 1 && timeout--)
+	while (num_online_cpus() > 1 && timeout--)
 		udelay(1);
 
-	if (num_active_cpus() > 1)
+	if (num_online_cpus() > 1)
 		pr_warning("SMP: failed to stop secondary CPUs\n");
 
 	smp_kill_cpus(&mask);

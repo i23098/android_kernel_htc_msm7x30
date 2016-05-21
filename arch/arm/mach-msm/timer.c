@@ -769,6 +769,7 @@ static void msm_timer_reactivate_alarm(struct msm_clock *clock)
 		;
 }
 
+/* return difference between soc time and modem time with sync */
 int64_t msm_timer_enter_idle(void)
 {
 	struct msm_clock *gpt_clk = &msm_clocks[MSM_CLOCK_GPT];
@@ -807,6 +808,7 @@ int64_t msm_timer_enter_idle(void)
 		      clock->clocksource.shift);
 }
 
+/* sync time between soc and modem */
 void msm_timer_exit_idle(int low_power)
 {
 	struct msm_clock *gpt_clk = &msm_clocks[MSM_CLOCK_GPT];
@@ -919,6 +921,7 @@ int64_t msm_timer_get_sclk_time(int64_t *period)
 	return tmp;
 }
 
+/* register func for errors in sync */
 int __init msm_timer_init_time_sync(void (*timeout)(void))
 {
 #if defined(CONFIG_MSM_N_WAY_SMSM) && !defined(CONFIG_MSM_DIRECT_SCLK_ACCESS)
