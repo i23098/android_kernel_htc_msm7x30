@@ -2926,7 +2926,7 @@ static void __init set_clock_ownership(void)
  * Miscellaneous clock register initializations
  */
 static const struct reg_init {
-	const void __iomem *reg;
+	void __iomem *reg;
 	uint32_t mask;
 	uint32_t val;
 } ri_list[] __initconst = {
@@ -2982,10 +2982,10 @@ static void __init msm7x30_clock_init(void)
 	clk_set_rate(&usb_hs_src_clk.c, clk_tbl_usb[1].freq_hz);
 
 	for (i = 0; i < ARRAY_SIZE(ri_list); i++) {
-		val = readl_relaxed((void *)ri_list[i].reg);
+		val = readl_relaxed(ri_list[i].reg);
 		val &= ~ri_list[i].mask;
 		val |= ri_list[i].val;
-		writel_relaxed(val, (void *)ri_list[i].reg);
+		writel_relaxed(val, ri_list[i].reg);
 	}
 
 	clk_set_rate(&i2c_clk.c, 19200000);

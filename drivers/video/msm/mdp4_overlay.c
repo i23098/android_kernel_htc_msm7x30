@@ -1077,9 +1077,9 @@ void mdp4_overlay_vg_setup(struct mdp4_overlay_pipe *pipe)
 		}
 		if (pipe->pp_cfg.config_ops & MDP_OVERLAY_PP_QSEED_CFG) {
 			mdp4_qseed_access_cfg(&pipe->pp_cfg.qseed_cfg[0],
-							(uint32_t) vg_base);
+							vg_base);
 			mdp4_qseed_access_cfg(&pipe->pp_cfg.qseed_cfg[1],
-							(uint32_t) vg_base);
+							vg_base);
 		}
 	}
 	/* not RGB use VG pipe, pure VG pipe */

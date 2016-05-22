@@ -937,7 +937,7 @@ int mdp_histogram_block2mgmt(uint32_t block, struct mdp_hist_mgmt **mgmt)
 
 static int mdp_histogram_enable(struct mdp_hist_mgmt *mgmt)
 {
-	uint32_t base;
+	void __iomem * base;
 	unsigned long flag;
 	if (mgmt->mdp_is_hist_data == TRUE) {
 		pr_err("%s histogram already started\n", __func__);
@@ -946,7 +946,7 @@ static int mdp_histogram_enable(struct mdp_hist_mgmt *mgmt)
 
 	mdp_clk_ctrl(1);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-	base = (uint32_t) (MDP_BASE + mgmt->base);
+	base = MDP_BASE + mgmt->base;
 	/*First make sure that device is not collecting histogram*/
 	mgmt->mdp_is_hist_data = FALSE;
 	mgmt->mdp_is_hist_valid = FALSE;
@@ -992,7 +992,8 @@ static int mdp_histogram_enable(struct mdp_hist_mgmt *mgmt)
 
 static int mdp_histogram_disable(struct mdp_hist_mgmt *mgmt)
 {
-	uint32_t base, status;
+	void __iomem * base;
+	uint32_t status;
 	unsigned long flag;
 	if (mgmt->mdp_is_hist_data == FALSE) {
 		pr_err("%s histogram already stopped\n", __func__);
@@ -1003,7 +1004,7 @@ static int mdp_histogram_disable(struct mdp_hist_mgmt *mgmt)
 	mgmt->mdp_is_hist_valid = FALSE;
 	mgmt->mdp_is_hist_init = FALSE;
 
-	base = (uint32_t) (MDP_BASE + mgmt->base);
+	base = MDP_BASE + mgmt->base;
 
 	mdp_clk_ctrl(1);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);

@@ -304,13 +304,12 @@ int __msm_adsp_write(struct msm_adsp_module *module, unsigned dsp_queue_addr,
 	 * If this returns an error, we need to disable ALL modules and
 	 * then retry.
 	 */
-	while (((ctrl_word = readl((void *)info->write_ctrl)) &
+	while (((ctrl_word = readl(info->write_ctrl)) &
 		ADSP_RTOS_WRITE_CTRL_WORD_READY_M) !=
 		ADSP_RTOS_WRITE_CTRL_WORD_READY_V) {
 		if (cnt > 50) {
 			pr_aud_err("timeout waiting for DSP write ready\n");
 			ret_status = -EIO;
-//			BUG();
 			goto fail;
 		}
 		MM_DBG("waiting for DSP write ready\n");
@@ -329,20 +328,20 @@ int __msm_adsp_write(struct msm_adsp_module *module, unsigned dsp_queue_addr,
 	ctrl_word &= ~(ADSP_RTOS_WRITE_CTRL_WORD_DSP_ADDR_M);
 	ctrl_word |= dsp_q_addr;
 
-	writel(ctrl_word, (void *)info->write_ctrl);
+	writel(ctrl_word, info->write_ctrl);
 
 	/* Generate an interrupt to the DSP.  This notifies the DSP that
 	 * we are about to send a command on this particular queue.  The
 	 * DSP will in response change its state.
 	 */
-	writel(1, (void *)info->send_irq);
+	writel(1, info->send_irq);
 
 	/* Poll until the adsp responds to the interrupt; this does not
 	 * generate an interrupt from the adsp.  This should happen within
 	 * 5ms.
 	 */
 	cnt = 0;
-	while ((readl((void *)info->write_ctrl) &
+	while ((readl(info->write_ctrl) &
 		ADSP_RTOS_WRITE_CTRL_WORD_MUTEX_M) ==
 		ADSP_RTOS_WRITE_CTRL_WORD_MUTEX_NAVAIL_V) {
 		if (cnt > 2500) {
@@ -356,7 +355,7 @@ int __msm_adsp_write(struct msm_adsp_module *module, unsigned dsp_queue_addr,
 	}
 
 	/* Read the ctrl word */
-	ctrl_word = readl((void *)info->write_ctrl);
+	ctrl_word = readl(info->write_ctrl);
 
 	if ((ctrl_word & ADSP_RTOS_WRITE_CTRL_WORD_STATUS_M) !=
 	    ADSP_RTOS_WRITE_CTRL_WORD_NO_ERR_V) {
@@ -405,14 +404,14 @@ int __msm_adsp_write(struct msm_adsp_module *module, unsigned dsp_queue_addr,
 		ctrl_word &= ~(ADSP_RTOS_WRITE_CTRL_WORD_DSP_ADDR_M);
 		ctrl_word |= dsp_q_addr;
 
-		writel(ctrl_word, (void *)info->write_ctrl);
+		writel(ctrl_word, info->write_ctrl);
 
 		/* Generate an interrupt to the DSP.  It does not respond with
 		 * an interrupt, and we do not need to wait for it to
 		 * acknowledge, because it will hold the mutex lock until it's
 		 * ready to receive more commands again.
 		 */
-		writel(1, (void *)info->send_irq);
+		writel(1, info->send_irq);
 
 		module->num_commands++;
 	} /* Ctrl word status bits were 00, no error in the ctrl word */
@@ -750,7 +749,7 @@ static int adsp_get_event(struct adsp_info *info)
 	 */
 
 	for (cnt = 0; cnt < 50; cnt++) {
-		ctrl_word = readl((void *)info->read_ctrl);
+		ctrl_word = readl(info->read_ctrl);
 
 		if ((ctrl_word & ADSP_RTOS_READ_CTRL_WORD_FLAG_M) ==
 		    ADSP_RTOS_READ_CTRL_WORD_FLAG_UP_CONT_V)
@@ -793,14 +792,14 @@ ready:
 
 	adsp_rtos_read_ctrl_word_cmd_tast_to_h_v(info, dsp_addr);
 
-	ctrl_word = readl((void *)info->read_ctrl);
+	ctrl_word = readl(info->read_ctrl);
 	ctrl_word &= ~ADSP_RTOS_READ_CTRL_WORD_READY_M;
 
 	/* Write ctrl word to the DSP */
-	writel(ctrl_word, (void *)info->read_ctrl);
+	writel(ctrl_word, info->read_ctrl);
 
 	/* Generate an interrupt to the DSP */
-	writel(1, (void *)info->send_irq);
+	writel(1, info->send_irq);
 
 done:
 	spin_unlock_irqrestore(&adsp_cmd_lock, flags);
@@ -952,9 +951,9 @@ static int msm_adsp_probe(struct platform_device *pdev)
 		kfree(adsp_info.raw_event);
 		return rc;
 	}
-	adsp_info.send_irq += (uint32_t) MSM_AD5_BASE;
-	adsp_info.read_ctrl += (uint32_t) MSM_AD5_BASE;
-	adsp_info.write_ctrl += (uint32_t) MSM_AD5_BASE;
+	adsp_info.send_irq = MSM_AD5_BASE + adsp_info.send_irq_shift;
+	adsp_info.read_ctrl = MSM_AD5_BASE + adsp_info.read_ctrl_shift;
+	adsp_info.write_ctrl = MSM_AD5_BASE + adsp_info.write_ctrl_shift;
 	count = adsp_info.module_count;
 
 	adsp_modules = kzalloc(

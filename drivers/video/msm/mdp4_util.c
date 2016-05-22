@@ -2174,7 +2174,7 @@ void mdp4_free_writeback_buf(struct msm_fb_data_type *mfd, u32 mix_num)
 	buf->read_addr = 0;
 }
 
-static int mdp4_update_pcc_regs(uint32_t offset,
+static int mdp4_update_pcc_regs(void __iomem *offset,
 				struct mdp_pcc_cfg_data *cfg_ptr)
 {
 	int ret = -1;
@@ -2246,7 +2246,7 @@ static int mdp4_update_pcc_regs(uint32_t offset,
 	return ret;
 }
 
-static int mdp4_read_pcc_regs(uint32_t offset,
+static int mdp4_read_pcc_regs(void __iomem *offset,
 				struct mdp_pcc_cfg_data *cfg_ptr)
 {
 	int ret = -1;
@@ -2353,18 +2353,18 @@ static uint32_t mdp_pp_block2pcc(uint32_t block)
 int mdp4_pcc_cfg(struct mdp_pcc_cfg_data *cfg_ptr)
 {
 	int ret = -1;
-	uint32_t pcc_offset = 0, mdp_cfg_offset = 0;
-	uint32_t mdp_dma_op_mode = 0;
-	uint32_t blockbase;
+	void __iomem *pcc_offset = NULL, *mdp_cfg_offset = NULL;
+	void __iomem *mdp_dma_op_mode = NULL, *blockbase;
+	uint32_t base;
 
 	if (!mdp_pp_block2pcc(cfg_ptr->block))
 		return ret;
 
-	blockbase = mdp_block2base(cfg_ptr->block);
-	if (!blockbase)
+	base = mdp_block2base(cfg_ptr->block);
+	if (!base)
 		return ret;
 
-	blockbase += (uint32_t) MDP_BASE;
+	blockbase = MDP_BASE + base;
 
 	switch (cfg_ptr->block) {
 	case MDP_BLOCK_DMA_P:
@@ -2762,7 +2762,7 @@ static uint32_t mdp4_pp_block2qseed(uint32_t block)
 	return valid;
 }
 
-int mdp4_qseed_access_cfg(struct mdp_qseed_cfg *config, uint32_t base)
+int mdp4_qseed_access_cfg(struct mdp_qseed_cfg *config, void __iomem *base)
 {
 	int i, ret = 0;
 	uint32_t *values;
@@ -2799,7 +2799,7 @@ int mdp4_qseed_access_cfg(struct mdp_qseed_cfg *config, uint32_t base)
 		}
 		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 		for (i = 0; i < config->len; i++) {
-			if (!(base & 0x3FF))
+			if (!((uint32_t)base & 0x3FF))
 				wmb();
 			MDP_OUTP(base , values[i]);
 			base += sizeof(uint32_t);
@@ -2809,7 +2809,7 @@ int mdp4_qseed_access_cfg(struct mdp_qseed_cfg *config, uint32_t base)
 		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 		for (i = 0; i < config->len; i++) {
 			values[i] = inpdw(base);
-			if (!(base & 0x3FF))
+			if (!((uint32_t)base & 0x3FF))
 				rmb();
 			base += sizeof(uint32_t);
 		}
@@ -2833,7 +2833,7 @@ int mdp4_qseed_cfg(struct mdp_qseed_cfg_data *config)
 {
 	int ret = 0;
 	struct mdp_qseed_cfg *cfg = &config->qseed_data;
-	uint32_t base;
+	void __iomem *base;
 
 	if (!mdp4_pp_block2qseed(config->block)) {
 		ret = -ENOTTY;
@@ -2846,7 +2846,7 @@ int mdp4_qseed_cfg(struct mdp_qseed_cfg_data *config)
 								__func__);
 		goto error;
 	}
-	base = (uint32_t) (MDP_BASE + mdp_block2base(config->block));
+	base = MDP_BASE + mdp_block2base(config->block);
 	ret = mdp4_qseed_access_cfg(cfg, base);
 
 error:

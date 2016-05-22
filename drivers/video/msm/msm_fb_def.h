@@ -116,10 +116,10 @@ typedef unsigned int boolean;
 #define inp8(addr) readb(addr)
 #define inp(addr) inp32(addr)
 
-#define inpw(port)             readw((void *)port)
-#define outpw(port, val)       writew(val, (void *)port)
-#define inpdw(port)            readl((void *)port)
-#define outpdw(port, val)      writel(val, (void *)port)
+#define inpw(port)             readw(port)
+#define outpw(port, val)       writew(val, port)
+#define inpdw(port)            readl(port)
+#define outpdw(port, val)      writel(val, port)
 
 
 #define clk_busy_wait(x) msleep_interruptible((x)/1000)
