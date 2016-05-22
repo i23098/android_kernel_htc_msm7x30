@@ -175,23 +175,6 @@ config CPU_FREQ_GOV_ONDEMAND
 
 	  If in doubt, say N.
 
-config CPU_FREQ_GOV_INTERACTIVE
-	tristate "'interactive' cpufreq policy governor"
-	help
-	  'interactive' - This driver adds a dynamic cpufreq policy governor
-	  designed for latency-sensitive workloads.
-
-	  This governor attempts to reduce the latency of clock
-	  increases so that the system is more responsive to
-	  interactive workloads.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called cpufreq_interactive.
-
-	  For details, take a look at linux/Documentation/cpu-freq.
-
-	  If in doubt, say N.
-
 config CPU_FREQ_GOV_CONSERVATIVE
 	tristate "'conservative' cpufreq governor"
 	depends on CPU_FREQ
@@ -215,6 +198,23 @@ config CPU_FREQ_GOV_CONSERVATIVE
 
 	  If in doubt, say N.
 
+config CPU_FREQ_GOV_INTERACTIVE
+	tristate "'interactive' cpufreq policy governor"
+	help
+	  'interactive' - This driver adds a dynamic cpufreq policy governor
+	  designed for latency-sensitive workloads.
+
+	  This governor attempts to reduce the latency of clock
+	  increases so that the system is more responsive to
+	  interactive workloads.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called cpufreq_interactive.
+
+	  For details, take a look at linux/Documentation/cpu-freq.
+
+	  If in doubt, say N.
+
 config CPU_FREQ_GOV_INTELLIACTIVE
 	tristate "'intelliactive' cpufreq policy governor"
 	help
@@ -231,28 +231,6 @@ config CPU_FREQ_GOV_INTELLIACTIVE
 	  For details, take a look at linux/Documentation/cpu-freq.
 
 	  If in doubt, say N.
-
-config CPU_FREQ_SAMPLING_LATENCY_MULTIPLIER
-	int "Sampling rate multiplier for governors."
-	default 1000
-	help
-	  Sampling latency rate multiplied by the cpu switch latency.
-	  Affects governor polling.
-
-config SEC_DVFS
-	bool "DVFS job"
-	default n
-	depends on CPU_FREQ
-
-config SEC_DVFS_UNI
-	bool "DVFS job for Uni Processer"
-	default n
-	depends on SEC_DVFS
-
-config SEC_LIMIT_LCD_OFF_CPU_MAX_FREQ
-	bool
-	default y
-	depends on CPU_FREQ_GOV_ONDEMAND
 
 config GENERIC_CPUFREQ_CPU0
 	bool "Generic CPU0 cpufreq driver"

@@ -34,17 +34,12 @@
 #define DEF_FREQUENCY_DOWN_DIFFERENTIAL		(10)
 #define DEF_FREQUENCY_UP_THRESHOLD		(80)
 #define DEF_SAMPLING_DOWN_FACTOR		(1)
-#define BOOSTED_SAMPLING_DOWN_FACTOR		(10)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
 #define MICRO_FREQUENCY_DOWN_DIFFERENTIAL	(3)
 #define MICRO_FREQUENCY_UP_THRESHOLD		(95)
 #define MICRO_FREQUENCY_MIN_SAMPLE_RATE		(10000)
 #define MIN_FREQUENCY_UP_THRESHOLD		(11)
 #define MAX_FREQUENCY_UP_THRESHOLD		(100)
-#define MIN_FREQUENCY_DOWN_DIFFERENTIAL		(1)
-#define DEFAULT_FREQ_BOOST_TIME			(500000)
-
-u64 freq_boosted_time;
 
 /*
  * The polling frequency of this governor depends on the capability of
@@ -60,19 +55,26 @@ u64 freq_boosted_time;
 
 static unsigned int min_sampling_rate;
 
-#define BOOSTED_SAMPLING_RATE			(20000)
 #define LATENCY_MULTIPLIER			(1000)
 #define MIN_LATENCY_MULTIPLIER			(100)
 #define TRANSITION_LATENCY_LIMIT		(10 * 1000 * 1000)
-
+#define BOOSTED_SAMPLING_DOWN_FACTOR		(10)
+#define BOOSTED_SAMPLING_RATE			(20000)
 #define POWERSAVE_BIAS_MAXLEVEL			(1000)
 #define POWERSAVE_BIAS_MINLEVEL			(-1000)
+#define MIN_FREQUENCY_DOWN_DIFFERENTIAL		(1)
+#define DEFAULT_FREQ_BOOST_TIME			(500000)
+
+u64 freq_boosted_time;
 
 /* have the timer rate booted for this much time 2.5s*/
 #define TIMER_RATE_BOOST_TIME 2500000
 int sampling_rate_boosted;
 u64 sampling_rate_boosted_time;
 unsigned int current_sampling_rate;
+
+static struct workqueue_struct *input_wq;
+static DEFINE_PER_CPU(struct work_struct, dbs_refresh_work);
 
 static void do_dbs_timer(struct work_struct *work);
 static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
@@ -123,10 +125,6 @@ static unsigned int dbs_enable;	/* number of CPUs using this policy */
  * dbs_mutex protects dbs_enable in governor start/stop.
  */
 static DEFINE_MUTEX(dbs_mutex);
-
-static struct workqueue_struct *input_wq;
-
-static DEFINE_PER_CPU(struct work_struct, dbs_refresh_work);
 
 static struct dbs_tuners {
 	unsigned int sampling_rate;
@@ -303,9 +301,9 @@ static ssize_t show_##file_name						\
 show_one(sampling_rate, sampling_rate);
 show_one(io_is_busy, io_is_busy);
 show_one(up_threshold, up_threshold);
-show_one(down_differential, down_differential);
 show_one(sampling_down_factor, sampling_down_factor);
 show_one(ignore_nice_load, ignore_nice);
+show_one(down_differential, down_differential);
 show_one(boostpulse, boosted);
 show_one(boosttime, freq_boost_time);
 show_one(boostfreq, boostfreq);
@@ -639,10 +637,10 @@ skip_this_cpu_bypass:
 define_one_global_rw(sampling_rate);
 define_one_global_rw(io_is_busy);
 define_one_global_rw(up_threshold);
-define_one_global_rw(down_differential);
 define_one_global_rw(sampling_down_factor);
 define_one_global_rw(ignore_nice_load);
 define_one_global_rw(powersave_bias);
+define_one_global_rw(down_differential);
 define_one_global_rw(boostpulse);
 define_one_global_rw(boosttime);
 define_one_global_rw(boostfreq);
