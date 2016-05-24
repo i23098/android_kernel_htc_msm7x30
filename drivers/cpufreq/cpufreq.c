@@ -69,7 +69,7 @@ struct cpufreq_cpu_save_data {
 	char gov[CPUFREQ_NAME_LEN];
 	unsigned int max, min;
 };
-static DEFINE_PER_CPU(struct cpufreq_cpu_save_data, cpufreq_policy_save);
+static DEFINE_PER_CPU(struct cpufreq_cpu_save_data, cpufreq_cpu_governor);
 #endif
 static DEFINE_SPINLOCK(cpufreq_driver_lock);
 
@@ -96,7 +96,7 @@ static DEFINE_PER_CPU(int, cpufreq_policy_cpu);
 static DEFINE_PER_CPU(struct rw_semaphore, cpu_policy_rwsem);
 
 #define lock_policy_rwsem(mode, cpu)					\
-int lock_policy_rwsem_##mode						\
+int lock_policy_rwsem_##mode					\
 (int cpu)								\
 {									\
 	int policy_cpu = per_cpu(cpufreq_policy_cpu, cpu);		\
@@ -786,9 +786,7 @@ static ssize_t show(struct kobject *kobj, struct attribute *attr, char *buf)
 #ifdef __CPUFREQ_KOBJ_DEL_DEADLOCK_FIX
 	unsigned int cpu;
 	unsigned long flags;
-#endif
 
-#ifdef __CPUFREQ_KOBJ_DEL_DEADLOCK_FIX
 	spin_lock_irqsave(&cpufreq_driver_lock, flags);
 	policy = cpufreq_cpu_peek(policy->cpu);
 	if (!policy) {
@@ -835,9 +833,7 @@ static ssize_t store(struct kobject *kobj, struct attribute *attr,
 #ifdef __CPUFREQ_KOBJ_DEL_DEADLOCK_FIX
 	unsigned int cpu;
 	unsigned long flags;
-#endif
 
-#ifdef __CPUFREQ_KOBJ_DEL_DEADLOCK_FIX
 	spin_lock_irqsave(&cpufreq_driver_lock, flags);
 	policy = cpufreq_cpu_peek(policy->cpu);
 	if (!policy) {
@@ -910,18 +906,18 @@ static int cpufreq_add_dev_policy(unsigned int cpu,
 #ifdef CONFIG_HOTPLUG_CPU
 	struct cpufreq_governor *gov;
 
-	gov = __find_governor(per_cpu(cpufreq_policy_save, cpu).gov);
+	gov = __find_governor(per_cpu(cpufreq_cpu_governor, cpu).gov);
 	if (gov) {
 		policy->governor = gov;
 		pr_debug("Restoring governor %s for cpu %d\n",
 		       policy->governor->name, cpu);
 	}
-	if (per_cpu(cpufreq_policy_save, cpu).min) {
-		policy->min = per_cpu(cpufreq_policy_save, cpu).min;
+	if (per_cpu(cpufreq_cpu_governor, cpu).min) {
+		policy->min = per_cpu(cpufreq_cpu_governor, cpu).min;
 		policy->user_policy.min = policy->min;
 	}
-	if (per_cpu(cpufreq_policy_save, cpu).max) {
-		policy->max = per_cpu(cpufreq_policy_save, cpu).max;
+	if (per_cpu(cpufreq_cpu_governor, cpu).max) {
+		policy->max = per_cpu(cpufreq_cpu_governor, cpu).max;
 		policy->user_policy.max = policy->max;
 	}
 	pr_debug("Restoring CPU%d min %d and max %d\n",
@@ -1280,10 +1276,10 @@ static int __cpufreq_remove_dev(struct device *dev, struct subsys_interface *sif
 #ifdef CONFIG_SMP
 
 #ifdef CONFIG_HOTPLUG_CPU
-	strncpy(per_cpu(cpufreq_policy_save, cpu).gov, data->governor->name,
+	strncpy(per_cpu(cpufreq_cpu_governor, cpu).gov, data->governor->name,
 			CPUFREQ_NAME_LEN);
-	per_cpu(cpufreq_policy_save, cpu).min = data->min;
-	per_cpu(cpufreq_policy_save, cpu).max = data->max;
+	per_cpu(cpufreq_cpu_governor, cpu).min = data->min;
+	per_cpu(cpufreq_cpu_governor, cpu).max = data->max;
 	pr_debug("Saving CPU%d policy min %d and max %d\n",
 			cpu, data->min, data->max);
 #endif
@@ -1309,10 +1305,10 @@ static int __cpufreq_remove_dev(struct device *dev, struct subsys_interface *sif
 				continue;
 			pr_debug("removing link for cpu %u\n", j);
 #ifdef CONFIG_HOTPLUG_CPU
-			strncpy(per_cpu(cpufreq_policy_save, j).gov,
+			strncpy(per_cpu(cpufreq_cpu_governor, j).gov,
 				data->governor->name, CPUFREQ_NAME_LEN);
-			per_cpu(cpufreq_policy_save, j).min = data->min;
-			per_cpu(cpufreq_policy_save, j).max = data->max;
+			per_cpu(cpufreq_cpu_governor, j).min = data->min;
+			per_cpu(cpufreq_cpu_governor, j).max = data->max;
 			pr_debug("Saving CPU%d policy min %d and max %d\n",
 					j, data->min, data->max);
 #endif
@@ -1839,11 +1835,11 @@ void cpufreq_unregister_governor(struct cpufreq_governor *governor)
 	for_each_present_cpu(cpu) {
 		if (cpu_online(cpu))
 			continue;
-		if (!strcmp(per_cpu(cpufreq_policy_save, cpu).gov,
+		if (!strcmp(per_cpu(cpufreq_cpu_governor, cpu).gov,
 					governor->name))
-			strcpy(per_cpu(cpufreq_policy_save, cpu).gov, "\0");
-		per_cpu(cpufreq_policy_save, cpu).min = 0;
-		per_cpu(cpufreq_policy_save, cpu).max = 0;
+			strcpy(per_cpu(cpufreq_cpu_governor, cpu).gov, "\0");
+		per_cpu(cpufreq_cpu_governor, cpu).min = 0;
+		per_cpu(cpufreq_cpu_governor, cpu).max = 0;
 	}
 #endif
 
@@ -1951,7 +1947,6 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 
 			/* start new governor */
 			data->governor = policy->governor;
-			if (!cpu_online(1));
 			if (__cpufreq_governor(data, CPUFREQ_GOV_START)) {
 				/* new governor failed, so re-start old one */
 				pr_debug("starting governor %s failed\n",
