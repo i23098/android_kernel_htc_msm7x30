@@ -268,6 +268,35 @@ static int page_zero_filled(void *ptr)
 	return 1;
 }
 
+static void zram_set_disksize(struct zram *zram, size_t totalram_bytes)
+{
+	if (!zram->disksize) {
+		pr_info(
+		"disk size not provided. You can use disksize_kb module "
+		"param to specify size.\nUsing default: (%u%% of RAM).\n",
+		default_disksize_perc_ram
+		);
+		zram->disksize = default_disksize_perc_ram *
+					(totalram_bytes / 100);
+	}
+
+	if (zram->disksize > 2 * (totalram_bytes)) {
+		pr_info(
+		"There is little point creating a zram of greater than "
+		"twice the size of memory since we expect a 2:1 compression "
+		"ratio. Note that zram uses about 0.1%% of the size of "
+		"the disk when not in use so a huge zram is "
+		"wasteful.\n"
+		"\tMemory Size: %zu kB\n"
+		"\tSize you selected: %llu kB\n"
+		"Continuing anyway ...\n",
+		totalram_bytes >> 10, zram->disksize
+		);
+	}
+
+	zram->disksize &= PAGE_MASK;
+}
+
 static void zram_free_page(struct zram *zram, size_t index)
 {
 	unsigned long handle = zram->table[index].handle;
@@ -636,7 +665,6 @@ error_unlock:
 	up_read(&zram->init_lock);
 error:
 	bio_io_error(bio);
-	return;
 }
 
 void __zram_reset_device(struct zram *zram)
@@ -696,19 +724,7 @@ int zram_init_device(struct zram *zram)
 		return 0;
 	}
 
-	if (zram->disksize > 2 * (totalram_pages << PAGE_SHIFT)) {
-		pr_info(
-		"There is little point creating a zram of greater than "
-		"twice the size of memory since we expect a 2:1 compression "
-		"ratio. Note that zram uses about 0.1%% of the size of "
-		"the disk when not in use so a huge zram is "
-		"wasteful.\n"
-		"\tMemory Size: %lu kB\n"
-		"\tSize you selected: %llu kB\n"
-		"Continuing anyway ...\n",
-		(totalram_pages << PAGE_SHIFT) >> 10, zram->disksize >> 10
-		);
-	}
+	zram_set_disksize(zram, totalram_pages << PAGE_SHIFT);
 
 	zram->compress_buffer =
 		(void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, 1);
@@ -922,7 +938,8 @@ static void __exit zram_exit(void)
 		zram = &zram_devices[i];
 
 		destroy_device(zram);
-		zram_reset_device(zram);
+		if (zram->init_done)
+			zram_reset_device(zram);
 	}
 
 	unregister_blkdev(zram_major, "zram");

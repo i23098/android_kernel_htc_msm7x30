@@ -451,7 +451,7 @@ int pm8xxx_get_irq_base(struct pm_irq_chip *chip)
 }
 EXPORT_SYMBOL_GPL(pm8xxx_get_irq_base);
 
-struct pm_irq_chip *  __devinit pm8xxx_irq_init(struct device *dev,
+struct pm_irq_chip *  pm8xxx_irq_init(struct device *dev,
 				const struct pm8xxx_irq_platform_data *pdata)
 {
 	struct pm_irq_chip  *chip;
@@ -516,7 +516,7 @@ struct pm_irq_chip *  __devinit pm8xxx_irq_init(struct device *dev,
 	return chip;
 }
 
-int __devexit pm8xxx_irq_exit(struct pm_irq_chip *chip)
+int pm8xxx_irq_exit(struct pm_irq_chip *chip)
 {
 	irq_set_chained_handler(chip->devirq, NULL);
 	kfree(chip);
