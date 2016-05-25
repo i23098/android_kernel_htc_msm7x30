@@ -30,8 +30,8 @@ struct msm_dmov_cmd {
 	void (*complete_func)(struct msm_dmov_cmd *cmd,
 			      unsigned int result,
 			      struct msm_dmov_errdata *err);
-	void (*exec_func)(struct msm_dmov_cmd *cmd);
-	void *user;	/* Pointer for caller's reference */
+	void (*execute_func)(struct msm_dmov_cmd *cmd);
+	void *data;
 };
 
 struct msm_dmov_pdata {

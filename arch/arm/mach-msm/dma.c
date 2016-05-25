@@ -296,8 +296,8 @@ void msm_dmov_enqueue_cmd_ext(unsigned id, struct msm_dmov_cmd *cmd)
 	if (status & DMOV_STATUS_CMD_PTR_RDY) {
 		PRINT_IO("msm_dmov_enqueue_cmd(%d), start command, status %x\n",
 			id, status);
-		if (cmd->exec_func)
-			cmd->exec_func(cmd);
+		if (cmd->execute_func)
+			cmd->execute_func(cmd);
 		list_add_tail(&cmd->list, &dmov_conf[adm].active_commands[ch]);
 		if (!dmov_conf[adm].channel_active)
 			enable_irq(dmov_conf[adm].irq);
@@ -323,7 +323,7 @@ EXPORT_SYMBOL(msm_dmov_enqueue_cmd_ext);
 void msm_dmov_enqueue_cmd(unsigned id, struct msm_dmov_cmd *cmd)
 {
 	/* Disable callback function (for backwards compatibility) */
-	cmd->exec_func = NULL;
+	cmd->execute_func = NULL;
 
 	msm_dmov_enqueue_cmd_ext(id, cmd);
 }
@@ -374,7 +374,7 @@ int msm_dmov_exec_cmd(unsigned id, unsigned int cmdptr)
 
 	cmd.dmov_cmd.cmdptr = cmdptr;
 	cmd.dmov_cmd.complete_func = dmov_exec_cmdptr_complete_func;
-	cmd.dmov_cmd.exec_func = NULL;
+	cmd.dmov_cmd.execute_func = NULL;
 	cmd.id = id;
 	cmd.result = 0;
 	init_completion(&cmd.complete);
@@ -493,8 +493,8 @@ static irqreturn_t msm_datamover_irq_handler(int irq, void *dev_id)
 				cmd = list_entry(dmov_conf[adm].
 					ready_commands[ch].next, typeof(*cmd),
 					list);
-				if (cmd->exec_func)
-					cmd->exec_func(cmd);
+				if (cmd->execute_func)
+					cmd->execute_func(cmd);
 				list_move_tail(&cmd->list,
 					&dmov_conf[adm].active_commands[ch]);
 				PRINT_FLOW("msm_datamover_irq_handler id %d, start command\n", id);
