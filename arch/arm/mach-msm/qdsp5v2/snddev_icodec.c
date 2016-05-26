@@ -1261,9 +1261,9 @@ static int __init snddev_icodec_init(void)
 	icodec_drv->rx_active = 0;
 	icodec_drv->tx_active = 0;
 	icodec_drv->lpa = NULL;
-	wake_lock_init(&icodec_drv->tx_idlelock, WAKE_LOCK_IDLE,
+	wake_lock_init(&icodec_drv->tx_idlelock, WAKE_LOCK_SUSPEND,
 			"snddev_tx_idle");
-	wake_lock_init(&icodec_drv->rx_idlelock, WAKE_LOCK_IDLE,
+	wake_lock_init(&icodec_drv->rx_idlelock, WAKE_LOCK_SUSPEND,
 			"snddev_rx_idle");
 	return 0;
 

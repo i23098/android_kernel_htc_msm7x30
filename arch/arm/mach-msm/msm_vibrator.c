@@ -331,7 +331,7 @@ void __init msm_init_pmic_vibrator(int level)
 	INIT_WORK(&vibrator_work, update_vibrator);
 	spin_lock_init(&vibe_lock);
 	vibe_state = 0;
-	wake_lock_init(&vib_wake_lock, WAKE_LOCK_IDLE, "vib");
+	wake_lock_init(&vib_wake_lock, WAKE_LOCK_SUSPEND, "vib");
 	hrtimer_init(&vibe_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	vibe_timer.function = vibrator_timer_func;
 	pmic_vibrator_level = level;

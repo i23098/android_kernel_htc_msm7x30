@@ -23,14 +23,12 @@
 #include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/gpio.h>
-#include <linux/earlysuspend.h>
 #include <mach/vreg.h>
 #include <asm/mach-types.h>
 #include <linux/ntrig.h>
 #include <linux/ntrig_fw.h>
 #include <linux/spi/spi.h>
 #include <linux/stat.h>
-#include <linux/earlysuspend.h>
 #include <asm/uaccess.h>
 #include <linux/miscdevice.h>
 #include <linux/workqueue.h>
@@ -105,7 +103,6 @@ struct ntg_tsData {
 	atomic_t data_ok_agent;
 	atomic_t info_send_agent;
 	atomic_t start_agent;
-	struct early_suspend early_suspend;
 	struct workqueue_struct *ntg_wq_esd;
 	struct delayed_work ntg_work_esd;
 	struct workqueue_struct *ntg_wq_usb_disable;
@@ -127,11 +124,6 @@ struct ntg_AnalyData {
 static struct ntg_AnalyData *mapData;
 
 static int ntg_spi_transfer(struct ntg_tsData *, char *);
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void ntrig_ts_early_suspend(struct early_suspend *h);
-static void ntrig_ts_late_resume(struct early_suspend *h);
-#endif
 extern int board_mfg_mode(void);
 static char data_agent[DEBUG_ANGENT_ALL_REPORT_SIZE];
 struct ntg_debug_agent_uart g_data_uart;
@@ -2239,13 +2231,6 @@ static int ntrig_ts_probe(struct spi_device *dev)
 	init_waitqueue_head(&ntg_ts->get_data_wq);
 	init_waitqueue_head(&ntg_ts->send_data_wq);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	ntg_ts->early_suspend.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 3;
-	ntg_ts->early_suspend.suspend = ntrig_ts_early_suspend;
-	ntg_ts->early_suspend.resume = ntrig_ts_late_resume;
-	register_early_suspend(&ntg_ts->early_suspend);
-#endif
-
 	ntrig_touch_sysfs_init();
 
 	init_waitqueue_head(&data_ready_agent_wq);
@@ -2378,35 +2363,6 @@ static int ntrig_ts_resume(struct spi_device *dev)
 	return ret;
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void ntrig_ts_early_suspend(struct early_suspend *h)
-{
-	int ret;
-	struct ntg_tsData *ts;
-	ts = container_of(h, struct ntg_tsData, early_suspend);
-
-	ret = cancel_delayed_work_sync(&ts->ntg_work_resume);
-	if (ret)
-		enable_irq(ts->spiDev->irq);
-
-	if (event_google_enable == 1) {
-		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0x00);
-		input_sync(ts->input_dev);
-	} else {
-		input_report_abs(ts->input_dev, ABS_MT_AMPLITUDE, 0x00);
-		input_report_abs(ts->input_dev, ABS_MT_POSITION,  1<<31);
-	}
-	ntrig_ts_suspend(ts->spiDev, PMSG_SUSPEND);
-}
-
-static void ntrig_ts_late_resume(struct early_suspend *h)
-{
-	struct ntg_tsData *ts;
-	ts = container_of(h, struct ntg_tsData, early_suspend);
-	ntrig_ts_resume(ts->spiDev);
-}
-#endif
-
 static const struct spi_device_id ntrig_ts_spi_id[] = {
 	{NTRIG_NAME, 0},
 	{}
@@ -2415,10 +2371,8 @@ static const struct spi_device_id ntrig_ts_spi_id[] = {
 static struct spi_driver ntrig_ts_driver = {
 	.id_table = ntrig_ts_spi_id,
 	.probe = ntrig_ts_probe,
-#ifndef CONFIG_HAS_EARLYSUSPEND
 	.suspend = ntrig_ts_suspend,
 	.resume = ntrig_ts_resume,
-#endif
 	.remove = __exit_p(ntrig_ts_remove),
 	.driver = {
 		.name = NTRIG_NAME,

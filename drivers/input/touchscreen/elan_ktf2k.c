@@ -18,7 +18,6 @@
 #include <linux/module.h>
 #include <linux/input.h>
 #include <linux/interrupt.h>
-#include <linux/earlysuspend.h>
 #include <linux/platform_device.h>
 #include <linux/i2c.h>
 #include <linux/delay.h>
@@ -79,7 +78,6 @@ struct elan_ktf2k_ts_data {
 	struct work_struct work;
 	int (*power)(int on);
 	int (*reset)(void);
-	struct early_suspend early_suspend;
 	int intr_gpio;
 	uint16_t fw_ver;
 	uint8_t first_pressed;
@@ -119,11 +117,6 @@ struct test_mode_cmd_close_v2 {
 };
 
 static struct elan_ktf2k_ts_data *private_ts;
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void elan_ktf2k_ts_early_suspend(struct early_suspend *h);
-static void elan_ktf2k_ts_late_resume(struct early_suspend *h);
-#endif
 
 static int i2c_elan_ktf2k_read(struct i2c_client *client,
 	uint8_t *buf, size_t len);
@@ -1434,13 +1427,6 @@ static int elan_ktf2k_ts_probe(struct i2c_client *client,
 		elan_ktf2k_ts_irq_handler(client->irq, ts);
 	}
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	ts->early_suspend.level = EARLY_SUSPEND_LEVEL_STOP_DRAWING - 1;
-	ts->early_suspend.suspend = elan_ktf2k_ts_early_suspend;
-	ts->early_suspend.resume = elan_ktf2k_ts_late_resume;
-	register_early_suspend(&ts->early_suspend);
-#endif
-
 	private_ts = ts;
 
 	elan_ktf2k_touch_sysfs_init();
@@ -1476,7 +1462,6 @@ static int elan_ktf2k_ts_remove(struct i2c_client *client)
 
 	elan_touch_sysfs_deinit();
 
-	unregister_early_suspend(&ts->early_suspend);
 	free_irq(client->irq, ts);
 
 	if (ts->elan_wq)
@@ -1548,33 +1533,8 @@ static int elan_ktf2k_ts_resume(struct i2c_client *client)
 		elan_ktf2k_ts_calibration(client);
 
 	enable_irq(client->irq);
-
-/*
-	if (gpio_get_value(ts->intr_gpio) == 0)
-	{
-		printk(KERN_INFO "%s: handle missed interrupt\n", __func__);
-		elan_ktf2k_ts_irq_handler(client->irq, ts);
-	}
-*/
-
 	return 0;
 }
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void elan_ktf2k_ts_early_suspend(struct early_suspend *h)
-{
-	struct elan_ktf2k_ts_data *ts;
-	ts = container_of(h, struct elan_ktf2k_ts_data, early_suspend);
-	elan_ktf2k_ts_suspend(ts->client, PMSG_SUSPEND);
-}
-
-static void elan_ktf2k_ts_late_resume(struct early_suspend *h)
-{
-	struct elan_ktf2k_ts_data *ts;
-	ts = container_of(h, struct elan_ktf2k_ts_data, early_suspend);
-	elan_ktf2k_ts_resume(ts->client);
-}
-#endif
 
 static const struct i2c_device_id elan_ktf2k_ts_id[] = {
 	{ ELAN_KTF2K_NAME, 0 },
@@ -1584,10 +1544,8 @@ static const struct i2c_device_id elan_ktf2k_ts_id[] = {
 static struct i2c_driver ektf2k_ts_driver = {
 	.probe		= elan_ktf2k_ts_probe,
 	.remove		= elan_ktf2k_ts_remove,
-#ifndef CONFIG_HAS_EARLYSUSPEND
 	.suspend	= elan_ktf2k_ts_suspend,
 	.resume		= elan_ktf2k_ts_resume,
-#endif
 	.id_table	= elan_ktf2k_ts_id,
 	.driver		= {
 		.name = ELAN_KTF2K_NAME,

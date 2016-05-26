@@ -15,7 +15,6 @@
 
 #include <linux/himax8526a.h>
 #include <linux/delay.h>
-#include <linux/earlysuspend.h>
 #include <linux/hrtimer.h>
 #include <linux/i2c.h>
 #include <linux/input.h>
@@ -44,7 +43,6 @@ struct himax_ts_data {
 	uint8_t debug_log_level;
 	uint32_t irq;
 	int (*power)(int on);
-	struct early_suspend early_suspend;
 	uint8_t x_channel;
 	uint8_t y_channel;
 	uint8_t usb_connected;
@@ -73,11 +71,6 @@ static uint8_t reset_activate;
 
 #define SWITCH_TO_HTC_EVENT_ONLY	1
 #define INJECT_HTC_EVENT		2
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void himax_ts_early_suspend(struct early_suspend *h);
-static void himax_ts_late_resume(struct early_suspend *h);
-#endif
 
 int i2c_himax_read(struct i2c_client *client, uint8_t command, uint8_t *data, uint8_t length, uint8_t toRetry)
 {
@@ -1108,12 +1101,6 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 		goto err_input_register_device_failed;
 	}
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	ts->early_suspend.level = EARLY_SUSPEND_LEVEL_STOP_DRAWING + 1;
-	ts->early_suspend.suspend = himax_ts_early_suspend;
-	ts->early_suspend.resume = himax_ts_late_resume;
-	register_early_suspend(&ts->early_suspend);
-#endif
 	private_ts = ts;
 	himax_touch_sysfs_init();
 
@@ -1177,8 +1164,6 @@ static int himax8526a_remove(struct i2c_client *client)
 	struct himax_ts_data *ts = i2c_get_clientdata(client);
 
 	himax_touch_sysfs_deinit();
-
-	unregister_early_suspend(&ts->early_suspend);
 
 	if (!ts->use_irq)
 		hrtimer_cancel(&ts->timer);
@@ -1295,24 +1280,6 @@ static int himax8526a_resume(struct i2c_client *client)
 	return 0;
 }
 
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void himax_ts_early_suspend(struct early_suspend *h)
-{
-	struct himax_ts_data *ts;
-	ts = container_of(h, struct himax_ts_data, early_suspend);
-	himax8526a_suspend(ts->client, PMSG_SUSPEND);
-}
-
-static void himax_ts_late_resume(struct early_suspend *h)
-{
-	struct himax_ts_data *ts;
-	ts = container_of(h, struct himax_ts_data, early_suspend);
-	himax8526a_resume(ts->client);
-
-}
-#endif
-
 static const struct i2c_device_id himax8526a_ts_id[] = {
 	{HIMAX8526A_NAME, 0 },
 	{}
@@ -1322,10 +1289,8 @@ static struct i2c_driver himax8526a_driver = {
 	.id_table	= himax8526a_ts_id,
 	.probe		= himax8526a_probe,
 	.remove		= himax8526a_remove,
-#ifndef CONFIG_HAS_EARLYSUSPEND
 	.suspend	= himax8526a_suspend,
 	.resume		= himax8526a_resume,
-#endif
 	.driver		= {
 		.name = HIMAX8526A_NAME,
 		.owner = THIS_MODULE,

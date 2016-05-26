@@ -20,7 +20,6 @@
 
 #include <asm/gpio.h>
 #include <linux/delay.h>
-#include <linux/earlysuspend.h>
 #include <linux/platform_device.h>
 #include <mach/msm_iomap.h>
 #include <asm/io.h>
@@ -40,7 +39,6 @@
 
 struct flashlight_struct {
 	struct led_classdev fl_lcdev;
-	struct early_suspend early_suspend_flashlight;
 	struct hrtimer timer;
 	struct wake_lock wake_lock;
 	spinlock_t spin_lock;
@@ -486,31 +484,6 @@ static void fl_lcdev_brightness_set(struct led_classdev *led_cdev,
 	return;
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void flashlight_early_suspend(struct early_suspend *handler)
-{
-	struct flashlight_struct *fl_str = container_of(handler,
-			struct flashlight_struct, early_suspend_flashlight);
-	if (fl_str != NULL && fl_str->mode_status) {
-		if (fl_str->mode_status == FL_MODE_FLASH) {
-			hrtimer_cancel(&fl_str->timer);
-			spin_lock_irqsave(&fl_str->spin_lock, fl_str->spinlock_flags);
-			flashlight_turn_off();
-			spin_unlock_irqrestore(&fl_str->spin_lock,
-						fl_str->spinlock_flags);
-		}
-	}
-}
-
-static void flashlight_late_resume(struct early_suspend *handler)
-{
-	/*
-	struct flashlight_struct *fl_str = container_of(handler,
-			struct flashlight_struct, early_suspend_flashlight);
-	*/
-}
-#endif
-
 static int flashlight_setup_gpio(struct flashlight_platform_data *flashlight,
 					struct flashlight_struct *fl_str)
 {
@@ -715,12 +688,8 @@ static int flashlight_probe(struct platform_device *pdev)
 #endif
 	fl_str->soft_flash = false;
 	err = device_create_file(fl_str->fl_lcdev.dev, &dev_attr_soft_flash);
-	if (err != 0) FLT_ERR_LOG("%s: dev_attr_soft_flash failed\n", __func__);
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	fl_str->early_suspend_flashlight.suspend = flashlight_early_suspend;
-	fl_str->early_suspend_flashlight.resume = flashlight_late_resume;
-	register_early_suspend(&fl_str->early_suspend_flashlight);
-#endif
+	if (err != 0) 
+		FLT_ERR_LOG("%s: dev_attr_soft_flash failed\n", __func__);
 	hrtimer_init(&fl_str->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	fl_str->timer.function = flashlight_hrtimer_func;
 	fl_str->led_count = flashlight->led_count;
@@ -744,7 +713,6 @@ static int flashlight_remove(struct platform_device *pdev)
 
 	flashlight_turn_off();
 	hrtimer_cancel(&this_fl_str->timer);
-	unregister_early_suspend(&this_fl_str->early_suspend_flashlight);
 #ifdef FLASHLIGHT_ADJ_FUNC
 	if (this_fl_str->gpio_flash_adj) {
 		device_remove_file(this_fl_str->fl_lcdev.dev,

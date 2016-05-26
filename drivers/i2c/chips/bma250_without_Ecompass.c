@@ -23,8 +23,6 @@
 #include<linux/earlysuspend.h>
 #include <linux/akm8975.h>
 
-/*#define EARLY_SUSPEND_BMA 1*/
-
 #define D(x...) printk(KERN_DEBUG "[GSNR][BMA250 NO_COMP] " x)
 #define I(x...) printk(KERN_INFO "[GSNR][BMA250 NO_COMP] " x)
 #define E(x...) printk(KERN_ERR "[GSNR][BMA250 NO_COMP ERROR] " x)
@@ -42,7 +40,6 @@ static struct i2c_client *this_client;
 struct bma250_data {
 	struct input_dev *input_dev;
 	struct work_struct work;
-	struct early_suspend early_suspend;
 };
 
 int ignore_first_event;
@@ -68,7 +65,6 @@ struct akm8975_data {
 	struct work_struct work;
 	struct delayed_work input_work;
 	int	poll_interval;
-	struct early_suspend early_suspend;
 };
 short user_offset[3];
 
@@ -781,23 +777,6 @@ struct miscdevice akm_aot_device = {
 	.fops = &akm_aot_fops,
 };
 
-#ifdef EARLY_SUSPEND_BMA
-
-static void bma250_early_suspend(struct early_suspend *handler)
-{
-	if (!atomic_read(&PhoneOn_flag))
-		BMA_set_mode(bma250_MODE_SUSPEND);
-	else
-		D("bma250_early_suspend: PhoneOn_flag is set\n");
-}
-
-static void bma250_late_resume(struct early_suspend *handler)
-{
-	BMA_set_mode(bma250_MODE_NORMAL);
-}
-
-#else /* EARLY_SUSPEND_BMA */
-
 static int bma250_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	BMA_set_mode(bma250_MODE_SUSPEND);
@@ -810,7 +789,6 @@ static int bma250_resume(struct i2c_client *client)
 	BMA_set_mode(bma250_MODE_NORMAL);
 	return 0;
 }
-#endif /* EARLY_SUSPEND_BMA */
 
 static ssize_t bma250_show(struct device *dev,
 				  struct device_attribute *attr, char *buf)
@@ -1041,12 +1019,6 @@ static int bma250_probe(struct i2c_client *client,
 		goto exit_misc_device_register_failed;
 	}
 
-#ifdef EARLY_SUSPEND_BMA
-	bma->early_suspend.suspend = bma250_early_suspend;
-	bma->early_suspend.resume = bma250_late_resume;
-	register_early_suspend(&bma->early_suspend);
-#endif
-
 	err = bma250_registerAttr();
 	if (err) {
 		E("%s: set spi_bma150_registerAttr fail!\n", __func__);
@@ -1148,10 +1120,8 @@ static struct i2c_driver bma250_driver = {
 	.remove = bma250_remove,
 	.id_table	= bma250_id,
 
-#ifndef EARLY_SUSPEND_BMA
 	.suspend = bma250_suspend,
 	.resume = bma250_resume,
-#endif
 	.driver = {
 		   .name = BMA250_I2C_NAME_REMOVE_ECOMPASS,
 		   },

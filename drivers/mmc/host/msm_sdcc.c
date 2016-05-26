@@ -3268,9 +3268,6 @@ set_polling(struct device *dev, struct device_attribute *attr,
 	} else {
 		mmc->caps &= ~MMC_CAP_NEEDS_POLL;
 	}
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	host->polling_enabled = mmc->caps & MMC_CAP_NEEDS_POLL;
-#endif
 	spin_unlock_irqrestore(&host->lock, flags);
 	return count;
 }
@@ -3284,61 +3281,6 @@ static struct attribute *dev_attrs[] = {
 static struct attribute_group dev_attr_grp = {
 	.attrs = dev_attrs,
 };
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void msmsdcc_early_suspend(struct early_suspend *h)
-{
-	struct msmsdcc_host *host =
-		container_of(h, struct msmsdcc_host, early_suspend);
-	unsigned long flags;
-
-#ifdef CONFIG_WIMAX
-	#if SDC_CLK_VERBOSE
-	if (is_wimax_platform(host->plat))
-		pr_info("[WIMAX] [MMC] %s: %s enter\n", mmc_hostname(host->mmc), __func__);
-	#endif
-#endif
-
-	spin_lock_irqsave(&host->lock, flags);
-	host->polling_enabled = host->mmc->caps & MMC_CAP_NEEDS_POLL;
-	host->mmc->caps &= ~MMC_CAP_NEEDS_POLL;
-	spin_unlock_irqrestore(&host->lock, flags);
-
-#ifdef CONFIG_WIMAX
-	#if SDC_CLK_VERBOSE
-	if (is_wimax_platform(host->plat))
-		pr_info("[WIMAX] [MMC] %s: %s leave\n", mmc_hostname(host->mmc), __func__);
-	#endif
-#endif
-
-};
-static void msmsdcc_late_resume(struct early_suspend *h)
-{
-	struct msmsdcc_host *host =
-		container_of(h, struct msmsdcc_host, early_suspend);
-	unsigned long flags;
-
-#ifdef CONFIG_WIMAX
-	#if SDC_CLK_VERBOSE
-	if (is_wimax_platform(host->plat))
-		pr_info("[WIMAX] [MMC] %s: %s enter\n", mmc_hostname(host->mmc), __func__);
-	#endif
-#endif
-
-	if (host->polling_enabled) {
-		spin_lock_irqsave(&host->lock, flags);
-		host->mmc->caps |= MMC_CAP_NEEDS_POLL;
-		mmc_detect_change(host->mmc, 0);
-		spin_unlock_irqrestore(&host->lock, flags);
-	}
-#ifdef CONFIG_WIMAX
-	#if SDC_CLK_VERBOSE
-	if (is_wimax_platform(host->plat))
-		pr_info("[WIMAX] [MMC] %s: %s leave\n", mmc_hostname(host->mmc), __func__);
-	#endif
-#endif
-};
-#endif
 
 void msmsdcc_print_regs(const char *name, struct msmsdcc_host *host,
 			unsigned int no_of_regs)
@@ -3870,13 +3812,6 @@ msmsdcc_probe(struct platform_device *pdev)
 
 	mmc_add_host(mmc);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	host->early_suspend.suspend = msmsdcc_early_suspend;
-	host->early_suspend.resume  = msmsdcc_late_resume;
-	host->early_suspend.level   = EARLY_SUSPEND_LEVEL_DISABLE_FB;
-	register_early_suspend(&host->early_suspend);
-#endif
-
 	pr_info("%s: Qualcomm MSM SDCC at 0x%016llx irq %d,%d dma %d"
 		" dmacrcri %d\n", mmc_hostname(mmc),
 		(unsigned long long)core_memres->start,
@@ -4041,9 +3976,6 @@ static int msmsdcc_remove(struct platform_device *pdev)
 	iounmap(host->base);
 	mmc_free_host(mmc);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	unregister_early_suspend(&host->early_suspend);
-#endif
 	pm_runtime_disable(&(pdev)->dev);
 	pm_runtime_set_suspended(&(pdev)->dev);
 

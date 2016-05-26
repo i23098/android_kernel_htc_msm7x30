@@ -1188,7 +1188,7 @@ static int projector_setup(void)
 		goto err_unregister_cand;
 	}
 
-	wake_lock_init(&prj_idle_wake_lock, WAKE_LOCK_IDLE, "prj_idle_lock");
+	wake_lock_init(&prj_idle_wake_lock, WAKE_LOCK_SUSPEND, "prj_idle_lock");
 
 	return 0;
 

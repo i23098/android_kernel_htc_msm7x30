@@ -20,7 +20,6 @@
 #include <linux/syscalls.h>
 #include <mach/atmega_microp.h>
 #include <asm/mach-types.h>
-#include <linux/earlysuspend.h>
 #include <mach/drv_callback.h>
 #include <linux/wakelock.h>
 #include <linux/miscdevice.h>
@@ -559,40 +558,6 @@ static void microp_intr_work_func(struct work_struct *work)
 	enable_irq(client->irq);
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void microp_early_suspend(struct early_suspend *h)
-{
-	struct microp_i2c_client_data *cdata;
-	struct i2c_client *client = private_microp_client;
-	struct microp_i2c_platform_data *pdata;
-
-	if (!client) {
-		printk(KERN_ERR "[MP_MGR_ERR] %s: dataset: client is empty\n", __func__);
-		return;
-	}
-	cdata = i2c_get_clientdata(client);
-	pdata = client->dev.platform_data;
-
-	atomic_set(&cdata->microp_is_suspend, 1);
-}
-
-static void microp_late_resume(struct early_suspend *h)
-{
-	struct i2c_client *client = private_microp_client;
-	struct microp_i2c_client_data *cdata;
-	struct microp_i2c_platform_data *pdata;
-
-	if (!client) {
-		printk(KERN_ERR "[MP_MGR_ERR] %s: dataset: client is empty\n", __func__);
-		return;
-	}
-	cdata = i2c_get_clientdata(client);
-	pdata = client->dev.platform_data;
-
-	atomic_set(&cdata->microp_is_suspend, 0);
-}
-#endif
-
 static int __devexit microp_i2c_remove(struct i2c_client *client)
 {
 	struct microp_i2c_platform_data *pdata;
@@ -600,10 +565,6 @@ static int __devexit microp_i2c_remove(struct i2c_client *client)
 
 	pdata = client->dev.platform_data;
 	cdata = i2c_get_clientdata(client);
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	unregister_early_suspend(&cdata->early_suspend);
-#endif
 
 	if (client->irq)
 		free_irq(client->irq, &client->dev);
@@ -722,12 +683,6 @@ static int microp_i2c_probe(struct i2c_client *client
 		}
 	}
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	cdata->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
-	cdata->early_suspend.suspend = microp_early_suspend;
-	cdata->early_suspend.resume = microp_late_resume;
-	register_early_suspend(&cdata->early_suspend);
-#endif
 	ret = device_create_file(&client->dev, &dev_attr_reset);
 	ret = device_create_file(&client->dev, &dev_attr_version);
 	ret = device_create_file(&client->dev, &dev_attr_gpio);
@@ -745,9 +700,6 @@ static int microp_i2c_probe(struct i2c_client *client
 	return 0;
 
 err_fun_init:
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	unregister_early_suspend(&cdata->early_suspend);
-#endif
 	device_remove_file(&client->dev, &dev_attr_reset);
 	device_remove_file(&client->dev, &dev_attr_version);
 	device_remove_file(&client->dev, &dev_attr_gpio);

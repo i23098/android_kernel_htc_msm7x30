@@ -19,7 +19,6 @@
 #include <linux/device.h>
 #include <linux/clk.h>
 #include <linux/debugfs.h>
-#include <linux/earlysuspend.h>
 #include <linux/cpufreq.h>
 #include <linux/timer.h>
 #include <mach/perflock.h>
@@ -69,77 +68,8 @@ static unsigned int get_perflock_speed(void);
 static unsigned int get_cpufreq_ceiling_speed(void);
 static void print_active_locks(void);
 
-#ifdef CONFIG_PERFLOCK_SCREEN_POLICY
-/* Increase cpufreq minumum frequency when screen on.
-    Pull down to lowest speed when screen off. */
-static unsigned int screen_off_policy_req;
-static unsigned int screen_on_policy_req;
-static void perflock_early_suspend(struct early_suspend *handler)
-{
-	unsigned long irqflags;
-	int cpu;
-
-	spin_lock_irqsave(&policy_update_lock, irqflags);
-	if (screen_on_policy_req) {
-		screen_on_policy_req--;
-		spin_unlock_irqrestore(&policy_update_lock, irqflags);
-		return;
-	}
-	screen_off_policy_req++;
-	spin_unlock_irqrestore(&policy_update_lock, irqflags);
-
-	for_each_online_cpu(cpu) {
-		cpufreq_update_policy(cpu);
-	}
-}
-
-static void perflock_late_resume(struct early_suspend *handler)
-{
-	unsigned long irqflags;
-	int cpu;
-
-	spin_lock_irqsave(&policy_update_lock, irqflags);
-	if (screen_off_policy_req) {
-		screen_off_policy_req--;
-		spin_unlock_irqrestore(&policy_update_lock, irqflags);
-		return;
-	}
-	screen_on_policy_req++;
-	spin_unlock_irqrestore(&policy_update_lock, irqflags);
-
-	for_each_online_cpu(cpu) {
-		cpufreq_update_policy(cpu);
-	}
-}
-
-static struct early_suspend perflock_power_suspend = {
-	.suspend = perflock_early_suspend,
-	.resume = perflock_late_resume,
-	.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 1,
-};
-
-static int __init perflock_screen_policy_init(void)
-{
-	int cpu;
-	register_early_suspend(&perflock_power_suspend);
-	screen_on_policy_req++;
-	for_each_online_cpu(cpu) {
-		cpufreq_update_policy(cpu);
-	}
-
-	return 0;
-}
-
-late_initcall(perflock_screen_policy_init);
-#endif
-
-#if 0
-static unsigned int policy_min = CONFIG_MSM_CPU_FREQ_ONDEMAND_MIN;
-static unsigned int policy_max = CONFIG_MSM_CPU_FREQ_ONDEMAND_MAX;
-#else
 static unsigned int policy_min;
 static unsigned int policy_max;
-#endif
 static int param_set_cpu_min_max(const char *val, struct kernel_param *kp)
 {
 	int ret;

@@ -52,7 +52,7 @@ static int fps_mode_sel;
 
 static inline void init_suspend(void)
 {
-	wake_lock_init(&s5k4e1gx_wake_lock, WAKE_LOCK_IDLE, "s5k4e1gx");
+	wake_lock_init(&s5k4e1gx_wake_lock, WAKE_LOCK_SUSPEND, "s5k4e1gx");
 }
 
 static inline void deinit_suspend(void)

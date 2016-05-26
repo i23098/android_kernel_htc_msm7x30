@@ -25,11 +25,9 @@
 #include <linux/workqueue.h>
 #include <linux/freezer.h>
 #include <linux/akm8975.h>
-#include<linux/earlysuspend.h>
 
 #define DEBUG 0
 #define MAX_FAILURE_COUNT 3
-/*#define AKM_EARLY_SUSPEND 1*/
 
 #define D(x...) printk(KERN_DEBUG "[COMP][AKM8975] " x)
 #define I(x...) printk(KERN_INFO "[COMP][AKM8975] " x)
@@ -44,7 +42,6 @@ static struct i2c_client *this_client;
 struct akm8975_data {
 	struct input_dev *input_dev;
 	struct work_struct work;
-	struct early_suspend early_suspend_akm;
 	struct class *htc_ecompass_class;
 	struct device *ecompass_dev;
 };
@@ -641,36 +638,6 @@ static irqreturn_t akm8975_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-#ifdef AKM_EARLY_SUSPEND
-static void akm8975_early_suspend(struct early_suspend *handler)
-{
-	DIF("%s", __func__);
-
-	if (!atomic_read(&PhoneOn_flag)) {
-		atomic_set(&suspend_flag, 1);
-		atomic_set(&reserve_open_flag, atomic_read(&open_flag));
-		atomic_set(&open_flag, 0);
-		wake_up(&open_wq);
-		disable_irq(this_client->irq);
-	} else
-		D("AKM8975 akm8975_early_suspend: PhoneOn_flag is set\n");
-}
-
-static void akm8975_early_resume(struct early_suspend *handler)
-{
-	DIF("%s", __func__);
-
-	if (atomic_read(&suspend_flag)) {
-		enable_irq(this_client->irq);
-		atomic_set(&suspend_flag, 0);
-		atomic_set(&open_flag, atomic_read(&reserve_open_flag));
-		wake_up(&open_wq);
-	} else
-		D("AKM8975 akm8975_early_resume: PhoneOn_flag is set\n");
-}
-
-#else /* AKM_EARLY_SUSPEND */
-
 static int akm8975_suspend(struct i2c_client *client, pm_message_t mesg)
 {
 	DIF("%s", __func__);
@@ -697,7 +664,6 @@ static int akm8975_resume(struct i2c_client *client)
 
 	return 0;
 }
-#endif /* AKM_EARLY_SUSPEND */
 
 static const struct file_operations akmd_fops = {
 	.owner = THIS_MODULE,
@@ -996,11 +962,6 @@ int akm8975_probe(struct i2c_client *client, const struct i2c_device_id *id)
 
 	debug_flag = 0;
 
-#ifdef AKM_EARLY_SUSPEND
-	akm->early_suspend_akm.suspend = akm8975_early_suspend;
-	akm->early_suspend_akm.resume = akm8975_early_resume;
-	register_early_suspend(&akm->early_suspend_akm);
-#endif
 	err = akm8975_registerAttr(akm);
 	if (err) {
 		E("%s: akm8975_registerAttr failed\n", __func__);
@@ -1045,11 +1006,8 @@ static struct i2c_driver akm8975_driver = {
 	.probe 	= akm8975_probe,
 	.remove 	= akm8975_remove,
 	.id_table	= akm8975_id,
-
-#ifndef AKM_EARLY_SUSPEND
 	.suspend = akm8975_suspend,
 	.resume = akm8975_resume,
-#endif
 	.driver = {
 		   .name = AKM8975_I2C_NAME,
 		   },

@@ -710,52 +710,8 @@ enable:
 	/* Restart the work queue in case no characters kick it off. Safe if
 	   already running */
 	if (work) {
-/*+++ SSD_RIL*/
-/* Due to "work" type changed as below, change "queue function" to schedule_work.
-[.35 kernel] include/linux/tty.h
-struct tty_bufhead {
-struct delayed_work work;
-spinlock_t lock;
-struct tty_buffer *head;
-struct tty_buffer *tail;
-struct tty_buffer *free;
-int memory_used;
-};
-
-[kernel 3.0] include/linux/tty.h
-struct tty_bufhead {
-struct work_struct work;
-spinlock_t lock;
-struct tty_buffer *head;
-struct tty_buffer *tail;
-struct tty_buffer *free;
-int memory_used;
-};
-
-int queue_delayed_work(struct workqueue_struct *wq,
-struct delayed_work *dwork, unsigned long delay)
-{
-	if (delay == 0)
-		return queue_work(wq, &dwork->work);
-
-	return queue_delayed_work_on(-1, wq, dwork, delay);
-}
-
-int queue_work(struct workqueue_struct *wq, struct work_struct *work)
-{
-	int ret;
-
-	ret = queue_work_on(get_cpu(), wq, work);
-	put_cpu();
-
-	return ret;
-}
-*/
-/*--- SSD_RIL*/
-
 #if defined(CONFIG_MSM_SMD0_WQ)
 	if (!strcmp(tty->name, "smd0"))
-/*		queue_delayed_work(tty_wq, &tty->buf.work, 0);*/
 		queue_work(tty_wq, &tty->buf.work);
 	else
 #endif
@@ -765,7 +721,6 @@ int queue_work(struct workqueue_struct *wq, struct work_struct *work)
 	if (o_work) {
 #if defined(CONFIG_MSM_SMD0_WQ)
 		if (!strcmp(o_tty->name, "smd0"))
-/*			queue_delayed_work(tty_wq, &o_tty->buf.work, 0);*/
 			queue_work(tty_wq, &tty->buf.work);
 		else
 #endif

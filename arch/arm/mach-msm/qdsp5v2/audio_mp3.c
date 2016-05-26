@@ -25,7 +25,6 @@
 #include <linux/dma-mapping.h>
 #include <linux/debugfs.h>
 #include <linux/delay.h>
-#include <linux/earlysuspend.h>
 #include <linux/list.h>
 #include <linux/android_pmem.h>
 #include <linux/slab.h>
@@ -119,13 +118,6 @@ struct buffer {
 
 struct audio;
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-struct audmp3_suspend_ctl {
-  struct early_suspend node;
-  struct audio *audio;
-};
-#endif
-
 struct audmp3_event {
 	struct list_head list;
 	int event_type;
@@ -216,10 +208,6 @@ struct audio {
 	uint16_t dec_id;
 	uint32_t read_ptr_offset;
 	int16_t source;
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	struct audmp3_suspend_ctl suspend_ctl;
-#endif
 
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *dentry;
@@ -2129,9 +2117,7 @@ static int audio_release(struct inode *inode, struct file *file)
 
 	msm_adsp_put(audio->audplay);
 	audpp_adec_free(audio->dec_id);
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	unregister_early_suspend(&audio->suspend_ctl.node);
-#endif
+
 	audio->opened = 0;
 	audio->event_abort = 1;
 	wake_up(&audio->event_wait);
@@ -2180,28 +2166,6 @@ static void audmp3_post_event(struct audio *audio, int type,
 	spin_unlock_irqrestore(&audio->event_queue_lock, flags);
 	wake_up(&audio->event_wait);
 }
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void audmp3_suspend(struct early_suspend *h)
-{
-	struct audmp3_suspend_ctl *ctl =
-		container_of(h, struct audmp3_suspend_ctl, node);
-	union msm_audio_event_payload payload;
-
-	MM_DBG("\n"); /* Macro prints the file name and function */
-	audmp3_post_event(ctl->audio, AUDIO_EVENT_SUSPEND, payload);
-}
-
-static void audmp3_resume(struct early_suspend *h)
-{
-	struct audmp3_suspend_ctl *ctl =
-		container_of(h, struct audmp3_suspend_ctl, node);
-	union msm_audio_event_payload payload;
-
-	MM_DBG("\n"); /* Macro prints the file name and function */
-	audmp3_post_event(ctl->audio, AUDIO_EVENT_RESUME, payload);
-}
-#endif
 
 #ifdef CONFIG_DEBUG_FS
 static ssize_t audmp3_debug_open(struct inode *inode, struct file *file)
@@ -2446,13 +2410,6 @@ static int audio_open(struct inode *inode, struct file *file)
 
 	if (IS_ERR(audio->dentry))
 		MM_DBG("debugfs_create_file failed\n");
-#endif
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	audio->suspend_ctl.node.level = EARLY_SUSPEND_LEVEL_DISABLE_FB;
-	audio->suspend_ctl.node.resume = audmp3_resume;
-	audio->suspend_ctl.node.suspend = audmp3_suspend;
-	audio->suspend_ctl.audio = audio;
-	register_early_suspend(&audio->suspend_ctl.node);
 #endif
 	for (i = 0; i < AUDMP3_EVENT_NUM; i++) {
 		e_node = kmalloc(sizeof(struct audmp3_event), GFP_KERNEL);

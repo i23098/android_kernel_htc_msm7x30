@@ -2367,7 +2367,7 @@ static int __init init(void)
 	_android_dev = dev;
 
 
-	wake_lock_init(&android_usb_idle_wake_lock, WAKE_LOCK_IDLE,
+	wake_lock_init(&android_usb_idle_wake_lock, WAKE_LOCK_SUSPEND,
 					"android_usb_idle");
 
 #ifdef CONFIG_PERFLOCK

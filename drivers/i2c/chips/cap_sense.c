@@ -15,7 +15,6 @@
 #include <mach/msm_iomap.h>
 #include <linux/i2c.h>
 #include <linux/delay.h>
-#include <linux/earlysuspend.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/gpio.h>
@@ -39,7 +38,6 @@ enum mode {
 };
 
 struct capsense_data {
-	struct early_suspend	early_suspend;
 	struct class *capsense_class;
 	struct device *capsense_dev;
 	int intr_gpio;
@@ -201,14 +199,6 @@ static int csa_get_fw_ver(uint8_t *data)
 	*data = FW_VERSION;
 	err = I2C_RxData(data, 1);
 	return err;
-}
-
-static void capsense_early_suspend(struct early_suspend *handler)
-{
-}
-
-static void capsense_late_resume(struct early_suspend *handler)
-{
 }
 
 static irqreturn_t cap_sense_irq_handler(int irq, void *data)
@@ -533,12 +523,6 @@ static int capsense_probe(struct i2c_client *client,
 		}
 	}
 	queue_work(capsense_wq, &cs->work);
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	cs->early_suspend.suspend = capsense_early_suspend;
-	cs->early_suspend.resume  = capsense_late_resume;
-	register_early_suspend(&cs->early_suspend);
-#endif
 
 	cs->capsense_class = class_create(THIS_MODULE, "cap_sense");
 	if (IS_ERR(cs->capsense_class)) {

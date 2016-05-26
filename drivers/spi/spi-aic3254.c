@@ -1091,7 +1091,7 @@ static int __init spi_aic3254_init(void)
 	}
 #endif
 
-	wake_lock_init(&codec_drv->idlelock, WAKE_LOCK_IDLE,
+	wake_lock_init(&codec_drv->idlelock, WAKE_LOCK_SUSPEND,
 			"aic3254_lock");
 	wake_lock_init(&codec_drv->wakelock, WAKE_LOCK_SUSPEND,
 			"aic3254_suspend_lock");

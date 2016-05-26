@@ -14,7 +14,6 @@
  */
 
 #include <linux/delay.h>
-#include <linux/earlysuspend.h>
 #include <linux/i2c.h>
 #include <linux/input.h>
 #include <linux/interrupt.h>
@@ -72,7 +71,6 @@ struct cm3629_info {
 	struct input_dev *ls_input_dev;
 	struct input_dev *ps_input_dev;
 
-	struct early_suspend early_suspend;
 	struct i2c_client *i2c_client;
 	struct workqueue_struct *lp_wq;
 
@@ -2076,33 +2074,6 @@ fail_free_intr_pin:
 	return ret;
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void cm3629_early_suspend(struct early_suspend *h)
-{
-	struct cm3629_info *lpi = lp_info;
-
-	D("[LS][cm3629] %s\n", __func__);
-
-	if (lpi->als_enable)
-		lightsensor_disable(lpi);
-	else
-		D("[LS][cm3629] %s: ioctl disable_lighsensor\n", __func__);
-
-}
-
-static void cm3629_late_resume(struct early_suspend *h)
-{
-	struct cm3629_info *lpi = lp_info;
-
-	D("[LS][cm3629] %s\n", __func__);
-
-	if (!lpi->als_enable)
-		lightsensor_enable(lpi);
-	else
-		D("[LS][cm3629] %s: ioctl enable_lighsensor\n", __func__);
-}
-#endif
-
 static int cm3629_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
 {
@@ -2309,13 +2280,6 @@ static int cm3629_probe(struct i2c_client *client,
 	if (ret)
 		goto err_create_ps_device;
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	lpi->early_suspend.level =
-			EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
-	lpi->early_suspend.suspend = cm3629_early_suspend;
-	lpi->early_suspend.resume = cm3629_late_resume;
-	register_early_suspend(&lpi->early_suspend);
-#endif
 	D("[PS][cm3629] %s: Probe success!\n", __func__);
 
 	return ret;

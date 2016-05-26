@@ -16,7 +16,6 @@
 
 #include <linux/module.h>
 #include <linux/delay.h>
-#include <linux/earlysuspend.h>
 #include <linux/hrtimer.h>
 #include <linux/i2c.h>
 #include <linux/input.h>
@@ -50,7 +49,6 @@ struct synaptics_ts_data {
 	uint8_t finger_support;
 	uint16_t finger_pressed;
 	int (*power)(int on);
-	struct early_suspend early_suspend;
 	int pre_finger_data[11][2];
 	uint8_t debug_log_level;
 	uint32_t raw_base;
@@ -75,11 +73,6 @@ struct synaptics_ts_data {
 	uint8_t finger_count;
 	uint8_t suspend_mode;
 };
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void synaptics_ts_early_suspend(struct early_suspend *h);
-static void synaptics_ts_late_resume(struct early_suspend *h);
-#endif
 
 static struct synaptics_ts_data *gl_ts;
 static const char SYNAPTICSNAME[]	= "Synaptics_3K_incell";
@@ -985,13 +978,6 @@ static int synaptics_ts_probe(
 		hrtimer_start(&ts->timer, ktime_set(1, 0), HRTIMER_MODE_REL);
 	}
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	ts->early_suspend.level = EARLY_SUSPEND_LEVEL_STOP_DRAWING - 1;
-	ts->early_suspend.suspend = synaptics_ts_early_suspend;
-	ts->early_suspend.resume = synaptics_ts_late_resume;
-	register_early_suspend(&ts->early_suspend);
-#endif
-
 	synaptics_touch_sysfs_init();
 	if (pdata->cable_support)
 		msm_usb_register_notifier(&cable_status_handler);
@@ -1018,7 +1004,6 @@ err_check_functionality_failed:
 static int synaptics_ts_remove(struct i2c_client *client)
 {
 	struct synaptics_ts_data *ts = i2c_get_clientdata(client);
-	unregister_early_suspend(&ts->early_suspend);
 	if (ts->use_irq)
 		free_irq(client->irq, ts);
 	else
@@ -1096,22 +1081,6 @@ static int synaptics_ts_resume(struct i2c_client *client)
 	return 0;
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void synaptics_ts_early_suspend(struct early_suspend *h)
-{
-	struct synaptics_ts_data *ts;
-	ts = container_of(h, struct synaptics_ts_data, early_suspend);
-	synaptics_ts_suspend(ts->client, PMSG_SUSPEND);
-}
-
-static void synaptics_ts_late_resume(struct early_suspend *h)
-{
-	struct synaptics_ts_data *ts;
-	ts = container_of(h, struct synaptics_ts_data, early_suspend);
-	synaptics_ts_resume(ts->client);
-}
-#endif
-
 static const struct i2c_device_id synaptics_ts_id[] = {
 	{ SYNAPTICS_3K_INCELL_NAME, 0 },
 	{ }
@@ -1120,10 +1089,8 @@ static const struct i2c_device_id synaptics_ts_id[] = {
 static struct i2c_driver synaptics_ts_driver = {
 	.probe		= synaptics_ts_probe,
 	.remove		= synaptics_ts_remove,
-#ifndef CONFIG_HAS_EARLYSUSPEND
 	.suspend	= synaptics_ts_suspend,
 	.resume		= synaptics_ts_resume,
-#endif
 	.id_table	= synaptics_ts_id,
 	.driver = {
 	.name	= SYNAPTICS_3K_INCELL_NAME,

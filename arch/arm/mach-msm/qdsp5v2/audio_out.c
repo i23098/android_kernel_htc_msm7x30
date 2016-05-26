@@ -709,7 +709,7 @@ static int __init audio_init(void)
 	spin_lock_init(&the_audio.dsp_lock);
 	init_waitqueue_head(&the_audio.wait);
 	wake_lock_init(&the_audio.wakelock, WAKE_LOCK_SUSPEND, "audio_pcm");
-	wake_lock_init(&the_audio.idlelock, WAKE_LOCK_IDLE, "audio_pcm_idle");
+	wake_lock_init(&the_audio.idlelock, WAKE_LOCK_SUSPEND, "audio_pcm_idle");
 
 	return misc_register(&audio_misc);
 }

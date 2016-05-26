@@ -25,7 +25,6 @@
 #include <linux/interrupt.h>
 #include <linux/gpio.h>
 #include <mach/atmega_microp.h>
-#include <linux/earlysuspend.h>
 #include <linux/curcial_oj.h>
 #include <mach/vreg.h>
 #include <asm/mach-types.h>
@@ -584,33 +583,6 @@ static DEVICE_ATTR(debugflag, 0644, oj_show, oj_debugflag_store);
 static DEVICE_ATTR(xtable, 0644, oj_xtable_show, oj_xtable_store);
 static DEVICE_ATTR(ytable, 0644, oj_ytable_show, oj_ytable_store);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void curcial_oj_early_suspend(struct early_suspend *h)
-{
-	struct curcial_oj_platform_data *oj;
-	atomic_set(&suspend_flag, 1);
-	oj = container_of(h, struct curcial_oj_platform_data, early_suspend);
-	printk(KERN_ERR"%s: enter\n", __func__);
-	oj->oj_shutdown(1);
-	curcial_oj_polling_mode(OJ_POLLING_DISABLE);
-	if (oj->share_power == false) {
-		oj->oj_poweron(OJ_POWEROFF);
-	}
-	microp_spi_vote_enable(SPI_OJ, 0);
-
-}
-
-static void curcial_oj_late_resume(struct early_suspend *h)
-{
-	struct curcial_oj_platform_data	*oj;
-	atomic_set(&suspend_flag, 0);
-	oj = container_of(h, struct curcial_oj_platform_data, early_suspend);
-	printk(KERN_ERR"%s: enter\n", __func__);
-	if (!curcial_oj_init())
-		microp_spi_vote_enable(SPI_OJ, 0);
-}
-#endif
-
 static int __devinit curcial_oj_probe(struct platform_device *pdev)
 {
 	struct curcial_oj_platform_data *oj = pdev->dev.platform_data;
@@ -664,12 +636,6 @@ static int __devinit curcial_oj_probe(struct platform_device *pdev)
 		goto fail;
 	}
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	oj->early_suspend.suspend = curcial_oj_early_suspend;
-	oj->early_suspend.resume = curcial_oj_late_resume;
-/*	oj->early_suspend.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 1;*/
-	register_early_suspend(&oj->early_suspend);
-#endif
 	err = 	device_create_file(&(pdev->dev), &dev_attr_reset);
 	err = 	device_create_file(&(pdev->dev), &dev_attr_deltax);
 	err = 	device_create_file(&(pdev->dev), &dev_attr_deltay);
@@ -718,10 +684,6 @@ static int __devexit curcial_oj_remove(struct platform_device *pdev)
 {
 	struct curcial_oj_platform_data *oj = pdev->dev.platform_data;
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	if (oj->early_suspend.suspend && oj->early_suspend.resume)
-		unregister_early_suspend(&oj->early_suspend);
-#endif
 	if (oj->share_power == false) {
 		oj->oj_poweron(OJ_POWEROFF);
 	}

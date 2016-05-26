@@ -1,6 +1,5 @@
 #ifndef _CURCIAL_OJ_H
 #define _CURCIAL_OJ_H
-#include<linux/earlysuspend.h>
 
 #define CURCIAL_OJ_NAME "curcial_oj"
 
@@ -33,9 +32,6 @@ struct curcial_oj_platform_data {
 	uint16_t sht_tbl[10];
 	uint8_t pxsum_tbl[10];
 	int irq;
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	struct early_suspend early_suspend;
-#endif
 
 	unsigned irq_gpio;
 	unsigned rst_gpio;

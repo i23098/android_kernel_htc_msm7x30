@@ -60,7 +60,6 @@
 #include <linux/i2c.h>
 #include <linux/uaccess.h>
 #include <linux/miscdevice.h>
-#include <linux/earlysuspend.h>
 #include <linux/wakelock.h>
 #include <linux/slab.h>
 #include <media/msm_camera_sensor.h>
@@ -237,7 +236,7 @@ static struct wake_lock ov8810_wake_lock;
 
 static inline void init_suspend(void)
 {
-	wake_lock_init(&ov8810_wake_lock, WAKE_LOCK_IDLE, "ov8810");
+	wake_lock_init(&ov8810_wake_lock, WAKE_LOCK_SUSPEND, "ov8810");
 }
 
 static inline void deinit_suspend(void)
@@ -2255,75 +2254,6 @@ static int ov8810_suspend(struct platform_device *pdev, pm_message_t state)
 	return rc;
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void ov8810_resume(struct early_suspend *handler)
-{
-	int rc = 0;
-	struct msm_camera_sensor_info *sinfo = ov8810_pdev->dev.platform_data;
-	pr_info("[CAM]ov8810_resume\n");
-
-	/*check whether need resume*/
-	if (!sinfo->need_suspend)
-		return;
-
-	/*check whether already suspend*/
-	if (ov8810_event.waked_up == 1) {
-		pr_info("[CAM]Ov8810: No nesesary to do Resume\n");
-		return;
-	}
-
-	mdelay(5);
-	/*power down setup*/
-	pr_info("[CAM]%s, sensor_pwd 0\n", __func__);
-	rc = gpio_request(sinfo->sensor_pwd, "ov8810");
-	if (!rc)
-		gpio_direction_output(sinfo->sensor_pwd, 0);
-	else
-		pr_err("[CAM]GPIO (%d) request faile\n", sinfo->sensor_pwd);
-	gpio_free(sinfo->sensor_pwd);
-	mdelay(5);
-	/*reset setup */
-	rc = gpio_request(sinfo->sensor_reset, "ov8810");
-	if (!rc)
-		gpio_direction_output(sinfo->sensor_reset, 1);
-	else
-		pr_err("[CAM]GPIO (%d) request faile\n", sinfo->sensor_reset);
-	gpio_free(sinfo->sensor_reset);
-
-	/*init msm,clk ,GPIO,enable*/
-	pr_info("[CAM]%s, msm_camio_probe_on\n", __func__);
-	msm_camio_probe_on(ov8810_pdev);
-	msm_camio_clk_enable(CAMIO_MDC_CLK);
-
-	/*set MCLK*/
-	pr_info("[CAM]%s, msm_camio_clk_rate_set = %d\n",
-		__func__, OV8810_DEFAULT_CLOCK_RATE);
-	msm_camio_clk_rate_set(OV8810_DEFAULT_CLOCK_RATE);
-	msleep(100);
-
-	/*read sensor id*/
-	rc = ov8810_probe_read_id(sinfo);
-	if (rc < 0)
-		pr_err("[CAM]OV8810 resume faile :can not read sensor ID\n");
-
-	/* Initialize Sensor registers */
-	rc = initialize_ov8810_registers();
-	if (rc < 0)
-		return;
-	msleep(20);
-	/*resume done*/
-	ov8810_probe_init_done(sinfo);
-	/*turn off MCLK*/
-	msm_camio_probe_off(ov8810_pdev);
-	msm_camio_clk_disable(CAMIO_MDC_CLK);
-
-	ov8810_event.waked_up = 1;
-	pr_info("[CAM]ov8810:resume done\n");
-	wake_up(&ov8810_event.event_wait);
-	return;
-}
-#endif
-
 static int __exit ov8810_i2c_remove(struct i2c_client *client)
 {
 	struct ov8810_work_t *sensorw = i2c_get_clientdata(client);
@@ -2342,14 +2272,6 @@ static struct i2c_driver ov8810_i2c_driver = {
 		.name = "ov8810",
 	},
 };
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static struct early_suspend early_suspend_ov8810 = {
-	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN+1,
-	.resume = ov8810_resume,
-	.suspend = NULL,
-};
-#endif
 
 static const char *Ov8810Vendor = "OmniVision";
 static const char *Ov8810NAME = "ov8810";
@@ -2714,10 +2636,6 @@ static int ov8810_sensor_probe(struct msm_camera_sensor_info *info,
 
 	msleep(20);
 	ov8810_probe_init_done(info);
-	/*register late resume*/
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	register_early_suspend(&early_suspend_ov8810);
-#endif
 	/*init wait event*/
 	init_waitqueue_head(&ov8810_event.event_wait);
 	/*init waked_up value*/

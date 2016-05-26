@@ -60,7 +60,6 @@
 #include <linux/i2c.h>
 #include <linux/uaccess.h>
 #include <linux/miscdevice.h>
-#include <linux/earlysuspend.h>
 #include <linux/wakelock.h>
 #include <linux/slab.h>
 #include <linux/module.h>
@@ -180,7 +179,7 @@ static struct wake_lock s5k3h1gx_wake_lock;
 
 static inline void init_suspend(void)
 {
-	wake_lock_init(&s5k3h1gx_wake_lock, WAKE_LOCK_IDLE, "s5k3h1gx");
+	wake_lock_init(&s5k3h1gx_wake_lock, WAKE_LOCK_SUSPEND, "s5k3h1gx");
 }
 
 static inline void deinit_suspend(void)

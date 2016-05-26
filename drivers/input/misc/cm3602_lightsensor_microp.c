@@ -14,7 +14,6 @@
  */
 
 #include <linux/delay.h>
-#include <linux/earlysuspend.h>
 #include <linux/hrtimer.h>
 #include <linux/i2c.h>
 #include <linux/input.h>
@@ -42,7 +41,6 @@
 struct microp_ls_info {
 	struct microp_function_config *ls_config;
 	struct input_dev *ls_input_dev;
-	struct early_suspend early_suspend;
 	struct i2c_client *client;
 	struct workqueue_struct *ls_wq;
 
@@ -475,35 +473,6 @@ static ssize_t ls_kadc_store(struct device *dev,
 
 static DEVICE_ATTR(ls_kadc, 0664, ls_kadc_show, ls_kadc_store);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void light_sensor_suspend(struct early_suspend *h)
-{
-	struct microp_ls_info *li = ls_info;
-	int ret;
-
-	li->is_suspend = 1;
-	cancel_delayed_work(&enable_intr_work);
-	if (li->als_intr_enabled) {
-		ret = ls_microp_intr_enable(0);
-		if (ret < 0)
-			ELS("%s: disable auto light sensor fail\n",
-				__func__);
-		else
-			li->als_intr_enabled = 0;
-	}
-	ls_power(0);
-}
-
-static void light_sensor_resume(struct early_suspend *h)
-{
-	struct microp_ls_info *li = ls_info;
-
-	ls_power(1);
-	queue_delayed_work(li->ls_wq, &enable_intr_work, msecs_to_jiffies(800));
-	li->is_suspend = 0;
-}
-#endif
-
 static int lightsensor_probe(struct platform_device *pdev)
 {
 	int ret, irq;
@@ -578,13 +547,6 @@ static int lightsensor_probe(struct platform_device *pdev)
 		}
 	}
 	ls_power(1);
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	li->early_suspend.level =
-			EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
-	li->early_suspend.suspend = light_sensor_suspend;
-	li->early_suspend.resume = light_sensor_resume;
-	register_early_suspend(&li->early_suspend);
-#endif
 	ret = device_create_file(&li->client->dev, &dev_attr_ls_adc);
 	ret = device_create_file(&li->client->dev, &dev_attr_ls_auto);
 	ret = device_create_file(&li->client->dev, &dev_attr_ls_kadc);

@@ -21,7 +21,6 @@
 #include <linux/i2c.h>
 #include <linux/workqueue.h>
 #include <linux/delay.h>
-#include <linux/earlysuspend.h>
 #include <linux/wakelock.h>
 #include <linux/input.h>
 #include <linux/list.h>
@@ -216,7 +215,6 @@ struct microp_i2c_client_data {
 	struct delayed_work ls_on_work;
 	struct delayed_work hpin_enable_intr_work;
 	struct delayed_work hpin_debounce_work;
-	struct early_suspend early_suspend;
 	struct microp_int_pin int_pin;
 	struct microp_gpio_status gpio;
 	struct microp_function_node fnode;
