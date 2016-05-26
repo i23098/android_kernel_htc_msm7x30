@@ -47,7 +47,7 @@
 #include <trace/events/almk.h>
 
 static uint32_t lowmem_debug_level = 1;
-static int lowmem_adj[6] = {
+static short lowmem_adj[6] = {
 	0,
 	1,
 	6,
@@ -198,7 +198,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	short min_score_adj = OOM_SCORE_ADJ_MAX + 1;
 	int minfree = 0;
 	int selected_tasksize = 0;
-	int selected_oom_score_adj;
+	short selected_oom_score_adj;
 	int array_size = ARRAY_SIZE(lowmem_adj);
 	int other_free;
 	int other_file;
@@ -259,7 +259,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	rcu_read_lock();
 	for_each_process(tsk) {
 		struct task_struct *p;
-		int oom_score_adj;
+		short oom_score_adj;
 
 		if (tsk->flags & PF_KTHREAD)
 			continue;
@@ -303,22 +303,13 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		selected = p;
 		selected_tasksize = tasksize;
 		selected_oom_score_adj = oom_score_adj;
-		lowmem_print(2, "select '%s' (%d), adj %d, size %d, to kill\n",
-			     p->comm, p->pid, oom_score_adj, tasksize);
+		lowmem_print(2, "select %d (%s), adj %hd, size %d, to kill\n",
+			     p->pid, p->comm, oom_score_adj, tasksize);
 	}
 	if (selected) {
-		lowmem_print(1, "Killing '%s' (%d), adj %d,\n" \
-				"   to free %ldkB on behalf of '%s' (%d) because\n" \
-				"   cache %ldkB is below limit %ldkB for oom_score_adj %d\n" \
-				"   Free memory is %ldkB above reserved\n",
-			     selected->comm, selected->pid,
-			     selected_oom_score_adj,
-			     selected_tasksize * (long)(PAGE_SIZE / 1024),
-			     current->comm, current->pid,
-			     other_file * (long)(PAGE_SIZE / 1024),
-			     minfree * (long)(PAGE_SIZE / 1024),
-			     min_score_adj,
-			     other_free * (long)(PAGE_SIZE / 1024));
+		lowmem_print(1, "send sigkill to %d (%s), adj %hd, size %d\n",
+			     selected->pid, selected->comm,
+			     selected_oom_score_adj, selected_tasksize);
 		lowmem_deathpending_timeout = jiffies + HZ;
 		send_sig(SIGKILL, selected, 0);
 		set_tsk_thread_flag(selected, TIF_MEMDIE);
@@ -435,7 +426,7 @@ __module_param_call(MODULE_PARAM_PREFIX, adj,
 		    false, S_IRUGO | S_IWUSR);
 __MODULE_PARM_TYPE(adj, "array of int");
 #else
-module_param_array_named(adj, lowmem_adj, int, &lowmem_adj_size,
+module_param_array_named(adj, lowmem_adj, short, &lowmem_adj_size,
 			 S_IRUGO | S_IWUSR);
 #endif
 module_param_array_named(minfree, lowmem_minfree, uint, &lowmem_minfree_size,
