@@ -404,20 +404,6 @@ struct msmsdcc_host {
 };
 
 int msmsdcc_set_pwrsave(struct mmc_host *mmc, int pwrsave);
-int msmsdcc_sdio_al_lpm(struct mmc_host *mmc, bool enable, int wlock_timeout);
-
-#ifdef CONFIG_MSM_SDIO_AL
-
-static inline int msmsdcc_lpm_enable(struct mmc_host *mmc)
-{
-	return msmsdcc_sdio_al_lpm(mmc, true, 1);
-}
-
-static inline int msmsdcc_lpm_disable(struct mmc_host *mmc)
-{
-	return msmsdcc_sdio_al_lpm(mmc, false, 1);
-}
-#endif
 
 #ifdef CONFIG_WIMAX
 extern int mmc_wimax_get_status(void);

@@ -1,7 +1,5 @@
 obj-y += modem_notifier.o
 
-obj-$(CONFIG_MSM_SDIO_AL) += sdio_al.o
-obj-$(CONFIG_MSM_SDIO_AL_TEST) += sdio_al_test.o
 obj-$(CONFIG_MSM_SMD) += smem_log.o
 obj-$(CONFIG_MSM_SMD) += smd.o smd_debug.o
 obj-$(CONFIG_MSM_SMD) += smd_tty.o smd_qmi.o
@@ -15,7 +13,6 @@ obj-$(CONFIG_MSM_RPCSERVERS) += rpc_server_dog_keepalive.o
 obj-$(CONFIG_MSM_RPCSERVER_TIME_REMOTE) += rpc_server_time_remote.o
 
 obj-$(CONFIG_MSM_ONCRPCROUTER) += rpcrouter_smd_xprt.o
-obj-$(CONFIG_MSM_RPC_SDIO_XPRT) += rpcrouter_sdio_xprt.o
 
 obj-$(CONFIG_MSM_SDIO_CTL) += sdio_ctl.o
 

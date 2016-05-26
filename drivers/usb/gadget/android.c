@@ -60,7 +60,6 @@
 #include "f_audio_source.c"
 #include "f_mass_storage.c"
 #include "u_serial.c"
-#include "u_sdio.c"
 #include "u_smd.c"
 #include "u_bam.c"
 #include "u_rmnet_ctrl_smd.c"

@@ -53,7 +53,6 @@
 #include <mach/clk.h>
 #include <mach/dma.h>
 #include <mach/htc_pwrsink.h>
-#include <mach/sdio_al.h>
 #include <linux/rtc.h>
 
 #include "msm_sdcc.h"
@@ -1661,8 +1660,6 @@ msmsdcc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	 * Get the SDIO AL client out of LPM.
 	 */
 	WARN(host->dummy_52_sent, "Dummy CMD52 in progress\n");
-	if (host->plat->is_sdio_al_client)
-		msmsdcc_sdio_al_lpm(mmc, false, 0);
 
 	/* check if sps pipe reset is pending? */
 	if (host->is_sps_mode && host->sps.pipe_reset_pending) {
@@ -2199,7 +2196,7 @@ msmsdcc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 					msmsdcc_writel(host, host->mci_irqenable,
 							MMCIMASK0);
 					mb();
-					if (is_wimax_platform(host->plat) || host->plat->is_sdio_al_client) /* Wifi doesn't use internal wake up irq */
+					if (is_wimax_platform(host->plat)) /* Wifi doesn't use internal wake up irq */
 						msmsdcc_disable_irq_wake(host);
 				} else if (!(mmc->pm_flags &
 							MMC_PM_WAKE_SDIO_IRQ)) {
@@ -3174,20 +3171,6 @@ msmsdcc_platform_sdiowakeup_irq(int irq, void *dev_id)
 		}
 		host->sdio_irq_disabled = 1;
 	}
-	if (host->plat->is_sdio_al_client) {
-		if (!host->clks_on) {
-			msmsdcc_setup_clocks(host, true);
-			host->clks_on = 1;
-		}
-		if (host->sdcc_irq_disabled) {
-			msmsdcc_writel(host, host->mci_irqenable,
-				       MMCIMASK0);
-			mb();
-			enable_irq(host->core_irqres->start);
-			host->sdcc_irq_disabled = 0;
-		}
-		wake_lock(&host->sdio_wlock);
-	}
 	spin_unlock(&host->lock);
 
 	return IRQ_HANDLED;
@@ -3421,10 +3404,6 @@ msmsdcc_probe(struct platform_device *pdev)
 
 	if (pdev->id < 1 || pdev->id > 5)
 		return -EINVAL;
-
-	if (plat->is_sdio_al_client)
-		if (!plat->sdio_lpm_gpio_setup || !plat->sdiowakeup_irq)
-			return -EINVAL;
 
 	if (pdev->resource == NULL || pdev->num_resources < 2) {
 		pr_err("%s: Invalid resource\n", __func__);
@@ -3982,84 +3961,6 @@ static int msmsdcc_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#ifdef CONFIG_MSM_SDIO_AL
-int msmsdcc_sdio_al_lpm(struct mmc_host *mmc, bool enable, int wlock_timeout)
-{
-	struct msmsdcc_host *host = mmc_priv(mmc);
-	unsigned long flags;
-
-	spin_lock_irqsave(&host->lock, flags);
-	if (host->curr.mrq && enable) {
-		pr_info("%s: Request in progress\n", mmc_hostname(mmc));
-		spin_unlock_irqrestore(&host->lock, flags);
-		return -EBUSY;
-	}
-	pr_debug("%s: %sabling LPM\n", mmc_hostname(mmc),
-			enable ? "En" : "Dis");
-
-	if (enable) {
-		if (!host->sdcc_irq_disabled) {
-			msmsdcc_writel(host, 0, MMCIMASK0);
-			disable_irq_nosync(host->core_irqres->start);
-			host->sdcc_irq_disabled = 1;
-		}
-
-		if (host->clks_on) {
-			msmsdcc_setup_clocks(host, false);
-			host->clks_on = 0;
-		}
-
-		if (!host->sdio_gpio_lpm) {
-			spin_unlock_irqrestore(&host->lock, flags);
-			host->plat->sdio_lpm_gpio_setup(mmc_dev(mmc), 0);
-			spin_lock_irqsave(&host->lock, flags);
-			host->sdio_gpio_lpm = 1;
-		}
-
-		if (host->sdio_irq_disabled) {
-			msmsdcc_enable_irq_wake(host);
-			enable_irq(host->plat->sdiowakeup_irq);
-			host->sdio_irq_disabled = 0;
-		}
-	} else {
-		if (!host->sdio_irq_disabled) {
-			disable_irq_nosync(host->plat->sdiowakeup_irq);
-			host->sdio_irq_disabled = 1;
-			msmsdcc_disable_irq_wake(host);
-		}
-
-		if (host->sdio_gpio_lpm) {
-			spin_unlock_irqrestore(&host->lock, flags);
-			host->plat->sdio_lpm_gpio_setup(mmc_dev(mmc), 1);
-			spin_lock_irqsave(&host->lock, flags);
-			host->sdio_gpio_lpm = 0;
-		}
-
-		if (!host->clks_on) {
-			msmsdcc_setup_clocks(host, true);
-			host->clks_on = 1;
-		}
-
-		if (host->sdcc_irq_disabled) {
-			msmsdcc_writel(host, host->mci_irqenable,
-				       MMCIMASK0);
-			mb();
-			enable_irq(host->core_irqres->start);
-			host->sdcc_irq_disabled = 0;
-		}
-		if (wlock_timeout)
-			wake_lock_timeout(&host->sdio_wlock, 1);
-	}
-	spin_unlock_irqrestore(&host->lock, flags);
-	return 0;
-}
-#else
-int msmsdcc_sdio_al_lpm(struct mmc_host *mmc, bool enable, int wlock_timeout)
-{
-	return 0;
-}
-#endif
-
 #ifdef CONFIG_PM
 static int msmsdcc_suspend(struct device *dev)
 {
@@ -4068,8 +3969,6 @@ static int msmsdcc_suspend(struct device *dev)
 	unsigned long flags;
 	int rc = 0;
 
-	if (host->plat->is_sdio_al_client)
-		return 0;
 	pr_debug("%s: %s: start\n", mmc_hostname(mmc), __func__);
 	if (mmc) {
 		host->sdcc_suspending = 1;
@@ -4154,9 +4053,6 @@ static int msmsdcc_resume(struct device *dev)
 	struct msmsdcc_host *host = mmc_priv(mmc);
 	unsigned long flags;
 
-	if (host->plat->is_sdio_al_client)
-		return 0;
-
 	pr_debug("%s: %s: start\n", mmc_hostname(mmc), __func__);
 	if (mmc) {
 
@@ -4231,11 +4127,6 @@ msmsdcc_runtime_suspend(struct device *dev)
 
 	if (mmc) {
 		mmc->suspend_task = current;
-		if (host->plat->is_sdio_al_client) {
-			msmsdcc_sdio_al_lpm(mmc, true, 1);
-			mmc->suspend_task = NULL;
-			return 0;
-		}
 		spin_lock_irqsave(&host->lock, flags);
 		if (host->curr.mrq) {
 			WARN(host->curr.mrq, "Request in progress\n");
@@ -4266,12 +4157,6 @@ msmsdcc_runtime_resume(struct device *dev)
 	unsigned long		flags;
 
 	if (mmc) {
-#ifdef CONFIG_MSM_SDIO_AL
-		if (host->plat->is_sdio_al_client) {
-			msmsdcc_sdio_al_lpm(mmc, false, 0);
-			return 0;
-		}
-#endif
 		spin_lock_irqsave(&host->lock, flags);
 		if (host->sdcc_irq_disabled) {
 #ifdef CONFIG_WIMAX
@@ -4327,12 +4212,7 @@ static int msmsdcc_pm_suspend(struct device *dev)
 		pr_info("%s: %s enter\n", mmc_hostname(host->mmc), __func__);
 #endif
 
-	if (host->plat->is_sdio_al_client) {
-		mmc_claim_host(mmc);
-		rc = msmsdcc_sdio_al_lpm(mmc, true, 1);
-		mmc_release_host(mmc);
-	} else
-		rc = msmsdcc_suspend(dev);
+	rc = msmsdcc_suspend(dev);
 	if (rc)
 		pr_info("%s: %s: failed with error %d", mmc_hostname(mmc),
 				__func__, rc);
@@ -4359,12 +4239,7 @@ static int msmsdcc_pm_resume(struct device *dev)
 		pr_info("%s: %s enter\n", mmc_hostname(host->mmc), __func__);
 #endif
 
-	if (host->plat->is_sdio_al_client) {
-		if (wake_lock_active(&host->sdio_wlock))
-			wake_lock_timeout(&host->sdio_wlock, 1);
-		wake_unlock(&host->sdio_suspend_wlock);
-	} else
-		msmsdcc_resume(dev);
+	msmsdcc_resume(dev);
 
 	/* Update the run-time PM status */
 	pm_runtime_disable(dev);

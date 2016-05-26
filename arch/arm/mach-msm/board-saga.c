@@ -100,7 +100,6 @@
 #ifdef CONFIG_SERIAL_MSM_HS_PURE_ANDROID
 #include <mach/bcm_bt_lpm.h>
 #endif
-#include <mach/sdio_al.h>
 #include "smd_private.h"
 #include <linux/bma150_spi.h>
 #include "board-saga.h"
@@ -2702,71 +2701,6 @@ static struct platform_device saga_rfkill = {
 	.id = -1,
 };
 #endif
-/*
-static struct htc_sleep_clk_platform_data htc_slp_clk_data = {
-	.sleep_clk_pin = SAGA_GPIO_WIFI_BT_SLEEP_CLK_EN,
-
-};
-
-static struct platform_device wifi_bt_slp_clk = {
-	.name = "htc_slp_clk",
-	.id = -1,
-	.dev = {
-		.platform_data = &htc_slp_clk_data,
-	},
-};
-
-static struct htc_fast_clk_platform_data htc_fast_clk_data = {
-	.mode = 1,
-	.id = "wlan",
-};
-static struct platform_device wifi_bt_fast_clk = {
-	.name = "htc_fast_clk",
-	.id = -1,
-	.dev = {
-		.platform_data = &htc_fast_clk_data,
-	},
-};
-*/
-#ifdef CONFIG_MSM_SDIO_AL
-static struct msm_gpio mdm2ap_status = {
-	GPIO_CFG(77, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	"mdm2ap_status"
-};
-
-static int configure_mdm2ap_status(int on)
-{
-	if (on)
-		return msm_gpios_request_enable(&mdm2ap_status, 1);
-	else {
-		msm_gpios_disable_free(&mdm2ap_status, 1);
-		return 0;
-	}
-}
-
-static int get_mdm2ap_status(void)
-{
-	return gpio_get_value(GPIO_PIN(mdm2ap_status.gpio_cfg));
-}
-
-static struct sdio_al_platform_data sdio_al_pdata = {
-	.config_mdm2ap_status = configure_mdm2ap_status,
-	.get_mdm2ap_status = get_mdm2ap_status,
-	.allow_sdioc_version_major_2 = 1,
-	.peer_sdioc_version_minor = 0x0001,
-	.peer_sdioc_version_major = 0x0003,
-	.peer_sdioc_boot_version_minor = 0x0001,
-	.peer_sdioc_boot_version_major = 0x0003,
-};
-
-struct platform_device msm_device_sdio_al = {
-	.name = "msm_sdio_al",
-	.id = -1,
-	.dev		= {
-		.platform_data	= &sdio_al_pdata,
-	},
-};
-#endif /* CONFIG_MSM_SDIO_AL */
 
 static struct resource ram_console_resources[] = {
 	{
@@ -2975,9 +2909,6 @@ static struct platform_device *devices[] __initdata = {
 #endif
 #ifdef CONFIG_MSM_VPE
 	&msm_vpe_device,
-#endif
-#ifdef CONFIG_MSM_SDIO_AL
-	/* &msm_device_sdio_al, */
 #endif
 
 #if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || \

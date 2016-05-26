@@ -29,7 +29,6 @@
 /*#define HTC_DIAG_DEBUG*/
 #include <linux/debugfs.h>
 #if DIAG_XPST
-#include <mach/sdio_al.h>
 #include <linux/miscdevice.h>
 #include <linux/sched.h>
 #include <asm/uaccess.h>

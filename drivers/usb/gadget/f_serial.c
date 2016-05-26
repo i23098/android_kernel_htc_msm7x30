@@ -73,13 +73,6 @@ static struct port_info {
 	unsigned		client_port_num;
 } gserial_ports[GSERIAL_NO_PORTS];
 
-static inline bool is_transport_sdio(enum transport_type t)
-{
-	if (t == USB_GADGET_FSERIAL_TRANSPORT_SDIO)
-		return 1;
-	return 0;
-}
-
 static inline struct f_gser *func_to_gser(struct usb_function *f)
 {
 	return container_of(f, struct f_gser, port.func);
@@ -319,8 +312,6 @@ static char *transport_to_str(enum transport_type t)
 	switch (t) {
 	case USB_GADGET_FSERIAL_TRANSPORT_TTY:
 		return "TTY";
-	case USB_GADGET_FSERIAL_TRANSPORT_SDIO:
-		return "SDIO";
 	case USB_GADGET_FSERIAL_TRANSPORT_SMD:
 		return "SMD";
 	}
@@ -330,8 +321,6 @@ static char *transport_to_str(enum transport_type t)
 
 static enum transport_type serial_str_to_transport(const char *name)
 {
-	if (!strcasecmp("SDIO", name))
-		return USB_GADGET_FSERIAL_TRANSPORT_SDIO;
 	if (!strcasecmp("SMD", name))
 		return USB_GADGET_FSERIAL_TRANSPORT_SMD;
 
@@ -364,8 +353,6 @@ static int gport_setup(struct usb_configuration *c)
 
 	if (no_tty_ports)
 		ret = gserial_setup(c->cdev->gadget, no_tty_ports);
-	if (no_sdio_ports)
-		ret = gsdio_setup(c->cdev->gadget, no_sdio_ports);
 	if (no_smd_ports)
 		ret = gsmd_setup(c->cdev->gadget, no_smd_ports);
 
@@ -385,9 +372,6 @@ static int gport_connect(struct f_gser *gser)
 	switch (gser->transport) {
 	case USB_GADGET_FSERIAL_TRANSPORT_TTY:
 		gserial_connect(&gser->port, port_num);
-		break;
-	case USB_GADGET_FSERIAL_TRANSPORT_SDIO:
-		gsdio_connect(&gser->port, port_num);
 		break;
 	case USB_GADGET_FSERIAL_TRANSPORT_SMD:
 		gsmd_connect(&gser->port, port_num);
@@ -414,9 +398,6 @@ static int gport_disconnect(struct f_gser *gser)
 	switch (gser->transport) {
 	case USB_GADGET_FSERIAL_TRANSPORT_TTY:
 		gserial_disconnect(&gser->port);
-		break;
-	case USB_GADGET_FSERIAL_TRANSPORT_SDIO:
-		gsdio_disconnect(&gser->port, port_num);
 		break;
 	case USB_GADGET_FSERIAL_TRANSPORT_SMD:
 		gsmd_disconnect(&gser->port, port_num);
@@ -1030,10 +1011,6 @@ static int gserial_init_port(int port_num, const char *name, char *serial_type)
 	case USB_GADGET_FSERIAL_TRANSPORT_TTY:
 		gserial_ports[port_num].client_port_num = no_tty_ports;
 		no_tty_ports++;
-		break;
-	case USB_GADGET_FSERIAL_TRANSPORT_SDIO:
-		gserial_ports[port_num].client_port_num = no_sdio_ports;
-		no_sdio_ports++;
 		break;
 	case USB_GADGET_FSERIAL_TRANSPORT_SMD:
 		gserial_ports[port_num].client_port_num = no_smd_ports;

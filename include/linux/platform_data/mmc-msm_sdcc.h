@@ -104,11 +104,6 @@ struct msm_mmc_platform_data {
 	unsigned int wpswitch_gpio;
 	unsigned char wpswitch_polarity;
 	struct msm_mmc_slot_reg_data *vreg_data;
-	int is_sdio_al_client;
-#ifdef CONFIG_MSM_SDIO_AL
-	void (*trigger_mdm_fatal)(void);
-	int (*get_mdm2ap_status)(void);
-#endif
 	unsigned int *sup_clk_table;
 	unsigned char sup_clk_cnt;
 	int emmc_dma_ch;
