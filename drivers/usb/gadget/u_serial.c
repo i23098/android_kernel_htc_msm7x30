@@ -660,8 +660,8 @@ static void gs_read_complete(struct usb_ep *ep, struct usb_request *req)
 		} else {
 			if ((RX_QUEUE_SIZE-1) == port->rx_qcnt) {
 				printk(KERN_INFO "%s: TTY_THROTTLED, cnt:%d, "
-				"read_cnt: %d, rcv_room:%d\n",__func__, port->rx_qcnt,
-				tty->read_cnt, tty->receive_room);
+				"rcv_room:%d\n",__func__, port->rx_qcnt,
+				tty->receive_room);
 			}
 			list_add_tail(&req->list, &port->read_queue);
 		}
@@ -1126,8 +1126,8 @@ static void gs_throttle(struct tty_struct *tty)
 {
 	struct gs_port		*port = tty->driver_data;
 
-	printk(KERN_INFO "%s %d: read_cnt: %d, rcv_room: %d\n", __func__,
-		port->port_num, tty->read_cnt, tty->receive_room);
+	printk(KERN_INFO "%s %d: rcv_room: %d\n", __func__,
+		port->port_num, tty->receive_room);
 
 	/* 128 is threshold defined in n_tty.c */
 	if (tty->receive_room >= 128) {

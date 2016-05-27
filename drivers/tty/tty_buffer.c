@@ -342,6 +342,8 @@ EXPORT_SYMBOL(tty_insert_flip_string_flags);
  *	Takes any pending buffers and transfers their ownership to the
  *	ldisc side of the queue. It then schedules those characters for
  *	processing by the line discipline.
+ *	Note that this function can only be used when the low_latency flag
+ *	is unset. Otherwise the workqueue won't be flushed.
  *
  *	Locking: Takes tty->buf.lock
  */
@@ -355,7 +357,6 @@ void tty_schedule_flip(struct tty_struct *tty)
 	spin_unlock_irqrestore(&tty->buf.lock, flags);
 #if defined(CONFIG_MSM_SMD0_WQ)
 	if (!strcmp(tty->name, "smd0"))
-/*		queue_delayed_work(tty_wq, &tty->buf.work, 0);*/
 		queue_work(tty_wq, &tty->buf.work);
 	else
 #endif
@@ -520,7 +521,8 @@ static void flush_to_ldisc(struct work_struct *work)
  */
 void tty_flush_to_ldisc(struct tty_struct *tty)
 {
-	flush_work(&tty->buf.work);
+	if (!tty->low_latency)
+		flush_work(&tty->buf.work);
 }
 
 /**
@@ -549,7 +551,6 @@ void tty_flip_buffer_push(struct tty_struct *tty)
 	else {
 #if defined(CONFIG_MSM_SMD0_WQ)
 		if (!strcmp(tty->name, "smd0"))
-/*			queue_delayed_work(tty_wq, &tty->buf.work, 0);*/
 			queue_work(tty_wq, &tty->buf.work);
 		else
 #endif

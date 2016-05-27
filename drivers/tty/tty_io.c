@@ -1629,7 +1629,6 @@ int tty_release(struct inode *inode, struct file *filp)
 	struct tty_struct *tty = file_tty(filp);
 	struct tty_struct *o_tty;
 	int	pty_master, tty_closing, o_tty_closing, do_sleep;
-	int	devpts;
 	int	idx;
 	char	buf[64];
 
@@ -1644,7 +1643,6 @@ int tty_release(struct inode *inode, struct file *filp)
 	idx = tty->index;
 	pty_master = (tty->driver->type == TTY_DRIVER_TYPE_PTY &&
 		      tty->driver->subtype == PTY_TYPE_MASTER);
-	devpts = (tty->driver->flags & TTY_DRIVER_DEVPTS_MEM) != 0;
 	/* Review: parallel close */
 	o_tty = tty->link;
 
@@ -1803,9 +1801,6 @@ int tty_release(struct inode *inode, struct file *filp)
 	release_tty(tty, idx);
 	mutex_unlock(&tty_mutex);
 
-	/* Make this pty number available for reallocation */
-	if (devpts)
-		devpts_kill_index(inode, idx);
 	return 0;
 }
 
@@ -2944,7 +2939,6 @@ void initialize_tty_struct(struct tty_struct *tty,
 	tty_ldisc_init(tty);
 	tty->session = NULL;
 	tty->pgrp = NULL;
-	tty->overrun_time = jiffies;
 	tty_buffer_init(tty);
 	mutex_init(&tty->legacy_mutex);
 	mutex_init(&tty->termios_mutex);
@@ -2952,11 +2946,7 @@ void initialize_tty_struct(struct tty_struct *tty,
 	init_waitqueue_head(&tty->write_wait);
 	init_waitqueue_head(&tty->read_wait);
 	INIT_WORK(&tty->hangup_work, do_tty_hangup);
-	mutex_init(&tty->atomic_read_lock);
 	mutex_init(&tty->atomic_write_lock);
-	mutex_init(&tty->output_lock);
-	mutex_init(&tty->echo_lock);
-	spin_lock_init(&tty->read_lock);
 	spin_lock_init(&tty->ctrl_lock);
 	INIT_LIST_HEAD(&tty->tty_files);
 	INIT_WORK(&tty->SAK_work, do_SAK_work);
