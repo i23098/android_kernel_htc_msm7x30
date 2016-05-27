@@ -895,61 +895,6 @@ config RMNET_SMD_DATA_CHANNEL
 	help
 	  Data SMD channel for transferring network data
 
-config USB_ANDROID_RMNET_SDIO
-	boolean "RmNet over SDIO function driver"
-	depends on  USB_G_ANDROID && MSM_SDIO_CMUX && MSM_SDIO_DMUX
-	default n
-	help
-	  Enabling this option adds rmnet over sdio support to the
-	  android gadget. Rmnet is an alternative to CDC-ECM
-	  and Windows RNDIS. It uses QUALCOMM MSM Interface
-	  for control transfers. It acts like a bridge between
-	  Host and modem found in MSM chipsets.
-
-config RMNET_SDIO_CTL_CHANNEL
-	int "control SDIO channel id"
-	depends on USB_ANDROID_RMNET_SDIO
-	help
-	  Control SDIO channel for transferring QMI messages
-
-config RMNET_SDIO_DATA_CHANNEL
-	int "Data SDIO channel id"
-	depends on USB_ANDROID_RMNET_SDIO
-	help
-	  Data SDIO channel for transferring network data
-
-config USB_ANDROID_RMNET_SMD_SDIO
-	boolean "RmNet over SMD/SDIO function driver"
-	depends on  USB_G_ANDROID && MSM_SDIO_CMUX && MSM_SDIO_DMUX
-	default n
-	help
-	  Enabling this option adds rmnet over sdio support to the
-	  android gadget. Rmnet is an alternative to CDC-ECM
-	  and Windows RNDIS. It uses QUALCOMM MSM Interface
-	  for control transfers. It acts like a bridge between
-	  Host and modem found in MSM chipsets.
-
-config RMNET_SMD_SDIO_CTL_CHANNEL
-	int "control SDIO channel id"
-	depends on USB_ANDROID_RMNET_SMD_SDIO
-	default 8
-	help
-	  Control SDIO channel for transferring QMI messages
-
-config RMNET_SMD_SDIO_DATA_CHANNEL
-	int "Data SDIO channel id"
-	default 8
-	depends on USB_ANDROID_RMNET_SMD_SDIO
-	help
-	  Data SDIO channel for transferring network data
-
-config RMNET_SDIO_SMD_DATA_CHANNEL
-	string "Data SMD channel name"
-	depends on USB_ANDROID_RMNET_SMD_SDIO
-	default "DATA40"
-	help
-	  Data SMD channel for transferring network data
-
 config USB_ANDROID_RMNET_CTRL_SMD
 	boolean "RmNet control over SMD driver"
 	depends on  USB_G_ANDROID && MSM_SMD
@@ -1186,41 +1131,6 @@ config RMNET_SMD_DATA_CHANNEL
 	string "RMNET Data SMD channel name"
 	depends on USB_G_ANDROID && MSM_SMD
 	default ""
-	help
-	  Data SMD channel for transferring network data
-
-config RMNET_SDIO_CTL_CHANNEL
-	int "RMNET control SDIO channel id"
-	default 8
-	depends on MSM_SDIO_CMUX && MSM_SDIO_DMUX
-	help
-	  Control SDIO channel for transferring RMNET QMI messages
-
-config RMNET_SDIO_DATA_CHANNEL
-	int "RMNET Data SDIO channel id"
-	default 8
-	depends on MSM_SDIO_CMUX && MSM_SDIO_DMUX
-	help
-	  Data SDIO channel for transferring network data
-
-config RMNET_SMD_SDIO_CTL_CHANNEL
-	int "RMNET(sdio_smd) Control SDIO channel id"
-	depends on MSM_SDIO_CMUX && MSM_SDIO_DMUX
-	default 8
-	help
-	  Control SDIO channel for transferring QMI messages
-
-config RMNET_SMD_SDIO_DATA_CHANNEL
-	int "RMNET(sdio_smd) Data SDIO channel id"
-	default 8
-	depends on MSM_SDIO_CMUX && MSM_SDIO_DMUX
-	help
-	  Data SDIO channel for transferring network data
-
-config RMNET_SDIO_SMD_DATA_CHANNEL
-	string "RMNET(sdio_smd) Data SMD channel name"
-	depends on MSM_SDIO_CMUX && MSM_SDIO_DMUX
-	default "DATA40"
 	help
 	  Data SMD channel for transferring network data
 

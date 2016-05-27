@@ -33,9 +33,6 @@
 #include "diagfwd.h"
 #include "diagfwd_cntl.h"
 #include "diagchar_hdlc.h"
-#ifdef CONFIG_DIAG_SDIO_PIPE
-#include "diagfwd_sdio.h"
-#endif
 #define MODE_CMD	41
 #define RESET_ID	2
 
@@ -219,23 +216,6 @@ int diag_device_write(void *buf, int proc_num, struct diag_request *write_ptr)
 					break;
 				}
 		}
-#ifdef CONFIG_DIAG_SDIO_PIPE
-		if (proc_num == SDIO_DATA) {
-
-			for (i = 0; i < driver->num_mdmclients; i++)
-				if (driver->mdmclient_map[i].pid ==
-						 driver->logging_process_id)
-				break;
-
-			if (i < driver->num_mdmclients) {
-				driver->mdmdata_ready[i] |= USERMODE_DIAGFWD;
-				wake_up_interruptible(&driver->mdmwait_q);
-
-				return err;
-			} else
-				return -EINVAL;
-		}
-#endif
 		for (i = 0; i < driver->num_clients; i++)
 			if (driver->client_map[i].pid ==
 						 driver->logging_process_id)
@@ -294,15 +274,6 @@ int diag_device_write(void *buf, int proc_num, struct diag_request *write_ptr)
 			write_ptr->buf = buf;
 			err = usb_diag_write(driver->legacy_ch, write_ptr);
 		}
-#ifdef CONFIG_DIAG_SDIO_PIPE
-		else if (proc_num == SDIO_DATA) {
-			if (diag_support_mdm9k) {
-				write_ptr->buf = buf;
-				err = usb_diag_write(driver->mdm_ch, write_ptr);
-			} else
-				pr_err("diag: Incorrect data while USB write");
-		}
-#endif
 		APPEND_DEBUG('d');
 	}
 #endif /* DIAG OVER USB */
@@ -1084,14 +1055,6 @@ int diagfwd_connect(void)
 	}
 	/* Poll USB channel to check for data*/
 	queue_work(driver->diag_wq, &(driver->diag_read_work));
-#ifdef CONFIG_DIAG_SDIO_PIPE
-	if (diag_support_mdm9k) {
-		if (driver->mdm_ch && !IS_ERR(driver->mdm_ch))
-			diagfwd_connect_sdio();
-		else
-			printk(KERN_INFO "diag: No USB MDM ch");
-	}
-#endif
 	return 0;
 }
 
@@ -1109,11 +1072,6 @@ int diagfwd_disconnect(void)
 		driver->in_busy_qdsp_2 = 1;
 		driver->in_busy_wcnss = 1;
 	}
-#ifdef CONFIG_DIAG_SDIO_PIPE
-	if (diag_support_mdm9k)
-		if (driver->mdm_ch && !IS_ERR(driver->mdm_ch))
-			diagfwd_disconnect_sdio();
-#endif
 	/* TBD - notify and flow control SMD */
 	return 0;
 }
@@ -1149,17 +1107,6 @@ int diagfwd_write_complete(struct diag_request *diag_write_ptr)
 		driver->in_busy_dmrounter = 0;
 #endif
 	}
-#ifdef CONFIG_DIAG_SDIO_PIPE
-	else if (buf == (void *)driver->buf_in_sdio_1) {
-		driver->in_busy_sdio_1 = 0;
-		APPEND_DEBUG('q');
-		queue_work(driver->diag_sdio_wq, &(driver->diag_read_sdio_work));
-	} else if (buf == (void *)driver->buf_in_sdio_2) {
-		driver->in_busy_sdio_2 = 0;
-		APPEND_DEBUG('Q');
-		queue_work(driver->diag_sdio_wq, &(driver->diag_read_sdio_work));
-	}
-#endif
 	else {
 		diagmem_free(driver, (unsigned char *)buf, POOL_TYPE_HDLC);
 		diagmem_free(driver, (unsigned char *)diag_write_ptr,
@@ -1202,15 +1149,6 @@ int diagfwd_read_complete(struct diag_request *diag_read_ptr)
 						 &(driver->diag_read_work));
 		}
 	}
-#ifdef CONFIG_DIAG_SDIO_PIPE
-	else if (buf == (void *)driver->usb_buf_mdm_out) {
-		if (diag_support_mdm9k) {
-			driver->read_len_mdm = diag_read_ptr->actual;
-			diagfwd_read_complete_sdio();
-		} else
-			pr_err("diag: Incorrect buffer pointer while READ");
-	}
-#endif
 	else
 		printk(KERN_ERR "diag: Unknown buffer ptr from USB");
 
@@ -1453,13 +1391,6 @@ void diagfwd_init(void)
 	     ((driver->num_clients) * sizeof(struct diag_client_map),
 		   GFP_KERNEL)) == NULL)
 		goto err;
-#ifdef CONFIG_DIAG_SDIO_PIPE
-	if (driver->mdmclient_map == NULL &&
-	    (driver->mdmclient_map = kzalloc
-	     ((driver->num_mdmclients) * sizeof(struct diag_client_map),
-		   GFP_KERNEL)) == NULL)
-		goto err;
-#endif
 	if (driver->buf_tbl == NULL)
 			driver->buf_tbl = kzalloc(buf_tbl_size *
 			  sizeof(struct diag_write_device), GFP_KERNEL);
@@ -1469,12 +1400,6 @@ void diagfwd_init(void)
 	     (driver->data_ready = kzalloc(driver->num_clients * sizeof(int)
 							, GFP_KERNEL)) == NULL)
 		goto err;
-#ifdef CONFIG_DIAG_SDIO_PIPE
-	if (driver->mdmdata_ready == NULL &&
-	     (driver->mdmdata_ready = kzalloc(driver->num_mdmclients * sizeof(struct
-					 diag_client_map), GFP_KERNEL)) == NULL)
-		goto err;
-#endif
 	if (driver->table == NULL &&
 	     (driver->table = kzalloc(diag_max_registration*
 		      sizeof(struct diag_master_table),

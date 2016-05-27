@@ -52,10 +52,6 @@
 #include "f_diag.c"
 #if defined(CONFIG_USB_ANDROID_RMNET_SMD)
 #include "f_rmnet_smd.c"
-#elif defined(CONFIG_USB_ANDROID_RMNET_SDIO)
-#include "f_rmnet_sdio.c"
-#elif defined(CONFIG_USB_ANDROID_RMNET_SMD_SDIO)
-#include "f_rmnet_smd_sdio.c"
 #endif
 #include "f_audio_source.c"
 #include "f_mass_storage.c"
@@ -351,51 +347,6 @@ static int rmnet_smd_function_bind_config(struct android_usb_function *f,
 static struct android_usb_function rmnet_smd_function = {
 	.name		= "rmnet",
 	.bind_config	= rmnet_smd_function_bind_config,
-	.performance_lock = 1,
-};
-#elif defined(CONFIG_USB_ANDROID_RMNET_SDIO)
-
-/* RMNET_SDIO */
-static int rmnet_sdio_function_bind_config(struct android_usb_function *f,
-					  struct usb_configuration *c)
-{
-	return rmnet_sdio_function_add(c);
-}
-
-static struct android_usb_function rmnet_sdio_function = {
-	.name		= "rmnet",
-	.bind_config	= rmnet_sdio_function_bind_config,
-	.performance_lock = 1,
-};
-
-#elif defined(CONFIG_USB_ANDROID_RMNET_SMD_SDIO)
-/* RMNET_SMD_SDIO */
-static int rmnet_smd_sdio_function_init(struct android_usb_function *f,
-				 struct usb_composite_dev *cdev)
-{
-	return rmnet_smd_sdio_init();
-}
-
-static void rmnet_smd_sdio_function_cleanup(struct android_usb_function *f)
-{
-	rmnet_smd_sdio_cleanup();
-}
-
-static int rmnet_smd_sdio_bind_config(struct android_usb_function *f,
-					  struct usb_configuration *c)
-{
-	return rmnet_smd_sdio_function_add(c);
-}
-
-static struct device_attribute *rmnet_smd_sdio_attributes[] = {
-					&dev_attr_transport, NULL };
-
-static struct android_usb_function rmnet_smd_sdio_function = {
-	.name		= "rmnet",
-	.init		= rmnet_smd_sdio_function_init,
-	.cleanup	= rmnet_smd_sdio_function_cleanup,
-	.bind_config	= rmnet_smd_sdio_bind_config,
-	.attributes	= rmnet_smd_sdio_attributes,
 	.performance_lock = 1,
 };
 #endif
@@ -1587,10 +1538,6 @@ static struct android_usb_function *supported_functions[] = {
 #endif
 #if defined(CONFIG_USB_ANDROID_RMNET_SMD)
 	&rmnet_smd_function,
-#elif defined(CONFIG_USB_ANDROID_RMNET_SDIO)
-	&rmnet_sdio_function,
-#elif defined(CONFIG_USB_ANDROID_RMNET_SMD_SDIO)
-	&rmnet_smd_sdio_function,
 #endif
 #ifdef CONFIG_USB_ANDROID_USBNET
 	&usbnet_function,

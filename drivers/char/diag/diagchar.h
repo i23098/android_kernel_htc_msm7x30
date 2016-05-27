@@ -131,10 +131,6 @@ struct diagchar_dev {
 	int num_clients;
 	struct diag_write_device *buf_tbl;
 	spinlock_t diagchar_lock;
-#ifdef CONFIG_DIAG_SDIO_PIPE
-	struct cdev *cdev_mdm;
-	int num_mdmclients;
-#endif
 	/* Memory pool parameters */
 	unsigned int itemsize;
 	unsigned int poolsize;
@@ -221,23 +217,6 @@ struct diagchar_dev {
 	struct mutex smd_lock;
 	unsigned char init_done;
 	unsigned char is2ARM11;
-#endif
-#ifdef CONFIG_DIAG_SDIO_PIPE
-	unsigned char *buf_in_sdio_1;
-	unsigned char *buf_in_sdio_2;
-	unsigned char *usb_buf_mdm_out;
-	struct sdio_channel *sdio_ch;
-	int read_len_mdm;
-	int in_busy_sdio_1;
-	int in_busy_sdio_2;
-	struct usb_diag_ch *mdm_ch;
-	struct work_struct diag_read_mdm_work;
-	struct workqueue_struct *diag_sdio_wq;
-	struct work_struct diag_read_sdio_work;
-	struct work_struct diag_remove_sdio_work;
-	struct diag_request *usb_read_mdm_ptr;
-	struct diag_request *write_ptr_mdm_1;
-	struct diag_request *write_ptr_mdm_2;
 #endif
 	u64 diag_smd_count; /* from smd */
 	u64 diag_qdsp_count; /* from qdsp */

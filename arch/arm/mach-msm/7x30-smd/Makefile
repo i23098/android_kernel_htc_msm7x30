@@ -14,8 +14,6 @@ obj-$(CONFIG_MSM_RPCSERVER_TIME_REMOTE) += rpc_server_time_remote.o
 
 obj-$(CONFIG_MSM_ONCRPCROUTER) += rpcrouter_smd_xprt.o
 
-obj-$(CONFIG_MSM_SDIO_CTL) += sdio_ctl.o
-
 obj-$(CONFIG_MSM_SMD_NMEA) += smd_nmea.o
 obj-$(CONFIG_MSM_SMD_PKT) += smd_pkt.o
 

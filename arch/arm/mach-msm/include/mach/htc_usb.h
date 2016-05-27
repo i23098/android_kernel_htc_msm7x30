@@ -305,9 +305,7 @@ static char *usb_functions_diag_modem_svlte2_rment[] = {
 	"rmnet",
 };
 
-#if (defined(CONFIG_USB_ANDROID_RMNET_SDIO) || \
-	defined(CONFIG_USB_ANDROID_RMNET_SMD_SDIO) || \
-	defined(CONFIG_MSM_RMNET_BAM))
+#if defined(CONFIG_MSM_RMNET_BAM)
 static char *usb_functions_adb_diag_modem_rment[] = {
 	"mass_storage",
 	"adb",
@@ -392,9 +390,7 @@ static char *usb_functions_all[] = {
 #if defined(CONFIG_USB_ANDROID_MDM9K_DIAG)
 	"diag_mdm",
 #endif
-#if (defined(CONFIG_USB_ANDROID_RMNET_SDIO) || \
-	defined(CONFIG_USB_ANDROID_RMNET_SMD_SDIO) || \
-	defined(CONFIG_MSM_RMNET_BAM))
+#if defined(CONFIG_MSM_RMNET_BAM)
 	"rmnet",
 #endif
 #ifdef CONFIG_USB_ANDROID_USBNET
@@ -674,9 +670,7 @@ static struct android_usb_product usb_products[] = {
 		.num_functions	= ARRAY_SIZE(usb_functions_accessory_adb),
 		.functions	= usb_functions_accessory_adb,
 	},
-#if (defined(CONFIG_USB_ANDROID_RMNET_SDIO) || \
-	defined(CONFIG_USB_ANDROID_RMNET_SMD_SDIO) || \
-	defined(CONFIG_MSM_RMNET_BAM))
+#if defined(CONFIG_MSM_RMNET_BAM)
 #ifdef CONFIG_USB_ANDROID_MDM9K_DIAG
 	{
 		.product_id	= 0x0fd2,

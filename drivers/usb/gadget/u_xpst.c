@@ -691,19 +691,11 @@ static long diag2arm9_ioctl(struct file *file, unsigned int cmd, unsigned long a
 		table_ptr = M297K9Kdiff_table;
 		break;
 	case USB_DIAG_FUNC_IOC_MODEM_GET:
-#if defined(CONFIG_DIAG_SDIO_PIPE)
-		DIAG_INFO("%s:modem status=%d\n", __func__, sdio_diag_initialized);
-		if (copy_to_user(argp, &sdio_diag_initialized, sizeof(sdio_diag_initialized)))
-			return -EFAULT;
-		else
-			return 0;
-#else
 		DIAG_INFO("%s:modem status=%d\n", __func__, smd_diag_initialized);
 		if (copy_to_user(argp, &smd_diag_initialized, sizeof(smd_diag_initialized)))
 			return -EFAULT;
 		else
 			return 0;
-#endif
 		break;
 	default:
 		return -ENOTTY;
