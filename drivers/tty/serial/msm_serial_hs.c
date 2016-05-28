@@ -382,7 +382,7 @@ static void __init msm_serial_debugfs_init(struct msm_hs_port *msm_uport,
 	}
 }
 
-static int __devexit msm_hs_remove(struct platform_device *pdev)
+static int msm_hs_remove(struct platform_device *pdev)
 {
 
 	struct msm_hs_port *msm_uport;
@@ -1871,7 +1871,7 @@ free_tx_command_ptr:
 	return ret;
 }
 
-static int __init msm_hs_probe(struct platform_device *pdev)
+static int msm_hs_probe(struct platform_device *pdev)
 {
 	int ret;
 	struct uart_port *uport;

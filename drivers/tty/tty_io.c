@@ -186,7 +186,6 @@ void free_tty_struct(struct tty_struct *tty)
 	if (tty->dev)
 		put_device(tty->dev);
 	kfree(tty->write_buf);
-	tty_buffer_free_all(tty);
 	tty->magic = 0xDEADDEAD;
 	kfree(tty);
 }
@@ -237,7 +236,7 @@ void tty_free_file(struct file *file)
 }
 
 /* Delete file from its tty */
-void tty_del_file(struct file *file)
+static void tty_del_file(struct file *file)
 {
 	struct tty_file_private *priv = file->private_data;
 
@@ -555,7 +554,7 @@ EXPORT_SYMBOL_GPL(tty_wakeup);
  *		  tasklist_lock to walk task list for hangup event
  *		    ->siglock to protect ->signal/->sighand
  */
-void __tty_hangup(struct tty_struct *tty)
+static void __tty_hangup(struct tty_struct *tty)
 {
 	struct file *cons_filp = NULL;
 	struct file *filp, *f = NULL;
@@ -1417,6 +1416,8 @@ struct tty_struct *tty_init_dev(struct tty_driver *driver, int idx)
 			"%s: %s driver does not set tty->port. This will crash the kernel later. Fix the driver!\n",
 			__func__, tty->driver->name);
 
+	tty->port->itty = tty;
+
 	/*
 	 * Structures all installed ... call the ldisc open routines.
 	 * If we fail here just call release_tty to clean up.  No need
@@ -1552,6 +1553,7 @@ static void release_tty(struct tty_struct *tty, int idx)
 		tty->ops->shutdown(tty);
 	tty_free_termios(tty);
 	tty_driver_remove_tty(tty->driver, tty);
+	tty->port->itty = NULL;
 
 	if (tty->link)
 		tty_kref_put(tty->link);
@@ -2688,6 +2690,11 @@ long tty_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case TIOCNXCL:
 		clear_bit(TTY_EXCLUSIVE, &tty->flags);
 		return 0;
+	case TIOCGEXCL:
+	{
+		int excl = test_bit(TTY_EXCLUSIVE, &tty->flags);
+		return put_user(excl, (int __user *)p);
+	}
 	case TIOCNOTTY:
 		if (current->signal->tty != tty)
 			return -ENOTTY;
@@ -2935,7 +2942,6 @@ void initialize_tty_struct(struct tty_struct *tty,
 	tty_ldisc_init(tty);
 	tty->session = NULL;
 	tty->pgrp = NULL;
-	tty_buffer_init(tty);
 	mutex_init(&tty->legacy_mutex);
 	mutex_init(&tty->termios_mutex);
 	mutex_init(&tty->ldisc_mutex);

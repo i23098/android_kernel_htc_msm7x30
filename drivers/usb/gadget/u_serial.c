@@ -1494,8 +1494,10 @@ int gserial_setup(struct usb_gadget *g, unsigned count)
 
 	return status;
 fail:
-	while (count--)
+	while (count--) {
+		tty_port_destroy(&ports[count].port->port);
 		kfree(ports[count].port);
+	}
 	if (gserial_wq)
 		destroy_workqueue(gserial_wq);
 	put_tty_driver(gs_tty_driver);
@@ -1551,6 +1553,7 @@ void gserial_cleanup(void)
 
 		WARN_ON(port->port_usb != NULL);
 
+		tty_port_destroy(&port->port);
 		kfree(port);
 	}
 	n_ports = 0;
