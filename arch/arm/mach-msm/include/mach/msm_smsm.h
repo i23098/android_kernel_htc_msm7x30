@@ -25,8 +25,8 @@ enum {
 	SMSM_Q6_DEM,
 	SMSM_POWER_MASTER_DEM,
 	SMSM_TIME_MASTER_DEM,
+	SMSM_NUM_ENTRIES,
 };
-extern uint32_t SMSM_NUM_ENTRIES;
 #else
 enum {
 	SMSM_APPS_STATE = 1,
@@ -41,8 +41,8 @@ enum {
 	SMSM_Q6,
 	SMSM_WCNSS,
 	SMSM_DSPS,
+	SMSM_NUM_HOSTS,
 };
-extern uint32_t SMSM_NUM_HOSTS;
 
 #define SMSM_INIT              0x00000001
 #define SMSM_OSENTERED         0x00000002

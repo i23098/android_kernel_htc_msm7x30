@@ -672,7 +672,6 @@ struct tramp_gpio_smem {
 	uint32_t polarity[NUM_GPIO_INT_REGISTERS];
 };
 
-#if 0	/* Changed by Andy for HTC pm.c */
 /*
  * Print debug information on shared memory sleep variables
  */
@@ -714,71 +713,3 @@ void smsm_print_sleep_info(uint32_t sleep_delay, uint32_t sleep_limit,
 
 	spin_unlock_irqrestore(&smem_lock, flags);
 }
-#else
-void smsm_print_sleep_info(unsigned wakeup_reason_only)
-{
-	unsigned long flags;
-	uint32_t *ptr;
-#if defined(CONFIG_MSM_N_WAY_SMD)
-	struct msm_dem_slave_data *smd_int_info;
-#else
-	struct tramp_gpio_smem *gpio;
-	struct smsm_interrupt_info *int_info;
-#endif
-
-	spin_lock_irqsave(&smem_lock, flags);
-
-	if (!wakeup_reason_only) {
-		ptr = smem_alloc(SMEM_SMSM_SLEEP_DELAY, sizeof(*ptr));
-		if (ptr)
-			pr_info("SMEM_SMSM_SLEEP_DELAY: %x\n", *ptr);
-
-		ptr = smem_alloc(SMEM_SMSM_LIMIT_SLEEP, sizeof(*ptr));
-		if (ptr)
-			pr_info("SMEM_SMSM_LIMIT_SLEEP: %x\n", *ptr);
-
-		ptr = smem_alloc(SMEM_SLEEP_POWER_COLLAPSE_DISABLED, sizeof(*ptr));
-		if (ptr)
-			pr_info("SMEM_SLEEP_POWER_COLLAPSE_DISABLED: %x\n", *ptr);
-	}
-#if !defined(CONFIG_MSM_N_WAY_SMD)
-	int_info = smem_alloc(SMEM_SMSM_INT_INFO, sizeof(*int_info));
-	if (int_info)
-		pr_info("SMEM_SMSM_INT_INFO %x %x %x\n",
-			int_info->interrupt_mask,
-			int_info->pending_interrupts,
-			int_info->wakeup_reason);
-
-	gpio = smem_alloc(SMEM_GPIO_INT, sizeof(*gpio));
-	if (gpio) {
-		int i;
-		if (!wakeup_reason_only) {
-			for (i = 0; i < NUM_GPIO_INT_REGISTERS; i++)
-				pr_info("SMEM_GPIO_INT: %d: e %x d %x p %x\n",
-					i, gpio->enabled[i], gpio->detection[i],
-					gpio->polarity[i]);
-		}
-		for (i = 0; i < GPIO_SMEM_NUM_GROUPS; i++)
-			pr_info("SMEM_GPIO_INT: %d: f %d: %d %d...\n",
-				i, gpio->num_fired[i], gpio->fired[i][0],
-				gpio->fired[i][1]);
-	}
-#else
-	smd_int_info = smem_find(SMEM_APPS_DEM_SLAVE_DATA, sizeof(*smd_int_info));
-	if (smd_int_info) {
-		pr_info("SMEM_APPS_DEM_SLAVE_DATA: %ds %x %x %x %x %x %x %x %s %x\n",
-			smd_int_info->sleep_time / 32768,
-			smd_int_info->interrupt_mask,
-			smd_int_info->resources_used,
-			smd_int_info->reserved1,
-			smd_int_info->wakeup_reason,
-			smd_int_info->pending_interrupts,
-			smd_int_info->rpc_prog,
-			smd_int_info->rpc_proc,
-			smd_int_info->smd_port_name,
-			smd_int_info->reserved2);
-	}
-#endif
-	spin_unlock_irqrestore(&smem_lock, flags);
-}
-#endif

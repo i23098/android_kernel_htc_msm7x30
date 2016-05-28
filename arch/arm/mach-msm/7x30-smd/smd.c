@@ -1222,7 +1222,7 @@ static remote_spinlock_t remote_spinlock;
 /* smem_alloc2 returns the pointer to smem item.  If it is not allocated,
  * it allocates it and then returns the pointer to it.
  */
-static void *smem_alloc2(unsigned id, unsigned size_in)
+void *smem_alloc2(unsigned id, unsigned size_in)
 {
 	struct smem_shared *shared = (void *) MSM_SHARED_RAM_BASE;
 	struct smem_heap_entry *toc = shared->heap_toc;

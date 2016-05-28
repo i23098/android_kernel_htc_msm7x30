@@ -604,6 +604,7 @@ config MSM_PROC_COMM
 
 config MSM_SMD
 	bool "MSM Shared Memory Driver (SMD)"
+	select SERIAL_MSM_SMD
 	help
 	  Support for the shared memory interface between the apps
 	  processor and the baseband processor.  Provides access to
