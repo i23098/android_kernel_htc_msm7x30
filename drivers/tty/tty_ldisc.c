@@ -646,12 +646,6 @@ int tty_set_ldisc(struct tty_struct *tty, int ldisc)
 
 	mutex_unlock(&tty->ldisc_mutex);
 
-#if defined(CONFIG_MSM_SMD0_WQ)
-	if (!strcmp(tty->name, "smd0"))
-		flush_workqueue(tty_wq);
-	else
-#endif
-
 	tty_ldisc_flush_works(tty);
 
 	retval = tty_ldisc_wait_idle(tty, 5 * HZ);
@@ -709,23 +703,10 @@ enable:
 
 	/* Restart the work queue in case no characters kick it off. Safe if
 	   already running */
-	if (work) {
-#if defined(CONFIG_MSM_SMD0_WQ)
-	if (!strcmp(tty->name, "smd0"))
-		queue_work(tty_wq, &tty->buf.work);
-	else
-#endif
+	if (work)
 		schedule_work(&tty->buf.work);
-	}
-
-	if (o_work) {
-#if defined(CONFIG_MSM_SMD0_WQ)
-		if (!strcmp(o_tty->name, "smd0"))
-			queue_work(tty_wq, &tty->buf.work);
-		else
-#endif
+	if (o_work)
 		schedule_work(&o_tty->buf.work);
-	}
 	mutex_unlock(&tty->ldisc_mutex);
 	tty_unlock(tty);
 	return retval;
@@ -955,11 +936,6 @@ void tty_ldisc_release(struct tty_struct *tty, struct tty_struct *o_tty)
 
 	tty_lock_pair(tty, o_tty);
 	tty_ldisc_halt(tty);
-#if defined(CONFIG_MSM_SMD0_WQ)
-	if (!strcmp(tty->name, "smd0"))
-		flush_workqueue(tty_wq);
-	else
-#endif
 	tty_ldisc_flush_works(tty);
 	if (o_tty) {
 		tty_ldisc_halt(o_tty);

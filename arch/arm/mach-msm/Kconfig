@@ -626,13 +626,6 @@ choice
 	  prompt "Package 4"
 endchoice
 
-config MSM_SMD0_WQ
-	bool "SMD0 TTY Workqueue"
-	depends on (MSM_SMD)
-	default y
-	help
-	Independent tty workqueue for SMD0
-
 config MSM_SMD_DEBUG
 	depends on MSM_SMD
 	default y
