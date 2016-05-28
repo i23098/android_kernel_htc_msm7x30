@@ -43,7 +43,36 @@ struct smd_tty_info {
 	struct timer_list buf_req_timer;
 };
 
+struct smd_tty_channel_desc {
+	int id;
+	const char *name;
+};
+
 static struct smd_tty_info smd_tty[MAX_SMD_TTYS];
+
+static const struct smd_tty_channel_desc smd_default_tty_channels[] = {
+	{ .id = 0, .name = "SMD_DS" },
+	{ .id = 1, .name = "SMD_DIAG" },
+	{ .id = 7, .name = "SMD_DATA1" },
+#if defined(CONFIG_ARCH_MSM7X30)
+	{ .id = 9, .name = "SMD_DATA4" },
+#else
+	{ .id = 9, .name = "SMD_DATA9" },
+#endif
+	{ .id = 21, .name = "SMD_DATA21" },
+	{ .id = 27, .name = "SMD_GPSNMEA" },
+	{ .id = 36, .name = "SMD_LOOPBACK" },
+#ifdef CONFIG_BUILD_OMA_DM
+	{ .id = 19, .name = "SMD_DATA3" }, /* MASD requested OMA_DM AT-channel */
+#endif
+#ifdef CONFIG_BUILD_CIQ
+	{ .id = 26, .name = "SMD_DATA20" }, /* CIQ Master/Slaver Bridge */
+#endif
+};
+
+static const struct smd_tty_channel_desc *smd_tty_channels =
+		smd_default_tty_channels;
+static int smd_tty_channels_len = ARRAY_SIZE(smd_default_tty_channels);
 
 static void buf_req_retry(unsigned long param)
 {
@@ -108,38 +137,18 @@ static void smd_tty_notify(void *priv, unsigned event)
 
 static int smd_tty_open(struct tty_struct *tty, struct file *f)
 {
-	int res = 0;
+    	int i, res = 0;
 	int n = tty->index;
-	struct smd_tty_info *info;
-	const char *name;
+	const char *name = NULL;
+	struct smd_tty_info *info = smd_tty + n;
 
-	if (n == 0)
-		name = "SMD_DS";
-	else if (n == 1)
-		name = "SMD_DIAG";
-	else if (n == 7)
-		name = "SMD_DATA1";
-	else if (n == 9)
-#if defined(CONFIG_ARCH_MSM7X30)
-		name = "SMD_DATA4";
-#else
-		name = "SMD_DATA9";
-#endif
-	else if (n == 21)
-		name = "SMD_DATA21";
-	else if (n == 27)
-		name = "SMD_GPSNMEA";
-	else if (n == 36)
-		name = "SMD_LOOPBACK";
-#ifdef CONFIG_BUILD_OMA_DM
-	else if (n == 19)	/* MASD requested OMA_DM AT-channel */
-		name = "SMD_DATA3";
-#endif
-#ifdef CONFIG_BUILD_CIQ
-	else if (n == 26)	/* CIQ Master/Slaver Bridge */
-		name = "SMD_DATA20";
-#endif
-	else
+	for (i = 0; i < smd_tty_channels_len; i++) {
+		if (smd_tty_channels[i].id == n) {
+			name = smd_tty_channels[i].name;
+			break;
+		}
+	}
+	if (!name)
 		return -ENODEV;
 
 	info = smd_tty + n;
@@ -260,7 +269,7 @@ static struct tty_driver *smd_tty_driver;
 
 static int __init smd_tty_init(void)
 {
-	int ret;
+	int ret, i;
 
 	smd_tty_driver = alloc_tty_driver(MAX_SMD_TTYS);
 	if (smd_tty_driver == 0)
@@ -283,24 +292,13 @@ static int __init smd_tty_init(void)
 	tty_set_operations(smd_tty_driver, &smd_tty_ops);
 
 	ret = tty_register_driver(smd_tty_driver);
-	if (ret) return ret;
+	if (ret)
+		return ret;
 
-	/* this should be dynamic */
-	tty_register_device(smd_tty_driver, 0, 0);
-	tty_register_device(smd_tty_driver, 1, 0);
-	tty_register_device(smd_tty_driver, 7, 0);
-	tty_register_device(smd_tty_driver, 9, 0);
-	tty_register_device(smd_tty_driver, 21, 0);
-	tty_register_device(smd_tty_driver, 27, 0);
-	tty_register_device(smd_tty_driver, 36, 0);
-#ifdef CONFIG_BUILD_OMA_DM
-	/* MASD requested OMA_DM AT-channel */
-	tty_register_device(smd_tty_driver, 19, 0);
-#endif
-#ifdef CONFIG_BUILD_CIQ
-	/* CIQ Master/Slaver Bridge */
-	tty_register_device(smd_tty_driver, 26, 0);
-#endif
+	for (i = 0; i < smd_tty_channels_len; i++) {
+		tty_register_device(smd_tty_driver,
+				smd_tty_channels[i].id, NULL);
+	}
 
 	return 0;
 }

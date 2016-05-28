@@ -134,6 +134,18 @@ static void __tty_buffer_flush(struct tty_struct *tty)
 
 void tty_buffer_flush(struct tty_struct *tty)
 {
+	struct tty_port *port = tty->port;
+	if (!port) {
+	    const char * name = "<none>";
+	    const char * driver_name = "<none>";
+	    if (tty->driver && tty->driver->driver_name)
+		driver_name = tty->driver->driver_name;
+	    if (tty->driver && tty->driver->name)
+		name = tty->driver->name;
+	    printk(KERN_WARNING "%s: no port for %s:%s:%s?",
+				__func__, name, driver_name, tty->name);
+	    return;
+	}
 	unsigned long flags;
 	spin_lock_irqsave(&tty->buf.lock, flags);
 
@@ -450,9 +462,21 @@ static void flush_to_ldisc(struct work_struct *work)
 {
 	struct tty_struct *tty =
 		container_of(work, struct tty_struct, buf.work);
+	struct tty_port *port = tty->port;
 	unsigned long 	flags;
 	struct tty_ldisc *disc;
 
+	if (!port) {
+	    const char * name = "<none>";
+	    const char * driver_name = "<none>";
+	    if (tty->driver && tty->driver->driver_name)
+		driver_name = tty->driver->driver_name;
+	    if (tty->driver && tty->driver->name)
+		name = tty->driver->name;
+	    printk(KERN_WARNING "%s: no port for %s:%s:%s?",
+				__func__, name, driver_name, tty->name);
+	    return;
+	}
 	disc = tty_ldisc_ref(tty);
 	if (disc == NULL)	/*  !TTY_LDISC */
 		return;
