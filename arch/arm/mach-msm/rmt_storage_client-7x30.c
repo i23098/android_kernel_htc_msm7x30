@@ -36,7 +36,7 @@
 #include <asm/uaccess.h>
 #include <asm/pgtable.h>
 #include <mach/msm_rpcrouter.h>
-#include "smd_private.h"
+#include <mach/smd_private.h>
 
 enum {
 	RMT_STORAGE_EVNT_OPEN = 0,

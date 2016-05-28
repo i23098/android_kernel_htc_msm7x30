@@ -21,7 +21,7 @@
 #include <linux/proc_fs.h>
 #include <linux/uaccess.h>
 
-#include "smd_private.h"
+#include <mach/smd_private.h>
 
 static void *radio_log_base;
 static size_t radio_log_size;

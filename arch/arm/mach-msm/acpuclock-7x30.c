@@ -34,7 +34,7 @@
 #include <mach/vreg.h>
 #endif
 
-#include "smd_private.h"
+#include <mach/smd_private.h>
 #include "clock.h"
 #include "acpuclock.h"
 #include "spm.h"

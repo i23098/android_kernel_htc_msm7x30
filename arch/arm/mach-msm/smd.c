@@ -31,7 +31,7 @@
 
 #include <mach/msm_smd.h>
 
-#include "smd_private.h"
+#include <mach/smd_private.h>
 #include "proc_comm.h"
 
 #if defined(CONFIG_ARCH_QSD8X50)

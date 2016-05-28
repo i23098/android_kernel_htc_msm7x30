@@ -23,7 +23,7 @@
 #include <mach/msm_iomap.h>
 
 #include "proc_comm.h"
-#include "smd_private.h"
+#include <mach/smd_private.h>
 
 static inline void msm_a2m_int(uint32_t irq)
 {

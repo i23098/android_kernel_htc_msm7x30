@@ -100,7 +100,7 @@
 #ifdef CONFIG_SERIAL_MSM_HS_PURE_ANDROID
 #include <mach/bcm_bt_lpm.h>
 #endif
-#include "smd_private.h"
+#include <mach/smd_private.h>
 #include <linux/bma150_spi.h>
 #include "board-saga.h"
 #include <linux/tpa2051d3.h>

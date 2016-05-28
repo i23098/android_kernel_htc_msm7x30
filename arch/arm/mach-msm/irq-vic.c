@@ -30,7 +30,7 @@
 #include <mach/msm_iomap.h>
 #include <mach/fiq.h>
 
-#include "smd_private.h"
+#include <mach/smd_private.h>
 
 enum {
 	IRQ_DEBUG_SLEEP_INT_TRIGGER = 1U << 0,

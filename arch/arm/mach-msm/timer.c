@@ -40,7 +40,7 @@
 #include <mach/socinfo.h>
 #include <linux/delay.h>
 #if defined(CONFIG_MSM_SMD)
-#include "smd_private.h"
+#include <mach/smd_private.h>
 #endif
 
 extern void set_delay_fn(void (*fn)(unsigned long));

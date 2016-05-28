@@ -23,7 +23,7 @@
 #include <mach/cpu.h>
 #include <mach/msm_gpiomux.h>
 #include "../../../arch/arm/mach-msm/proc_comm.h"
-#include "../../../arch/arm/mach-msm/smd_private.h"
+#include <mach/smd_private.h>
 
 enum {
 	GPIO_DEBUG_SLEEP = 1U << 0,

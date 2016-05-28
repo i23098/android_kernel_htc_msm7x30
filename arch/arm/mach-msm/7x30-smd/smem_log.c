@@ -38,7 +38,7 @@
 #include <mach/msm_iomap.h>
 #include <mach/smem_log.h>
 
-#include "smd_private.h"
+#include <mach/smd_private.h>
 #include "smd_rpc_sym.h"
 #include "modem_notifier.h"
 

@@ -131,3 +131,4 @@ obj-$(CONFIG_MSM_RPC_VIBRATOR) += msm_vibrator.o
 obj-$(CONFIG_PERFLOCK) += perflock.o
 obj-$(CONFIG_MICROP_COMMON) += atmega_microp_common.o
 obj-y += display/
+obj-$(CONFIG_MSM_SMD) += smd_debug.o

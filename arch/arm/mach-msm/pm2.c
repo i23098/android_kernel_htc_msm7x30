@@ -48,7 +48,7 @@
 #endif
 #include <linux/console.h>
 
-#include "smd_private.h"
+#include <mach/smd_private.h>
 #include "smd_rpcrouter.h"
 #include "acpuclock.h"
 #include "clock.h"

@@ -34,7 +34,7 @@
 #include <linux/remote_spinlock.h>
 
 #include <linux/sched.h>
-#include "smd_private.h"
+#include <mach/smd_private.h>
 #include "../proc_comm.h"
 #include "modem_notifier.h"
 #include "../acpuclock.h"

@@ -61,6 +61,25 @@ struct smem_shared {
 	struct smem_heap_entry heap_toc[SMD_HEAP_SIZE];
 };
 
+/* Add by Andy for HTC pm.c */
+/* ========================================================================*/
+#if defined(CONFIG_MSM_N_WAY_SMD)
+#define DEM_MAX_PORT_NAME_LEN (20)
+struct msm_dem_slave_data {
+	uint32_t sleep_time;
+	uint32_t interrupt_mask;
+	uint32_t resources_used;
+	uint32_t reserved1;
+
+	uint32_t wakeup_reason;
+	uint32_t pending_interrupts;
+	uint32_t rpc_prog;
+	uint32_t rpc_proc;
+	char     smd_port_name[DEM_MAX_PORT_NAME_LEN];
+	uint32_t reserved2;
+};
+#endif
+/* ========================================================================*/
 #if defined(CONFIG_MSM_SMD_PKG4)
 struct smsm_interrupt_info {
 	uint32_t aArm_en_mask;
@@ -91,6 +110,37 @@ void *smem_alloc(unsigned id, unsigned size)
 #define ID_SMD_CHANNELS SMEM_SMD_BASE_ID
 #define ID_SHARED_STATE SMEM_SMSM_SHARED_STATE
 #define ID_CH_ALLOC_TBL SMEM_CHANNEL_ALLOC_TBL
+
+#define SMSM_UNKNOWN           0x80000000
+
+/* Add by Andy for HTC irq.c */
+/* ========================================================================*/
+#if defined(CONFIG_MSM_N_WAY_SMD)
+enum smsm_state_item {
+	SMSM_STATE_APPS,
+	SMSM_STATE_MODEM,
+	SMSM_STATE_HEXAGON,
+	SMSM_STATE_APPS_DEM,
+	SMSM_STATE_MODEM_DEM,
+	SMSM_STATE_QDSP6_DEM,
+	SMSM_STATE_POWER_MASTER_DEM,
+	SMSM_STATE_TIME_MASTER_DEM,
+	SMSM_STATE_COUNT,
+};
+#else
+enum smsm_state_item {
+	SMSM_STATE_APPS = 1,
+	SMSM_STATE_MODEM = 3,
+	SMSM_STATE_COUNT,
+};
+#endif
+/* ========================================================================*/
+
+/* Add by Andy for HTC pm.c */
+/* ========================================================================*/
+int smsm_set_sleep_duration(uint32_t delay);
+int smsm_set_sleep_limit(uint32_t sleep_limit);
+/* ========================================================================*/
 
 #define SMD_SS_CLOSED            0x00000000
 #define SMD_SS_OPENING           0x00000001
@@ -206,7 +256,6 @@ enum {
 
 extern spinlock_t smem_lock;
 
-
-int smd_diag(void);
+void smd_diag(void);
 
 #endif

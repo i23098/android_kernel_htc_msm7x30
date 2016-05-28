@@ -38,7 +38,7 @@
 #include <mach/peripheral-loader.h>
 
 #include "modem_notifier.h"
-#include "smd_private.h"
+#include <mach/smd_private.h>
 
 #define NUM_SMD_PKT_PORTS 11
 #define DEVICE_NAME "smdpkt"

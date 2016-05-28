@@ -21,7 +21,7 @@
 #include <mach/msm_iomap.h>
 #include <mach/remote_spinlock.h>
 #include <mach/dal.h>
-#include "smd_private.h"
+#include <mach/smd_private.h>
 #include <linux/module.h>
 
 static void remote_spin_release_all_locks(uint32_t pid, int count);

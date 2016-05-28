@@ -23,8 +23,7 @@
 #include <linux/io.h>
 
 #include <mach/msm_iomap.h>
-
-#include "smd_private.h"
+#include <mach/smd_private.h>
 
 enum {
 	F_SCREEN_OFF = 0,
