@@ -83,6 +83,12 @@ int smd_read_avail(smd_channel_t *ch);
 */
 int smd_cur_packet_size(smd_channel_t *ch);
 
+/* used for tty unthrottling and the like -- causes the notify()
+** callback to be called from the same lock context as is used
+** when it is called from channel updates
+*/
+void smd_kick(smd_channel_t *ch);
+
 
 #if 0
 /* these are interruptable waits which will block you until the specified
