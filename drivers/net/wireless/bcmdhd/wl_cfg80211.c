@@ -7084,7 +7084,9 @@ static s32 wl_event_handler(void *data)
 	tsk_ctl_t *tsk = (tsk_ctl_t *)data;
 
 	wl = (struct wl_priv *)tsk->parent;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
 	DAEMONIZE("dhd_cfg80211_event");
+#endif
 	complete(&tsk->completed);
 
 	while (down_interruptible (&tsk->sema) == 0) {

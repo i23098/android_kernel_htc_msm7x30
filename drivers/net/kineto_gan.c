@@ -38,6 +38,7 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/version.h>
 /* For socket etc */
 #include <linux/net.h>
 #include <net/sock.h>
@@ -260,8 +261,10 @@ static void gannet_recvloop(void)
 
 	/* daemonize (take care with signals,
 	   after daemonize they are disabled) */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
 	daemonize(MODULE_NAME);
 	allow_signal(SIGKILL);
+#endif
 	/* Kernal 3.0 Changes Start */
 	/* unlock_kernel(); ==> Commenting this line since in Kernal 3.0 this feature has been removed*/
 	  mutex_unlock(&ker_lock_mutex);

@@ -1081,7 +1081,9 @@ _dhd_sysioc_thread(void *data)
 	unsigned long flags;
 #endif
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
 	DAEMONIZE("dhd_sysioc");
+#endif
 
 	complete(&tsk->completed);
 
@@ -1675,7 +1677,9 @@ dhd_watchdog_thread(void *data)
 		setScheduler(current, SCHED_FIFO, &param);
 	}
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
 	DAEMONIZE("dhd_watchdog");
+#endif
 
 	/* Run until signal received */
 	complete(&tsk->completed);
@@ -1762,7 +1766,9 @@ dhd_dpc_thread(void *data)
 		setScheduler(current, SCHED_FIFO, &param);
 	}
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
 	DAEMONIZE("dhd_dpc");
+#endif
 	/* DHD_OS_WAKE_LOCK is called in dhd_sched_dpc[dhd_linux.c] down below  */
 
 	/*  signal: thread has started */
