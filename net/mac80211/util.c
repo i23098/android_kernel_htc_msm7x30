@@ -512,7 +512,7 @@ void ieee80211_wake_queues(struct ieee80211_hw *hw)
 EXPORT_SYMBOL(ieee80211_wake_queues);
 
 void ieee80211_iterate_active_interfaces(
-	struct ieee80211_hw *hw,
+	struct ieee80211_hw *hw, u32 iter_flags,
 	void (*iterator)(void *data, u8 *mac,
 			 struct ieee80211_vif *vif),
 	void *data)
@@ -530,6 +530,9 @@ void ieee80211_iterate_active_interfaces(
 		default:
 			break;
 		}
+		if (!(iter_flags & IEEE80211_IFACE_ITER_RESUME_ALL) &&
+		    !(sdata->flags & IEEE80211_SDATA_IN_DRIVER))
+			continue;
 		if (ieee80211_sdata_running(sdata))
 			iterator(data, sdata->vif.addr,
 				 &sdata->vif);
@@ -537,7 +540,9 @@ void ieee80211_iterate_active_interfaces(
 
 	sdata = rcu_dereference_protected(local->monitor_sdata,
 					  lockdep_is_held(&local->iflist_mtx));
-	if (sdata)
+	if (sdata &&
+	    (iter_flags & IEEE80211_IFACE_ITER_RESUME_ALL ||
+	     sdata->flags & IEEE80211_SDATA_IN_DRIVER))
 		iterator(data, sdata->vif.addr, &sdata->vif);
 
 	mutex_unlock(&local->iflist_mtx);
@@ -545,7 +550,7 @@ void ieee80211_iterate_active_interfaces(
 EXPORT_SYMBOL_GPL(ieee80211_iterate_active_interfaces);
 
 void ieee80211_iterate_active_interfaces_atomic(
-	struct ieee80211_hw *hw,
+	struct ieee80211_hw *hw, u32 iter_flags,
 	void (*iterator)(void *data, u8 *mac,
 			 struct ieee80211_vif *vif),
 	void *data)
@@ -563,13 +568,18 @@ void ieee80211_iterate_active_interfaces_atomic(
 		default:
 			break;
 		}
+		if (!(iter_flags & IEEE80211_IFACE_ITER_RESUME_ALL) &&
+		    !(sdata->flags & IEEE80211_SDATA_IN_DRIVER))
+			continue;
 		if (ieee80211_sdata_running(sdata))
 			iterator(data, sdata->vif.addr,
 				 &sdata->vif);
 	}
 
 	sdata = rcu_dereference(local->monitor_sdata);
-	if (sdata)
+	if (sdata &&
+	    (iter_flags & IEEE80211_IFACE_ITER_RESUME_ALL ||
+	     sdata->flags & IEEE80211_SDATA_IN_DRIVER))
 		iterator(data, sdata->vif.addr, &sdata->vif);
 
 	rcu_read_unlock();
@@ -1407,10 +1417,44 @@ int ieee80211_reconfig(struct ieee80211_local *local)
 	}
 
 	/* add channel contexts */
-	mutex_lock(&local->chanctx_mtx);
-	list_for_each_entry(ctx, &local->chanctx_list, list)
-		WARN_ON(drv_add_chanctx(local, ctx));
-	mutex_unlock(&local->chanctx_mtx);
+	if (local->use_chanctx) {
+		mutex_lock(&local->chanctx_mtx);
+		list_for_each_entry(ctx, &local->chanctx_list, list)
+			WARN_ON(drv_add_chanctx(local, ctx));
+		mutex_unlock(&local->chanctx_mtx);
+	}
+
+	list_for_each_entry(sdata, &local->interfaces, list) {
+		struct ieee80211_chanctx_conf *ctx_conf;
+
+		if (!ieee80211_sdata_running(sdata))
+			continue;
+
+		mutex_lock(&local->chanctx_mtx);
+		ctx_conf = rcu_dereference_protected(sdata->vif.chanctx_conf,
+				lockdep_is_held(&local->chanctx_mtx));
+		if (ctx_conf) {
+			ctx = container_of(ctx_conf, struct ieee80211_chanctx,
+					   conf);
+			drv_assign_vif_chanctx(local, sdata, ctx);
+		}
+		mutex_unlock(&local->chanctx_mtx);
+	}
+
+	sdata = rtnl_dereference(local->monitor_sdata);
+	if (sdata && local->use_chanctx && ieee80211_sdata_running(sdata)) {
+		struct ieee80211_chanctx_conf *ctx_conf;
+
+		mutex_lock(&local->chanctx_mtx);
+		ctx_conf = rcu_dereference_protected(sdata->vif.chanctx_conf,
+				lockdep_is_held(&local->chanctx_mtx));
+		if (ctx_conf) {
+			ctx = container_of(ctx_conf, struct ieee80211_chanctx,
+					   conf);
+			drv_assign_vif_chanctx(local, sdata, ctx);
+		}
+		mutex_unlock(&local->chanctx_mtx);
+	}
 
 	/* add STAs back */
 	mutex_lock(&local->sta_mtx);
@@ -1452,21 +1496,10 @@ int ieee80211_reconfig(struct ieee80211_local *local)
 
 	/* Finally also reconfigure all the BSS information */
 	list_for_each_entry(sdata, &local->interfaces, list) {
-		struct ieee80211_chanctx_conf *ctx_conf;
 		u32 changed;
 
 		if (!ieee80211_sdata_running(sdata))
 			continue;
-
-		mutex_lock(&local->chanctx_mtx);
-		ctx_conf = rcu_dereference_protected(sdata->vif.chanctx_conf,
-				lockdep_is_held(&local->chanctx_mtx));
-		if (ctx_conf) {
-			ctx = container_of(ctx_conf, struct ieee80211_chanctx,
-					   conf);
-			drv_assign_vif_chanctx(local, sdata, ctx);
-		}
-		mutex_unlock(&local->chanctx_mtx);
 
 		/* common change flags for all interface types */
 		changed = BSS_CHANGED_ERP_CTS_PROT |
@@ -1478,7 +1511,8 @@ int ieee80211_reconfig(struct ieee80211_local *local)
 			  BSS_CHANGED_BSSID |
 			  BSS_CHANGED_CQM |
 			  BSS_CHANGED_QOS |
-			  BSS_CHANGED_IDLE;
+			  BSS_CHANGED_IDLE |
+			  BSS_CHANGED_TXPOWER;
 
 		switch (sdata->vif.type) {
 		case NL80211_IFTYPE_STATION:
@@ -1600,8 +1634,10 @@ int ieee80211_reconfig(struct ieee80211_local *local)
 	 * If this is for hw restart things are still running.
 	 * We may want to change that later, however.
 	 */
-	if (!local->suspended)
+	if (!local->suspended) {
+		drv_restart_complete(local);
 		return 0;
+	}
 
 #ifdef CONFIG_PM
 	/* first set suspended false, then resuming */
@@ -1995,4 +2031,55 @@ u8 ieee80211_mcs_to_chains(const struct ieee80211_mcs_info *mcs)
 	if (mcs->rx_mask[1])
 		return 2;
 	return 1;
+}
+
+/**
+ * ieee80211_calculate_rx_timestamp - calculate timestamp in frame
+ * @local: mac80211 hw info struct
+ * @status: RX status
+ * @mpdu_len: total MPDU length (including FCS)
+ * @mpdu_offset: offset into MPDU to calculate timestamp at
+ *
+ * This function calculates the RX timestamp at the given MPDU offset, taking
+ * into account what the RX timestamp was. An offset of 0 will just normalize
+ * the timestamp to TSF at beginning of MPDU reception.
+ */
+u64 ieee80211_calculate_rx_timestamp(struct ieee80211_local *local,
+				     struct ieee80211_rx_status *status,
+				     unsigned int mpdu_len,
+				     unsigned int mpdu_offset)
+{
+	u64 ts = status->mactime;
+	struct rate_info ri;
+	u16 rate;
+
+	if (WARN_ON(!ieee80211_have_rx_timestamp(status)))
+		return 0;
+
+	memset(&ri, 0, sizeof(ri));
+
+	/* Fill cfg80211 rate info */
+	if (status->flag & RX_FLAG_HT) {
+		ri.mcs = status->rate_idx;
+		ri.flags |= RATE_INFO_FLAGS_MCS;
+		if (status->flag & RX_FLAG_40MHZ)
+			ri.flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
+		if (status->flag & RX_FLAG_SHORT_GI)
+			ri.flags |= RATE_INFO_FLAGS_SHORT_GI;
+	} else {
+		struct ieee80211_supported_band *sband;
+
+		sband = local->hw.wiphy->bands[status->band];
+		ri.legacy = sband->bitrates[status->rate_idx].bitrate;
+	}
+
+	rate = cfg80211_calculate_bitrate(&ri);
+
+	/* rewind from end of MPDU */
+	if (status->flag & RX_FLAG_MACTIME_END)
+		ts -= mpdu_len * 8 * 10 / rate;
+
+	ts += mpdu_offset * 8 * 10 / rate;
+
+	return ts;
 }

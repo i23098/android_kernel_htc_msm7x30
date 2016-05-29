@@ -204,7 +204,7 @@ void ieee80211_handle_roc_started(struct ieee80211_roc_work *roc)
 			roc->frame = NULL;
 		}
 	} else {
-		cfg80211_ready_on_channel(&roc->sdata->wdev, (unsigned long)roc,
+		cfg80211_ready_on_channel(&roc->sdata->wdev, roc->cookie,
 					  roc->chan, roc->chan_type,
 					  roc->req_duration, GFP_KERNEL);
 	}
@@ -283,7 +283,7 @@ void ieee80211_start_next_roc(struct ieee80211_local *local)
 		if (!duration)
 			duration = 10;
 
-		ret = drv_remain_on_channel(local, roc->chan,
+		ret = drv_remain_on_channel(local, roc->sdata, roc->chan,
 					    roc->chan_type,
 					    duration);
 
@@ -320,9 +320,8 @@ void ieee80211_roc_notify_destroy(struct ieee80211_roc_work *roc)
 
 	if (!roc->mgmt_tx_cookie)
 		cfg80211_remain_on_channel_expired(&roc->sdata->wdev,
-						   (unsigned long)roc,
-						   roc->chan, roc->chan_type,
-						   GFP_KERNEL);
+						   roc->cookie, roc->chan,
+						   roc->chan_type, GFP_KERNEL);
 
 	list_for_each_entry_safe(dep, tmp, &roc->dependents, list)
 		ieee80211_roc_notify_destroy(dep);

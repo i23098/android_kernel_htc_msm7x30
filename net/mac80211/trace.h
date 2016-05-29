@@ -342,6 +342,9 @@ TRACE_EVENT(drv_bss_info_changed,
 		__field(bool, ps);
 		__dynamic_array(u8, ssid, info->ssid_len);
 		__field(bool, hidden_ssid);
+		__field(int, txpower)
+		__field(u8, p2p_ctwindow)
+		__field(bool, p2p_oppps)
 	),
 
 	TP_fast_assign(
@@ -376,6 +379,9 @@ TRACE_EVENT(drv_bss_info_changed,
 		__entry->ps = info->ps;
 		memcpy(__get_dynamic_array(ssid), info->ssid, info->ssid_len);
 		__entry->hidden_ssid = info->hidden_ssid;
+		__entry->txpower = info->txpower;
+		__entry->p2p_ctwindow = info->p2p_ctwindow;
+		__entry->p2p_oppps = info->p2p_oppps;
 	),
 
 	TP_printk(
@@ -1013,13 +1019,16 @@ TRACE_EVENT(drv_get_antenna,
 );
 
 TRACE_EVENT(drv_remain_on_channel,
-	TP_PROTO(struct ieee80211_local *local, struct ieee80211_channel *chan,
+	TP_PROTO(struct ieee80211_local *local,
+		 struct ieee80211_sub_if_data *sdata,
+		 struct ieee80211_channel *chan,
 		 enum nl80211_channel_type chantype, unsigned int duration),
 
-	TP_ARGS(local, chan, chantype, duration),
+	TP_ARGS(local, sdata, chan, chantype, duration),
 
 	TP_STRUCT__entry(
 		LOCAL_ENTRY
+		VIF_ENTRY
 		__field(int, center_freq)
 		__field(int, channel_type)
 		__field(unsigned int, duration)
@@ -1027,48 +1036,22 @@ TRACE_EVENT(drv_remain_on_channel,
 
 	TP_fast_assign(
 		LOCAL_ASSIGN;
+		VIF_ASSIGN;
 		__entry->center_freq = chan->center_freq;
 		__entry->channel_type = chantype;
 		__entry->duration = duration;
 	),
 
 	TP_printk(
-		LOCAL_PR_FMT " freq:%dMHz duration:%dms",
-		LOCAL_PR_ARG, __entry->center_freq, __entry->duration
+		LOCAL_PR_FMT  VIF_PR_FMT " freq:%dMHz duration:%dms",
+		LOCAL_PR_ARG, VIF_PR_ARG,
+		__entry->center_freq, __entry->duration
 	)
 );
 
 DEFINE_EVENT(local_only_evt, drv_cancel_remain_on_channel,
 	TP_PROTO(struct ieee80211_local *local),
 	TP_ARGS(local)
-);
-
-TRACE_EVENT(drv_offchannel_tx,
-	TP_PROTO(struct ieee80211_local *local, struct sk_buff *skb,
-		 struct ieee80211_channel *chan,
-		 enum nl80211_channel_type channel_type,
-		 unsigned int wait),
-
-	TP_ARGS(local, skb, chan, channel_type, wait),
-
-	TP_STRUCT__entry(
-		LOCAL_ENTRY
-		__field(int, center_freq)
-		__field(int, channel_type)
-		__field(unsigned int, wait)
-	),
-
-	TP_fast_assign(
-		LOCAL_ASSIGN;
-		__entry->center_freq = chan->center_freq;
-		__entry->channel_type = channel_type;
-		__entry->wait = wait;
-	),
-
-	TP_printk(
-		LOCAL_PR_FMT " freq:%dMHz, wait:%dms",
-		LOCAL_PR_ARG, __entry->center_freq, __entry->wait
-	)
 );
 
 TRACE_EVENT(drv_set_ringparam,
@@ -1431,6 +1414,11 @@ DEFINE_EVENT(local_sdata_evt, drv_stop_ap,
 	TP_PROTO(struct ieee80211_local *local,
 		 struct ieee80211_sub_if_data *sdata),
 	TP_ARGS(local, sdata)
+);
+
+DEFINE_EVENT(local_only_evt, drv_restart_complete,
+	TP_PROTO(struct ieee80211_local *local),
+	TP_ARGS(local)
 );
 
 /*

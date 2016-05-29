@@ -172,10 +172,21 @@ static int wl_cfg80211_connect(struct wiphy *wiphy, struct net_device *dev,
 	struct cfg80211_connect_params *sme);
 static s32 wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
 	u16 reason_code);
-static s32 wl_cfg80211_set_tx_power(struct wiphy *wiphy,
-	enum nl80211_tx_power_setting type,
-	s32 dbm);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
+static s32
+wl_cfg80211_set_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,
+	enum nl80211_tx_power_setting type, s32 mbm);
+#else
+static s32
+wl_cfg80211_set_tx_power(struct wiphy *wiphy,
+	enum nl80211_tx_power_setting type, s32 dbm);
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
+static s32 wl_cfg80211_get_tx_power(struct wiphy *wiphy,
+	struct wireless_dev *wdev, s32 *dbm);
+#else
 static s32 wl_cfg80211_get_tx_power(struct wiphy *wiphy, s32 *dbm);
+#endif
 static s32 wl_cfg80211_config_default_key(struct wiphy *wiphy,
 	struct net_device *dev,
 	u8 key_idx, bool unicast, bool multicast);
@@ -2598,13 +2609,22 @@ wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
 	return err;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
+static s32
+wl_cfg80211_set_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,
+	enum nl80211_tx_power_setting type, s32 mbm)
+#else
 static s32
 wl_cfg80211_set_tx_power(struct wiphy *wiphy,
 	enum nl80211_tx_power_setting type, s32 dbm)
+#endif
 {
 
 	struct wl_priv *wl = wiphy_priv(wiphy);
 	struct net_device *ndev = wl_to_prmry_ndev(wl);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
+	s32 dbm = MBM_TO_DBM(mbm);
+#endif
 	u16 txpwrmw;
 	s32 err = 0;
 	s32 disable = 0;
@@ -2650,7 +2670,12 @@ wl_cfg80211_set_tx_power(struct wiphy *wiphy,
 	return err;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
+static s32 wl_cfg80211_get_tx_power(struct wiphy *wiphy,
+	struct wireless_dev *wdev, s32 *dbm)
+#else
 static s32 wl_cfg80211_get_tx_power(struct wiphy *wiphy, s32 *dbm)
+#endif
 {
 	struct wl_priv *wl = wiphy_priv(wiphy);
 	struct net_device *ndev = wl_to_prmry_ndev(wl);
