@@ -394,22 +394,13 @@ static inline void irq_move_masked_irq(struct irq_data *data) { }
 
 extern int no_irq_affinity;
 
-#ifdef CONFIG_ARCH_MSM8X60
-struct _handle_irq {
-	unsigned int last_served_irq;	/* Last serving irq */
-	unsigned int serving_irq;	/* Serving irq */
-};
-
-extern struct _handle_irq *handle_irq;
-extern int *spin_locking_flag;
-
-struct _irq_state {
-	unsigned int irqnr; /*IRQ number*/
-	unsigned int total; /*Total irq count*/
-	unsigned int since_last; /*irq count since last pet*/
-};
-
-extern struct _irq_state *irq_count_info_ptr;
+#ifdef CONFIG_HARDIRQS_SW_RESEND
+int irq_set_parent(int irq, int parent_irq);
+#else
+static inline int irq_set_parent(int irq, int parent_irq)
+{
+	return 0;
+}
 #endif
 
 /*
