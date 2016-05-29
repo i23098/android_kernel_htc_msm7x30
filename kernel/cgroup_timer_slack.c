@@ -99,8 +99,8 @@ static struct cftype files[] = {
 struct cgroup_subsys timer_slack_subsys = {
 	.name		= "timer_slack",
 	.subsys_id	= timer_slack_subsys_id,
-	.create		= tslack_create,
-	.destroy	= tslack_destroy,
+	.css_alloc	= tslack_create,
+	.css_free	= tslack_destroy,
 	.base_cftypes	= files,
 };
 
