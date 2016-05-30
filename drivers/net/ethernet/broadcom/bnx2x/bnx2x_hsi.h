@@ -695,6 +695,7 @@ struct port_hw_cfg {		    /* port 0: 0x12c  port 1: 0x2bc */
 		#define PORT_HW_CFG_XGXS_EXT_PHY2_TYPE_BCM54618SE    0x00000e00
 		#define PORT_HW_CFG_XGXS_EXT_PHY2_TYPE_BCM8722       0x00000f00
 		#define PORT_HW_CFG_XGXS_EXT_PHY2_TYPE_BCM54616      0x00001000
+		#define PORT_HW_CFG_XGXS_EXT_PHY2_TYPE_BCM84834      0x00001100
 		#define PORT_HW_CFG_XGXS_EXT_PHY2_TYPE_FAILURE       0x0000fd00
 		#define PORT_HW_CFG_XGXS_EXT_PHY2_TYPE_NOT_CONN      0x0000ff00
 
@@ -751,6 +752,7 @@ struct port_hw_cfg {		    /* port 0: 0x12c  port 1: 0x2bc */
 		#define PORT_HW_CFG_XGXS_EXT_PHY_TYPE_BCM54618SE     0x00000e00
 		#define PORT_HW_CFG_XGXS_EXT_PHY_TYPE_BCM8722        0x00000f00
 		#define PORT_HW_CFG_XGXS_EXT_PHY_TYPE_BCM54616       0x00001000
+		#define PORT_HW_CFG_XGXS_EXT_PHY_TYPE_BCM84834       0x00001100
 		#define PORT_HW_CFG_XGXS_EXT_PHY_TYPE_DIRECT_WC      0x0000fc00
 		#define PORT_HW_CFG_XGXS_EXT_PHY_TYPE_FAILURE        0x0000fd00
 		#define PORT_HW_CFG_XGXS_EXT_PHY_TYPE_NOT_CONN       0x0000ff00
@@ -1246,6 +1248,7 @@ struct drv_func_mb {
 	#define DRV_MSG_CODE_VRFY_AFEX_SUPPORTED        0xa2000000
 	#define REQ_BC_VER_4_VRFY_AFEX_SUPPORTED        0x00070002
 	#define REQ_BC_VER_4_SFP_TX_DISABLE_SUPPORTED   0x00070014
+	#define REQ_BC_VER_4_MT_SUPPORTED               0x00070201
 	#define REQ_BC_VER_4_PFC_STATS_SUPPORTED        0x00070201
 	#define REQ_BC_VER_4_FCOE_FEATURES              0x00070209
 
@@ -2159,6 +2162,16 @@ struct shmem2_region {
 	#define SHMEM_EEE_TIME_OUTPUT_BIT	   0x80000000
 
 	u32 sizeof_port_stats;
+
+	/* Link Flap Avoidance */
+	u32 lfa_host_addr[PORT_MAX];
+	u32 reserved1;
+
+	u32 reserved2;				/* Offset 0x148 */
+	u32 reserved3;				/* Offset 0x14C */
+	u32 reserved4;				/* Offset 0x150 */
+	u32 link_attr_sync[PORT_MAX];		/* Offset 0x154 */
+	#define LINK_ATTR_SYNC_KR2_ENABLE	(1<<0)
 };
 
 

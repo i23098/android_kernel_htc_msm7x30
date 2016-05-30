@@ -121,11 +121,11 @@ struct tap_filter {
  * also contains all socket related strctures (except sock_fprog and tap_filter)
  * to serve as one transmit queue for tuntap device. The sock_fprog and
  * tap_filter were kept in tun_struct since they were used for filtering for the
- * netdevice not for a specific queue (at least I didn't see the reqirement for
+ * netdevice not for a specific queue (at least I didn't see the requirement for
  * this).
  *
  * RCU usage:
- * The tun_file and tun_struct are loosely coupled, the pointer from on to the
+ * The tun_file and tun_struct are loosely coupled, the pointer from one to the
  * other can only be read while rcu_read_lock or rtnl_lock is held.
  */
 struct tun_file {
@@ -153,7 +153,7 @@ struct tun_flow_entry {
 #define TUN_NUM_FLOW_ENTRIES 1024
 
 /* Since the socket were moved to tun_file, to preserve the behavior of persist
- * device, socket fileter, sndbuf and vnet header size were restore when the
+ * device, socket filter, sndbuf and vnet header size were restore when the
  * file were attached to a persist device.
  */
 struct tun_struct {
@@ -373,10 +373,11 @@ static u16 tun_select_queue(struct net_device *dev, struct sk_buff *skb)
 static inline bool tun_not_capable(struct tun_struct *tun)
 {
 	const struct cred *cred = current_cred();
+	struct net *net = dev_net(tun->dev);
 
 	return ((uid_valid(tun->owner) && !uid_eq(cred->euid, tun->owner)) ||
 		  (gid_valid(tun->group) && !in_egroup_p(tun->group))) &&
-		!capable(CAP_NET_ADMIN);
+		!ns_capable(net->user_ns, CAP_NET_ADMIN);
 }
 
 static void tun_set_real_num_queues(struct tun_struct *tun)
@@ -688,7 +689,7 @@ static netdev_tx_t tun_net_xmit(struct sk_buff *skb, struct net_device *dev)
 	    sk_filter(tfile->socket.sk, skb))
 		goto drop;
 
-	/* Limit the number of packets queued by divining txq length with the
+	/* Limit the number of packets queued by dividing txq length with the
 	 * number of queues.
 	 */
 	if (skb_queue_len(&tfile->socket.sk->sk_receive_queue)
@@ -1295,7 +1296,7 @@ static ssize_t tun_do_read(struct tun_struct *tun, struct tun_file *tfile,
 	struct sk_buff *skb;
 	ssize_t ret = 0;
 
-	tun_debug(KERN_INFO, tun, "tun_chr_read\n");
+	tun_debug(KERN_INFO, tun, "tun_do_read\n");
 
 	if (unlikely(!noblock))
 		add_wait_queue(&tfile->wq.wait, &wait);
@@ -1559,7 +1560,7 @@ static int tun_set_iff(struct net *net, struct file *file, struct ifreq *ifr)
 		char *name;
 		unsigned long flags = 0;
 
-		if (!capable(CAP_NET_ADMIN))
+		if (!ns_capable(net->user_ns, CAP_NET_ADMIN))
 			return -EPERM;
 		err = security_tun_dev_create();
 		if (err < 0)
@@ -1661,7 +1662,7 @@ static int tun_set_iff(struct net *net, struct file *file, struct ifreq *ifr)
 	return err;
 }
 
-static int tun_get_iff(struct net *net, struct tun_struct *tun,
+static void tun_get_iff(struct net *net, struct tun_struct *tun,
 		       struct ifreq *ifr)
 {
 	tun_debug(KERN_INFO, tun, "tun_get_iff\n");
@@ -1670,7 +1671,6 @@ static int tun_get_iff(struct net *net, struct tun_struct *tun,
 
 	ifr->ifr_flags = tun_flags(tun);
 
-	return 0;
 }
 
 /* This is like a cut-down ethtool ops, except done via tun fd so no
@@ -1852,9 +1852,7 @@ static long __tun_chr_ioctl(struct file *file, unsigned int cmd,
 	ret = 0;
 	switch (cmd) {
 	case TUNGETIFF:
-		ret = tun_get_iff(current->nsproxy->net_ns, tun, &ifr);
-		if (ret)
-			break;
+		tun_get_iff(current->nsproxy->net_ns, tun, &ifr);
 
 		if (copy_to_user(argp, &ifr, ifreq_len))
 			ret = -EFAULT;
