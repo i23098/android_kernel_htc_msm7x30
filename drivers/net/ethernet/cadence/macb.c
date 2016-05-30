@@ -16,6 +16,7 @@
 #include <linux/types.h>
 #include <linux/slab.h>
 #include <linux/init.h>
+#include <linux/gpio.h>
 #include <linux/interrupt.h>
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
@@ -107,6 +108,14 @@ void macb_set_hwaddr(struct macb *bp)
 	macb_or_gem_writel(bp, SA1B, bottom);
 	top = cpu_to_le16(*((u16 *)(bp->dev->dev_addr + 4)));
 	macb_or_gem_writel(bp, SA1T, top);
+
+	/* Clear unused address register sets */
+	macb_or_gem_writel(bp, SA2B, 0);
+	macb_or_gem_writel(bp, SA2T, 0);
+	macb_or_gem_writel(bp, SA3B, 0);
+	macb_or_gem_writel(bp, SA3T, 0);
+	macb_or_gem_writel(bp, SA4B, 0);
+	macb_or_gem_writel(bp, SA4T, 0);
 }
 EXPORT_SYMBOL_GPL(macb_set_hwaddr);
 
@@ -261,7 +270,9 @@ static void macb_handle_link_change(struct net_device *dev)
 static int macb_mii_probe(struct net_device *dev)
 {
 	struct macb *bp = netdev_priv(dev);
+	struct macb_platform_data *pdata;
 	struct phy_device *phydev;
+	int phy_irq;
 	int ret;
 
 	phydev = phy_find_first(bp->mii_bus);
@@ -270,7 +281,14 @@ static int macb_mii_probe(struct net_device *dev)
 		return -1;
 	}
 
-	/* TODO : add pin_irq */
+	pdata = dev_get_platdata(&bp->pdev->dev);
+	if (pdata && gpio_is_valid(pdata->phy_irq_pin)) {
+		ret = devm_gpio_request(&bp->pdev->dev, pdata->phy_irq_pin, "phy int");
+		if (!ret) {
+			phy_irq = gpio_to_irq(pdata->phy_irq_pin);
+			phydev->irq = (phy_irq < 0) ? PHY_POLL : phy_irq;
+		}
+	}
 
 	/* attach the mac to the phy */
 	ret = phy_connect_direct(dev, phydev, &macb_handle_link_change, 0,

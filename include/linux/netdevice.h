@@ -1512,16 +1512,25 @@ struct packet_type {
 					 struct net_device *,
 					 struct packet_type *,
 					 struct net_device *);
+	bool			(*id_match)(struct packet_type *ptype,
+					    struct sock *sk);
+	void			*af_packet_priv;
+	struct list_head	list;
+};
+
+struct offload_callbacks {
 	struct sk_buff		*(*gso_segment)(struct sk_buff *skb,
 						netdev_features_t features);
 	int			(*gso_send_check)(struct sk_buff *skb);
 	struct sk_buff		**(*gro_receive)(struct sk_buff **head,
 					       struct sk_buff *skb);
 	int			(*gro_complete)(struct sk_buff *skb);
-	bool			(*id_match)(struct packet_type *ptype,
-					    struct sock *sk);
-	void			*af_packet_priv;
-	struct list_head	list;
+};
+
+struct packet_offload {
+	__be16			 type;	/* This is really htons(ether_type). */
+	struct offload_callbacks callbacks;
+	struct list_head	 list;
 };
 
 #include <linux/notifier.h>
@@ -1618,6 +1627,9 @@ extern struct net_device *__dev_getfirstbyhwtype(struct net *net, unsigned short
 extern void		dev_add_pack(struct packet_type *pt);
 extern void		dev_remove_pack(struct packet_type *pt);
 extern void		__dev_remove_pack(struct packet_type *pt);
+extern void		dev_add_offload(struct packet_offload *po);
+extern void		dev_remove_offload(struct packet_offload *po);
+extern void		__dev_remove_offload(struct packet_offload *po);
 
 extern struct net_device	*dev_get_by_flags_rcu(struct net *net, unsigned short flags,
 						      unsigned short mask);

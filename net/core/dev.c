@@ -176,8 +176,10 @@
 #define PTYPE_HASH_MASK	(PTYPE_HASH_SIZE - 1)
 
 static DEFINE_SPINLOCK(ptype_lock);
+static DEFINE_SPINLOCK(offload_lock);
 static struct list_head ptype_base[PTYPE_HASH_SIZE] __read_mostly;
 static struct list_head ptype_all __read_mostly;	/* Taps */
+static struct list_head offload_base __read_mostly;
 
 /*
  * The @dev_base_head list is protected by @dev_base_lock and the rtnl
@@ -469,6 +471,82 @@ void dev_remove_pack(struct packet_type *pt)
 	synchronize_net();
 }
 EXPORT_SYMBOL(dev_remove_pack);
+
+
+/**
+ *	dev_add_offload - register offload handlers
+ *	@po: protocol offload declaration
+ *
+ *	Add protocol offload handlers to the networking stack. The passed
+ *	&proto_offload is linked into kernel lists and may not be freed until
+ *	it has been removed from the kernel lists.
+ *
+ *	This call does not sleep therefore it can not
+ *	guarantee all CPU's that are in middle of receiving packets
+ *	will see the new offload handlers (until the next received packet).
+ */
+void dev_add_offload(struct packet_offload *po)
+{
+	struct list_head *head = &offload_base;
+
+	spin_lock(&offload_lock);
+	list_add_rcu(&po->list, head);
+	spin_unlock(&offload_lock);
+}
+EXPORT_SYMBOL(dev_add_offload);
+
+/**
+ *	__dev_remove_offload	 - remove offload handler
+ *	@po: packet offload declaration
+ *
+ *	Remove a protocol offload handler that was previously added to the
+ *	kernel offload handlers by dev_add_offload(). The passed &offload_type
+ *	is removed from the kernel lists and can be freed or reused once this
+ *	function returns.
+ *
+ *      The packet type might still be in use by receivers
+ *	and must not be freed until after all the CPU's have gone
+ *	through a quiescent state.
+ */
+void __dev_remove_offload(struct packet_offload *po)
+{
+	struct list_head *head = &offload_base;
+	struct packet_offload *po1;
+
+	spin_lock(&offload_lock);
+
+	list_for_each_entry(po1, head, list) {
+		if (po == po1) {
+			list_del_rcu(&po->list);
+			goto out;
+		}
+	}
+
+	pr_warn("dev_remove_offload: %p not found\n", po);
+out:
+	spin_unlock(&offload_lock);
+}
+EXPORT_SYMBOL(__dev_remove_offload);
+
+/**
+ *	dev_remove_offload	 - remove packet offload handler
+ *	@po: packet offload declaration
+ *
+ *	Remove a packet offload handler that was previously added to the kernel
+ *	offload handlers by dev_add_offload(). The passed &offload_type is
+ *	removed from the kernel lists and can be freed or reused once this
+ *	function returns.
+ *
+ *	This call sleeps to guarantee that no CPU is looking at the packet
+ *	type after return.
+ */
+void dev_remove_offload(struct packet_offload *po)
+{
+	__dev_remove_offload(po);
+
+	synchronize_net();
+}
+EXPORT_SYMBOL(dev_remove_offload);
 
 /******************************************************************************
 
@@ -1994,7 +2072,7 @@ struct sk_buff *skb_gso_segment(struct sk_buff *skb,
 	netdev_features_t features)
 {
 	struct sk_buff *segs = ERR_PTR(-EPROTONOSUPPORT);
-	struct packet_type *ptype;
+	struct packet_offload *ptype;
 	__be16 type = skb->protocol;
 	int vlan_depth = ETH_HLEN;
 	int err;
@@ -2023,18 +2101,17 @@ struct sk_buff *skb_gso_segment(struct sk_buff *skb,
 	}
 
 	rcu_read_lock();
-	list_for_each_entry_rcu(ptype,
-			&ptype_base[ntohs(type) & PTYPE_HASH_MASK], list) {
-		if (ptype->type == type && !ptype->dev && ptype->gso_segment) {
+	list_for_each_entry_rcu(ptype, &offload_base, list) {
+		if (ptype->type == type && ptype->callbacks.gso_segment) {
 			if (unlikely(skb->ip_summed != CHECKSUM_PARTIAL)) {
-				err = ptype->gso_send_check(skb);
+				err = ptype->callbacks.gso_send_check(skb);
 				segs = ERR_PTR(err);
 				if (err || skb_gso_ok(skb, features))
 					break;
 				__skb_push(skb, (skb->data -
 						 skb_network_header(skb)));
 			}
-			segs = ptype->gso_segment(skb, features);
+			segs = ptype->callbacks.gso_segment(skb, features);
 			break;
 		}
 	}
@@ -3446,9 +3523,9 @@ static void flush_backlog(void *arg)
 
 static int napi_gro_complete(struct sk_buff *skb)
 {
-	struct packet_type *ptype;
+	struct packet_offload *ptype;
 	__be16 type = skb->protocol;
-	struct list_head *head = &ptype_base[ntohs(type) & PTYPE_HASH_MASK];
+	struct list_head *head = &offload_base;
 	int err = -ENOENT;
 
 	BUILD_BUG_ON(sizeof(struct napi_gro_cb) > sizeof(skb->cb));
@@ -3460,10 +3537,10 @@ static int napi_gro_complete(struct sk_buff *skb)
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(ptype, head, list) {
-		if (ptype->type != type || ptype->dev || !ptype->gro_complete)
+		if (ptype->type != type || !ptype->callbacks.gro_complete)
 			continue;
 
-		err = ptype->gro_complete(skb);
+		err = ptype->callbacks.gro_complete(skb);
 		break;
 	}
 	rcu_read_unlock();
@@ -3510,9 +3587,9 @@ EXPORT_SYMBOL(napi_gro_flush);
 enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 {
 	struct sk_buff **pp = NULL;
-	struct packet_type *ptype;
+	struct packet_offload *ptype;
 	__be16 type = skb->protocol;
-	struct list_head *head = &ptype_base[ntohs(type) & PTYPE_HASH_MASK];
+	struct list_head *head = &offload_base;
 	int same_flow;
 	int mac_len;
 	enum gro_result ret;
@@ -3525,7 +3602,7 @@ enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(ptype, head, list) {
-		if (ptype->type != type || ptype->dev || !ptype->gro_receive)
+		if (ptype->type != type || !ptype->callbacks.gro_receive)
 			continue;
 
 		skb_set_network_header(skb, skb_gro_offset(skb));
@@ -3535,7 +3612,7 @@ enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 		NAPI_GRO_CB(skb)->flush = 0;
 		NAPI_GRO_CB(skb)->free = 0;
 
-		pp = ptype->gro_receive(&napi->gro_list, skb);
+		pp = ptype->callbacks.gro_receive(&napi->gro_list, skb);
 		break;
 	}
 	rcu_read_unlock();
@@ -6664,6 +6741,8 @@ static int __init net_dev_init(void)
 	INIT_LIST_HEAD(&ptype_all);
 	for (i = 0; i < PTYPE_HASH_SIZE; i++)
 		INIT_LIST_HEAD(&ptype_base[i]);
+
+	INIT_LIST_HEAD(&offload_base);
 
 	if (register_pernet_subsys(&netdev_net_ops))
 		goto out;
