@@ -5607,10 +5607,19 @@ static s32 wl_update_bss_info(struct wl_priv *wl, struct net_device *ndev)
 		beacon_interval = cpu_to_le16(bi->beacon_period);
 	} else {
 		WL_DBG(("Found the AP in the list - BSSID %pM\n", bss->bssid));
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+		ie = (u8 *)bss->ies->data;
+		ie_len = bss->ies->len;
+#else
 		ie = bss->information_elements;
 		ie_len = bss->len_information_elements;
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0) */
 		beacon_interval = bss->beacon_interval;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0))
+		cfg80211_put_bss(wiphy, bss);
+#else
 		cfg80211_put_bss(bss);
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0) */
 	}
 
 	tim = bcm_parse_tlvs(ie, ie_len, WLAN_EID_TIM);
