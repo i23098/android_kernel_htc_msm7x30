@@ -62,7 +62,9 @@ static const struct {
 						8, "[%s]: tpa_aggregations" },
 	{ Q_STATS_OFFSET32(total_tpa_aggregated_frames_hi),
 					8, "[%s]: tpa_aggregated_frames"},
-	{ Q_STATS_OFFSET32(total_tpa_bytes_hi),	8, "[%s]: tpa_bytes"}
+	{ Q_STATS_OFFSET32(total_tpa_bytes_hi),	8, "[%s]: tpa_bytes"},
+	{ Q_STATS_OFFSET32(driver_filtered_tx_pkt),
+					4, "[%s]: driver_filtered_tx_pkt" }
 };
 
 #define BNX2X_NUM_Q_STATS ARRAY_SIZE(bnx2x_q_stats_arr)
@@ -177,6 +179,8 @@ static const struct {
 			4, STATS_FLAGS_FUNC, "recoverable_errors" },
 	{ STATS_OFFSET32(unrecoverable_error),
 			4, STATS_FLAGS_FUNC, "unrecoverable_errors" },
+	{ STATS_OFFSET32(driver_filtered_tx_pkt),
+			4, STATS_FLAGS_FUNC, "driver_filtered_tx_pkt" },
 	{ STATS_OFFSET32(eee_tx_lpi),
 			4, STATS_FLAGS_PORT, "Tx LPI entry count"}
 };
@@ -227,18 +231,14 @@ static int bnx2x_get_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 		cmd->advertising &= ~(ADVERTISED_10000baseT_Full);
 	}
 
-	if ((bp->state == BNX2X_STATE_OPEN) && (bp->link_vars.link_up)) {
-		if (!(bp->flags & MF_FUNC_DIS)) {
-			ethtool_cmd_speed_set(cmd, bp->link_vars.line_speed);
+	if ((bp->state == BNX2X_STATE_OPEN) && bp->link_vars.link_up &&
+	    !(bp->flags & MF_FUNC_DIS)) {
 			cmd->duplex = bp->link_vars.duplex;
-		} else {
-			ethtool_cmd_speed_set(
-				cmd, bp->link_params.req_line_speed[cfg_idx]);
-			cmd->duplex = bp->link_params.req_duplex[cfg_idx];
-		}
 
 		if (IS_MF(bp) && !BP_NOMCP(bp))
 			ethtool_cmd_speed_set(cmd, bnx2x_get_mf_speed(bp));
+		else
+			ethtool_cmd_speed_set(cmd, bp->link_vars.line_speed);
 	} else {
 		cmd->duplex = DUPLEX_UNKNOWN;
 		ethtool_cmd_speed_set(cmd, SPEED_UNKNOWN);

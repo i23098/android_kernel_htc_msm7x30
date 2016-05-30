@@ -4462,11 +4462,12 @@ static void ixgbe_tx_timeout(struct net_device *netdev)
  * Fields are initialized based on PCI device information and
  * OS network device settings (MTU size).
  **/
-static int __devinit ixgbe_sw_init(struct ixgbe_adapter *adapter)
+static int ixgbe_sw_init(struct ixgbe_adapter *adapter)
 {
 	struct ixgbe_hw *hw = &adapter->hw;
 	struct pci_dev *pdev = adapter->pdev;
 	unsigned int rss;
+	u32 fwsm;
 #ifdef CONFIG_IXGBE_DCB
 	int j;
 	struct tc_configuration *tc;
@@ -4490,7 +4491,9 @@ static int __devinit ixgbe_sw_init(struct ixgbe_adapter *adapter)
 		adapter->max_q_vectors = MAX_Q_VECTORS_82598;
 		break;
 	case ixgbe_mac_X540:
-		adapter->flags2 |= IXGBE_FLAG2_TEMP_SENSOR_CAPABLE;
+		fwsm = IXGBE_READ_REG(hw, IXGBE_FWSM);
+		if (fwsm & IXGBE_FWSM_TS_ENABLED)
+			adapter->flags2 |= IXGBE_FLAG2_TEMP_SENSOR_CAPABLE;
 	case ixgbe_mac_82599EB:
 		adapter->max_q_vectors = MAX_Q_VECTORS_82599;
 		adapter->flags2 |= IXGBE_FLAG2_RSC_CAPABLE;
@@ -7183,8 +7186,7 @@ int ixgbe_wol_supported(struct ixgbe_adapter *adapter, u16 device_id,
  * The OS initialization, configuring of the adapter private structure,
  * and a hardware reset occur.
  **/
-static int __devinit ixgbe_probe(struct pci_dev *pdev,
-				 const struct pci_device_id *ent)
+static int ixgbe_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 {
 	struct net_device *netdev;
 	struct ixgbe_adapter *adapter = NULL;
@@ -7444,7 +7446,7 @@ static int __devinit ixgbe_probe(struct pci_dev *pdev,
 	memcpy(netdev->dev_addr, hw->mac.perm_addr, netdev->addr_len);
 	memcpy(netdev->perm_addr, hw->mac.perm_addr, netdev->addr_len);
 
-	if (ixgbe_validate_mac_addr(netdev->perm_addr)) {
+	if (!is_valid_ether_addr(netdev->perm_addr)) {
 		e_dev_err("invalid MAC address\n");
 		err = -EIO;
 		goto err_sw_init;
@@ -7590,7 +7592,7 @@ err_dma:
  * Hot-Plug event, or because the driver is going to be removed from
  * memory.
  **/
-static void __devexit ixgbe_remove(struct pci_dev *pdev)
+static void ixgbe_remove(struct pci_dev *pdev)
 {
 	struct ixgbe_adapter *adapter = pci_get_drvdata(pdev);
 	struct net_device *netdev = adapter->netdev;
@@ -7830,7 +7832,7 @@ static struct pci_driver ixgbe_driver = {
 	.name     = ixgbe_driver_name,
 	.id_table = ixgbe_pci_tbl,
 	.probe    = ixgbe_probe,
-	.remove   = __devexit_p(ixgbe_remove),
+	.remove   = ixgbe_remove,
 #ifdef CONFIG_PM
 	.suspend  = ixgbe_suspend,
 	.resume   = ixgbe_resume,

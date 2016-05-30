@@ -493,9 +493,6 @@ static int tun_attach(struct tun_struct *tun, struct file *file)
 
 	tun_set_real_num_queues(tun);
 
-	if (tun->numqueues == 1)
-		netif_carrier_on(tun->dev);
-
 	/* device is allowed to go away first, so no need to hold extra
 	 * refcnt.
 	 */
@@ -693,21 +690,8 @@ static netdev_tx_t tun_net_xmit(struct sk_buff *skb, struct net_device *dev)
 	 * number of queues.
 	 */
 	if (skb_queue_len(&tfile->socket.sk->sk_receive_queue)
-			  >= dev->tx_queue_len / tun->numqueues){
-		if (!(tun->flags & TUN_ONE_QUEUE)) {
-			/* Normal queueing mode. */
-			/* Packet scheduler handles dropping of further packets. */
-			netif_stop_subqueue(dev, txq);
-
-			/* We won't see all dropped packets individually, so overrun
-			 * error is more appropriate. */
-			dev->stats.tx_fifo_errors++;
-		} else {
-			/* Single queue mode.
-			 * Driver handles dropping of all packets itself. */
-			goto drop;
-		}
-	}
+			  >= dev->tx_queue_len / tun->numqueues)
+		goto drop;
 
 	/* Orphan the skb - required as we might hang on to it
 	 * for indefinite time. */
@@ -865,6 +849,7 @@ static void tun_net_init(struct net_device *dev)
 		/* Ethernet TAP Device */
 		ether_setup(dev);
 		dev->priv_flags &= ~IFF_TX_SKB_SHARING;
+		dev->priv_flags |= IFF_LIVE_ADDR_CHANGE;
 
 		eth_hw_addr_random(dev);
 
@@ -1322,7 +1307,6 @@ static ssize_t tun_do_read(struct tun_struct *tun, struct tun_file *tfile,
 			schedule();
 			continue;
 		}
-		netif_wake_subqueue(tun->dev, tfile->queue_index);
 
 		ret = tun_put_user(tun, tfile, skb, iv, len);
 		kfree_skb(skb);
@@ -1485,6 +1469,9 @@ static int tun_flags(struct tun_struct *tun)
 	if (tun->flags & TUN_NO_PI)
 		flags |= IFF_NO_PI;
 
+	/* This flag has no real effect.  We track the value for backwards
+	 * compatibility.
+	 */
 	if (tun->flags & TUN_ONE_QUEUE)
 		flags |= IFF_ONE_QUEUE;
 
@@ -1605,12 +1592,17 @@ static int tun_set_iff(struct net *net, struct file *file, struct ifreq *ifr)
 
 		tun_net_init(dev);
 
-		if (tun_flow_init(tun))
+		err = tun_flow_init(tun);
+		if (err < 0)
 			goto err_free_dev;
 
 		dev->hw_features = NETIF_F_SG | NETIF_F_FRAGLIST |
 			TUN_USER_FEATURES;
 		dev->features = dev->hw_features;
+
+		err = tun_attach(tun, file);
+		if (err < 0)
+			goto err_free_dev;
 
 		err = register_netdevice(tun->dev);
 		if (err < 0)
@@ -1621,9 +1613,7 @@ static int tun_set_iff(struct net *net, struct file *file, struct ifreq *ifr)
 		    device_create_file(&tun->dev->dev, &dev_attr_group))
 			pr_err("Failed to create tun sysfs files\n");
 
-		err = tun_attach(tun, file);
-		if (err < 0)
-			goto err_free_dev;
+		netif_carrier_on(tun->dev);
 	}
 
 	tun_debug(KERN_INFO, tun, "tun_set_iff\n");
@@ -1633,6 +1623,9 @@ static int tun_set_iff(struct net *net, struct file *file, struct ifreq *ifr)
 	else
 		tun->flags &= ~TUN_NO_PI;
 
+	/* This flag has no real effect.  We track the value for backwards
+	 * compatibility.
+	 */
 	if (ifr->ifr_flags & IFF_ONE_QUEUE)
 		tun->flags |= TUN_ONE_QUEUE;
 	else

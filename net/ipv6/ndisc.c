@@ -370,12 +370,12 @@ static void pndisc_destructor(struct pneigh_entry *n)
 	ipv6_dev_mc_dec(dev, &maddr);
 }
 
-struct sk_buff *ndisc_build_skb(struct net_device *dev,
-				const struct in6_addr *daddr,
-				const struct in6_addr *saddr,
-				struct icmp6hdr *icmp6h,
-				const struct in6_addr *target,
-				int llinfo)
+static struct sk_buff *ndisc_build_skb(struct net_device *dev,
+				       const struct in6_addr *daddr,
+				       const struct in6_addr *saddr,
+				       struct icmp6hdr *icmp6h,
+				       const struct in6_addr *target,
+				       int llinfo)
 {
 	struct net *net = dev_net(dev);
 	struct sock *sk = net->ipv6.ndisc_sk;
@@ -431,14 +431,11 @@ struct sk_buff *ndisc_build_skb(struct net_device *dev,
 	return skb;
 }
 
-EXPORT_SYMBOL(ndisc_build_skb);
-
-void ndisc_send_skb(struct sk_buff *skb,
-		    struct net_device *dev,
-		    struct neighbour *neigh,
-		    const struct in6_addr *daddr,
-		    const struct in6_addr *saddr,
-		    struct icmp6hdr *icmp6h)
+static void ndisc_send_skb(struct sk_buff *skb, struct net_device *dev,
+			   struct neighbour *neigh,
+			   const struct in6_addr *daddr,
+			   const struct in6_addr *saddr,
+			   struct icmp6hdr *icmp6h)
 {
 	struct flowi6 fl6;
 	struct dst_entry *dst;
@@ -472,8 +469,6 @@ void ndisc_send_skb(struct sk_buff *skb,
 
 	rcu_read_unlock();
 }
-
-EXPORT_SYMBOL(ndisc_send_skb);
 
 /*
  *	Send a Neighbour Discover packet
@@ -1032,18 +1027,6 @@ errout:
 	rtnl_set_sk_err(net, RTNLGRP_ND_USEROPT, err);
 }
 
-static inline int accept_ra(struct inet6_dev *in6_dev)
-{
-	/*
-	 * If forwarding is enabled, RA are not accepted unless the special
-	 * hybrid mode (accept_ra=2) is enabled.
-	 */
-	if (in6_dev->cnf.forwarding && in6_dev->cnf.accept_ra < 2)
-		return 0;
-
-	return in6_dev->cnf.accept_ra;
-}
-
 static void ndisc_router_discovery(struct sk_buff *skb)
 {
 	struct ra_msg *ra_msg = (struct ra_msg *)skb_transport_header(skb);
@@ -1091,7 +1074,7 @@ static void ndisc_router_discovery(struct sk_buff *skb)
 		return;
 	}
 
-	if (!accept_ra(in6_dev))
+	if (!ipv6_accept_ra(in6_dev))
 		goto skip_linkparms;
 
 #ifdef CONFIG_IPV6_NDISC_NODETYPE
@@ -1247,7 +1230,7 @@ skip_linkparms:
 			     NEIGH_UPDATE_F_ISROUTER);
 	}
 
-	if (!accept_ra(in6_dev))
+	if (!ipv6_accept_ra(in6_dev))
 		goto out;
 
 #ifdef CONFIG_IPV6_ROUTE_INFO

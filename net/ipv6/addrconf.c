@@ -471,6 +471,10 @@ static int inet6_netconf_msgsize_devconf(int type)
 	/* type -1 is used for ALL */
 	if (type == -1 || type == NETCONFA_FORWARDING)
 		size += nla_total_size(4);
+#ifdef CONFIG_IPV6_MROUTE
+	if (type == -1 || type == NETCONFA_MC_FORWARDING)
+		size += nla_total_size(4);
+#endif
 
 	return size;
 }
@@ -498,7 +502,12 @@ static int inet6_netconf_fill_devconf(struct sk_buff *skb, int ifindex,
 	if ((type == -1 || type == NETCONFA_FORWARDING) &&
 	    nla_put_s32(skb, NETCONFA_FORWARDING, devconf->forwarding) < 0)
 		goto nla_put_failure;
-
+#ifdef CONFIG_IPV6_MROUTE
+	if ((type == -1 || type == NETCONFA_MC_FORWARDING) &&
+	    nla_put_s32(skb, NETCONFA_MC_FORWARDING,
+			devconf->mc_forwarding) < 0)
+		goto nla_put_failure;
+#endif
 	return nlmsg_end(skb, nlh);
 
 nla_put_failure:
@@ -506,8 +515,8 @@ nla_put_failure:
 	return -EMSGSIZE;
 }
 
-static void inet6_netconf_notify_devconf(struct net *net, int type, int ifindex,
-					 struct ipv6_devconf *devconf)
+void inet6_netconf_notify_devconf(struct net *net, int type, int ifindex,
+				  struct ipv6_devconf *devconf)
 {
 	struct sk_buff *skb;
 	int err = -ENOBUFS;
@@ -3052,7 +3061,7 @@ static void addrconf_rs_timer(unsigned long data)
 	if (idev->dead || !(idev->if_flags & IF_READY))
 		goto out;
 
-	if (idev->cnf.forwarding)
+	if (!ipv6_accept_ra(idev))
 		goto out;
 
 	/* Announcement received after solicitation was sent */
@@ -3221,8 +3230,7 @@ static void addrconf_dad_completed(struct inet6_ifaddr *ifp)
 	   router advertisements, start sending router solicitations.
 	 */
 
-	if (((ifp->idev->cnf.accept_ra == 1 && !ifp->idev->cnf.forwarding) ||
-	     ifp->idev->cnf.accept_ra == 2) &&
+	if (ipv6_accept_ra(ifp->idev) &&
 	    ifp->idev->cnf.rtr_solicits > 0 &&
 	    (dev->flags&IFF_LOOPBACK) == 0 &&
 	    (ipv6_addr_type(&ifp->addr) & IPV6_ADDR_LINKLOCAL)) {

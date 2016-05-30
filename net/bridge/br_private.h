@@ -137,6 +137,7 @@ struct net_bridge_port
 #define BR_HAIRPIN_MODE		0x00000001
 #define BR_BPDU_GUARD           0x00000002
 #define BR_ROOT_BLOCK		0x00000004
+#define BR_MULTICAST_FAST_LEAVE	0x00000008
 
 #ifdef CONFIG_BRIDGE_IGMP_SNOOPING
 	u32				multicast_startup_queries_sent;
@@ -410,6 +411,7 @@ extern int br_ioctl_deviceless_stub(struct net *net, unsigned int cmd, void __us
 
 /* br_multicast.c */
 #ifdef CONFIG_BRIDGE_IGMP_SNOOPING
+extern unsigned int br_mdb_rehash_seq;
 extern int br_multicast_rcv(struct net_bridge *br,
 			    struct net_bridge_port *port,
 			    struct sk_buff *skb);
@@ -432,6 +434,32 @@ extern int br_multicast_set_port_router(struct net_bridge_port *p,
 extern int br_multicast_toggle(struct net_bridge *br, unsigned long val);
 extern int br_multicast_set_querier(struct net_bridge *br, unsigned long val);
 extern int br_multicast_set_hash_max(struct net_bridge *br, unsigned long val);
+extern struct net_bridge_mdb_entry *br_mdb_ip_get(
+				struct net_bridge_mdb_htable *mdb,
+				struct br_ip *dst);
+extern struct net_bridge_mdb_entry *br_multicast_new_group(struct net_bridge *br,
+				struct net_bridge_port *port, struct br_ip *group);
+extern void br_multicast_free_pg(struct rcu_head *head);
+extern struct net_bridge_port_group *br_multicast_new_port_group(
+				struct net_bridge_port *port,
+				struct br_ip *group,
+				struct net_bridge_port_group *next);
+extern void br_mdb_init(void);
+extern void br_mdb_notify(struct net_device *dev, struct net_bridge_port *port,
+			  struct br_ip *group, int type);
+
+#define mlock_dereference(X, br) \
+	rcu_dereference_protected(X, lockdep_is_held(&br->multicast_lock))
+
+#if IS_ENABLED(CONFIG_IPV6)
+#include <net/addrconf.h>
+static inline int ipv6_is_transient_multicast(const struct in6_addr *addr)
+{
+	if (ipv6_addr_is_multicast(addr) && IPV6_ADDR_MC_FLAG_TRANSIENT(addr))
+		return 1;
+	return 0;
+}
+#endif
 
 static inline bool br_multicast_is_router(struct net_bridge *br)
 {

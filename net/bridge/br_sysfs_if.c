@@ -172,6 +172,8 @@ static int store_multicast_router(struct net_bridge_port *p,
 }
 static BRPORT_ATTR(multicast_router, S_IRUGO | S_IWUSR, show_multicast_router,
 		   store_multicast_router);
+
+BRPORT_ATTR_FLAG(multicast_fast_leave, BR_MULTICAST_FAST_LEAVE);
 #endif
 
 static const struct brport_attribute *brport_attrs[] = {
@@ -195,6 +197,7 @@ static const struct brport_attribute *brport_attrs[] = {
 	&brport_attr_root_block,
 #ifdef CONFIG_BRIDGE_IGMP_SNOOPING
 	&brport_attr_multicast_router,
+	&brport_attr_multicast_fast_leave,
 #endif
 	NULL
 };

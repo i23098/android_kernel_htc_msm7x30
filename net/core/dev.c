@@ -2324,6 +2324,13 @@ int dev_hard_start_xmit(struct sk_buff *skb, struct net_device *dev,
 			skb->vlan_tci = 0;
 		}
 
+		/* If encapsulation offload request, verify we are testing
+		 * hardware encapsulation features instead of standard
+		 * features for the netdev
+		 */
+		if (skb->encapsulation)
+			features &= dev->hw_enc_features;
+
 		if (netif_needs_gso(skb, features)) {
 			if (unlikely(dev_gso_segment(skb, features)))
 				goto out_kfree_skb;
@@ -2339,8 +2346,12 @@ int dev_hard_start_xmit(struct sk_buff *skb, struct net_device *dev,
 			 * checksumming here.
 			 */
 			if (skb->ip_summed == CHECKSUM_PARTIAL) {
-				skb_set_transport_header(skb,
-					skb_checksum_start_offset(skb));
+				if (skb->encapsulation)
+					skb_set_inner_transport_header(skb,
+						skb_checksum_start_offset(skb));
+				else
+					skb_set_transport_header(skb,
+						skb_checksum_start_offset(skb));
 				if (!(features & NETIF_F_ALL_CSUM) &&
 				     skb_checksum_help(skb))
 					goto out_kfree_skb;
@@ -3594,6 +3605,28 @@ void napi_gro_flush(struct napi_struct *napi, bool flush_old)
 }
 EXPORT_SYMBOL(napi_gro_flush);
 
+static void gro_list_prepare(struct napi_struct *napi, struct sk_buff *skb)
+{
+	struct sk_buff *p;
+	unsigned int maclen = skb->dev->hard_header_len;
+
+	for (p = napi->gro_list; p; p = p->next) {
+		unsigned long diffs;
+
+		diffs = (unsigned long)p->dev ^ (unsigned long)skb->dev;
+		diffs |= p->vlan_tci ^ skb->vlan_tci;
+		if (maclen == ETH_HLEN)
+			diffs |= compare_ether_header(skb_mac_header(p),
+						      skb_gro_mac_header(skb));
+		else if (!diffs)
+			diffs = memcmp(skb_mac_header(p),
+				       skb_gro_mac_header(skb),
+				       maclen);
+		NAPI_GRO_CB(p)->same_flow = !diffs;
+		NAPI_GRO_CB(p)->flush = 0;
+	}
+}
+
 static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 {
 	struct sk_buff **pp = NULL;
@@ -3609,6 +3642,8 @@ static enum gro_result dev_gro_receive(struct napi_struct *napi, struct sk_buff 
 
 	if (skb_is_gso(skb) || skb_has_frag_list(skb))
 		goto normal;
+
+	gro_list_prepare(napi, skb);
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(ptype, head, list) {
@@ -3686,30 +3721,6 @@ normal:
 	goto pull;
 }
 
-static inline gro_result_t
-__napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
-{
-	struct sk_buff *p;
-	unsigned int maclen = skb->dev->hard_header_len;
-
-	for (p = napi->gro_list; p; p = p->next) {
-		unsigned long diffs;
-
-		diffs = (unsigned long)p->dev ^ (unsigned long)skb->dev;
-		diffs |= p->vlan_tci ^ skb->vlan_tci;
-		if (maclen == ETH_HLEN)
-			diffs |= compare_ether_header(skb_mac_header(p),
-						      skb_gro_mac_header(skb));
-		else if (!diffs)
-			diffs = memcmp(skb_mac_header(p),
-				       skb_gro_mac_header(skb),
-				       maclen);
-		NAPI_GRO_CB(p)->same_flow = !diffs;
-		NAPI_GRO_CB(p)->flush = 0;
-	}
-
-	return dev_gro_receive(napi, skb);
-}
 
 static gro_result_t napi_skb_finish(gro_result_t ret, struct sk_buff *skb)
 {
@@ -3759,7 +3770,7 @@ gro_result_t napi_gro_receive(struct napi_struct *napi, struct sk_buff *skb)
 {
 	skb_gro_reset_offset(skb);
 
-	return napi_skb_finish(__napi_gro_receive(napi, skb), skb);
+	return napi_skb_finish(dev_gro_receive(napi, skb), skb);
 }
 EXPORT_SYMBOL(napi_gro_receive);
 
@@ -3857,7 +3868,7 @@ gro_result_t napi_gro_frags(struct napi_struct *napi)
 	if (!skb)
 		return GRO_DROP;
 
-	return napi_frags_finish(napi, skb, __napi_gro_receive(napi, skb));
+	return napi_frags_finish(napi, skb, dev_gro_receive(napi, skb));
 }
 EXPORT_SYMBOL(napi_gro_frags);
 
@@ -4973,7 +4984,7 @@ int dev_set_mtu(struct net_device *dev, int new_mtu)
 	else
 		dev->mtu = new_mtu;
 
-	if (!err && dev->flags & IFF_UP)
+	if (!err)
 		call_netdevice_notifiers(NETDEV_CHANGEMTU, dev);
 	return err;
 }
@@ -6420,6 +6431,9 @@ int dev_change_net_namespace(struct net_device *dev, struct net *net, const char
 	dev_uc_flush(dev);
 	dev_mc_flush(dev);
 
+	/* Send a netdev-removed uevent to the old namespace */
+	kobject_uevent(&dev->dev.kobj, KOBJ_REMOVE);
+
 	/* Actually switch the network namespace */
 	dev_net_set(dev, net);
 
@@ -6430,6 +6444,9 @@ int dev_change_net_namespace(struct net_device *dev, struct net *net, const char
 		if (iflink)
 			dev->iflink = dev->ifindex;
 	}
+
+	/* Send a netdev-add uevent to the new namespace */
+	kobject_uevent(&dev->dev.kobj, KOBJ_ADD);
 
 	/* Fixup kobjects */
 	err = device_rename(&dev->dev, dev->name);

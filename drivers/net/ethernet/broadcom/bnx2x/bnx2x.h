@@ -489,7 +489,7 @@ struct bnx2x_fastpath {
 	u32			ustorm_rx_prods_offset;
 
 	u32			rx_buf_size;
-
+	u32			rx_frag_size; /* 0 if kmalloced(), or rx_buf_size + NET_SKB_PAD */
 	dma_addr_t		status_blk_mapping;
 
 	enum bnx2x_tpa_mode_t	mode;
@@ -915,6 +915,7 @@ struct bnx2x_common {
 #define BNX2X_IGU_STAS_MSG_VF_CNT 64
 #define BNX2X_IGU_STAS_MSG_PF_CNT 4
 
+#define MAX_IGU_ATTN_ACK_TO       100
 /* end of common */
 
 /* port */
@@ -1185,6 +1186,7 @@ struct bnx2x_prev_path_list {
 	u8 slot;
 	u8 path;
 	struct list_head list;
+	u8 undi;
 };
 
 struct bnx2x_sp_objs {
@@ -1336,6 +1338,7 @@ struct bnx2x {
 	u8			cnic_support;
 	bool			cnic_enabled;
 	bool			cnic_loaded;
+	struct cnic_eth_dev	*(*cnic_probe)(struct net_device *);
 
 	/* Flag that indicates that we can start looking for FCoE L2 queue
 	 * completions in the default status block.
@@ -1488,7 +1491,7 @@ struct bnx2x {
 
 	int			qm_cid_count;
 
-	int			dropless_fc;
+	bool			dropless_fc;
 
 	void			*t2;
 	dma_addr_t		t2_mapping;

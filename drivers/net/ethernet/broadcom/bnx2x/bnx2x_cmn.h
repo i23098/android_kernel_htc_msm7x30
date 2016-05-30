@@ -144,7 +144,7 @@ u32 bnx2x_fw_command(struct bnx2x *bp, u32 command, u32 param);
  * @bp:		driver handle
  * @load_mode:	current mode
  */
-u8 bnx2x_initial_phy_init(struct bnx2x *bp, int load_mode);
+int bnx2x_initial_phy_init(struct bnx2x *bp, int load_mode);
 
 /**
  * bnx2x_link_set - configure hw according to link parameters structure.
@@ -563,7 +563,7 @@ int bnx2x_poll(struct napi_struct *napi, int budget);
  *
  * @bp:		driver handle
  */
-int __devinit bnx2x_alloc_mem_bp(struct bnx2x *bp);
+int bnx2x_alloc_mem_bp(struct bnx2x *bp);
 
 /**
  * bnx2x_free_mem_bp - release memories outsize main driver structure
