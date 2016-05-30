@@ -158,8 +158,9 @@ int mwifiex_fill_new_bss_desc(struct mwifiex_private *priv,
 			      struct cfg80211_bss *bss,
 			      struct mwifiex_bssdescriptor *bss_desc)
 {
-	int ret, beacon_ie_len;
+	int ret;
 	u8 *beacon_ie;
+	size_t beacon_ie_len;
 	struct mwifiex_bss_priv *bss_priv = (void *)bss->priv;
 	const struct cfg80211_bss_ies *ies;
 
@@ -478,7 +479,7 @@ int mwifiex_enable_hs(struct mwifiex_adapter *adapter)
 	}
 
 	if (adapter->hs_activated) {
-		dev_dbg(adapter->dev, "cmd: HS Already actived\n");
+		dev_dbg(adapter->dev, "cmd: HS Already activated\n");
 		return true;
 	}
 
