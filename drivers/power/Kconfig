@@ -385,12 +385,6 @@ config BQ27520_TEST_ENABLE
 	help
 	  Say Y here to enable Test sysfs Interface for BQ27520 Drivers.
 
-config PM8921_CHARGER
-	tristate "PM8921 Charger driver"
-	depends on MFD_PM8921_CORE
-	help
-	  Say Y here to enable support for pm8921 chip charger subdevice
-
 config PM8XXX_CCADC
 	tristate "PM8XXX battery current adc driver"
 	depends on MFD_PM8921_CORE
@@ -449,6 +443,9 @@ config AB8500_BATTERY_THERM_ON_BATCTRL
 	help
 	  Say Y to enable battery temperature measurements using
 	  thermistor connected on BATCTRL ADC.
+
+source "drivers/power/reset/Kconfig"
+
 endif # POWER_SUPPLY
 
 source "drivers/power/avs/Kconfig"
