@@ -245,13 +245,6 @@ config SPI_AIC3254
 	help
 	  TI AIC3254 is external codec for audio RX
 
-config SPI_SP8803COM
-	tristate "SP 8803 COM SPI support"
-        default n
-	depends on ARCH_MSM7X30 || ARCH_MSM8X60
-	help
-	  SP 8803 COM is one modem
-
 config SPI_OCTEON
 	tristate "Cavium OCTEON SPI controller"
 	depends on CPU_CAVIUM_OCTEON
@@ -447,11 +440,6 @@ config SPI_NUC900
 	select SPI_BITBANG
 	help
 	  SPI driver for Nuvoton NUC900 series ARM SoCs
-
-config SPI_DISPLAY
-	tristate "htc spi workaround"
-	default n
-	depends on ARCH_MSM_SCORPION && !MSM_SMP
 
 config SPI_QSD
 	tristate "Qualcomm MSM SPI support"

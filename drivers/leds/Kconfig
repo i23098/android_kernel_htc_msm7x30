@@ -553,22 +553,6 @@ config LEDS_PM8058
 	  This option enables support for LEDs connected to PM8058
 	  LED driver chips accessed via the SSBI bus and rpc.
 
-config LEDS_MAX8957_FLASH
-	tristate "FLASH LED Support for Maxim MAX8957 PMIC"
-	depends on MFD_MAX8957
-	default y
-	help
-	  This option enable support for on-chip FLASH LED drivers found
-	  on Maxim MAX8957 PMIC.
-
-config LEDS_MAX8957_LPG
-	tristate "LPG(Light Pulse Generator) LED Support for Maxim MAX8957 PMIC"
-	depends on MFD_MAX8957
-	default y
-	help
-	  This option enable support for on-chip White LED drivers found
-	  on Maxim MAX8957 PMIC.
-
 comment "LED Triggers"
 
 config LEDS_TRIGGER_TIMER

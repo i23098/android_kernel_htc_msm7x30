@@ -64,7 +64,6 @@ obj-$(CONFIG_REGULATOR_WM8350) += wm8350-regulator.o
 obj-$(CONFIG_REGULATOR_WM8400) += wm8400-regulator.o
 obj-$(CONFIG_REGULATOR_WM8994) += wm8994-regulator.o
 obj-$(CONFIG_REGULATOR_PMIC8058) += pmic8058-regulator.o
-obj-$(CONFIG_REGULATOR_PMIC8901) += pmic8901-regulator.o
 obj-$(CONFIG_REGULATOR_PM8921) += pm8921-regulator.o
 obj-$(CONFIG_REGULATOR_GPIO) += gpio-regulator.o
 obj-$(CONFIG_REGULATOR_PM8058_XO) += pm8058-xo.o

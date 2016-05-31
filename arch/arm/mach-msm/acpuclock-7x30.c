@@ -30,9 +30,6 @@
 #include <mach/board.h>
 #include <mach/msm_iomap.h>
 #include <asm/mach-types.h>
-#ifdef CONFIG_MFD_MAX8957
-#include <mach/vreg.h>
-#endif
 
 #include <mach/smd_private.h>
 #include "clock.h"
@@ -205,17 +202,7 @@ static int acpuclk_set_acpu_vdd(struct clkctl_acpu_speed *s)
 {
 	int ret = 0;
 
-#ifdef CONFIG_MFD_MAX8957
-	struct vreg *vreg = vreg_get(0, "msmc2");
-
-	if (!vreg) {
-		printk(KERN_INFO "%s: vreg_get error\n", __func__);
-		return -ENODEV;
-	}
-	ret = vreg_set_level(vreg, s->vdd_mv);
-#else
 	ret = msm_spm_set_vdd(0, s->vdd_raw);
-#endif
 
 	if (ret)
 		printk(KERN_ERR "%s: failed, vdd_mv=%d, ret=%d\n",
