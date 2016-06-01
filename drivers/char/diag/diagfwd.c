@@ -27,7 +27,7 @@
 #endif
 #include <mach/msm_smd.h>
 #include <mach/socinfo.h>
-#include <../smd_rpcrouter.h>
+#include <../7x30-smd/smd_rpcrouter.h>
 #include "diagmem.h"
 #include "diagchar.h"
 #include "diagfwd.h"

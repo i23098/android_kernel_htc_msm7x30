@@ -39,14 +39,6 @@
 #include "modem_notifier.h"
 #include "../acpuclock.h"
 
-#if defined(CONFIG_ARCH_QSD8X50) || defined(CONFIG_ARCH_MSM8X60)
-#define CONFIG_QDSP6 1
-#endif
-
-#if defined(CONFIG_ARCH_MSM8X60)
-#define CONFIG_DSPS 1
-#endif
-
 #define MODULE_NAME "msm_smd"
 #define SMEM_VERSION 0x000B
 #define SMD_VERSION 0x00020000
@@ -929,7 +921,7 @@ static int smd_alloc_channel(struct smd_alloc_elm *alloc_elm)
 	memcpy(ch->name + 4, alloc_elm->name, 20);
 	ch->name[23] = 0;
 	/*=============================================*/
-	
+
 	ch->pdev.name = ch->name;
 	ch->pdev.id = ch->type;
 

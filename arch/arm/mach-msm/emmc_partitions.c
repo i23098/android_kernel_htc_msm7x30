@@ -1,4 +1,4 @@
-/* arch/arm/mach-msm/nand_partitions.c
+/* arch/arm/mach-msm/emmc_partitions.c
  *
  * Code to extract partition information from ATAG set up by the
  * bootloader.

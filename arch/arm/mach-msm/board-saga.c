@@ -84,6 +84,7 @@
 #include <linux/cm3628.h>
 #include "devices.h"
 #include <linux/rtc-msm.h>
+#include "common.h"
 
 #ifdef CONFIG_USB_G_ANDROID
 #include <mach/htc_usb.h>

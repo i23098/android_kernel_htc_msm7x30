@@ -36,6 +36,7 @@
 #include <linux/wakelock.h>
 #include <linux/jiffies.h>
 #include <mach/board.h>
+#include <asm/system_info.h>
 
 
 #define D(x...) pr_info(x)

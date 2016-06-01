@@ -85,30 +85,6 @@ struct flashlight_platform_data {
 int aat1271_flashlight_control(int mode);
 #endif
 
-#ifdef CONFIG_FLASHLIGHT_AAT1277
-struct flashlight_platform_data {
-	void (*gpio_init) (void);
-	uint32_t torch;
-	uint32_t flash;
-	uint32_t torch_set1;
-	uint32_t torch_set2;
-	uint32_t flash_duration_ms;
-};
-int aat1277_flashlight_control(int mode);
-#endif
-
-
-#ifdef CONFIG_FLASHLIGHT_AAT3177
-struct flashlight_platform_data {
-	void (*gpio_init) (void);
-	uint32_t flash;
-	uint32_t flash_duration_ms;
-
-};
-int aat3177_flashlight_control(int mode);
-#endif
-
-
 #ifdef CONFIG_FLASHLIGHT_TPS61310
 struct TPS61310_flashlight_platform_data {
 	void (*gpio_init) (void);

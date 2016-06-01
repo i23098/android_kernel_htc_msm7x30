@@ -29,6 +29,7 @@
 #include <mach/htc_acoustic_7x30.h>
 #include <mach/htc_acdb_7x30.h>
 #include <linux/spi_aic3254.h>
+#include <asm/system_info.h>
 
 static struct mutex bt_sco_lock;
 static int curr_rx_mode;
