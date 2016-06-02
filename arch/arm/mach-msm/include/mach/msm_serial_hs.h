@@ -47,9 +47,6 @@ extern void msm_hs_request_clock_on_locked(struct uart_port *uport);
 #endif
 
 extern void imc_msm_hs_request_clock_on(struct uart_port *uport);
-unsigned int msm_hs_tx_empty(struct uart_port *uport);
 void msm_hs_request_clock_off(struct uart_port *uport);
 void msm_hs_request_clock_on(struct uart_port *uport);
-void msm_hs_set_mctrl(struct uart_port *uport,
-				    unsigned int mctrl);
 #endif
