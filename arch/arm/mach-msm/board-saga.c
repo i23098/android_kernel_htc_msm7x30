@@ -2663,37 +2663,6 @@ struct platform_device saga_bcm_bt_lpm_device = {
   },
 };
 #endif
-
-#ifdef CONFIG_BT_MSM_SLEEP
-static struct resource bluesleep_resources[] = {
-       {
-               .name   = "gpio_host_wake",
-        .start  = SAGA_GPIO_BT_HOST_WAKE,
-        .end    = SAGA_GPIO_BT_HOST_WAKE,
-               .flags  = IORESOURCE_IO,
-       },
-       {
-               .name   = "gpio_ext_wake",
-        .start  = SAGA_GPIO_BT_CHIP_WAKE,
-        .end    = SAGA_GPIO_BT_CHIP_WAKE,
-               .flags  = IORESOURCE_IO,
-       },
-       {
-               .name   = "host_wake",
-        .start  = MSM_GPIO_TO_INT(SAGA_GPIO_BT_HOST_WAKE),
-        .end    = MSM_GPIO_TO_INT(SAGA_GPIO_BT_HOST_WAKE),
-               .flags  = IORESOURCE_IRQ,
-       },
-};
-
-
-static struct platform_device msm_bluesleep_device = {
-    .name   = "bluesleep_bcm",
-    .id     = -1,
-    .num_resources  = ARRAY_SIZE(bluesleep_resources),
-    .resource   = bluesleep_resources,
-};
-#endif
 #endif
 
 #ifdef CONFIG_BT
@@ -2931,9 +2900,6 @@ static struct platform_device *devices[] __initdata = {
 #endif
 #ifdef CONFIG_SERIAL_MSM_HS
 	&msm_device_uart_dm1,
-#endif
-#ifdef CONFIG_BT_MSM_SLEEP
-        &msm_bluesleep_device,
 #endif
 #ifdef CONFIG_BT
 	&saga_rfkill,
@@ -3893,14 +3859,6 @@ static void __init msm7x30_init_mmc(void)
 	msm_add_sdcc(2, &msm7x30_sdc2_data);
 #endif
 #ifdef CONFIG_MMC_MSM_SDC3_SUPPORT
-/*HTC_WIFI_START*/
-/*
-	sdcc_vreg_data[2].vreg_data = vreg_s3;
-	sdcc_vreg_data[2].level = 1800;
-	msm_sdcc_setup_gpio(3, 1);
-	msm_add_sdcc(3, &msm7x30_sdc3_data);
-	*/
-/* HTC_WIFI_END*/
 #endif
 #ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
 	sdcc_vreg_data[3].vreg_data = vreg_mmc;

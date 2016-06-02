@@ -112,11 +112,6 @@ int ath_init(void);
 int ath_deinit(void);
 #endif
 
-#ifdef CONFIG_BT_HCIUART_IBS
-int ibs_init(void);
-int ibs_deinit(void);
-#endif
-
 #ifdef CONFIG_BT_HCIUART_3WIRE
 int h5_init(void);
 int h5_deinit(void);

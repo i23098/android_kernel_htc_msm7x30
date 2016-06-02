@@ -1810,37 +1810,6 @@ struct platform_device spade_bcm_bt_lpm_device = {
   },
 };
 #endif
-
-#ifdef CONFIG_BT_MSM_SLEEP
-static struct resource bluesleep_resources[] = {
-    {
-        .name   = "gpio_host_wake",
-        .start  = SPADE_GPIO_BT_HOST_WAKE,
-        .end    = SPADE_GPIO_BT_HOST_WAKE,
-        .flags  = IORESOURCE_IO,
-    },
-    {
-        .name   = "gpio_ext_wake",
-        .start  = SPADE_GPIO_BT_CHIP_WAKE,
-        .end    = SPADE_GPIO_BT_CHIP_WAKE,
-        .flags  = IORESOURCE_IO,
-    },
-    {
-        .name   = "host_wake",
-        .start  = MSM_GPIO_TO_INT(SPADE_GPIO_BT_HOST_WAKE),
-        .end    = MSM_GPIO_TO_INT(SPADE_GPIO_BT_HOST_WAKE),
-        .flags  = IORESOURCE_IRQ,
-    },
-};
-
-
-static struct platform_device msm_bluesleep_device = {
-    .name   = "bluesleep_bcm",
-    .id     = -1,
-    .num_resources  = ARRAY_SIZE(bluesleep_resources),
-    .resource   = bluesleep_resources,
-};
-#endif
 #endif
 
 #ifdef CONFIG_MSM_GEMINI
@@ -2800,10 +2769,6 @@ static struct platform_device *devices[] __initdata = {
 
         &msm_device_adspdec,
         &qup_device_i2c,
-#if defined(CONFIG_MARIMBA_CORE) && \
-   (defined(CONFIG_MSM_BT_POWER) || defined(CONFIG_MSM_BT_POWER_MODULE))
-        /*&msm_bt_power_device,*/
-#endif
         &msm_kgsl_3d0,
         &msm_kgsl_2d0,
         &msm_device_vidc_720p,
@@ -2830,9 +2795,6 @@ static struct platform_device *devices[] __initdata = {
         &msm_ebi1_thermal,
 #ifdef CONFIG_ION_MSM
         &ion_dev,
-#endif
-#ifdef CONFIG_BT_MSM_SLEEP
-        &msm_bluesleep_device,
 #endif
 #ifdef CONFIG_SERIAL_MSM_HS
         &msm_device_uart_dm1,

@@ -1,6 +1,6 @@
 obj-y += modem_notifier.o
 
-obj-$(CONFIG_MSM_SMD) += smem_log.o smd.o smd_qmi.o
+obj-$(CONFIG_MSM_SMD) += smem_log.o smd_qmi.o
 obj-$(CONFIG_MSM_ONCRPCROUTER) += rpc_pmapp.o
 obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter.o
 obj-$(CONFIG_MSM_ONCRPCROUTER) += smd_rpcrouter_device.o

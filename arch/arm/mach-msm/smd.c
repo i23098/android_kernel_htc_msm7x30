@@ -35,9 +35,9 @@
 
 #include <linux/sched.h>
 #include <mach/smd_private.h>
-#include "../proc_comm.h"
-#include "modem_notifier.h"
-#include "../acpuclock.h"
+#include "proc_comm.h"
+#include "7x30-smd/modem_notifier.h"
+#include "acpuclock.h"
 
 #define MODULE_NAME "msm_smd"
 #define SMEM_VERSION 0x000B

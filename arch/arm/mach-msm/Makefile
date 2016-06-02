@@ -73,6 +73,7 @@ endif
 endif
 
 obj-$(CONFIG_ARCH_MSM7X30_SMD) += 7x30-smd/
+obj-$(CONFIG_ARCH_MSM7X30_SMD) += smd.o
 
 obj-$(CONFIG_MSM_RESET_MODEM) += reset_modem.o
 obj-$(CONFIG_MSM_DALRPC) += dal.o
