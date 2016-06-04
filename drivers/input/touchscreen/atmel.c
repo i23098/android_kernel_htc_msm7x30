@@ -2982,7 +2982,7 @@ static struct i2c_driver atmel_ts_driver = {
 	},
 };
 
-static int __devinit atmel_ts_init(void)
+static int atmel_ts_init(void)
 {
 	printk(KERN_INFO "atmel_ts_init():\n");
 	return i2c_add_driver(&atmel_ts_driver);

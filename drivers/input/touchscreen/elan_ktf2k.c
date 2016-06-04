@@ -1552,7 +1552,7 @@ static struct i2c_driver ektf2k_ts_driver = {
 	},
 };
 
-static int __devinit elan_ktf2k_ts_init(void)
+static int elan_ktf2k_ts_init(void)
 {
 	printk(KERN_INFO "%s\n", __func__);
 	return i2c_add_driver(&ektf2k_ts_driver);

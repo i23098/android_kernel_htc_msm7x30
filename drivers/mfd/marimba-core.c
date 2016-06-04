@@ -602,7 +602,7 @@ static int addr_get(void *data, u64 *val)
 
 DEFINE_SIMPLE_ATTRIBUTE(dbg_addr_fops, addr_get, addr_set, "0x%03llX\n");
 
-static int __devinit marimba_dbg_init(int adie_type)
+static int marimba_dbg_init(int adie_type)
 {
 	struct adie_dbg_device *dbgdev;
 	struct dentry *dent;
@@ -662,7 +662,7 @@ debug_error:
 	return -ENOMEM;
 }
 
-static int __devexit marimba_dbg_remove(void)
+static int marimba_dbg_remove(void)
 {
 	if (marimba_dbg_device) {
 		debugfs_remove_recursive(marimba_dbg_device->dent);
@@ -681,12 +681,12 @@ static int __devexit marimba_dbg_remove(void)
 
 #else
 
-static int __devinit marimba_dbg_init(int adie_type)
+static int marimba_dbg_init(int adie_type)
 {
 	return 0;
 }
 
-static int __devexit marimba_dbg_remove(void)
+static int marimba_dbg_remove(void)
 {
 	return 0;
 }
@@ -868,7 +868,7 @@ fail:
 	return status;
 }
 
-static int __devexit marimba_remove(struct i2c_client *client)
+static int marimba_remove(struct i2c_client *client)
 {
 	int i;
 	struct marimba_platform_data *pdata;
@@ -907,7 +907,7 @@ static struct i2c_driver marimba_driver = {
 		},
 		.id_table		=	marimba_id_table,
 		.probe			=	marimba_probe,
-		.remove			=	__devexit_p(marimba_remove),
+		.remove			=	marimba_remove,
 };
 
 static int __init marimba_init(void)

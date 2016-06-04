@@ -763,7 +763,7 @@ err_exit:
 	return ret;
 }
 
-static int __devexit microp_led_remove(struct platform_device *pdev)
+static int microp_led_remove(struct platform_device *pdev)
 {
 	struct microp_led_platform_data *pdata;
 	struct microp_led_data *ldata;
@@ -789,7 +789,7 @@ static int __devexit microp_led_remove(struct platform_device *pdev)
 
 static struct platform_driver microp_led_driver = {
 	.probe = microp_led_probe,
-	.remove = __devexit_p(microp_led_remove),
+	.remove = microp_led_remove,
 	.driver = {
 		   .name = "leds-microp",
 		   .owner = THIS_MODULE,

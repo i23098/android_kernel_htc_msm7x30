@@ -3207,7 +3207,7 @@ free_motg:
 	return ret;
 }
 
-static int __devexit msm_otg_remove(struct platform_device *pdev)
+static int msm_otg_remove(struct platform_device *pdev)
 {
 	struct msm_otg *motg = the_msm_otg;
 
@@ -3297,7 +3297,7 @@ static struct dev_pm_ops msm_otg_dev_pm_ops = {
 };
 
 static struct platform_driver msm_otg_driver = {
-	.remove = __devexit_p(msm_otg_remove),
+	.remove = msm_otg_remove,
 	.driver = {
 		.name = DRIVER_NAME,
 		.owner = THIS_MODULE,

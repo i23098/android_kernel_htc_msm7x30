@@ -558,7 +558,7 @@ static void microp_intr_work_func(struct work_struct *work)
 	enable_irq(client->irq);
 }
 
-static int __devexit microp_i2c_remove(struct i2c_client *client)
+static int microp_i2c_remove(struct i2c_client *client)
 {
 	struct microp_i2c_platform_data *pdata;
 	struct microp_i2c_client_data *cdata;
@@ -728,7 +728,7 @@ static struct i2c_driver microp_i2c_driver = {
 	.probe = microp_i2c_probe,
 	.suspend = microp_i2c_suspend,
 	.resume = microp_i2c_resume,
-	.remove = __devexit_p(microp_i2c_remove),
+	.remove = microp_i2c_remove,
 };
 
 static void microp_irq_ack(struct irq_data *d)

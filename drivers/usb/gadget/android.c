@@ -2186,7 +2186,7 @@ static int android_create_device(struct android_dev *dev)
 	return 0;
 }
 
-static int __devinit android_probe(struct platform_device *pdev)
+static int android_probe(struct platform_device *pdev)
 {
 	struct android_usb_platform_data *pdata = pdev->dev.platform_data;
 	struct android_dev *dev = _android_dev;

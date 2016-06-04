@@ -371,7 +371,7 @@ static struct platform_device renesas_backlight = {
 };
 
 
-static int __devinit renesas_probe(struct platform_device *pdev)
+static int renesas_probe(struct platform_device *pdev)
 {
 	int ret;
 	struct msm_panel_common_pdata *mddi_renesas_pdata;

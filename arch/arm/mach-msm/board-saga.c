@@ -888,7 +888,7 @@ static struct pm8058_platform_data pm8058_7x30_data = {
 };
 
 #ifdef CONFIG_MSM_SSBI
-static struct msm_ssbi_platform_data msm7x30_ssbi_pm8058_pdata __devinitdata = {
+static struct msm_ssbi_platform_data msm7x30_ssbi_pm8058_pdata = {
 	.controller_type = MSM_SBI_CTRL_PMIC_ARBITER,
 	.slave	= {
 		.name			= "pm8058-core",

@@ -705,7 +705,7 @@ err_exit:
 	return ret;
 }
 
-static int __devexit pm8058_led_remove(struct platform_device *pdev)
+static int pm8058_led_remove(struct platform_device *pdev)
 {
 	struct pm8058_led_platform_data *pdata;
 	struct pm8058_led_data *ldata;
@@ -748,7 +748,7 @@ static int __devexit pm8058_led_remove(struct platform_device *pdev)
 
 static struct platform_driver pm8058_led_driver = {
 	.probe = pm8058_led_probe,
-	.remove = __devexit_p(pm8058_led_remove),
+	.remove = pm8058_led_remove,
 	.driver = {
 		   .name = "leds-pm8058",
 		   .owner = THIS_MODULE,

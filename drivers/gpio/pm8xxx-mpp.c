@@ -255,7 +255,7 @@ int pm8xxx_dump_mpp(struct seq_file *m, int curr_len, char *gpio_buffer)
 }
 EXPORT_SYMBOL(pm8xxx_dump_mpp);
 
-static int __devinit pm8xxx_mpp_reg_init(struct pm8xxx_mpp_chip *mpp_chip)
+static int pm8xxx_mpp_reg_init(struct pm8xxx_mpp_chip *mpp_chip)
 {
 	int rc, i;
 
@@ -272,7 +272,7 @@ static int __devinit pm8xxx_mpp_reg_init(struct pm8xxx_mpp_chip *mpp_chip)
 	return 0;
 }
 
-static int __devinit pm8xxx_mpp_probe(struct platform_device *pdev)
+static int pm8xxx_mpp_probe(struct platform_device *pdev)
 {
 	int rc;
 	const struct pm8xxx_mpp_platform_data *pdata = pdev->dev.platform_data;
@@ -348,7 +348,7 @@ free_mpp_chip:
 	return rc;
 }
 
-static int __devexit pm8xxx_mpp_remove(struct platform_device *pdev)
+static int pm8xxx_mpp_remove(struct platform_device *pdev)
 {
 	struct pm8xxx_mpp_chip *mpp_chip = platform_get_drvdata(pdev);
 
@@ -366,7 +366,7 @@ static int __devexit pm8xxx_mpp_remove(struct platform_device *pdev)
 
 static struct platform_driver pm8xxx_mpp_driver = {
 	.probe		= pm8xxx_mpp_probe,
-	.remove		= __devexit_p(pm8xxx_mpp_remove),
+	.remove		= pm8xxx_mpp_remove,
 	.driver		= {
 		.name	= PM8XXX_MPP_DEV_NAME,
 		.owner	= THIS_MODULE,

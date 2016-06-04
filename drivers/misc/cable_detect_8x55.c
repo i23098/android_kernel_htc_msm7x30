@@ -700,7 +700,6 @@ static irqreturn_t vbus_irq_handler(int irq, void *dev_id)
 
 struct platform_driver cable_detect_driver = {
 	.probe = cable_detect_probe,
-	/*.remove = __devexit_p(vbus_cable_detect_remove),*/
 	.driver = {
 		.name	= "cable_detect",
 		.owner = THIS_MODULE,

@@ -2814,7 +2814,7 @@ static struct dev_pm_ops msm72k_udc_dev_pm_ops = {
 	.runtime_idle = msm72k_udc_runtime_idle
 };
 
-static int __devexit msm72k_remove(struct platform_device *pdev)
+static int msm72k_remove(struct platform_device *pdev)
 {
 	struct usb_info *ui = container_of(&pdev, struct usb_info, pdev);
 
@@ -2827,7 +2827,7 @@ static struct platform_driver usb_driver = {
 		.pm		= &msm72k_udc_dev_pm_ops,
 	},
 	.probe = msm72k_probe,
-	.remove = __devexit_p(msm72k_remove),
+	.remove = msm72k_remove,
 };
 
 static int __init init(void)

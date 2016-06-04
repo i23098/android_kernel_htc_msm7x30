@@ -320,7 +320,7 @@ put_regs:
 	return rc;
 }
 
-static int __devinit isa1200_probe(struct i2c_client *client,
+static int isa1200_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
 	struct isa1200_chip *haptic;
@@ -475,7 +475,7 @@ mem_alloc_fail:
 	return ret;
 }
 
-static int __devexit isa1200_remove(struct i2c_client *client)
+static int isa1200_remove(struct i2c_client *client)
 {
 	struct isa1200_chip *haptic = i2c_get_clientdata(client);
 
@@ -581,7 +581,7 @@ static struct i2c_driver isa1200_driver = {
 		.name	= "isa1200",
 	},
 	.probe		= isa1200_probe,
-	.remove		= __devexit_p(isa1200_remove),
+	.remove		= isa1200_remove,
 	.suspend	= isa1200_suspend,
 	.resume		= isa1200_resume,
 	.id_table	= isa1200_id,

@@ -802,7 +802,7 @@ static struct i2c_driver cy8c_ts_driver = {
 	},
 };
 
-static int __devinit cy8c_ts_init(void)
+static int cy8c_ts_init(void)
 {
 	printk(KERN_INFO "%s: enter\n", __func__);
 

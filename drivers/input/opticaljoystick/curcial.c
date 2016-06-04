@@ -93,12 +93,12 @@ static int8_t	xy_ratio;
 static atomic_t suspend_flag = ATOMIC_INIT(0);
 static uint16_t	index;
 
-static int __devinit curcial_oj_probe(struct platform_device *pdev);
-static int __devexit curcial_oj_remove(struct platform_device *pdev);
+static int curcial_oj_probe(struct platform_device *pdev);
+static int curcial_oj_remove(struct platform_device *pdev);
 
 static struct platform_driver curcial_oj_device_driver = {
 	.probe    = curcial_oj_probe,
-	.remove   = __devexit_p(curcial_oj_remove),
+	.remove   = curcial_oj_remove,
 	.driver   = {
 		.name   = CURCIAL_OJ_NAME,
 		.owner  = THIS_MODULE,
@@ -583,7 +583,7 @@ static DEVICE_ATTR(debugflag, 0644, oj_show, oj_debugflag_store);
 static DEVICE_ATTR(xtable, 0644, oj_xtable_show, oj_xtable_store);
 static DEVICE_ATTR(ytable, 0644, oj_ytable_show, oj_ytable_store);
 
-static int __devinit curcial_oj_probe(struct platform_device *pdev)
+static int curcial_oj_probe(struct platform_device *pdev)
 {
 	struct curcial_oj_platform_data *oj = pdev->dev.platform_data;
 	int err;
@@ -680,7 +680,7 @@ fail:
 	return err;
 }
 
-static int __devexit curcial_oj_remove(struct platform_device *pdev)
+static int curcial_oj_remove(struct platform_device *pdev)
 {
 	struct curcial_oj_platform_data *oj = pdev->dev.platform_data;
 
