@@ -899,6 +899,7 @@ static int __init zram_init(void)
 	}
 
 	/* Allocate the device array and initialize each one */
+	pr_info("Creating %u devices ...\n", num_devices);
 	zram_devices = kzalloc(num_devices * sizeof(struct zram), GFP_KERNEL);
 	if (!zram_devices) {
 		ret = -ENOMEM;
@@ -910,8 +911,6 @@ static int __init zram_init(void)
 		if (ret)
 			goto free_devices;
 	}
-
-	pr_info("Created %u device(s) ...\n", num_devices);
 
 	return 0;
 

@@ -1,9 +1,4 @@
 ##########
-# drivers/staging/zram/ 3.8
-rm -rf drivers/staging/zram/
-git checkout HEAD -- drivers/staging/zram/
-
-##########
 # drivers/staging/zsmalloc 3.9
 rm -rf drivers/staging/zsmalloc
 git checkout HEAD -- drivers/staging/zsmalloc kernel/irq/spurious.c
