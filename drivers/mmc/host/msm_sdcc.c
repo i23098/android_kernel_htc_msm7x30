@@ -2038,25 +2038,11 @@ static inline unsigned int msmsdcc_get_sup_clk_rate(struct msmsdcc_host *host,
 {
 	unsigned int sel_clk = -1;
 
-	if (host->plat->sup_clk_table && host->plat->sup_clk_cnt) {
-		unsigned char cnt;
-
-		for (cnt = 0; cnt < host->plat->sup_clk_cnt; cnt++) {
-			if (host->plat->sup_clk_table[cnt] > req_clk)
-				break;
-			else if (host->plat->sup_clk_table[cnt] == req_clk) {
-				sel_clk = host->plat->sup_clk_table[cnt];
-				break;
-			} else
-				sel_clk = host->plat->sup_clk_table[cnt];
-		}
-	} else {
-		if ((req_clk < host->plat->msmsdcc_fmax) &&
-			(req_clk > host->plat->msmsdcc_fmid))
-			sel_clk = host->plat->msmsdcc_fmid;
-		else
-			sel_clk = req_clk;
-	}
+	if ((req_clk < host->plat->msmsdcc_fmax) &&
+		(req_clk > host->plat->msmsdcc_fmid))
+		sel_clk = host->plat->msmsdcc_fmid;
+	else
+		sel_clk = req_clk;
 
 	return sel_clk;
 }
@@ -2064,19 +2050,13 @@ static inline unsigned int msmsdcc_get_sup_clk_rate(struct msmsdcc_host *host,
 static inline unsigned int msmsdcc_get_min_sup_clk_rate(
 				struct msmsdcc_host *host)
 {
-	if (host->plat->sup_clk_table && host->plat->sup_clk_cnt)
-		return host->plat->sup_clk_table[0];
-	else
-		return host->plat->msmsdcc_fmin;
+	return host->plat->msmsdcc_fmin;
 }
 
 static inline unsigned int msmsdcc_get_max_sup_clk_rate(
 				struct msmsdcc_host *host)
 {
-	if (host->plat->sup_clk_table && host->plat->sup_clk_cnt)
-		return host->plat->sup_clk_table[host->plat->sup_clk_cnt - 1];
-	else
-		return host->plat->msmsdcc_fmax;
+	return host->plat->msmsdcc_fmax;
 }
 
 static int msmsdcc_setup_gpio(struct msmsdcc_host *host, bool enable)
@@ -2434,30 +2414,7 @@ static int msmsdcc_get_ro(struct mmc_host *mmc)
 
 	if (host->plat->wpswitch) {
 		status = host->plat->wpswitch(mmc_dev(mmc));
-	} else if (host->plat->wpswitch_gpio) {
-		status = gpio_request(host->plat->wpswitch_gpio,
-					"SD_WP_Switch");
-		if (status) {
-			pr_err("%s: %s: Failed to request GPIO %d\n",
-				mmc_hostname(mmc), __func__,
-				host->plat->wpswitch_gpio);
-		} else {
-			status = gpio_direction_input(
-					host->plat->wpswitch_gpio);
-			if (!status) {
-				/*
-				 * Wait for atleast 300ms as debounce
-				 * time for GPIO input to stabilize.
-				 */
-				msleep(300);
-				status = gpio_get_value_cansleep(
-						host->plat->wpswitch_gpio);
-				status ^= !host->plat->wpswitch_polarity;
-			}
-			gpio_free(host->plat->wpswitch_gpio);
-		}
 	}
-
 	if (status < 0)
 		status = -ENOSYS;
 	pr_debug("%s: Card read-only status %d\n", __func__, status);
@@ -3518,24 +3475,6 @@ msmsdcc_probe(struct platform_device *pdev)
 	}
 
 	/*
-	 * Setup SDCC clock if derived from Dayatona
-	 * fabric core clock.
-	 */
-	if (plat->pclk_src_dfab) {
-		host->dfab_pclk = clk_get(&pdev->dev, "bus_clk");
-		if (!IS_ERR(host->dfab_pclk)) {
-			/* Set the clock rate to 64MHz for max. performance */
-			ret = clk_set_rate(host->dfab_pclk, 64000000);
-			if (ret)
-				goto dfab_pclk_put;
-			ret = clk_enable(host->dfab_pclk);
-			if (ret)
-				goto dfab_pclk_put;
-		} else
-			goto dma_free;
-	}
-
-	/*
 	 * Setup main peripheral bus clock
 	 */
 	host->pclk = clk_get(&pdev->dev, "iface_clk");
@@ -3873,10 +3812,8 @@ msmsdcc_probe(struct platform_device *pdev)
 		clk_put(host->pclk);
 	if (!IS_ERR_OR_NULL(host->dfab_pclk))
 		clk_disable(host->dfab_pclk);
- dfab_pclk_put:
 	if (!IS_ERR_OR_NULL(host->dfab_pclk))
 		clk_put(host->dfab_pclk);
- dma_free:
 	if (host->is_dma_mode) {
 		if (host->dmares)
 			dma_free_coherent(NULL,

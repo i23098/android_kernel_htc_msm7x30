@@ -89,7 +89,6 @@ struct msm_mmc_platform_data {
 	unsigned int *slot_type;
 	/* Supported UHS-I Modes */
 	unsigned int uhs_caps;
-	void (*sdio_lpm_gpio_setup)(struct device *, unsigned int);
 	unsigned int status_irq;
 	unsigned int status_gpio;
 	unsigned int sdiowakeup_irq;
@@ -100,12 +99,7 @@ struct msm_mmc_platform_data {
 	unsigned int msmsdcc_fmid;
 	unsigned int msmsdcc_fmax;
 	bool nonremovable;
-	bool pclk_src_dfab;
-	unsigned int wpswitch_gpio;
-	unsigned char wpswitch_polarity;
 	struct msm_mmc_slot_reg_data *vreg_data;
-	unsigned int *sup_clk_table;
-	unsigned char sup_clk_cnt;
 	int emmc_dma_ch;
 	u32 swfi_latency;
 };
