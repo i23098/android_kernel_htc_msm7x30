@@ -3983,7 +3983,7 @@ static void __init saga_init(void)
         msm_uart_dm1_pdata.rx_wakeup_irq = -1;
 #else
 	msm_uart_dm1_pdata.rx_wakeup_irq = gpio_to_irq(SAGA_GPIO_BT_HOST_WAKE);
-	msm_device_uart_dm1.name = "msm_serial_hs_brcm";
+	msm_device_uart_dm1.name = "msm_serial_hs";
 #endif
 	msm_device_uart_dm1.dev.platform_data = &msm_uart_dm1_pdata;
 #endif
