@@ -208,10 +208,6 @@
 
 #define NR_SG		128
 
-#ifdef CONFIG_WIMAX
-#define MSM_MMC_WIMAX_IDLE_TIMEOUT	1000 /* msecs */
-#endif
-
 #define MSM_MMC_IDLE_TIMEOUT	250 /* msecs */
 #define MSM_EMMC_IDLE_TIMEOUT	20 /* msecs */
 /*
@@ -343,7 +339,6 @@ struct msmsdcc_host {
 	struct mmc_host		*mmc;
 	struct clk		*clk;		/* main MMC bus clock */
 	struct clk		*pclk;		/* SDCC peripheral bus clock */
-	struct clk		*dfab_pclk;	/* Daytona Fabric SDCC clock */
 	unsigned int		clks_on;	/* set if clocks are enabled */
 
 	unsigned int		eject;		/* eject state */
@@ -358,9 +353,6 @@ struct msmsdcc_host {
 	struct msm_mmc_platform_data *plat;
 
 	unsigned int		oldstat;
-#ifdef CONFIG_WIMAX
-    unsigned long       irq_time;
-#endif
 
 	struct msmsdcc_dma_data	dma;
 	struct msmsdcc_sps_data sps;
@@ -404,18 +396,5 @@ struct msmsdcc_host {
 };
 
 int msmsdcc_set_pwrsave(struct mmc_host *mmc, int pwrsave);
-
-#ifdef CONFIG_WIMAX
-extern int mmc_wimax_get_status(void);
-extern void mmc_wimax_enable_host_wakeup(int on);
-extern int mmc_wimax_get_irq_log(void);
-#endif
-
-
-//HTC_WIFI_START
-#ifdef CONFIG_TIWLAN_POWER_CONTROL_FUNC
-extern int ti_wifi_power(int on);
-#endif
-//HTC_WIFI_END
 
 #endif
