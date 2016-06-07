@@ -97,7 +97,7 @@
 #include "spm.h"
 #include "acpuclock.h"
 #include <mach/dal_axi.h>
-#include <mach/msm_serial_hs.h>
+#include <linux/platform_data/msm_serial_hs.h>
 #ifdef CONFIG_SERIAL_MSM_HS_PURE_ANDROID
 #include <mach/bcm_bt_lpm.h>
 #endif
@@ -2637,7 +2637,6 @@ static struct platform_device msm_adc_device = {
 #ifdef CONFIG_SERIAL_MSM_HS
 static struct msm_serial_hs_platform_data msm_uart_dm1_pdata = {
 	.inject_rx_on_wakeup = 0,
-	.cpu_lock_supported = 1,
 #ifdef CONFIG_SERIAL_MSM_HS_PURE_ANDROID
         .exit_lpm_cb = bcm_bt_lpm_exit_lpm_locked,
 #endif

@@ -2860,7 +2860,7 @@ static struct clk_local_ownership {
 	OWN(ROW2,  1, "core_clk",	spi_clk,	"spi_qsd.0"),
 	OWN(ROW2,  1, "iface_clk",	spi_p_clk,	"spi_qsd.0"),
 	OWN(ROW2,  9, "core_clk",	uart1_clk,	"msm_serial.0"),
-	OWN(ROW2,  6, "core_clk",	uart1dm_clk,	"msm_serial_hs.0"),/* for brcm BT */
+	OWN(ROW2,  6, "uartdm_clk",	uart1dm_clk,	"msm_serial_hs.0"),/* for brcm BT */
 	OWN(ROW2, 11, "alt_core_clk",	usb_hs_clk,	"msm_otg"),
 	OWN(ROW2, 11, "core_clk",	usb_hs_core_clk, "msm_otg"),
 	OWN(ROW2, 11, "iface_clk",	usb_hs_p_clk,	"msm_otg"),
