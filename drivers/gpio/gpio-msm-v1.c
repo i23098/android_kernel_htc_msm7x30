@@ -23,7 +23,7 @@
 #include <mach/cpu.h>
 #include <mach/msm_gpiomux.h>
 #include "../../../arch/arm/mach-msm/proc_comm.h"
-#include <mach/smd_private.h>
+#include <mach/msm_smsm.h>
 
 enum {
 	GPIO_DEBUG_SLEEP = 1U << 0,
@@ -44,19 +44,10 @@ module_param_named(debug_mask, msm_gpio_debug_mask, int,
 ** macros.
 */
 
-#if defined(CONFIG_ARCH_MSM7X00A) || defined(CONFIG_ARCH_MSM7X30)
-
 #define MSM_GPIO1_REG(off) (MSM_GPIO1_BASE + (off))
 #define MSM_GPIO2_REG(off) (MSM_GPIO2_BASE + 0x400 + (off))
 #define MSM_GPIO1_SHADOW_REG(off) (MSM_GPIO1_BASE + 0x800 + (off))
 #define MSM_GPIO2_SHADOW_REG(off) (MSM_GPIO2_BASE + 0xC00 + (off))
-
-#else
-
-#define MSM_GPIO1_REG(off) (MSM_GPIO1_BASE + 0x800 + (off))
-#define MSM_GPIO2_REG(off) (MSM_GPIO2_BASE + 0xC00 + (off))
-
-#endif
 
 /*
  * MSM7X00 registers

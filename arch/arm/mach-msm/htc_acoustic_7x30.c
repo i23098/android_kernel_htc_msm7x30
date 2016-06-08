@@ -30,7 +30,7 @@
 
 #include <mach/msm_smd.h>
 #include <mach/msm_rpcrouter.h>
-#include <mach/smd_private.h>
+#include "smd_private.h"
 
 #include <mach/htc_acdb.h>
 #include <mach/htc_acoustic_7x30.h>

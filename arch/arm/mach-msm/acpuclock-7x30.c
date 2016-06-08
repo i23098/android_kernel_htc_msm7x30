@@ -31,7 +31,7 @@
 #include <mach/msm_iomap.h>
 #include <asm/mach-types.h>
 
-#include <mach/smd_private.h>
+#include "smd_private.h"
 #include "clock.h"
 #include "acpuclock.h"
 #include "spm.h"

@@ -48,8 +48,8 @@
 #endif
 #include <linux/console.h>
 
-#include <mach/smd_private.h>
-#include "7x30-smd/smd_rpcrouter.h"
+#include "smd_private.h"
+#include <mach/msm_rpcrouter.h>
 #include "acpuclock.h"
 #include "clock.h"
 #include "proc_comm.h"

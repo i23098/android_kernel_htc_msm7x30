@@ -33,7 +33,7 @@
 #include <linux/workqueue.h>
 #include <linux/tps65200.h>
 #ifdef CONFIG_HTC_BATTCHG_SMEM
-#include <mach/smd_private.h>
+#include "smd_private.h"
 #endif
 
 #if defined(CONFIG_TROUT_BATTCHG_DOCK)

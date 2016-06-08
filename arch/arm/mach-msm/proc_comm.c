@@ -23,7 +23,6 @@
 #include <mach/msm_iomap.h>
 
 #include "proc_comm.h"
-#include <mach/smd_private.h>
 
 static inline void msm_a2m_int(uint32_t irq)
 {
@@ -52,7 +51,11 @@ static inline void notify_other_proc_comm(void)
 #define MDM_DATA2   0x1C
 
 static DEFINE_SPINLOCK(proc_comm_lock);
-static int msm_proc_comm_disable;
+
+/* The higher level SMD support will install this to
+ * provide a way to check for and handle modem restart.
+ */
+int (*msm_check_for_modem_crash)(void);
 
 /* Poll for a state change, checking for possible
  * modem crashes along the way (so we don't wait
@@ -64,14 +67,15 @@ static int msm_proc_comm_disable;
  */
 static int proc_comm_wait_for(void __iomem *addr, unsigned value)
 {
-	while (1) {
+	for (;;) {
 		/* Barrier here prevents excessive spinning */
 		mb();
 		if (readl_relaxed(addr) == value)
 			return 0;
 
-		if (smsm_check_for_modem_crash())
-			return -EAGAIN;
+		if (msm_check_for_modem_crash)
+			if (msm_check_for_modem_crash())
+				return -EAGAIN;
 
 		udelay(5);
 	}
@@ -110,35 +114,31 @@ int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2)
 
 	spin_lock_irqsave(&proc_comm_lock, flags);
 
-	if (msm_proc_comm_disable) {
-		ret = -EIO;
-		goto end;
-	}
+	for (;;) {
+		if (proc_comm_wait_for(base + MDM_STATUS, PCOM_READY))
+			continue;
 
+		writel_relaxed(cmd, base + APP_COMMAND);
+		writel_relaxed(data1 ? *data1 : 0, base + APP_DATA1);
+		writel_relaxed(data2 ? *data2 : 0, base + APP_DATA2);
 
-again:
-	if (proc_comm_wait_for(base + MDM_STATUS, PCOM_READY))
-		goto again;
+		/* Make sure the writes complete before notifying the other side */
+		wmb();
+		notify_other_proc_comm();
 
-	writel_relaxed(cmd, base + APP_COMMAND);
-	writel_relaxed(data1 ? *data1 : 0, base + APP_DATA1);
-	writel_relaxed(data2 ? *data2 : 0, base + APP_DATA2);
+		if (proc_comm_wait_for(base + APP_COMMAND, PCOM_CMD_DONE))
+			continue;
 
-	/* Make sure the writes complete before notifying the other side */
-	wmb();
-	notify_other_proc_comm();
-
-	if (proc_comm_wait_for(base + APP_COMMAND, PCOM_CMD_DONE))
-		goto again;
-
-	if (readl_relaxed(base + APP_STATUS) == PCOM_CMD_SUCCESS) {
-		if (data1)
-			*data1 = readl_relaxed(base + APP_DATA1);
-		if (data2)
-			*data2 = readl_relaxed(base + APP_DATA2);
-		ret = 0;
-	} else {
-		ret = -EIO;
+		if (readl_relaxed(base + APP_STATUS) == PCOM_CMD_SUCCESS) {
+			if (data1)
+				*data1 = readl_relaxed(base + APP_DATA1);
+			if (data2)
+				*data2 = readl_relaxed(base + APP_DATA2);
+			ret = 0;
+		} else {
+			ret = -EIO;
+		}
+		break;
 	}
 
 	writel_relaxed(PCOM_CMD_IDLE, base + APP_COMMAND);
@@ -147,18 +147,14 @@ again:
 	case PCOM_RESET_CHIP:
 	case PCOM_RESET_CHIP_IMM:
 	case PCOM_RESET_APPS:
-#if 1
 		/* Do not disable proc_comm when device reset */
-#else
-		msm_proc_comm_disable = 1;
-		printk(KERN_ERR "msm: proc_comm: proc comm disabled\n");
-#endif
 		break;
 	}
-end:
+
 	/* Make sure the writes complete before returning */
 	wmb();
 	spin_unlock_irqrestore(&proc_comm_lock, flags);
+
 	return ret;
 }
 

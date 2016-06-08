@@ -16,7 +16,7 @@
 #include <asm/sizes.h>
 #include <linux/mutex.h>
 #include <mach/msm_memtypes.h>
-#include <mach/smd_private.h>
+#include "smd_private.h"
 
 #if defined(CONFIG_ARCH_MSM8960)
 #include "rpm_resources.h"

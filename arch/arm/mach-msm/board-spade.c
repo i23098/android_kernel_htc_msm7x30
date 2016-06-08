@@ -106,7 +106,7 @@
 #endif
 #include <mach/qdsp5v2/mi2s.h>
 #include <mach/qdsp5v2/audio_dev_ctl.h>
-#include <mach/smd_private.h>
+#include "smd_private.h"
 #include "board-spade.h"
 #include "board-msm7x30-regulator.h"
 #include <mach/board_htc.h>

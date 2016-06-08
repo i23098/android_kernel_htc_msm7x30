@@ -20,7 +20,7 @@
 #include <linux/list.h>
 #include <mach/msm_iomap.h>
 #include <net/tcp.h>
-#include <mach/smd_private.h>
+#include "smd_private.h"
 
 #ifdef CONFIG_ARCH_MSM8960
 	#define PACKET_FILTER_UDP

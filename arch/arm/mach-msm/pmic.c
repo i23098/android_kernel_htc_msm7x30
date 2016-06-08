@@ -21,7 +21,7 @@
 
 #include <mach/pmic.h>
 
-#include "7x30-smd/smd_rpcrouter.h"
+#include <mach/msm_rpcrouter.h>
 
 #define TRACE_PMIC 0
 

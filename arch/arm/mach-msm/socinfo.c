@@ -21,7 +21,7 @@
 #include <linux/export.h>
 #include <linux/mm.h>
 #include <linux/device.h>
-#include <mach/smd_private.h>
+#include "smd_private.h"
 
 #define BUILD_ID_LENGTH 32
 

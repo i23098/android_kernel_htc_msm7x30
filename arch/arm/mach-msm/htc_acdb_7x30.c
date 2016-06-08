@@ -26,7 +26,7 @@
 #include <mach/msm_iomap.h>
 #include <mach/msm_rpcrouter.h>
 #include <mach/htc_acdb_7x30.h>
-#include <mach/smd_private.h>
+#include "smd_private.h"
 
 #define ACDB_IOCTL_MAGIC 'd'
 #define HTC_REINIT_ACDB    _IOW(ACDB_IOCTL_MAGIC, 1, unsigned)

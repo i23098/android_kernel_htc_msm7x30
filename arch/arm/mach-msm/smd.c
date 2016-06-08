@@ -34,7 +34,7 @@
 #include <linux/remote_spinlock.h>
 
 #include <linux/sched.h>
-#include <mach/smd_private.h>
+#include "smd_private.h"
 #include "proc_comm.h"
 #include "7x30-smd/modem_notifier.h"
 #include "acpuclock.h"
@@ -198,7 +198,6 @@ void smd_diag(void)
 }
 
 extern void msm_pm_flush_console(void);
-int (*msm_check_for_modem_crash)(void);
 
 static void handle_modem_crash(void)
 {
