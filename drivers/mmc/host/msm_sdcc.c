@@ -378,10 +378,6 @@ msmsdcc_switch_clock(struct mmc_host *mmc, int on)
 		if (mmc->card && mmc->card->type == MMC_TYPE_SDIO) {
 			if (mmc->pm_flags & MMC_PM_WAKE_SDIO_IRQ)
 				msmsdcc_writel(host, 0, MMCIMASK0);
-#ifdef CONFIG_MMC_ATHEROS_SDIO
-			else if (is_wifi_slot(host->plat))
-				msmsdcc_writel(host, MCI_SDIOINTMASK, MMCIMASK0);
-#endif
 			else
 				msmsdcc_writel(host, 0, MMCIMASK0);
 			msmsdcc_delay(host);
@@ -3699,12 +3695,8 @@ static int msmsdcc_suspend(struct device *dev)
 		 * simple become pm usage counter increment operations.
 		 */
 
-/* HTC_WIFI_START */
 		/*Disable suspend function for wifi slot*/
-#ifndef CONFIG_MMC_ATHEROS_SDIO
 		if (!is_wifi_slot(host->plat))
-#endif
-/* HTC_CSP_END */
 			rc = mmc_suspend_host(mmc);
 
 
@@ -3749,14 +3741,6 @@ static int msmsdcc_resume(struct device *dev)
 	if (mmc) {
 
 		spin_lock_irqsave(&host->lock, flags);
-#ifdef CONFIG_MMC_ATHEROS_SDIO
-		if (is_wifi_slot(host->plat) ) {
-			msmsdcc_switch_clock(host->mmc, 1);
-			msmsdcc_writel(host, host->mci_irqenable | host->cmd_pio_irqmask,
-					MMCIMASK0);
-			mb();
-		}
-#endif
 		if (mmc->card && (mmc->card->type == MMC_TYPE_SDIO) &&
 				(mmc->pm_flags & MMC_PM_WAKE_SDIO_IRQ) &&
 				!host->sdio_irq_disabled) {
@@ -3770,16 +3754,9 @@ static int msmsdcc_resume(struct device *dev)
 
 		spin_unlock_irqrestore(&host->lock, flags);
 
-/* HTC_WIFI_START */
-
-	/*Disable resume function for wifi slot */
-#ifndef CONFIG_MMC_ATHEROS_SDIO
-	if (!is_wifi_slot(host->plat) && mmc->card && !host->eject)
-#else
-	if (mmc->card && !host->eject)
-#endif
-/* HTC_WIFI_END */
-		mmc_resume_host(mmc);
+		/*Disable resume function for wifi slot */
+		if (!is_wifi_slot(host->plat) && mmc->card && !host->eject)
+			mmc_resume_host(mmc);
 
 		/*
 		 * FIXME: Clearing of flags must be handled in clients
