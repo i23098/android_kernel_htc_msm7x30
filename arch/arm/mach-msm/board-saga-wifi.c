@@ -9,18 +9,13 @@
 #include <asm/gpio.h>
 #include <asm/io.h>
 #include <linux/skbuff.h>
-#ifdef CONFIG_BCMDHD_GOOGLE
 #include <linux/wlan_plat.h>
-#else
-#include <linux/wifi_tiwlan.h>
-#endif
 
 #include "board-saga.h"
 
 int saga_wifi_power(int on);
 int saga_wifi_reset(int on);
 int saga_wifi_set_carddetect(int on);
-int saga_wifi_get_mac_addr(unsigned char *buf);
 
 #define PREALLOC_WLAN_NUMBER_OF_SECTIONS	4
 #define PREALLOC_WLAN_NUMBER_OF_BUFFERS		160
@@ -83,11 +78,7 @@ static struct resource saga_wifi_resources[] = {
 		.name		= "bcm4329_wlan_irq",
 		.start		= MSM_GPIO_TO_INT(SAGA_GPIO_WIFI_IRQ),
 		.end		= MSM_GPIO_TO_INT(SAGA_GPIO_WIFI_IRQ),
-#ifdef CONFIG_BCMDHD_GOOGLE
 		.flags          = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL | IORESOURCE_IRQ_SHAREABLE,
-#else
-		.flags          = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHEDGE,
-#endif
 	},
 };
 
@@ -96,10 +87,6 @@ static struct wifi_platform_data saga_wifi_control = {
 	.set_reset      = saga_wifi_reset,
 	.set_carddetect = saga_wifi_set_carddetect,
 	.mem_prealloc   = saga_wifi_mem_prealloc,
-#ifndef CONFIG_BCMDHD_GOOGLE
-	.get_mac_addr	= saga_wifi_get_mac_addr,
-	.dot11n_enable  = 1,
-#endif
 };
 
 static struct platform_device saga_wifi_device = {
@@ -193,78 +180,6 @@ static unsigned strip_nvs_param(char *param)
 	return 0;
 }
 #endif
-
-#ifndef CONFIG_BCMDHD_GOOGLE
-#define WIFI_MAC_PARAM_STR     "macaddr="
-#define WIFI_MAX_MAC_LEN       17 /* XX:XX:XX:XX:XX:XX */
-
-static uint
-get_mac_from_wifi_nvs_ram(char *buf, unsigned int buf_len)
-{
-	unsigned char *nvs_ptr;
-	unsigned char *mac_ptr;
-	uint len = 0;
-
-	if (!buf || !buf_len)
-		return 0;
-
-	nvs_ptr = get_wifi_nvs_ram();
-	if (nvs_ptr)
-		nvs_ptr += NVS_DATA_OFFSET;
-
-	mac_ptr = strstr(nvs_ptr, WIFI_MAC_PARAM_STR);
-	if (mac_ptr) {
-		mac_ptr += strlen(WIFI_MAC_PARAM_STR);
-
-		/* skip leading space */
-		while (mac_ptr[0] == ' ')
-			mac_ptr++;
-
-		/* locate end-of-line */
-		len = 0;
-		while (mac_ptr[len] != '\r' && mac_ptr[len] != '\n' &&
-			mac_ptr[len] != '\0') {
-			len++;
-		}
-
-		if (len > buf_len)
-			len = buf_len;
-
-		memcpy(buf, mac_ptr, len);
-	}
-
-	return len;
-}
-
-#define ETHER_ADDR_LEN 6
-int saga_wifi_get_mac_addr(unsigned char *buf)
-{
-	static u8 ether_mac_addr[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0xFF};
-	char mac[WIFI_MAX_MAC_LEN];
-	unsigned mac_len;
-	unsigned int macpattern[ETHER_ADDR_LEN];
-	int i;
-
-	mac_len = get_mac_from_wifi_nvs_ram(mac, WIFI_MAX_MAC_LEN);
-	if (mac_len > 0) {
-		/*Mac address to pattern*/
-		sscanf(mac, "%02x:%02x:%02x:%02x:%02x:%02x",
-		&macpattern[0], &macpattern[1], &macpattern[2],
-		&macpattern[3], &macpattern[4], &macpattern[5]
-		);
-
-		for (i = 0; i < ETHER_ADDR_LEN; i++)
-			ether_mac_addr[i] = (u8)macpattern[i];
-	}
-
-	memcpy(buf, ether_mac_addr, sizeof(ether_mac_addr));
-
-	printk(KERN_INFO"saga_wifi_get_mac_addr = %02x %02x %02x %02x %02x %02x \n",
-		ether_mac_addr[0], ether_mac_addr[1], ether_mac_addr[2], ether_mac_addr[3], ether_mac_addr[4], ether_mac_addr[5]);
-
-	return 0;
-}
-#endif //#ifndef CONFIG_BCMDHD_GOOGLE
 
 int __init saga_wifi_init(void)
 {

@@ -307,14 +307,6 @@ config WCNSS_CORE
 	---help---
 	  Core driver for the Qualcomm WCNSS triple play connectivity subsystem
 
-config BCMDHD_GOOGLE
-	bool "Enable Google BCMDHD implementation"
-	default n
-	select CFG80211_WEXT
-	select LIB80211
-	---help---
-	  Build the Google version of the BCMDHD driver instead of the HTC modified version
-
 source "drivers/net/wireless/bcmdhd/Kconfig"
 
 endif # WLAN

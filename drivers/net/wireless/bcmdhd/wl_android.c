@@ -43,8 +43,6 @@
 #include <linux/platform_device.h>
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35))
 #include <linux/wlan_plat.h>
-#else
-#include <linux/wifi_tiwlan.h>
 #endif
 #endif /* CONFIG_WIFI_CONTROL_FUNC */
 

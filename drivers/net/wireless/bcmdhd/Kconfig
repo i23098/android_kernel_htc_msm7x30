@@ -1,7 +1,7 @@
-if BCMDHD_GOOGLE
-
 config BCMDHD
 	tristate "Broadcom 4329/30 wireless cards support"
+	select CFG80211_WEXT
+	select LIB80211
 	depends on MMC
 	---help---
 	  This module adds support for wireless adapters based on
@@ -54,5 +54,3 @@ config DHD_ENABLE_P2P
 	default n
 	---help---
 	  Use Enable Wifi Direct
-
-endif #BCMDHD_GOOGLE
