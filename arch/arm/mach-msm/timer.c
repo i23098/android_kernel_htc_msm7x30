@@ -31,6 +31,11 @@
 
 #include "common.h"
 
+#include <linux/delay.h>
+#if defined(CONFIG_MSM_SMD)
+#include "smd_private.h"
+#endif
+
 #define TIMER_MATCH_VAL         0x0000
 #define TIMER_COUNT_VAL         0x0004
 #define TIMER_ENABLE            0x0008
@@ -357,6 +362,14 @@ struct sys_timer qsd8x50_timer = {
 };
 
 #ifdef CONFIG_PM
+
+struct msm_timer_sync_data_t {
+	uint32_t	timeout;
+	int		exit_sleep;
+};
+
+static void (*msm_timer_sync_timeout)(void);
+
 /*
  * Retrieve the cycle count from sclk and optionally synchronize local clock
  * with the sclk value.
@@ -372,7 +385,200 @@ struct sys_timer qsd8x50_timer = {
  *      0: the operation failed
  *      >0: the slow clock value after time-sync
  */
-static void (*msm_timer_sync_timeout)(void);
+#if defined(CONFIG_MSM_DIRECT_SCLK_ACCESS)
+static uint32_t msm_timer_do_sync_to_sclk(
+	void (*time_start)(struct msm_timer_sync_data_t *data),
+	bool (*time_expired)(struct msm_timer_sync_data_t *data),
+	void (*update)(struct msm_timer_sync_data_t *, uint32_t, uint32_t),
+	struct msm_timer_sync_data_t *data)
+{
+	uint32_t t1, t2;
+	int loop_count = 10;
+	int loop_zero_count = 3;
+	int tmp = USEC_PER_SEC;
+	do_div(tmp, sclk_hz);
+	tmp /= (loop_zero_count-1);
+
+	while (loop_zero_count--) {
+		t1 = __raw_readl(MSM_RPM_MPM_BASE + MPM_SCLK_COUNT_VAL);
+		do {
+			udelay(1);
+			t2 = t1;
+			t1 = __raw_readl(MSM_RPM_MPM_BASE + MPM_SCLK_COUNT_VAL);
+		} while ((t2 != t1) && --loop_count);
+
+		if (!loop_count) {
+			printk(KERN_EMERG "SCLK  did not stabilize\n");
+			return 0;
+		}
+
+		if (t1)
+			break;
+
+		udelay(tmp);
+	}
+
+	if (!loop_zero_count) {
+		printk(KERN_EMERG "SCLK reads zero\n");
+		return 0;
+	}
+
+	if (update != NULL)
+		update(data, t1, sclk_hz);
+	return t1;
+}
+#elif defined(CONFIG_MSM_N_WAY_SMSM)
+
+/* Time Master State Bits */
+#define MASTER_BITS_PER_CPU        1
+#define MASTER_TIME_PENDING \
+	(0x01UL << (MASTER_BITS_PER_CPU * SMSM_APPS_STATE))
+
+/* Time Slave State Bits */
+#define SLAVE_TIME_REQUEST         0x0400
+#define SLAVE_TIME_POLL            0x0800
+#define SLAVE_TIME_INIT            0x1000
+
+static uint32_t msm_timer_do_sync_to_sclk(
+	void (*time_start)(struct msm_timer_sync_data_t *data),
+	bool (*time_expired)(struct msm_timer_sync_data_t *data),
+	void (*update)(struct msm_timer_sync_data_t *, uint32_t, uint32_t),
+	struct msm_timer_sync_data_t *data)
+{
+	uint32_t *smem_clock;
+	uint32_t smem_clock_val;
+	uint32_t state;
+
+	smem_clock = smem_alloc(SMEM_SMEM_SLOW_CLOCK_VALUE, sizeof(uint32_t));
+	if (smem_clock == NULL) {
+		printk(KERN_ERR "no smem clock\n");
+		return 0;
+	}
+
+	state = smsm_get_state(SMSM_MODEM_STATE);
+	if ((state & SMSM_INIT) == 0) {
+		printk(KERN_ERR "smsm not initialized\n");
+		return 0;
+	}
+
+	time_start(data);
+	while ((state = smsm_get_state(SMSM_TIME_MASTER_DEM)) &
+		MASTER_TIME_PENDING) {
+		if (time_expired(data)) {
+			printk(KERN_EMERG "get_smem_clock: timeout 1 still "
+				"invalid state %x\n", state);
+			msm_timer_sync_timeout();
+		}
+	}
+
+	smsm_change_state(SMSM_APPS_DEM, SLAVE_TIME_POLL | SLAVE_TIME_INIT,
+		SLAVE_TIME_REQUEST);
+
+	time_start(data);
+	while (!((state = smsm_get_state(SMSM_TIME_MASTER_DEM)) &
+		MASTER_TIME_PENDING)) {
+		if (time_expired(data)) {
+			printk(KERN_EMERG "get_smem_clock: timeout 2 still "
+				"invalid state %x\n", state);
+			msm_timer_sync_timeout();
+		}
+	}
+
+	smsm_change_state(SMSM_APPS_DEM, SLAVE_TIME_REQUEST, SLAVE_TIME_POLL);
+
+	time_start(data);
+	do {
+		smem_clock_val = *smem_clock;
+	} while (smem_clock_val == 0 && !time_expired(data));
+
+	state = smsm_get_state(SMSM_TIME_MASTER_DEM);
+
+	if (smem_clock_val) {
+		if (update != NULL)
+			update(data, smem_clock_val, 32768);
+
+		printk(KERN_INFO
+			"get_smem_clock: state %x clock %u\n",
+			state, smem_clock_val);
+	} else {
+		printk(KERN_EMERG
+			"get_smem_clock: timeout state %x clock %u\n",
+			state, smem_clock_val);
+		msm_timer_sync_timeout();
+	}
+
+	smsm_change_state(SMSM_APPS_DEM, SLAVE_TIME_REQUEST | SLAVE_TIME_POLL,
+		SLAVE_TIME_INIT);
+	return smem_clock_val;
+}
+#else /* CONFIG_MSM_N_WAY_SMSM */
+static uint32_t msm_timer_do_sync_to_sclk(
+	void (*time_start)(struct msm_timer_sync_data_t *data),
+	bool (*time_expired)(struct msm_timer_sync_data_t *data),
+	void (*update)(struct msm_timer_sync_data_t *, uint32_t, uint32_t),
+	struct msm_timer_sync_data_t *data)
+{
+	uint32_t *smem_clock;
+	uint32_t smem_clock_val;
+	uint32_t last_state;
+	uint32_t state;
+
+	smem_clock = smem_alloc(SMEM_SMEM_SLOW_CLOCK_VALUE,
+				sizeof(uint32_t));
+
+	if (smem_clock == NULL) {
+		printk(KERN_ERR "no smem clock\n");
+		return 0;
+	}
+
+	last_state = state = smsm_get_state(SMSM_MODEM_STATE);
+	smem_clock_val = *smem_clock;
+	if (smem_clock_val) {
+		printk(KERN_INFO "get_smem_clock: invalid start state %x "
+			"clock %u\n", state, smem_clock_val);
+		smsm_change_state(SMSM_APPS_STATE,
+				  SMSM_TIMEWAIT, SMSM_TIMEINIT);
+
+		time_start(data);
+		while (*smem_clock != 0 && !time_expired(data))
+			;
+
+		smem_clock_val = *smem_clock;
+		if (smem_clock_val) {
+			printk(KERN_EMERG "get_smem_clock: timeout still "
+				"invalid state %x clock %u\n",
+				state, smem_clock_val);
+			msm_timer_sync_timeout();
+		}
+	}
+
+	time_start(data);
+	smsm_change_state(SMSM_APPS_STATE, SMSM_TIMEINIT, SMSM_TIMEWAIT);
+	do {
+		smem_clock_val = *smem_clock;
+		state = smsm_get_state(SMSM_MODEM_STATE);
+		if (state != last_state) {
+			last_state = state;
+			printk(KERN_INFO
+				"get_smem_clock: state %x clock %u\n",
+				state, smem_clock_val);
+		}
+	} while (smem_clock_val == 0 && !time_expired(data));
+
+	if (smem_clock_val) {
+		if (update != NULL)
+			update(data, smem_clock_val, sclk_hz);
+	} else {
+		printk(KERN_EMERG
+			"get_smem_clock: timeout state %x clock %u\n",
+			state, smem_clock_val);
+		msm_timer_sync_timeout();
+	}
+
+	smsm_change_state(SMSM_APPS_STATE, SMSM_TIMEWAIT, SMSM_TIMEINIT);
+	return smem_clock_val;
+}
+#endif /* CONFIG_MSM_N_WAY_SMSM */
 
 /* return difference between soc time and modem time with sync */
 int64_t msm_timer_enter_idle(void) { return 0; }
@@ -380,6 +586,24 @@ int64_t msm_timer_enter_idle(void) { return 0; }
 /* sync time between soc and modem */
 void msm_timer_exit_idle(int low_power) { return; }
 
+/*
+ * Callback function that initializes the timeout value.
+ */
+static void msm_timer_get_sclk_time_start(
+	struct msm_timer_sync_data_t *data)
+{
+	data->timeout = 200000;
+}
+
+/*
+ * Callback function that checks the timeout.
+ */
+static bool msm_timer_get_sclk_time_expired(
+	struct msm_timer_sync_data_t *data)
+{
+	udelay(10);
+	return --data->timeout <= 0;
+}
 
 /*
  * Retrieve the cycle count from the sclk and convert it into
@@ -394,8 +618,6 @@ void msm_timer_exit_idle(int low_power) { return; }
  */
 int64_t msm_timer_get_sclk_time(int64_t *period)
 {
-	return 0;
-#if 0
 	struct msm_timer_sync_data_t data;
 	uint32_t clock_value;
 	int64_t tmp;
@@ -407,26 +629,27 @@ int64_t msm_timer_get_sclk_time(int64_t *period)
 		NULL,
 		&data);
 
+	printk(KERN_ERR	"%s: clock value will be: %d\n",
+			__func__, clock_value);
+			
 	if (!clock_value)
 		return 0;
 
 	if (period) {
 		tmp = 1LL << 32;
 		tmp *= NSEC_PER_SEC;
-		do_div(tmp, sclk_hz);
+		do_div(tmp, 32768);
 		*period = tmp;
 	}
 
 	tmp = (int64_t)clock_value;
 	tmp *= NSEC_PER_SEC;
-	do_div(tmp, sclk_hz);
+	do_div(tmp, 32768);
 	return tmp;
-#endif
 }
 
 /* register func for errors in sync */
 int __init msm_timer_init_time_sync(void (*timeout)(void)) { 
-#if 0
 #if defined(CONFIG_MSM_N_WAY_SMSM) && !defined(CONFIG_MSM_DIRECT_SCLK_ACCESS)
 	int ret = smsm_change_intr_mask(SMSM_TIME_MASTER_DEM, 0xFFFFFFFF, 0);
 
@@ -438,7 +661,6 @@ int __init msm_timer_init_time_sync(void (*timeout)(void)) {
 
 	smsm_change_state(SMSM_APPS_DEM,
 		SLAVE_TIME_REQUEST | SLAVE_TIME_POLL, SLAVE_TIME_INIT);
-#endif
 #endif
 	BUG_ON(timeout == NULL);
 	msm_timer_sync_timeout = timeout;
