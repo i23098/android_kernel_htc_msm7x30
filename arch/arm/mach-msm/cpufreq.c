@@ -29,6 +29,7 @@
 #include <trace/events/power.h>
 #include <mach/socinfo.h>
 #include <mach/cpufreq.h>
+#include <linux/sched/rt.h>
 
 #include "acpuclock.h"
 
