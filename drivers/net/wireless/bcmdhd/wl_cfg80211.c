@@ -5020,7 +5020,11 @@ static s32 wl_inform_single_bss(struct wl_priv *wl, struct wl_bss_info *bi)
 		return -EINVAL;
 	}
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0))
+	cfg80211_put_bss(wiphy, cbss);
+#else
 	cfg80211_put_bss(cbss);
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0) */
 	kfree(notif_bss_info);
 
 	return err;
@@ -5123,7 +5127,11 @@ static s32 wl_inform_ibss(struct wl_priv *wl, const u8 *bssid)
 		goto CleanUp;
 	}
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0))
+	cfg80211_put_bss(wiphy, bss);
+#else
 	cfg80211_put_bss(bss);
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 9, 0) */
 	err = 0;
 
 CleanUp:
