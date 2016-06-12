@@ -660,7 +660,7 @@ static inline void __zs_unmap_object(struct mapping_area *area,
 
 	flush_cache_vunmap(addr, end);
 	unmap_kernel_range_noflush(addr, PAGE_SIZE * 2);
-	local_flush_tlb_kernel_range(addr, end);
+	flush_tlb_kernel_range(addr, end);
 }
 
 #else /* USE_PGTABLE_MAPPING */
