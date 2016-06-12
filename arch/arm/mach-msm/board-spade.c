@@ -2945,8 +2945,6 @@ static void __init spade_init(void)
 	spade_audio_init();
 	spade_wifi_init();
 	msm_init_pmic_vibrator(3000);
-	printk(KERN_ERR	"%s: current time: %ld\n",
-		__func__, msm_timer_get_sclk_time(NULL));
 }
 
 static unsigned pmem_sf_size = MSM_PMEM_SF_SIZE;

@@ -580,12 +580,6 @@ static uint32_t msm_timer_do_sync_to_sclk(
 }
 #endif /* CONFIG_MSM_N_WAY_SMSM */
 
-/* return difference between soc time and modem time with sync */
-int64_t msm_timer_enter_idle(void) { return 0; }
-
-/* sync time between soc and modem */
-void msm_timer_exit_idle(int low_power) { return; }
-
 /*
  * Callback function that initializes the timeout value.
  */
