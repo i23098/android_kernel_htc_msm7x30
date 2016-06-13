@@ -40,7 +40,6 @@ void diag_clear_reg(int);
 int diagfwd_connect(void);
 int diagfwd_disconnect(void);
 #endif
-extern int diag_support_mdm9k;
 extern int diag_debug_buf_idx;
 extern unsigned char diag_debug_buf[1024];
 extern unsigned diag7k_debug_mask;

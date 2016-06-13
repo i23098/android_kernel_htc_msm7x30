@@ -818,12 +818,6 @@ config USB_G_ANDROID
 	  The functions can be configured via a board file and may be
 	  enabled and disabled dynamically.
 
-config USB_ANDROID_ACM
-	boolean "Android gadget ACM serial function"
-	depends on USB_G_ANDROID
-	help
-	  Provides ACM serial function for android gadget driver.
-
 config USB_ANDROID_ADB
 	boolean "Android gadget adb function"
 	depends on USB_G_ANDROID
@@ -837,18 +831,6 @@ config USB_ANDROID_DIAG
 	default y
 	help
 	  Qualcomm diagnostics interface support.
-
-config USB_ANDROID_MDM9K_DIAG
-	 boolean "USB MDM 9k Diag Function"
-	 depends on USB_ANDROID_DIAG
-	 help
-	   Qualcomm diagnostics interface support for 9K.
-
-config USB_ANDROID_MDM9K_MODEM
-	 boolean "USB MDM 9k Modem Function"
-	 depends on USB_G_ANDROID
-	 help
-	   Qualcomm Modem interface support for 9K.
 
 config USB_ANDROID_MASS_STORAGE
 	boolean "Android gadget mass storage function"
@@ -932,16 +914,6 @@ config USB_ANDROID_SERIAL
 	depends on USB_G_ANDROID
 	help
 
-config USB_ANDROID_PROJECTOR
-	boolean "Android gadget Projector function"
-	depends on USB_G_ANDROID
-	help
-
-config USB_ANDROID_ECM
-	boolean "Android gadget ECM function"
-	depends on USB_G_ANDROID
-	help
-
 config USB_F_SERIAL_SMD
 	boolean "generic serial function driver over SMD"
 	depends on USB_G_ANDROID && MSM_SMD
@@ -953,12 +925,6 @@ config USB_F_SERIAL_SMD
 	   to Gadget usb serial interface(f_serial.c) and adds
 	   separate transport layer u_smd(very similar to u_serial.c)
 	   Say "y" to link the driver statically
-
-config USB_ANDROID_USBNET
-	boolean "Android gadget USBNET function for VoIP"
-	depends on USB_G_ANDROID
-	default n
-	help
 
 config USB_CDC_COMPOSITE
 	tristate "CDC Composite Device (Ethernet and ACM)"

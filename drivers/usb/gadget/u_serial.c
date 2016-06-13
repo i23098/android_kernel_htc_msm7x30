@@ -111,7 +111,7 @@ struct gs_port {
 	int read_allocated;
 	struct list_head	read_queue;
 	unsigned		n_read;
-	struct work_struct	push;
+	struct tasklet_struct	push;
 
 	struct list_head	write_pool;
 	int write_started;
@@ -129,14 +129,12 @@ struct gs_port {
 };
 
 /* increase N_PORTS if you need more */
-#define N_PORTS		8
+#define N_PORTS		4
 static struct portmaster {
 	struct mutex	lock;			/* protect open/close */
 	struct gs_port	*port;
 } ports[N_PORTS];
 static unsigned	n_ports;
-
-static struct workqueue_struct *gserial_wq;
 
 #define GS_CLOSE_TIMEOUT		15		/* seconds */
 
@@ -532,9 +530,9 @@ __acquires(&port->port_lock)
  * So QUEUE_SIZE packets plus however many the FIFO holds (usually two)
  * can be buffered before the TTY layer's buffers (currently 64 KB).
  */
-static void gs_rx_push(struct work_struct *w)
+static void gs_rx_push(unsigned long _port)
 {
-	struct gs_port		*port = container_of(w, struct gs_port, push);
+	struct gs_port		*port = (void *)_port;
 	struct tty_struct	*tty;
 	struct list_head	*queue = &port->read_queue;
 	bool			disconnect = false;
@@ -612,7 +610,7 @@ recycle:
 	if (!list_empty(queue) && tty) {
 		if (!test_bit(TTY_THROTTLED, &tty->flags)) {
 			if (do_push)
-				queue_work(gserial_wq, &port->push);
+				tasklet_schedule(&port->push);
 			else
 				pr_warning(PREFIX "%d: RX not scheduled?\n",
 					port->port_num);
@@ -625,24 +623,10 @@ recycle:
 
 	spin_unlock_irq(&port->port_lock);
 }
-#if 0
+
 static void gs_read_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	struct gs_port	*port = ep->driver_data;
-	unsigned long flags;
-
-	/* Queue all received data until the tty layer is ready for it. */
-	spin_lock_irqsave(&port->port_lock, flags);
-	port->nbytes_from_host += req->actual;
-	list_add_tail(&req->list, &port->read_queue);
-	queue_work(gserial_wq, &port->push);
-	spin_unlock_irqrestore(&port->port_lock, flags);
-}
-#else
-static void gs_read_complete(struct usb_ep *ep, struct usb_request *req)
-{
-	/* used global variable */
-	struct gs_port *port = ep->driver_data;
 	struct tty_struct *tty;
 
 	tty = port->port.tty;
@@ -656,7 +640,7 @@ static void gs_read_complete(struct usb_ep *ep, struct usb_request *req)
 		spin_lock(&port->port_lock);
 		if (!test_bit(TTY_THROTTLED, &tty->flags)) {
 			list_add_tail(&req->list, &port->read_queue);
-			queue_work(gserial_wq, &port->push);
+			tasklet_schedule(&port->push);
 		} else {
 			if ((RX_QUEUE_SIZE-1) == port->rx_qcnt) {
 				printk(KERN_INFO "%s: TTY_THROTTLED, cnt:%d, "
@@ -691,7 +675,6 @@ static void gs_read_complete(struct usb_ep *ep, struct usb_request *req)
 	}
 }
 
-#endif
 static void gs_write_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	struct gs_port	*port = ep->driver_data;
@@ -986,7 +969,7 @@ static void gs_close(struct tty_struct *tty, struct file *file)
 
 	/* Iff we're disconnected, there can be no I/O in flight so it's
 	 * ok to free the circular buffer; else just scrub it.  And don't
-	 * let the push work queue fire again until we're re-opened.
+	 * let the push tasklet fire again until we're re-opened.
 	 */
 	if (gser == NULL)
 		gs_buf_free(&port->port_write_buf);
@@ -1116,7 +1099,7 @@ static void gs_unthrottle(struct tty_struct *tty)
 		 * rts/cts, or other handshaking with the host, but if the
 		 * read queue backs up enough we'll be NAKing OUT packets.
 		 */
-		queue_work(gserial_wq, &port->push);
+		tasklet_schedule(&port->push);
 		pr_vdebug(PREFIX "%d: unthrottle\n", port->port_num);
 	}
 	spin_unlock_irqrestore(&port->port_lock, flags);
@@ -1259,7 +1242,7 @@ gs_port_alloc(unsigned port_num, struct usb_cdc_line_coding *coding)
 	spin_lock_init(&port->port_lock);
 	init_waitqueue_head(&port->drain_wait);
 
-	INIT_WORK(&port->push, gs_rx_push);
+	tasklet_init(&port->push, gs_rx_push, (unsigned long) port);
 
 	INIT_LIST_HEAD(&port->read_pool);
 	INIT_LIST_HEAD(&port->read_queue);
@@ -1449,12 +1432,6 @@ int gserial_setup(struct usb_gadget *g, unsigned count)
 
 	tty_set_operations(gs_tty_driver, &gs_tty_ops);
 
-	gserial_wq = create_singlethread_workqueue("k_gserial");
-	if (!gserial_wq) {
-		status = -ENOMEM;
-		goto fail;
-	}
-
 	/* make devices be openable */
 	for (i = 0; i < count; i++) {
 		mutex_init(&ports[i].lock);
@@ -1498,8 +1475,6 @@ fail:
 		tty_port_destroy(&ports[count].port->port);
 		kfree(ports[count].port);
 	}
-	if (gserial_wq)
-		destroy_workqueue(gserial_wq);
 	put_tty_driver(gs_tty_driver);
 	gs_tty_driver = NULL;
 	return status;
@@ -1546,7 +1521,7 @@ void gserial_cleanup(void)
 		ports[i].port = NULL;
 		mutex_unlock(&ports[i].lock);
 
-		cancel_work_sync(&port->push);
+		tasklet_kill(&port->push);
 
 		/* wait for old opens to finish */
 		wait_event(port->port.close_wait, gs_closed(port));
@@ -1558,7 +1533,6 @@ void gserial_cleanup(void)
 	}
 	n_ports = 0;
 
-	destroy_workqueue(gserial_wq);
 	tty_unregister_driver(gs_tty_driver);
 	put_tty_driver(gs_tty_driver);
 	gs_tty_driver = NULL;

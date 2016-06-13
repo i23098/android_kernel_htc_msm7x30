@@ -440,12 +440,6 @@ struct usb_diag_ch *usb_diag_open(const char *name, void *priv,
 			driver->diag_smd_count = driver->diag_qdsp_count = 0;
 #endif
 		}
-#if defined(CONFIG_USB_ANDROID_MDM9K_DIAG)
-		else if (!strcmp(name, DIAG_MDM)) {
-			mdmctxt = ctxt = &_mdm_context;
-			mdmch = ch = &ctxt->ch;
-		}
-#endif
 		else
 			return NULL;
 	}

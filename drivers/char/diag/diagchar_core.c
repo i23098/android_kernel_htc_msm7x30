@@ -30,12 +30,6 @@
 #include "diagfwd_cntl.h"
 #include <linux/timer.h>
 
-#ifdef CONFIG_USB_ANDROID_MDM9K_DIAG
-int diag_support_mdm9k = 1;
-#else
-int diag_support_mdm9k = 0;
-#endif
-
 MODULE_DESCRIPTION("Diag Char Driver");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0");

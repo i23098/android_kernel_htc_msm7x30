@@ -17,9 +17,6 @@ static struct usb_diag_ch *legacych;
 static struct diag_context *legacyctxt;
 
 struct diag_context _mdm_context;
-#if defined(CONFIG_USB_ANDROID_MDM9K_DIAG)
-static struct usb_diag_ch *mdmch;
-#endif
 static  struct diag_context *mdmctxt;
 
 #if DIAG_XPST

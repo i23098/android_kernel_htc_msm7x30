@@ -347,15 +347,9 @@ int android_switch_function(unsigned func)
 		} else if ((func & (1 << USB_FUNCTION_DIAG)) &&
 				!strcmp(f->name, "diag")) {
 			list_add_tail(&f->enabled_list, &dev->enabled_functions);
-#ifdef CONFIG_USB_ANDROID_MDM9K_DIAG
-			func |= 1 << USB_FUNCTION_DIAG_MDM;
-#endif
 		} else if ((func & (1 << USB_FUNCTION_MODEM)) &&
 				!strcmp(f->name, "modem")) {
 			list_add_tail(&f->enabled_list, &dev->enabled_functions);
-#ifdef CONFIG_USB_ANDROID_MDM9K_MODEM
-			func |= 1 << USB_FUNCTION_MODEM_MDM;
-#endif
 		} else if ((func & (1 << USB_FUNCTION_SERIAL)) &&
 				!strcmp(f->name, "serial")) {
 			if (func & (1 << USB_FUNCTION_AUTOBOT)
@@ -372,32 +366,9 @@ int android_switch_function(unsigned func)
 		else if ((func & (1 << USB_FUNCTION_PROJECTOR)) &&
 				!strcmp(f->name, "projector"))
 			list_add_tail(&f->enabled_list, &dev->enabled_functions);
-#ifdef CONFIG_USB_ANDROID_MDM9K_DIAG
-		else if ((func & (1 << USB_FUNCTION_DIAG_MDM)) &&
-				!strcmp(f->name, "diag_mdm")) {
-			if (func & (1 << USB_FUNCTION_DIAG))
-				list_add_tail(&f->enabled_list, &dev->enabled_functions);
-			else
-				func &= ~(1 << USB_FUNCTION_DIAG_MDM);
-		}
-#endif
 		else if ((func & (1 << USB_FUNCTION_RMNET)) &&
 				!strcmp(f->name, "rmnet"))
 			list_add_tail(&f->enabled_list, &dev->enabled_functions);
-#ifdef CONFIG_USB_ANDROID_MDM9K_MODEM
-		else if ((func & (1 << USB_FUNCTION_MODEM_MDM)) &&
-				!strcmp(f->name, "modem_mdm")) {
-			if (func & (1 << USB_FUNCTION_MODEM))
-				list_add_tail(&f->enabled_list, &dev->enabled_functions);
-			else
-				func &= ~(1 << USB_FUNCTION_MODEM_MDM);
-		}
-#endif
-#ifdef CONFIG_USB_ANDROID_USBNET
-		else if ((func & (1 << USB_FUNCTION_USBNET)) &&
-				!strcmp(f->name, "usbnet"))
-			list_add_tail(&f->enabled_list, &dev->enabled_functions);
-#endif
 	}
 
 	list_for_each_entry(f, &dev->enabled_functions, enabled_list)
