@@ -71,6 +71,7 @@ static struct port_info {
 	enum fserial_func_type func_type;
 	unsigned		port_num;
 	unsigned		client_port_num;
+	unsigned char 		line;
 } gserial_ports[GSERIAL_NO_PORTS];
 
 static inline struct f_gser *func_to_gser(struct usb_function *f)
@@ -346,16 +347,35 @@ static enum fserial_func_type serial_str_to_func_type(const char *name)
 
 static int gport_setup(struct usb_configuration *c)
 {
-	int ret = 0;
+	int ret = 0, port_num;
 
 	pr_debug("%s: no_tty_ports:%u no_sdio_ports: %u nr_ports:%u\n",
 			__func__, no_tty_ports, no_sdio_ports, nr_ports);
 
 	if (no_tty_ports)
-		ret = gserial_setup(c->cdev->gadget, no_tty_ports);
+		for (port_num=0; port_num < nr_ports; port_num ++) {
+			if (gserial_ports[port_num].transport == USB_GADGET_FSERIAL_TRANSPORT_TTY) {
+				gserial_alloc_line(&gserial_ports[port_num].line);
+			}
+		}
 	if (no_smd_ports)
 		ret = gsmd_setup(c->cdev->gadget, no_smd_ports);
 
+	return ret;
+}
+
+static int gport_unsetup(void)
+{
+	int ret = 0, port_num;
+
+	pr_debug("%s: no_tty_ports:%u nr_ports:%u\n",
+			__func__, no_tty_ports, nr_ports);
+	if (no_tty_ports)
+		for (port_num = 0; port_num < nr_ports; port_num ++) {
+			if (gserial_ports[port_num].transport == USB_GADGET_FSERIAL_TRANSPORT_TTY) {
+				gserial_free_line(gserial_ports[port_num].line);
+			}
+		}
 	return ret;
 }
 
@@ -863,10 +883,6 @@ gser_unbind(struct usb_configuration *c, struct usb_function *f)
  * Context: single threaded during gadget setup
  *
  * Returns zero on success, else negative errno.
- *
- * Caller must have called @gserial_setup() with enough ports to
- * handle all the ones it binds.  Caller is also responsible
- * for calling @gserial_cleanup() before module unload.
  */
 int __init gser_bind_config(struct usb_configuration *c, u8 port_num)
 {

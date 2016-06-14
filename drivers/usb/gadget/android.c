@@ -198,7 +198,7 @@ static struct usb_configuration android_config_driver = {
 	.unbind		= android_unbind_config,
 	.bConfigurationValue = 1,
 	.bmAttributes	= USB_CONFIG_ATT_ONE /* | USB_CONFIG_ATT_SELFPOWER */,
-	.bMaxPower	= 0xFA, /* 500ma */
+	.MaxPower	= 500, /* 500ma */
 };
 
 static void android_work(struct work_struct *data)
@@ -479,7 +479,7 @@ static struct device_attribute *serial_function_attributes[] =
 
 static void serial_function_cleanup(struct android_usb_function *f)
 {
-	gserial_cleanup();
+	gport_unsetup();
 }
 
 static int serial_function_bind_config(struct android_usb_function *f,
