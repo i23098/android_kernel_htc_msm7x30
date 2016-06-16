@@ -46,7 +46,6 @@
 #include <linux/dma-mapping.h>
 #include <linux/dmapool.h>
 #include <linux/wait.h>
-#include <linux/wakelock.h>
 #include <linux/workqueue.h>
 
 #include <linux/atomic.h>
@@ -56,6 +55,7 @@
 #include <mach/dma.h>
 #include <linux/platform_data/msm_serial_hs.h>
 /* for brcm */
+#include <linux/wakelock.h>
 #include <linux/gpio.h>
 #include <linux/uaccess.h>
 
@@ -1108,7 +1108,7 @@ static void flip_insert_work(struct work_struct *work)
 	struct msm_hs_port *msm_uport =
 		container_of(work, struct msm_hs_port,
 			     rx.flip_insert_work.work);
-	struct tty_struct *tty = msm_uport->uport.state->port.tty;
+	struct tty_port *port = &msm_uport->uport.state->port;
 
 	spin_lock_irqsave(&msm_uport->uport.lock, flags);
 	if (msm_uport->rx.buffer_pending == NONE_PENDING) {
@@ -1118,12 +1118,12 @@ static void flip_insert_work(struct work_struct *work)
 		return;
 	}
 	if (msm_uport->rx.buffer_pending & FIFO_OVERRUN) {
-		retval = tty_insert_flip_char(tty, 0, TTY_OVERRUN);
+		retval = tty_insert_flip_char(port, 0, TTY_OVERRUN);
 		if (retval)
 			msm_uport->rx.buffer_pending &= ~FIFO_OVERRUN;
 	}
 	if (msm_uport->rx.buffer_pending & PARITY_ERROR) {
-		retval = tty_insert_flip_char(tty, 0, TTY_PARITY);
+		retval = tty_insert_flip_char(port, 0, TTY_PARITY);
 		if (retval)
 			msm_uport->rx.buffer_pending &= ~PARITY_ERROR;
 	}
@@ -1131,7 +1131,7 @@ static void flip_insert_work(struct work_struct *work)
 		int rx_count, rx_offset;
 		rx_count = (msm_uport->rx.buffer_pending & 0xFFFF0000) >> 16;
 		rx_offset = (msm_uport->rx.buffer_pending & 0xFFD0) >> 5;
-		retval = tty_insert_flip_string(tty, msm_uport->rx.buffer +
+		retval = tty_insert_flip_string(port, msm_uport->rx.buffer +
 						rx_offset, rx_count);
 		msm_uport->rx.buffer_pending &= (FIFO_OVERRUN |
 						 PARITY_ERROR);
@@ -1153,7 +1153,7 @@ static void flip_insert_work(struct work_struct *work)
 			msm_hs_start_rx_locked(&msm_uport->uport);
 		}
 	spin_unlock_irqrestore(&msm_uport->uport.lock, flags);
-	tty_flip_buffer_push(tty);
+	tty_flip_buffer_push(&msm_uport->uport.state->port);
 }
 
 /*
@@ -1179,29 +1179,32 @@ static void msm_serial_hs_rx_tlet(unsigned long tlet_ptr)
 	int retval;
 	int rx_count;
 	unsigned long status;
-	unsigned long flags;
 	unsigned int error_f = 0;
-	struct uart_port *uport;
-	struct msm_hs_port *msm_uport;
+	unsigned long flags;
 	unsigned int flush;
 	struct tty_struct *tty;
+	struct tty_port *port;
+	struct uart_port *uport;
+	struct msm_hs_port *msm_uport;
 
 	msm_uport = container_of((struct tasklet_struct *)tlet_ptr,
 				 struct msm_hs_port, rx.tlet);
 	uport = &msm_uport->uport;
-	tty = uport->state->port.tty;
-
-	status = msm_hs_read(uport, UARTDM_SR_ADDR);
 
 	spin_lock_irqsave(&uport->lock, flags);
-
 	clk_enable(msm_uport->clk);
+
+	port = &uport->state->port;
+	tty = port->tty;
+
 	msm_hs_write(uport, UARTDM_CR_ADDR, STALE_EVENT_DISABLE);
+
+	status = msm_hs_read(uport, UARTDM_SR_ADDR);
 
 	/* overflow is not connect to data in a FIFO */
 	if (unlikely((status & UARTDM_SR_OVERRUN_BMSK) &&
 		     (uport->read_status_mask & CREAD))) {
-		retval = tty_insert_flip_char(tty, 0, TTY_OVERRUN);
+		retval = tty_insert_flip_char(port, 0, TTY_OVERRUN);
 		if (!retval)
 			msm_uport->rx.buffer_pending |= TTY_OVERRUN;
 		uport->icount.buf_overrun++;
@@ -1216,7 +1219,7 @@ static void msm_serial_hs_rx_tlet(unsigned long tlet_ptr)
 		uport->icount.parity++;
 		error_f = 1;
 		if (uport->ignore_status_mask & IGNPAR) {
-			retval = tty_insert_flip_char(tty, 0, TTY_PARITY);
+			retval = tty_insert_flip_char(port, 0, TTY_PARITY);
 			if (!retval)
 				msm_uport->rx.buffer_pending |= TTY_PARITY;
 		}
@@ -1246,7 +1249,7 @@ static void msm_serial_hs_rx_tlet(unsigned long tlet_ptr)
 	rmb();
 
 	if (0 != (uport->read_status_mask & CREAD)) {
-		retval = tty_insert_flip_string(tty, msm_uport->rx.buffer,
+		retval = tty_insert_flip_string(port, msm_uport->rx.buffer,
 						rx_count);
 		if (retval != rx_count) {
 			msm_uport->rx.buffer_pending |= CHARS_NORMAL |
@@ -1286,9 +1289,8 @@ static void msm_hs_tty_flip_buffer_work(struct work_struct *work)
 {
 	struct msm_hs_port *msm_uport =
 			container_of(work, struct msm_hs_port, rx.tty_work);
-	struct tty_struct *tty = msm_uport->uport.state->port.tty;
 
-	tty_flip_buffer_push(tty);
+	tty_flip_buffer_push(&msm_uport->uport.state->port);
 }
 
 /*
@@ -1978,7 +1980,7 @@ static int msm_hs_startup(struct uart_port *uport)
 
 	/* do not let tty layer execute RX in global workqueue, use a
 	 * dedicated workqueue managed by this driver */
-	uport->state->port.tty->low_latency = 1;
+	uport->state->port.low_latency = 1;
 
 	/* turn on uart clk */
 	ret = msm_hs_init_clk_locked(uport);

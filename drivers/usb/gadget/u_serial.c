@@ -81,7 +81,7 @@
  * next layer of buffering.  For TX that's a circular buffer; for RX
  * consider it a NOP.  A third layer is provided by the TTY code.
  */
-#define TX_QUEUE_SIZE		8
+#define QUEUE_SIZE		16
 #define TX_BUF_SIZE		4096
 #define WRITE_BUF_SIZE		8192		/* TX only */
 
@@ -386,7 +386,7 @@ __acquires(&port->port_lock)
 		struct usb_request	*req;
 		int			len;
 
-		if (port->write_started >= TX_QUEUE_SIZE)
+		if (port->write_started >= QUEUE_SIZE)
 			break;
 
 		req = list_entry(pool->next, struct usb_request, list);
@@ -548,9 +548,25 @@ static void gs_rx_push(unsigned long _port)
 
 		req = list_first_entry(queue, struct usb_request, list);
 
-		/* discard data if tty was closed */
-		if (!tty)
-			goto recycle;
+		/* leave data queued if tty was rx throttled */
+		if (tty && test_bit(TTY_THROTTLED, &tty->flags))
+			break;
+
+		switch (req->status) {
+		case -ESHUTDOWN:
+			disconnect = true;
+			pr_vdebug(PREFIX "%d: shutdown\n", port->port_num);
+			break;
+
+		default:
+			/* presumably a transient fault */
+			pr_warning(PREFIX "%d: unexpected RX status %d\n",
+					port->port_num, req->status);
+			/* FALLTHROUGH */
+		case 0:
+			/* normal completion */
+			break;
+		}
 
 		/* push data to (open) tty */
 		if (req->actual) {
@@ -566,7 +582,8 @@ static void gs_rx_push(unsigned long _port)
 				size -= n;
 			}
 
-			count = tty_insert_flip_string(tty, packet, size);
+			count = tty_insert_flip_string(&port->port, packet,
+					size);
 			port->nbytes_to_tty += count;
 			if (count)
 				do_push = true;
@@ -580,7 +597,7 @@ static void gs_rx_push(unsigned long _port)
 			}
 			port->n_read = 0;
 		}
-recycle:
+
 		list_move(&req->list, &port->read_pool);
 		port->read_started--;
 		port->rx_qcnt--;
@@ -592,7 +609,7 @@ recycle:
 	 */
 	if (tty && do_push) {
 		spin_unlock_irq(&port->port_lock);
-		tty_flip_buffer_push(tty);
+		tty_flip_buffer_push(&port->port);
 		wake_up_interruptible(&tty->read_wait);
 		spin_lock_irq(&port->port_lock);
 
@@ -600,13 +617,12 @@ recycle:
 		tty = port->port.tty;
 	}
 
-
 	/* We want our data queue to become empty ASAP, keeping data
 	 * in the tty and ldisc (not here).  If we couldn't push any
 	 * this time around, there may be trouble unless there's an
 	 * implicit tty_unthrottle() call on its way...
 	 *
-	 * REVISIT we should probably add a timer to keep the work queue
+	 * REVISIT we should probably add a timer to keep the tasklet
 	 * from starving ... but it's not clear that case ever happens.
 	 */
 	if (!list_empty(queue) && tty) {
@@ -778,7 +794,7 @@ static int gs_start_io(struct gs_port *port)
 		return status;
 
 	status = gs_alloc_requests(port->port_usb->in, &port->write_pool,
-			TX_QUEUE_SIZE, TX_BUF_SIZE, gs_write_complete, &port->write_allocated);
+			QUEUE_SIZE, TX_BUF_SIZE, gs_write_complete, &port->write_allocated);
 	if (status) {
 		gs_free_requests(ep, head, &port->read_allocated);
 		return status;
@@ -896,7 +912,7 @@ static int gs_open(struct tty_struct *tty, struct file *file)
 	 * low_latency = 0. But better to use a dedicated worker thread
 	 * to push the data.
 	 */
-	tty->low_latency = 1;
+	port->port.low_latency = 1;
 
 	/* if connected, start the I/O stream */
 	if (port->port_usb) {
