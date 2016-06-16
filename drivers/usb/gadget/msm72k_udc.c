@@ -217,7 +217,7 @@ struct usb_info {
 };
 
 static const struct usb_ep_ops msm72k_ep_ops;
-static struct usb_info *the_usb_info;
+static struct usb_info *the_usb_info = NULL;
 
 static int msm72k_wakeup(struct usb_gadget *_gadget);
 static int msm72k_pullup_internal(struct usb_gadget *_gadget, int is_active);
@@ -364,8 +364,15 @@ static int usb_phy_stuck_check(struct usb_info *ui)
 static void usb_phy_stuck_recover(struct work_struct *w)
 {
 	struct usb_info *ui = the_usb_info;
-	struct msm_otg *otg = to_msm_otg(ui->xceiv);
+	struct msm_otg *otg;
 	unsigned long flags;
+
+	if (!the_usb_info) {
+		pr_err("%s called before driver initialized\n", __func__);
+		return;
+	}
+
+	otg = to_msm_otg(ui->xceiv);
 
 	spin_lock_irqsave(&ui->lock, flags);
 	if (ui->gadget.speed != USB_SPEED_UNKNOWN ||
@@ -400,6 +407,11 @@ static void usb_phy_stuck_recover(struct work_struct *w)
 static void usb_phy_status_check_timer(unsigned long data)
 {
 	struct usb_info *ui = the_usb_info;
+
+	if (!the_usb_info) {
+		pr_err("%s called before driver initialized\n", __func__);
+		return;
+	}
 
 	schedule_work(&ui->phy_status_check);
 }
@@ -1693,12 +1705,12 @@ void msm_hsusb_set_vbus_state(int online)
 	unsigned long flags;
 	struct usb_info *ui = the_usb_info;
 
-	pr_info("%s: %d\n", __func__, online);
-
-	if (!ui) {
+	if (!the_usb_info) {
 		pr_err("%s called before driver initialized\n", __func__);
 		return;
 	}
+
+	pr_info("%s: %d\n", __func__, online);
 
 	spin_lock_irqsave(&ui->lock, flags);
 
@@ -2114,6 +2126,11 @@ static void usb_do_remote_wakeup(struct work_struct *w)
 {
 	struct usb_info *ui = the_usb_info;
 
+	if (!the_usb_info) {
+		pr_err("%s called before driver initialized\n", __func__);
+		return;
+	}
+
 	msm72k_wakeup(&ui->gadget);
 }
 
@@ -2272,6 +2289,11 @@ static int msm72k_start(struct usb_gadget_driver *driver,
 	struct usb_info *ui = the_usb_info;
 	int			retval, n;
 
+	if (!the_usb_info) {
+		pr_err("%s called before driver initialized\n", __func__);
+		return;
+	}
+
 	if (!driver
 			|| driver->max_speed < USB_SPEED_FULL
 			|| !bind
@@ -2356,6 +2378,11 @@ fail:
 static int msm72k_stop(struct usb_gadget_driver *driver)
 {
 	struct usb_info *dev = the_usb_info;
+
+	if (!the_usb_info) {
+		pr_err("%s called before driver initialized\n", __func__);
+		return;
+	}
 
 	if (!dev)
 		return -ENODEV;
