@@ -248,23 +248,23 @@ static void msm_hsusb_set_speed(struct usb_info *ui)
 	spin_unlock_irqrestore(&ui->lock, flags);
 }
 
-static void msm_hsusb_set_state(enum usb_device_state state)
+static void msm_hsusb_set_state(struct usb_info *ui, enum usb_device_state state)
 {
 	unsigned long flags;
 
-	spin_lock_irqsave(&the_usb_info->lock, flags);
-	the_usb_info->usb_state = state;
-	spin_unlock_irqrestore(&the_usb_info->lock, flags);
+	spin_lock_irqsave(&ui->lock, flags);
+	ui->usb_state = state;
+	spin_unlock_irqrestore(&ui->lock, flags);
 }
 
-static enum usb_device_state msm_hsusb_get_state(void)
+static enum usb_device_state msm_hsusb_get_state(struct usb_info *ui)
 {
 	unsigned long flags;
 	enum usb_device_state state;
 
-	spin_lock_irqsave(&the_usb_info->lock, flags);
-	state = the_usb_info->usb_state;
-	spin_unlock_irqrestore(&the_usb_info->lock, flags);
+	spin_lock_irqsave(&ui->lock, flags);
+	state = ui->usb_state;
+	spin_unlock_irqrestore(&ui->lock, flags);
 
 	return state;
 }
@@ -406,19 +406,8 @@ static void usb_phy_status_check_timer(unsigned long data)
 
 static void usb_chg_stop(struct work_struct *w)
 {
-#if 0
-	struct usb_info *ui = container_of(w, struct usb_info, chg_stop.work);
-	struct msm_otg *otg = to_msm_otg(ui->xceiv);
-	enum chg_type temp;
-
-	temp = atomic_read(&otg->chg_type);
-
-	if (temp == USB_CHG_TYPE__SDP)
-		usb_phy_set_power(ui->xceiv, 0);
-#else
-       pr_info("disable charger\n");
-       htc_battery_charger_disable();
-#endif
+	pr_info("disable charger\n");
+	htc_battery_charger_disable();
 }
 
 static void usb_chg_detect(struct work_struct *w)
@@ -1025,7 +1014,7 @@ static void handle_setup(struct usb_info *ui)
 	if (ctl.bRequestType == (USB_DIR_OUT | USB_TYPE_STANDARD)) {
 		if (ctl.bRequest == USB_REQ_SET_CONFIGURATION) {
 			atomic_set(&ui->configured, !!ctl.wValue);
-			msm_hsusb_set_state(USB_STATE_CONFIGURED);
+			msm_hsusb_set_state(ui, USB_STATE_CONFIGURED);
 		} else if (ctl.bRequest == USB_REQ_SET_ADDRESS) {
 			/*
 			 * Gadget speed should be set when PCI interrupt
@@ -1039,7 +1028,7 @@ static void handle_setup(struct usb_info *ui)
 					"set speed explictly\n");
 				msm_hsusb_set_speed(ui);
 			}
-			msm_hsusb_set_state(USB_STATE_ADDRESS);
+			msm_hsusb_set_state(ui, USB_STATE_ADDRESS);
 
 			/* write address delayed (will take effect
 			** after the next IN txn)
@@ -1264,7 +1253,7 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 			ui->driver->resume(&ui->gadget);
 			schedule_work(&ui->work);
 		} else {
-			msm_hsusb_set_state(USB_STATE_DEFAULT);
+			msm_hsusb_set_state(ui, USB_STATE_DEFAULT);
 		}
 
 #ifdef CONFIG_USB_OTG
@@ -1289,7 +1278,7 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 		ui->hnp_avail = 0;
 		spin_unlock_irqrestore(&ui->lock, flags);
 #endif
-		msm_hsusb_set_state(USB_STATE_DEFAULT);
+		msm_hsusb_set_state(ui, USB_STATE_DEFAULT);
 		atomic_set(&ui->remote_wakeup, 0);
 
 		writel(readl(USB_ENDPTSETUPSTAT), USB_ENDPTSETUPSTAT);
@@ -1683,10 +1672,10 @@ static void usb_do_work(struct work_struct *w)
 				enable_irq_wake(otg->irq);
 				if (!ui->gadget.is_a_peripheral)
 					schedule_delayed_work(
-						&ui->chg_det,
-						USB_CHG_DET_DELAY);
+							&ui->chg_det,
+							USB_CHG_DET_DELAY);
 
-				if (!atomic_read(&ui->softconnect))
+							if (!atomic_read(&ui->softconnect))
 					break;
 				msm72k_pullup_internal(&ui->gadget, 1);
 			}
@@ -2131,7 +2120,7 @@ static void usb_do_remote_wakeup(struct work_struct *w)
 static ssize_t usb_remote_wakeup(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	struct usb_info *ui = the_usb_info;
+	struct usb_info *ui = dev_get_drvdata(dev);
 
 	msm72k_wakeup(&ui->gadget);
 
@@ -2142,6 +2131,7 @@ static ssize_t show_usb_state(struct device *dev, struct device_attribute *attr,
 		char *buf)
 {
 	size_t i;
+	struct usb_info *ui = dev_get_drvdata(dev);
 	char *state[] = {"USB_STATE_NOTATTACHED", "USB_STATE_ATTACHED",
 			"USB_STATE_POWERED", "USB_STATE_UNAUTHENTICATED",
 			"USB_STATE_RECONNECTING", "USB_STATE_DEFAULT",
@@ -2149,14 +2139,14 @@ static ssize_t show_usb_state(struct device *dev, struct device_attribute *attr,
 			"USB_STATE_SUSPENDED"
 	};
 
-	i = scnprintf(buf, PAGE_SIZE, "%s\n", state[msm_hsusb_get_state()]);
+	i = scnprintf(buf, PAGE_SIZE, "%s\n", state[msm_hsusb_get_state(ui)]);
 	return i;
 }
 
 static ssize_t show_usb_speed(struct device *dev, struct device_attribute *attr,
 		char *buf)
 {
-	struct usb_info *ui = the_usb_info;
+	struct usb_info *ui = dev_get_drvdata(dev);
 	size_t i;
 	char *speed[] = {"USB_SPEED_UNKNOWN", "USB_SPEED_LOW",
 			"USB_SPEED_FULL", "USB_SPEED_HIGH"};
@@ -2168,7 +2158,7 @@ static ssize_t show_usb_speed(struct device *dev, struct device_attribute *attr,
 static ssize_t store_usb_chg_current(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	struct usb_info *ui = the_usb_info;
+	struct usb_info *ui = dev_get_drvdata(dev);
 	unsigned long mA;
 
 	if (ui->gadget.is_a_peripheral)
@@ -2186,7 +2176,7 @@ static ssize_t store_usb_chg_current(struct device *dev,
 static ssize_t show_usb_chg_current(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	struct usb_info *ui = the_usb_info;
+	struct usb_info *ui = dev_get_drvdata(dev);
 	size_t count;
 
 	count = snprintf(buf, PAGE_SIZE, "%d", ui->chg_current);
@@ -2197,7 +2187,7 @@ static ssize_t show_usb_chg_current(struct device *dev,
 static ssize_t show_usb_chg_type(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	struct usb_info *ui = the_usb_info;
+	struct usb_info *ui = dev_get_drvdata(dev);
 	struct msm_otg *otg = to_msm_otg(ui->xceiv);
 	size_t count;
 	char *chg_type[] = {"STD DOWNSTREAM PORT",
@@ -2221,8 +2211,10 @@ static DEVICE_ATTR(chg_current, S_IWUSR | S_IRUSR,
 static ssize_t store_host_req(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	struct usb_info *ui = the_usb_info;
+	struct usb_info *ui;
 	unsigned long val, flags;
+
+	ui = dev_get_drvdata(dev);
 
 	if (strict_strtoul(buf, 10, &val))
 		return -EINVAL;
@@ -2248,9 +2240,11 @@ static DEVICE_ATTR(host_request, S_IWUSR, NULL, store_host_req);
 static ssize_t show_host_avail(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	struct usb_info *ui = the_usb_info;
+	struct usb_info *ui;
 	size_t count;
 	unsigned long flags;
+
+	ui = dev_get_drvdata(dev);
 
 	spin_lock_irqsave(&ui->lock, flags);
 	count = snprintf(buf, PAGE_SIZE, "%d\n", ui->hnp_avail);
@@ -2461,6 +2455,7 @@ static int msm72k_probe(struct platform_device *pdev)
 		return usb_free(ui, retval);
 
 	the_usb_info = ui;
+	platform_set_drvdata(pdev, ui);
 
 	wake_lock_init(&ui->wlock,
 			WAKE_LOCK_SUSPEND, "usb_bus_active");
@@ -2520,7 +2515,7 @@ static struct dev_pm_ops msm72k_udc_dev_pm_ops = {
 
 static int msm72k_remove(struct platform_device *pdev)
 {
-	struct usb_info *ui = container_of(&pdev, struct usb_info, pdev);
+	struct usb_info *ui = platform_get_drvdata(pdev);
 
 	return usb_free(ui, 0);
 }
