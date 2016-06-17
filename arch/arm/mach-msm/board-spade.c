@@ -3158,7 +3158,7 @@ MACHINE_START(SPADE, "spade")
 	.reserve = spade_reserve,
 	.init_irq = msm_init_irq,
 	.init_machine = spade_init,
-	.timer = &msm7x30_timer,
+	.init_time = msm7x30_timer_init,
 	.init_early = spade_init_early,
 	.dt_compat = qcom_dt_match,
 MACHINE_END

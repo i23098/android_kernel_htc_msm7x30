@@ -90,8 +90,4 @@ static inline void arch_decomp_setup(void)
 	} while (0);
 }
 
-static inline void arch_decomp_wdog(void)
-{
-}
-
 #endif
