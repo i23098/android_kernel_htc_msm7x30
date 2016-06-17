@@ -2291,7 +2291,7 @@ static int msm72k_start(struct usb_gadget_driver *driver,
 
 	if (!the_usb_info) {
 		pr_err("%s called before driver initialized\n", __func__);
-		return;
+		return -EINVAL;
 	}
 
 	if (!driver
@@ -2381,7 +2381,7 @@ static int msm72k_stop(struct usb_gadget_driver *driver)
 
 	if (!the_usb_info) {
 		pr_err("%s called before driver initialized\n", __func__);
-		return;
+		return -ENODEV;
 	}
 
 	if (!dev)
