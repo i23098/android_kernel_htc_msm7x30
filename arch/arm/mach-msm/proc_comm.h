@@ -267,7 +267,7 @@ enum {
 #ifdef CONFIG_MSM_PROC_COMM
 void msm_proc_comm_reset_modem_now(void);
 int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2);
-void __init proc_comm_boot_wait(void);
+void proc_comm_boot_wait(void);
 #else
 static inline void msm_proc_comm_reset_modem_now(void) { }
 static inline int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2)
