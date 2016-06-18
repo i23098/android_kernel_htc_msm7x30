@@ -3429,12 +3429,11 @@ static char *procfs_print_binder_thread(char *buf, char *end,
 static char *procfs_print_binder_node(char *buf, char *end, struct binder_node *node)
 {
 	struct binder_ref *ref;
-	struct hlist_node *pos;
 	struct binder_work *w;
 	int count;
 
 	count = 0;
-	hlist_for_each_entry(ref, pos, &node->refs, node_entry)
+	hlist_for_each_entry(ref, &node->refs, node_entry)
 		count++;
 
 	buf += snprintf(buf, end - buf,
@@ -3450,7 +3449,7 @@ static char *procfs_print_binder_node(char *buf, char *end, struct binder_node *
 		buf += snprintf(buf, end - buf, " proc");
 		if (buf >= end)
 			return buf;
-		hlist_for_each_entry(ref, pos, &node->refs, node_entry) {
+		hlist_for_each_entry(ref, &node->refs, node_entry) {
 			buf += snprintf(buf, end - buf, " %d", ref->proc->pid);
 			if (buf >= end)
 				return buf;
@@ -3734,14 +3733,13 @@ static int binder_proc_show(struct seq_file *m, void *unused)
 {
 	struct binder_proc *itr;
 	struct binder_proc *proc = m->private;
-	struct hlist_node *pos;
 	int do_lock = !binder_debug_no_lock;
 	bool valid_proc = false;
 
 	if (do_lock)
 		binder_lock(__func__);
 
-	hlist_for_each_entry(itr, pos, &binder_procs, proc_node) {
+	hlist_for_each_entry(itr, &binder_procs, proc_node) {
 		if (itr == proc) {
 			valid_proc = true;
 			break;
@@ -3900,7 +3898,6 @@ static int procfs_binder_read_proc_state(char *page, char **start, off_t off,
 				  int count, int *eof, void *data)
 {
 	struct binder_proc *proc;
-	struct hlist_node *pos;
 	struct binder_node *node;
 	int len = 0;
 	char *buf = page;
@@ -3917,13 +3914,13 @@ static int procfs_binder_read_proc_state(char *page, char **start, off_t off,
 
 	if (!hlist_empty(&binder_dead_nodes))
 		buf += snprintf(buf, end - buf, "dead nodes:\n");
-	hlist_for_each_entry(node, pos, &binder_dead_nodes, dead_node) {
+	hlist_for_each_entry(node, &binder_dead_nodes, dead_node) {
 		if (buf >= end)
 			break;
 		buf = procfs_print_binder_node(buf, end, node);
 	}
 
-	hlist_for_each_entry(proc, pos, &binder_procs, proc_node) {
+	hlist_for_each_entry(proc, &binder_procs, proc_node) {
 		if (buf >= end)
 			break;
 		buf = procfs_print_binder_proc(buf, end, proc, 1);
@@ -3948,7 +3945,6 @@ static int procfs_binder_read_proc_stats(char *page, char **start, off_t off,
 				  int count, int *eof, void *data)
 {
 	struct binder_proc *proc;
-	struct hlist_node *pos;
 	int len = 0;
 	char *p = page;
 	int do_lock = !binder_debug_no_lock;
@@ -3963,7 +3959,7 @@ static int procfs_binder_read_proc_stats(char *page, char **start, off_t off,
 
 	p = procfs_print_binder_stats(p, page + PAGE_SIZE, "", &binder_stats);
 
-	hlist_for_each_entry(proc, pos, &binder_procs, proc_node) {
+	hlist_for_each_entry(proc, &binder_procs, proc_node) {
 		if (p >= page + PAGE_SIZE)
 			break;
 		p = procfs_print_binder_proc_stats(p, page + PAGE_SIZE, proc);
@@ -3988,7 +3984,6 @@ static int procfs_binder_read_proc_transactions(char *page, char **start, off_t 
 					 int count, int *eof, void *data)
 {
 	struct binder_proc *proc;
-	struct hlist_node *pos;
 	int len = 0;
 	char *buf = page;
 	char *end = page + PAGE_SIZE;
@@ -4001,7 +3996,7 @@ static int procfs_binder_read_proc_transactions(char *page, char **start, off_t 
 		binder_lock(__func__);
 
 	buf += snprintf(buf, end - buf, "binder transactions:\n");
-	hlist_for_each_entry(proc, pos, &binder_procs, proc_node) {
+	hlist_for_each_entry(proc, &binder_procs, proc_node) {
 		if (buf >= end)
 			break;
 		buf = procfs_print_binder_proc(buf, end, proc, 0);
