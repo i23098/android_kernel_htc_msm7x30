@@ -1889,7 +1889,7 @@ seqretry:
  * dentry is returned. The caller must use dput to free the entry when it has
  * finished using it. %NULL is returned if the dentry does not exist.
  */
-struct dentry *d_lookup(struct dentry *parent, struct qstr *name)
+struct dentry *d_lookup(const struct dentry *parent, const struct qstr *name)
 {
 	struct dentry *dentry;
 	unsigned seq;
@@ -1919,7 +1919,7 @@ EXPORT_SYMBOL(d_lookup);
  *
  * __d_lookup callers must be commented.
  */
-struct dentry *__d_lookup(struct dentry *parent, struct qstr *name)
+struct dentry *__d_lookup(const struct dentry *parent, const struct qstr *name)
 {
 	unsigned int len = name->len;
 	unsigned int hash = name->hash;
@@ -2394,7 +2394,7 @@ out_err:
  */
 static void __d_materialise_dentry(struct dentry *dentry, struct dentry *anon)
 {
-	struct dentry *dparent, *aparent;
+	struct dentry *dparent;
 
 	dentry_lock_for_move(anon, dentry);
 
@@ -2402,24 +2402,15 @@ static void __d_materialise_dentry(struct dentry *dentry, struct dentry *anon)
 	write_seqcount_begin(&anon->d_seq);
 
 	dparent = dentry->d_parent;
-	aparent = anon->d_parent;
 
 	switch_names(dentry, anon);
 	swap(dentry->d_name.hash, anon->d_name.hash);
 
-	dentry->d_parent = (aparent == anon) ? dentry : aparent;
-	list_del(&dentry->d_u.d_child);
-	if (!IS_ROOT(dentry))
-		list_add(&dentry->d_u.d_child, &dentry->d_parent->d_subdirs);
-	else
-		INIT_LIST_HEAD(&dentry->d_u.d_child);
-
-	anon->d_parent = (dparent == dentry) ? anon : dparent;
+	dentry->d_parent = dentry;
+	list_del_init(&dentry->d_u.d_child);
+	anon->d_parent = dparent;
 	list_del(&anon->d_u.d_child);
-	if (!IS_ROOT(anon))
-		list_add(&anon->d_u.d_child, &anon->d_parent->d_subdirs);
-	else
-		INIT_LIST_HEAD(&anon->d_u.d_child);
+	list_add(&anon->d_u.d_child, &dparent->d_subdirs);
 
 	write_seqcount_end(&dentry->d_seq);
 	write_seqcount_end(&anon->d_seq);
@@ -2721,37 +2712,6 @@ char *d_path(const struct path *path, char *buf, int buflen)
 	return res;
 }
 EXPORT_SYMBOL(d_path);
-
-/**
- * d_path_with_unreachable - return the path of a dentry
- * @path: path to report
- * @buf: buffer to return value in
- * @buflen: buffer length
- *
- * The difference from d_path() is that this prepends "(unreachable)"
- * to paths which are unreachable from the current process' root.
- */
-char *d_path_with_unreachable(const struct path *path, char *buf, int buflen)
-{
-	char *res = buf + buflen;
-	struct path root;
-	int error;
-
-	if (path->dentry->d_op && path->dentry->d_op->d_dname)
-		return path->dentry->d_op->d_dname(path->dentry, buf, buflen);
-
-	get_fs_root(current->fs, &root);
-	write_seqlock(&rename_lock);
-	error = path_with_deleted(path, &root, &res, &buflen);
-	if (error > 0)
-		error = prepend_unreachable(&res, &buflen);
-	write_sequnlock(&rename_lock);
-	path_put(&root);
-	if (error)
-		res =  ERR_PTR(error);
-
-	return res;
-}
 
 /*
  * Helper function for dentry_operations.d_dname() members
