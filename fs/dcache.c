@@ -1358,6 +1358,7 @@ void d_set_d_op(struct dentry *dentry, const struct dentry_operations *op)
 	WARN_ON_ONCE(dentry->d_flags & (DCACHE_OP_HASH	|
 				DCACHE_OP_COMPARE	|
 				DCACHE_OP_REVALIDATE	|
+				DCACHE_OP_WEAK_REVALIDATE	|
 				DCACHE_OP_DELETE ));
 	dentry->d_op = op;
 	if (!op)
@@ -1368,6 +1369,8 @@ void d_set_d_op(struct dentry *dentry, const struct dentry_operations *op)
 		dentry->d_flags |= DCACHE_OP_COMPARE;
 	if (op->d_revalidate)
 		dentry->d_flags |= DCACHE_OP_REVALIDATE;
+	if (op->d_weak_revalidate)
+		dentry->d_flags |= DCACHE_OP_WEAK_REVALIDATE;
 	if (op->d_delete)
 		dentry->d_flags |= DCACHE_OP_DELETE;
 	if (op->d_prune)
@@ -1672,7 +1675,6 @@ EXPORT_SYMBOL(d_splice_alias);
 struct dentry *d_add_ci(struct dentry *dentry, struct inode *inode,
 			struct qstr *name)
 {
-	int error;
 	struct dentry *found;
 	struct dentry *new;
 
@@ -1681,10 +1683,12 @@ struct dentry *d_add_ci(struct dentry *dentry, struct inode *inode,
 	 * if not go ahead and create it now.
 	 */
 	found = d_hash_and_lookup(dentry->d_parent, name);
+	if (unlikely(IS_ERR(found)))
+		goto err_out;
 	if (!found) {
 		new = d_alloc(dentry->d_parent, name);
 		if (!new) {
-			error = -ENOMEM;
+			found = ERR_PTR(-ENOMEM);
 			goto err_out;
 		}
 
@@ -1725,7 +1729,7 @@ struct dentry *d_add_ci(struct dentry *dentry, struct inode *inode,
 
 err_out:
 	iput(inode);
-	return ERR_PTR(error);
+	return found;
 }
 EXPORT_SYMBOL(d_add_ci);
 
@@ -1997,12 +2001,10 @@ next:
  * @dir: Directory to search in
  * @name: qstr of name we wish to find
  *
- * On hash failure or on lookup failure NULL is returned.
+ * On lookup failure NULL is returned; on bad name - ERR_PTR(-error)
  */
 struct dentry *d_hash_and_lookup(struct dentry *dir, struct qstr *name)
 {
-	struct dentry *dentry = NULL;
-
 	/*
 	 * Check for a fs-specific hash function. Note that we must
 	 * calculate the standard hash first, as the d_op->d_hash()
@@ -2010,13 +2012,13 @@ struct dentry *d_hash_and_lookup(struct dentry *dir, struct qstr *name)
 	 */
 	name->hash = full_name_hash(name->name, name->len);
 	if (dir->d_flags & DCACHE_OP_HASH) {
-		if (dir->d_op->d_hash(dir, dir->d_inode, name) < 0)
-			goto out;
+		int err = dir->d_op->d_hash(dir, dir->d_inode, name);
+		if (unlikely(err < 0))
+			return ERR_PTR(err);
 	}
-	dentry = d_lookup(dir, name);
-out:
-	return dentry;
+	return d_lookup(dir, name);
 }
+EXPORT_SYMBOL(d_hash_and_lookup);
 
 /**
  * d_validate - verify dentry provided from insecure source (deprecated)
@@ -2995,7 +2997,7 @@ ino_t find_inode_number(struct dentry *dir, struct qstr *name)
 	ino_t ino = 0;
 
 	dentry = d_hash_and_lookup(dir, name);
-	if (dentry) {
+	if (!IS_ERR_OR_NULL(dentry)) {
 		if (dentry->d_inode)
 			ino = dentry->d_inode->i_ino;
 		dput(dentry);
