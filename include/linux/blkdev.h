@@ -20,6 +20,7 @@
 #include <linux/gfp.h>
 #include <linux/bsg.h>
 #include <linux/smp.h>
+#include <linux/rcupdate.h>
 
 #include <asm/scatterlist.h>
 
@@ -440,6 +441,7 @@ struct request_queue {
 	/* Throttle data */
 	struct throtl_data *td;
 #endif
+	struct rcu_head		rcu_head;
 };
 
 #define QUEUE_FLAG_QUEUED	1	/* uses generic tag queueing */
@@ -982,8 +984,6 @@ struct blk_plug {
 	unsigned long magic; /* detect uninitialized use-cases */
 	struct list_head list; /* requests */
 	struct list_head cb_list; /* md requires an unplug callback */
-	unsigned int should_sort; /* list to be sorted before flushing? */
-	unsigned int count; /* number of queued requests */
 };
 #define BLK_MAX_REQUEST_COUNT 16
 
