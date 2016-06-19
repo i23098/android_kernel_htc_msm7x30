@@ -314,10 +314,11 @@ int intel_pmu_drain_bts_buffer(void)
 	if (top <= at)
 		return 0;
 
+	memset(&regs, 0, sizeof(regs));
+
 	ds->bts_index = ds->bts_buffer_base;
 
 	perf_sample_data_init(&data, 0, event->hw.last_period);
-	regs.ip     = 0;
 
 	/*
 	 * Prepare a generic sample, i.e. fill in the invariant fields.
@@ -732,8 +733,10 @@ void intel_ds_init(void)
 
 void perf_restore_debug_store(void)
 {
+	struct debug_store *ds = __this_cpu_read(cpu_hw_events.ds);
+
 	if (!x86_pmu.bts && !x86_pmu.pebs)
 		return;
 
-	init_debug_store_on_cpu(smp_processor_id());
+	wrmsrl(MSR_IA32_DS_AREA, (unsigned long)ds);
 }

@@ -201,6 +201,7 @@ u32 addrconf_rt_table(const struct net_device *dev, u32 default_table);
 /* Device notifier */
 extern int register_inet6addr_notifier(struct notifier_block *nb);
 extern int unregister_inet6addr_notifier(struct notifier_block *nb);
+extern int inet6addr_notifier_call_chain(unsigned long val, void *v);
 
 extern void inet6_netconf_notify_devconf(struct net *net, int type, int ifindex,
 					 struct ipv6_devconf *devconf);
