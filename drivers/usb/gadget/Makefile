@@ -36,6 +36,12 @@ obj-$(CONFIG_USB_FUSB300)	+= fusb300_udc.o
 obj-$(CONFIG_USB_MSM_72K)	+= msm72k_udc.o
 obj-$(CONFIG_USB_MV_U3D)	+= mv_u3d_core.o
 
+# USB Functions
+obj-$(CONFIG_USB_F_ACM)		+= f_acm.o
+f_ss_lb-y			:= f_loopback.o f_sourcesink.o
+obj-$(CONFIG_USB_F_SS_LB)	+= f_ss_lb.o
+obj-$(CONFIG_USB_U_SERIAL)	+= u_serial.o
+
 #
 # USB gadget drivers
 #
@@ -77,9 +83,3 @@ obj-$(CONFIG_USB_G_NCM)		+= g_ncm.o
 obj-$(CONFIG_USB_G_ACM_MS)	+= g_acm_ms.o
 obj-$(CONFIG_USB_GADGET_TARGET)	+= tcm_usb_gadget.o
 obj-$(CONFIG_USB_G_ANDROID)	+= g_android.o
-
-# USB Functions
-obj-$(CONFIG_USB_F_ACM)		+= f_acm.o
-f_ss_lb-y			:= f_loopback.o f_sourcesink.o
-obj-$(CONFIG_USB_F_SS_LB)	+= f_ss_lb.o
-obj-$(CONFIG_USB_U_SERIAL)	+= u_serial.o
