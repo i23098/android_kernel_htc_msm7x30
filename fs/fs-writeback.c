@@ -866,7 +866,7 @@ static long wb_writeback(struct bdi_writeback *wb,
 		if (progress)
 			continue;
 		/*
-		 * Didn't write everything and we don't have more IO, bail
+		 * No more inodes for IO, bail
 		 */
 		if (list_empty(&wb->b_more_io))
 			break;

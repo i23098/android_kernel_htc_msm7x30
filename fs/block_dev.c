@@ -27,7 +27,6 @@
 #include <linux/namei.h>
 #include <linux/log2.h>
 #include <linux/cleancache.h>
-#include <linux/kmemleak.h>
 #include <asm/uaccess.h>
 #include "internal.h"
 

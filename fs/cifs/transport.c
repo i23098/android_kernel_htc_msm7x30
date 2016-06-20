@@ -659,7 +659,7 @@ SendReceive2(const unsigned int xid, struct cifs_ses *ses,
 {
 	int rc = 0;
 	int timeout, optype;
-	struct mid_q_entry *midQ = NULL;
+	struct mid_q_entry *midQ;
 	char *buf = iov[0].iov_base;
 	unsigned int credits = 1;
 	struct smb_rqst rqst = { .rq_iov = iov,
