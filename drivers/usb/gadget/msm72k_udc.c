@@ -1700,15 +1700,9 @@ static void usb_do_work(struct work_struct *w)
  * This is called from htc_battery.c and board-halibut.c
  * WARNING - this can get called before this driver is initialized.
  */
-void msm_hsusb_set_vbus_state(int online)
+static void msm_hsusb_set_vbus_state(struct usb_info *ui, int online)
 {
 	unsigned long flags;
-	struct usb_info *ui = the_usb_info;
-
-	if (!the_usb_info) {
-		pr_err("%s called before driver initialized\n", __func__);
-		return;
-	}
 
 	pr_info("%s: %d\n", __func__, online);
 
@@ -1990,7 +1984,7 @@ static int msm72k_udc_vbus_session(struct usb_gadget *_gadget, int is_active)
 					 == USB_CHG_TYPE__WALLCHARGER)
 		wake_lock(&ui->wlock);
 
-	msm_hsusb_set_vbus_state(is_active);
+	msm_hsusb_set_vbus_state(ui, is_active);
 	return 0;
 }
 
@@ -2516,30 +2510,6 @@ static int msm72k_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int msm72k_udc_runtime_suspend(struct device *dev)
-{
-	dev_dbg(dev, "pm_runtime: suspending...\n");
-	return 0;
-}
-
-static int msm72k_udc_runtime_resume(struct device *dev)
-{
-	dev_dbg(dev, "pm_runtime: resuming...\n");
-	return 0;
-}
-
-static int msm72k_udc_runtime_idle(struct device *dev)
-{
-	dev_dbg(dev, "pm_runtime: idling...\n");
-	return 0;
-}
-
-static struct dev_pm_ops msm72k_udc_dev_pm_ops = {
-	.runtime_suspend = msm72k_udc_runtime_suspend,
-	.runtime_resume = msm72k_udc_runtime_resume,
-	.runtime_idle = msm72k_udc_runtime_idle
-};
-
 static int msm72k_remove(struct platform_device *pdev)
 {
 	struct usb_info *ui = platform_get_drvdata(pdev);
@@ -2550,7 +2520,6 @@ static int msm72k_remove(struct platform_device *pdev)
 static struct platform_driver usb_driver = {
 	.driver 	= {
 		.name	= "msm_hsusb",
-		.pm		= &msm72k_udc_dev_pm_ops,
 	},
 	.probe = msm72k_probe,
 	.remove = msm72k_remove,

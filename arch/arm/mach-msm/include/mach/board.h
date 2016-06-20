@@ -207,13 +207,6 @@ struct msm_camera_rawchip_info {
 	int (*rawchip_use_ext_1v2)(void);
 };
 
-enum msm_camera_type {
-	BACK_CAMERA_2D,
-	FRONT_CAMERA_2D,
-	BACK_CAMERA_3D,
-	BACK_CAMERA_INT_3D,
-};
-
 struct msm8960_privacy_light_cfg {
 	unsigned mpp;
 };
@@ -264,9 +257,6 @@ struct msm_camera_sensor_info {
 	int sensor_pwd;
 	int vcm_pwd;
 	int vcm_enable;
-#ifdef CONFIG_CAMERA_3D
-	uint8_t stereo_low_cap_limit;
-#endif
 	int mclk;
 	int flash_type;
 	int need_suspend;
@@ -280,7 +270,6 @@ struct msm_camera_sensor_info {
 	struct msm_camera_sensor_strobe_flash_data *strobe_flash_data;
 	char *eeprom_data;
 	struct msm_camera_gpio_conf *gpio_conf;
-	enum msm_camera_type camera_type;
 	struct msm_actuator_info *actuator_info;
 	int (*camera_power_on)(void);
 	int (*camera_power_off)(void);
@@ -567,7 +556,6 @@ int __init rmt_storage_add_ramfs(void);
 #if defined(CONFIG_USB_FUNCTION_MSM_HSUSB) || defined(CONFIG_USB_MSM_72K) || defined(CONFIG_USB_MSM_72K_MODULE)    || defined(CONFIG_USB_CI13XXX_MSM)
 int usb_get_connect_type(void);
 void msm_otg_set_vbus_state(int online);
-void msm_hsusb_set_vbus_state(int online);
 enum usb_connect_type {
 	CONNECT_TYPE_CLEAR = -2,
 	CONNECT_TYPE_UNKNOWN = -1,
@@ -586,7 +574,6 @@ enum usb_connect_type {
 
 #else
 static inline void msm_otg_set_vbus_state(int online) {}
-static inline void msm_hsusb_set_vbus_state(int online) {}
 #endif
 
 /* START: add USB connected notify function */

@@ -1,67 +1,54 @@
 config MSM_CAMERA_V4L2
-        bool "MSM Camera V4L2 Interface"
-        depends on MSM_CAMERA
-        default n
-        ---help---
-          This flag enables V4L2 interface of MSM
-          camera driver. If enabled, application interacts
-          with /dev/video0 through V4L2 APIs. Otherwise,
-          native APIs are used through /dev/config0, /dev/frame0,
-          and /dev/control0.
+	 bool "MSM Camera V4L2 Interface"
+	 depends on MSM_CAMERA
+	 default n
+	 ---help---
+	   This flag enables V4L2 interface of MSM
+	   camera driver. If enabled, application interacts
+	   with /dev/video0 through V4L2 APIs. Otherwise,
+	   native APIs are used through /dev/config0, /dev/frame0,
+	   and /dev/control0.
 
 choice
-        prompt "Qualcomm MSM camera and video capture support"
-        depends on MSM_CAMERA
-        default MSM_CAMERA_LEGACY
+	 prompt "Qualcomm MSM camera and video capture support"
+	 depends on MSM_CAMERA
+	 default MSM_CAMERA_LEGACY
 
-        config MSM_CAMERA_LEGACY
-                bool "msm camera legacy"
+	 config MSM_CAMERA_LEGACY
+		  bool "msm camera legacy"
 
-        config MSM_CAMERA_7X30
-                bool "msm camera 7x30"
-        config MSM_CAMERA_8X60
-                bool "msm camera 8x60"
+	 config MSM_CAMERA_7X30
+	    bool "msm camera 7x30"
+
+	 config MSM_CAMERA_8X60
+	    bool "msm camera 8x60"
 
 endchoice
 
 config 720P_CAMERA
-        bool "Qualcomm MSM camera with 720P video support"
-        depends on MSM_CAMERA_LEGACY
-        help
-          720P video support
-
-config CAMERA_ZSL
-       bool "Qualcomm MSM ZSL support"
-       depends on MSM_CAMERA && ARCH_MSM8X60
-       default n
-       ---help---
-         Enable support for ZSL
-
-config CAMERA_3D
-       bool "Qualcomm MSM 3D support"
-       depends on MSM_CAMERA && ARCH_MSM8X60
-       default n
-       ---help---
-         Enable support for 3D
+	bool "Qualcomm MSM camera with 720P video support"
+	depends on MSM_CAMERA_LEGACY
+	help
+	  720P video support
 
 config CAMERA_MULTISHOT
-       bool "Qualcomm MSM Multishot support"
-       depends on MSM_CAMERA && ARCH_MSM7X30
-       default n
-       ---help---
-         Enable support for Multishot
+	bool "Qualcomm MSM Multishot support"
+	depends on MSM_CAMERA && ARCH_MSM7X30
+	default n
+	---help---
+	 Enable support for Multishot
 
 config MSM_CAMERA_DEBUG
-       bool "Qualcomm MSM camera debugging with printk"
-       depends on MSM_CAMERA
-       help
-         Enable printk() debug for msm camera
+	bool "Qualcomm MSM camera debugging with printk"
+	depends on MSM_CAMERA
+	help
+	 Enable printk() debug for msm camera
 
 config FLASH_BACKLIGHT_OFF
-       bool "Turn off backlight when flash high"
-       depends on MSM_CAMERA
-       help
-         Turn off backlight when flash high
+	bool "Turn off backlight when flash high"
+	depends on MSM_CAMERA
+	help
+	 Turn off backlight when flash high
 
 comment "Camera Sensor Selection"
 config MT9T013
@@ -201,11 +188,11 @@ config S5K6AAFX
 	  Samsung 1.3M without Autofocus
 
 config S5K3H1GX
-       bool "Sensor s5k3h1gx"
-       depends on MSM_CAMERA
-       default n
-       ---help---
-         Samsung 8M 3H1 MIPI AF Sensor
+	bool "Sensor s5k3h1gx"
+	depends on MSM_CAMERA
+	default n
+	---help---
+	  Samsung 8M 3H1 MIPI AF Sensor
 
 config OV8810
 	bool "Sensor ov8810"
@@ -386,10 +373,10 @@ config QS_S5K4E1
 	  Samsung 5M with Autofocus
 
 config MSM_V4L2_VIDEO_OVERLAY_DEVICE
-       tristate "Qualcomm MSM V4l2 video overlay device"
-       ---help---
-         Enables support for the MSM V4L2 video
-         overlay driver. This allows video rendering
-         apps to render overlaid video using Video4Linux2
-         APIs, by using /dev/videoX device
+	tristate "Qualcomm MSM V4l2 video overlay device"
+	---help---
+	  Enables support for the MSM V4L2 video
+	  overlay driver. This allows video rendering
+	  apps to render overlaid video using Video4Linux2
+	  APIs, by using /dev/videoX device
 

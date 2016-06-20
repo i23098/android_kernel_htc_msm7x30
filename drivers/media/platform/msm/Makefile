@@ -7,19 +7,10 @@ ifeq ($(CONFIG_MSM_CAMERA_V4L2),y)
   obj-$(CONFIG_MSM_CAMERA) += msm_isp.o msm.o msm_mem.o msm_mctl.o msm_mctl_buf.o msm_mctl_pp.o
   obj-$(CONFIG_MSM_CAMERA) += rawchip/ io/ sensors/ actuators/
 else
-ifeq ($(CONFIG_ARCH_MSM8X60),y)
-  obj-$(CONFIG_MSM_CAMERA) += msm_camera-8x60.o sensors/
-
-  ifeq ($(CONFIG_CAMERA_3D),y)
-    obj-$(CONFIG_MSM_CAMERA) += msm_camera_liteon.o sensors/
-  endif
-
-else
 ifeq ($(CONFIG_ARCH_MSM7X30),y)
   obj-$(CONFIG_MSM_CAMERA) += msm_camera-7x30.o sensors/ rawchip/
 else
   obj-$(CONFIG_MSM_CAMERA) += msm_camera.o
-endif
 endif
 endif
 obj-$(CONFIG_MSM_CAMERA) += msm_axi_qos.o
@@ -43,16 +34,7 @@ endif
 
 obj-$(CONFIG_MSM_V4L2_VIDEO_OVERLAY_DEVICE) += msm_v4l2_video.o
 
-ifdef CONFIG_CAMERA_ZSL
-	obj-$(CONFIG_ARCH_MSM8X60) += msm_io_8x60.o msm_vfe_8x60_ZSL.o msm_vpe1_8x60.o
-else
-	ifdef CONFIG_CAMERA_3D
-		obj-$(CONFIG_ARCH_MSM8X60) += msm_io_8x60.o msm_vfe_8x60.o msm_vpe1_8x60.o
-		obj-$(CONFIG_ARCH_MSM8X60) += msm_vfe31_liteon.o msm_vpe1_liteon.o
-	else
-		obj-$(CONFIG_ARCH_MSM8X60) += msm_io_8x60.o msm_vfe_8x60.o msm_vpe1_8x60.o
-	endif
-endif
+obj-$(CONFIG_ARCH_MSM8X60) += msm_io_8x60.o msm_vfe_8x60.o msm_vpe1_8x60.o
 
 obj-$(CONFIG_ARCH_MSM8960) += msm_io_8960.o msm_ispif.o msm_vfe32.o msm_vpe.o
 obj-$(CONFIG_MT9T013) += mt9t013.o mt9t013_reg.o

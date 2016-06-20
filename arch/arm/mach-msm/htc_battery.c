@@ -523,9 +523,6 @@ static int htc_set_smem_cable_type(u32 cable_type);
 #else
 static int htc_set_smem_cable_type(u32 cable_type) { return -1; }
 #endif
-#if 1 /*JH, this is for packet filter (notify port list while USB in/out)*/
-int update_port_list_charging_state(int enable);
-#endif
 
 static int htc_cable_status_update(int status)
 {
@@ -541,7 +538,7 @@ static int htc_cable_status_update(int status)
 	}
 
 	mutex_lock(&htc_batt_info.lock);
-#if 1
+
 	pr_info("[BATT] %s: %d -> %d\n", __func__, htc_batt_info.rep.charging_source, status);
 	if ((status == htc_batt_info.rep.charging_source) && !(htc_is_DMB)) {
 	/* When cable overvoltage(5V => 7V) A9 will report the same source, so only sent the uevent */
@@ -615,67 +612,6 @@ static int htc_cable_status_update(int status)
 	if (status == CHARGER_BATTERY)
 		g_owe_docked = 0;
 
-#else
-	/* A9 reports USB charging when helf AC cable in and China AC charger. */
-	/* notify userspace USB charging first,
-	and then usb driver will notify AC while D+/D- Line short. */
-	/* China AC detection:
-	 * Write SMEM as USB first, and update SMEM to AC
-	 * if receives AC notification */
-	last_source = htc_batt_info.rep.charging_source;
-	if (status == CHARGER_USB && g_usb_online == 0) {
-#ifdef CONFIG_FORCE_FAST_CHARGE
-		BATT_LOG("cable USB forced fast charge");
-		htc_set_smem_cable_type(CHARGER_AC);
-		htc_batt_info.rep.charging_source = CHARGER_AC;
-#else
-		htc_set_smem_cable_type(CHARGER_USB);
-		htc_batt_info.rep.charging_source = CHARGER_USB;
-#endif
-	} else {
-		htc_set_smem_cable_type(status);
-		htc_batt_info.rep.charging_source  = status;
-		/* usb driver will not notify usb offline. */
-		if (status == CHARGER_BATTERY && g_usb_online != 0)
-			g_usb_online = 0;
-	}
-
-	msm_hsusb_set_vbus_state(status == CHARGER_USB);
-	if (htc_batt_info.guage_driver == GUAGE_DS2784 ||
-		htc_batt_info.guage_driver == GUAGE_DS2746)
-		blocking_notifier_call_chain(&cable_status_notifier_list,
-			htc_batt_info.rep.charging_source, NULL);
-
-	if (htc_batt_info.rep.charging_source != last_source) {
-#if 1 /*JH, this is for packet filter (notify port list while USB in/out)*/
-		update_port_list_charging_state(!(htc_batt_info.rep.charging_source == CHARGER_BATTERY));
-#endif
-		/* Lock suspend only when USB in for ADB or other USB functions. */
-		if (htc_batt_info.rep.charging_source == CHARGER_USB) {
-			wake_lock(&vbus_wake_lock);
-		} else if (__htc_power_policy()) {
-			/* Lock suspend for DOPOD charging animation */
-			wake_lock(&vbus_wake_lock);
-		} else {
-			if (htc_batt_info.rep.charging_source == CHARGER_AC
-				&& last_source == CHARGER_USB)
-				BATT_ERR("%s: USB->AC\n", __func__);
-			/* give userspace some time to see the uevent and update
-			 * LED state or whatnot...
-			 */
-			wake_lock_timeout(&vbus_wake_lock, HZ * 5);
-		}
-		if (htc_batt_info.rep.charging_source == CHARGER_BATTERY || last_source == CHARGER_BATTERY)
-			power_supply_changed(&htc_power_supplies[BATTERY_SUPPLY]);
-		if (htc_batt_info.rep.charging_source == CHARGER_USB || last_source == CHARGER_USB)
-			power_supply_changed(&htc_power_supplies[USB_SUPPLY]);
-		if (htc_batt_info.rep.charging_source == CHARGER_AC || last_source == CHARGER_AC)
-			power_supply_changed(&htc_power_supplies[AC_SUPPLY]);
-		if (htc_batt_debug_mask & HTC_BATT_DEBUG_UEVT)
-			BATT_LOG("power_supply_changed: %s -> %s",
-				charger_tags[last_source], charger_tags[htc_batt_info.rep.charging_source]);
-	}
-#endif
 	mutex_unlock(&htc_batt_info.lock);
 	htc_is_DMB = 0;
 	return rc;
@@ -717,7 +653,6 @@ EXPORT_SYMBOL(htc_get_usb_accessory_adc_level);
 
 static void peripheral_cable_update(int online, int from_owe)
 {
-#if 1
 	pr_info("[BATT] %s(%d) from_owe=%d", __func__, online, from_owe);
 	mutex_lock(&htc_batt_info.lock);
 
@@ -770,20 +705,6 @@ static void peripheral_cable_update(int online, int from_owe)
 	}
 	update_wake_lock(htc_batt_info.rep.charging_source);
 	mutex_unlock(&htc_batt_info.lock);
-#else
-	mutex_lock(&htc_batt_info.lock);
-	if (htc_batt_debug_mask & HTC_BATT_DEBUG_USB_NOTIFY)
-		BATT_LOG("%s: online=%d, g_usb_online=%d", __func__, online, g_usb_online);
-	if (g_usb_online != online) {
-		g_usb_online = online;
-		if (online == CHARGER_AC && htc_batt_info.rep.charging_source == CHARGER_USB) {
-			mutex_unlock(&htc_batt_info.lock);
-			htc_cable_status_update(CHARGER_AC);
-			mutex_lock(&htc_batt_info.lock);
-		}
-	}
-	mutex_unlock(&htc_batt_info.lock);
-#endif
 }
 
 /* A9 reports USB charging when helf AC cable in and China AC charger. */
