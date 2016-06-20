@@ -1939,9 +1939,6 @@ void flush_pmem_file(struct file *file, unsigned long offset, unsigned long len)
 	struct pmem_region_node *region_node;
 	struct list_head *elt;
 	void *flush_start, *flush_end;
-#ifdef CONFIG_OUTER_CACHE
-	unsigned long phy_start, phy_end;
-#endif
 	if (!is_pmem_file(file))
 		return;
 
@@ -1967,27 +1964,11 @@ void flush_pmem_file(struct file *file, unsigned long offset, unsigned long len)
 		dmac_flush_range(vaddr,
 			(void *)((unsigned long)vaddr +
 				 ((struct alloc_list *)(data->index))->size));
-#ifdef CONFIG_OUTER_CACHE
-		phy_start = pmem_start_addr_system(id, data);
-
-		phy_end = phy_start +
-			((struct alloc_list *)(data->index))->size;
-
-		outer_flush_range(phy_start, phy_end);
-#endif
 		goto end;
 	}
 	/* if this isn't a submmapped file, flush the whole thing */
 	if (unlikely(!(data->flags & PMEM_FLAGS_CONNECTED))) {
 		dmac_flush_range(vaddr, vaddr + pmem[id].len(id, data));
-#ifdef CONFIG_OUTER_CACHE
-		phy_start = (unsigned long)vaddr -
-				(unsigned long)pmem[id].vbase + pmem[id].base;
-
-		phy_end  =  phy_start + pmem[id].len(id, data);
-
-		outer_flush_range(phy_start, phy_end);
-#endif
 		goto end;
 	}
 	/* otherwise, flush the region of the file we are drawing */
@@ -1999,15 +1980,6 @@ void flush_pmem_file(struct file *file, unsigned long offset, unsigned long len)
 			flush_start = vaddr + region_node->region.offset;
 			flush_end = flush_start + region_node->region.len;
 			dmac_flush_range(flush_start, flush_end);
-#ifdef CONFIG_OUTER_CACHE
-
-			phy_start = (unsigned long)flush_start -
-				(unsigned long)pmem[id].vbase + pmem[id].base;
-
-			phy_end  =  phy_start + region_node->region.len;
-
-			outer_flush_range(phy_start, phy_end);
-#endif
 			break;
 		}
 	}

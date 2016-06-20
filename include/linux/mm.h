@@ -904,7 +904,6 @@ extern void pagefault_out_of_memory(void);
 extern void show_free_areas(unsigned int flags);
 extern bool skip_free_areas_node(unsigned int flags, int nid);
 
-void shmem_set_file(struct vm_area_struct *vma, struct file *file);
 int shmem_zero_setup(struct vm_area_struct *);
 
 extern int can_do_mlock(void);
@@ -1323,10 +1322,6 @@ extern void free_initmem(void);
  * CONFIG_HAVE_MEMBLOCK_NODE_MAP.
  */
 extern void free_area_init_nodes(unsigned long *max_zone_pfn);
-#ifndef CONFIG_HAVE_MEMBLOCK_NODE_MAP
-extern void add_active_range(unsigned int nid, unsigned long start_pfn,
-					unsigned long end_pfn);
-#endif
 unsigned long node_map_pfn_alignment(void);
 unsigned long __absent_pages_in_range(int nid, unsigned long start_pfn,
 						unsigned long end_pfn);

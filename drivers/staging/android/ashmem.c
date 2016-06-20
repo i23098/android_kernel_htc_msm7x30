@@ -234,12 +234,6 @@ static ssize_t ashmem_read(struct file *file, char __user *buf,
 		goto out;
 	}
 
-	/*
-	 * asma and asma->file are used outside the lock here.  We assume
-	 * once asma->file is set it will never be changed, and will not
-	 * be destroyed until all references to the file are dropped and
-	 * ashmem_release is called.
-	 */
 	ret = asma->file->f_op->read(asma->file, buf, len, pos);
 	if (ret < 0)
 		goto out;
@@ -331,12 +325,16 @@ static int ashmem_mmap(struct file *file, struct vm_area_struct *vma)
 	 * shmem_set_file while we're in staging. -jstultz
 	 */
 	if (vma->vm_flags & VM_SHARED) {
-		shmem_set_file(vma, asma->file);
-	} else {
-		if (vma->vm_file)
-			fput(vma->vm_file);
-		vma->vm_file = asma->file;
+		ret = shmem_zero_setup(vma);
+		if (ret) {
+			fput(asma->file);
+			goto out;
+		}
 	}
+
+	if (vma->vm_file)
+		fput(vma->vm_file);
+	vma->vm_file = asma->file;
 
 	asma->vm_start = vma->vm_start;
 
@@ -370,9 +368,7 @@ static int ashmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	if (!sc->nr_to_scan)
 		return lru_count;
 
-	if (!mutex_trylock(&ashmem_mutex))
-		return -1;
-
+	mutex_lock(&ashmem_mutex);
 	list_for_each_entry_safe(range, next, &ashmem_lru_list, lru) {
 		loff_t start = range->pgstart * PAGE_SIZE;
 		loff_t end = (range->pgend + 1) * PAGE_SIZE;
@@ -642,62 +638,12 @@ static int ashmem_pin_unpin(struct ashmem_area *asma, unsigned long cmd,
 	return ret;
 }
 
-#ifdef CONFIG_OUTER_CACHE
-static unsigned int virtaddr_to_physaddr(unsigned int virtaddr)
-{
-	unsigned int physaddr = 0;
-	pgd_t *pgd_ptr = NULL;
-	pud_t *pud_ptr = NULL;
-	pmd_t *pmd_ptr = NULL;
-	pte_t *pte_ptr = NULL, pte;
-
-	spin_lock(&current->mm->page_table_lock);
-	pgd_ptr = pgd_offset(current->mm, virtaddr);
-	if (pgd_none(*pgd_ptr) || pgd_bad(*pgd_ptr)) {
-		pr_err("Failed to convert virtaddr %x to pgd_ptr\n",
-			virtaddr);
-		goto done;
-	}
-
-	pud_ptr = pud_offset(pgd_ptr, virtaddr);
-	if (pud_none(*pud_ptr) || pud_bad(*pud_ptr)) {
-		pr_err("Failed to convert pgd_ptr %p to pud_ptr\n",
-			(void *)pgd_ptr);
-		goto done;
-	}
-
-	pmd_ptr = pmd_offset(pud_ptr, virtaddr);
-	if (pmd_none(*pmd_ptr) || pmd_bad(*pmd_ptr)) {
-		pr_err("Failed to convert pud_ptr %p to pmd_ptr\n",
-			(void *)pud_ptr);
-		goto done;
-	}
-
-	pte_ptr = pte_offset_map(pmd_ptr, virtaddr);
-	if (!pte_ptr) {
-		pr_err("Failed to convert pmd_ptr %p to pte_ptr\n",
-			(void *)pmd_ptr);
-		goto done;
-	}
-	pte = *pte_ptr;
-	physaddr = pte_pfn(pte);
-	pte_unmap(pte_ptr);
-done:
-	spin_unlock(&current->mm->page_table_lock);
-	physaddr <<= PAGE_SHIFT;
-	return physaddr;
-}
-#endif
-
 static int ashmem_cache_op(struct ashmem_area *asma,
 	void (*cache_func)(unsigned long vstart, unsigned long length,
 				unsigned long pstart))
 {
 	int ret = 0;
 	struct vm_area_struct *vma;
-#ifdef CONFIG_OUTER_CACHE
-	unsigned long vaddr;
-#endif
 	if (!asma->vm_start)
 		return -EINVAL;
 
@@ -715,18 +661,7 @@ static int ashmem_cache_op(struct ashmem_area *asma,
 		ret = -EINVAL;
 		goto done;
 	}
-#ifndef CONFIG_OUTER_CACHE
 	cache_func(asma->vm_start, asma->size, 0);
-#else
-	for (vaddr = asma->vm_start; vaddr < asma->vm_start + asma->size;
-		vaddr += PAGE_SIZE) {
-		unsigned long physaddr;
-		physaddr = virtaddr_to_physaddr(vaddr);
-		if (!physaddr)
-			return -EINVAL;
-		cache_func(vaddr, PAGE_SIZE, physaddr);
-	}
-#endif
 done:
 	up_read(&current->mm->mmap_sem);
 	if (ret)
