@@ -1696,10 +1696,6 @@ static void usb_do_work(struct work_struct *w)
 	}
 }
 
-/* FIXME - the callers of this function should use a gadget API instead.
- * This is called from htc_battery.c and board-halibut.c
- * WARNING - this can get called before this driver is initialized.
- */
 static void msm_hsusb_set_vbus_state(struct usb_info *ui, int online)
 {
 	unsigned long flags;

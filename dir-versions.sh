@@ -1,9 +1,4 @@
 ##########
-# drivers/staging/zsmalloc 3.9
-rm -rf drivers/staging/zsmalloc
-git checkout HEAD -- drivers/staging/zsmalloc kernel/irq/spurious.c
-
-##########
 # fs/f2fs 3.11
 rm -rf fs/f2fs
 git checkout HEAD -- fs/f2fs
