@@ -29,11 +29,14 @@
  *
  */
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/oom.h>
 #include <linux/sched.h>
+#include <linux/swap.h>
 #include <linux/rcupdate.h>
 #include <linux/profile.h>
 #include <linux/notifier.h>
@@ -42,9 +45,6 @@
 #include <linux/delay.h>
 #include <linux/fs.h>
 #include <linux/vmpressure.h>
-
-#define CREATE_TRACE_POINTS
-#include <trace/events/almk.h>
 
 static uint32_t lowmem_debug_level = 1;
 static short lowmem_adj[6] = {
@@ -67,7 +67,7 @@ static unsigned long lowmem_deathpending_timeout;
 #define lowmem_print(level, x...)			\
 	do {						\
 		if (lowmem_debug_level >= (level))	\
-			printk(x);			\
+			pr_info(x);			\
 	} while (0)
 
 static atomic_t shift_adj = ATOMIC_INIT(0);
@@ -132,7 +132,6 @@ static int lmk_vmpressure_notifier(struct notifier_block *nb,
 		other_free = global_page_state(NR_FREE_PAGES);
 
 		atomic_set(&shift_adj, 1);
-		trace_almk_vmpressure(pressure, other_free, other_file);
 	} else if (pressure >= 90) {
 		if (lowmem_adj_size < array_size)
 			array_size = lowmem_adj_size;
@@ -148,8 +147,6 @@ static int lmk_vmpressure_notifier(struct notifier_block *nb,
 		if ((other_free < lowmem_minfree[array_size - 1]) &&
 			(other_file < vmpressure_file_min)) {
 				atomic_set(&shift_adj, 1);
-				trace_almk_vmpressure(pressure, other_free,
-					other_file);
 		}
 	} else if (atomic_read(&shift_adj)) {
 		/*
@@ -158,7 +155,6 @@ static int lmk_vmpressure_notifier(struct notifier_block *nb,
 		 * Since vmpressure has improved, reset shift_adj to avoid
 		 * false adaptive LMK trigger.
 		 */
-		trace_almk_vmpressure(pressure, other_free, other_file);
 		atomic_set(&shift_adj, 0);
 	}
 
@@ -209,7 +205,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 			return 0;
 	}
 
-	other_free = global_page_state(NR_FREE_PAGES);
+	other_free = global_page_state(NR_FREE_PAGES) - totalreserve_pages;
 
 	if (global_page_state(NR_SHMEM) + total_swapcache_pages() <
 		global_page_state(NR_FILE_PAGES))
@@ -247,10 +243,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 
 		if (nr_to_scan > 0)
 			mutex_unlock(&scan_mutex);
-
-		if ((min_score_adj == OOM_SCORE_ADJ_MAX + 1) &&
-			(nr_to_scan > 0))
-			trace_almk_shrink(0, ret, other_free, other_file, 0);
 
 		return rem;
 	}

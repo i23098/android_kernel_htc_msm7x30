@@ -24,8 +24,5 @@ obj-$(CONFIG_REGMAP)	+= regmap/
 obj-$(CONFIG_SOC_BUS) += soc.o
 obj-$(CONFIG_PINCTRL) += pinctrl.o
 
-obj-y	+= sync.o
-obj-y	+= sw_sync.o
-
 ccflags-$(CONFIG_DEBUG_DRIVER) := -DDEBUG
 
