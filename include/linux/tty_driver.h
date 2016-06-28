@@ -298,7 +298,6 @@ struct tty_driver {
 	int	major;		/* major device number */
 	int	minor_start;	/* start of minor device number */
 	unsigned int	num;	/* number of devices allocated */
-	int need_rcv_lock; /* need spinlock for receive_room in tty_struct */
 	short	type;		/* type of tty driver */
 	short	subtype;	/* subtype of tty driver */
 	struct ktermios init_termios; /* Initial termios */
