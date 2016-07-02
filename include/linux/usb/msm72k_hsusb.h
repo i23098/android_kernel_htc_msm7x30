@@ -157,10 +157,6 @@ struct msm_otg {
 	struct work_struct otg_resume_work;
 	struct notifier_block usbdev_nb;
 	struct msm_xo_voter *xo_handle; /*handle to vote for TCXO D1 buffer*/
-#ifdef CONFIG_USB_MSM_ACA
-	struct timer_list	id_timer;	/* drives id_status polling */
-	unsigned		b_max_power;	/* ACA: max power of accessory*/
-#endif
 	struct mutex udc_lock;	/* prevent race condition with udc & otg */
 	void (*vbus_notification_cb)(int online);
 

@@ -53,13 +53,8 @@
 #define phy_id_state_gnd(ints)	(phy_id_state((ints)) == PHY_ID_GND)
 #define phy_id_state_a(ints)	(phy_id_state((ints)) == PHY_ID_A)
 /* RID_B and RID_C states does not exist with standard ACA */
-#ifdef CONFIG_USB_MSM_STANDARD_ACA
-#define phy_id_state_b(ints)	0
-#define phy_id_state_c(ints)	0
-#else
 #define phy_id_state_b(ints)	(phy_id_state((ints)) == PHY_ID_B)
 #define phy_id_state_c(ints)	(phy_id_state((ints)) == PHY_ID_C)
-#endif
 
 /* used to detect the OTG Mode */
 enum otg_mode {

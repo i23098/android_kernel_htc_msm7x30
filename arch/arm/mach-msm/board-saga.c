@@ -4362,7 +4362,7 @@ MACHINE_START(SAGA, "saga")
 	.reserve = saga_reserve,
 	.init_irq = saga_init_irq,
 	.init_machine = saga_init,
-	.timer = &msm7x30_timer,
+	.init_time = msm7x30_timer_init,
 	.init_early = saga_init_early,
 MACHINE_END
 
