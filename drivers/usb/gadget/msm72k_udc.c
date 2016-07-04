@@ -1449,8 +1449,6 @@ static int usb_free(struct usb_info *ui, int ret)
 {
 	dev_dbg(&ui->pdev->dev, "usb_free(%d)\n", ret);
 
-	usb_del_gadget_udc(&ui->gadget);
-
 	if (ui->xceiv)
 		usb_put_phy(ui->xceiv);
 
@@ -2309,15 +2307,10 @@ static int msm72k_start(struct usb_gadget_driver *driver,
 		ept->ep.maxpacket = 512;
 	}
 
-	retval = device_add(&ui->gadget.dev);
-	if (retval)
-		goto fail;
-
 	retval = bind(&ui->gadget, driver);
 	if (retval) {
 		dev_err(&ui->pdev->dev, "bind to driver %s --> error %d\n",
 				driver->driver.name, retval);
-		device_del(&ui->gadget.dev);
 		goto fail;
 	}
 
@@ -2443,8 +2436,6 @@ static int msm72k_probe(struct platform_device *pdev)
 
 	ui->gadget.ops = &msm72k_ops;
 	ui->gadget.max_speed = USB_SPEED_HIGH;
-	device_initialize(&ui->gadget.dev);
-	dev_set_name(&ui->gadget.dev, "gadget");
 	ui->gadget.dev.parent = &pdev->dev;
 	ui->gadget.dev.dma_mask = pdev->dev.dma_mask;
 
