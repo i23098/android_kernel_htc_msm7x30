@@ -2288,7 +2288,6 @@ static int msm72k_start(struct usb_gadget_driver *driver,
 
 	/* first hook up the driver ... */
 	ui->driver = driver;
-	ui->gadget.dev.driver = &driver->driver;
 	ui->gadget.name = driver_name;
 	INIT_LIST_HEAD(&ui->gadget.ep_list);
 	ui->gadget.ep0 = &ui->ep0in.ep;
@@ -2347,7 +2346,6 @@ static int msm72k_start(struct usb_gadget_driver *driver,
 
 fail:
 	ui->driver = NULL;
-	ui->gadget.dev.driver = NULL;
 	return retval;
 }
 
@@ -2384,7 +2382,6 @@ static int msm72k_stop(struct usb_gadget_driver *driver)
 	device_remove_file(&dev->gadget.dev, &dev_attr_chg_current);
 	driver->disconnect(&dev->gadget);
 	driver->unbind(&dev->gadget);
-	dev->gadget.dev.driver = NULL;
 	dev->driver = NULL;
 
 	device_del(&dev->gadget.dev);
