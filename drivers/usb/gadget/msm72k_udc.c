@@ -2436,8 +2436,6 @@ static int msm72k_probe(struct platform_device *pdev)
 
 	ui->gadget.ops = &msm72k_ops;
 	ui->gadget.max_speed = USB_SPEED_HIGH;
-	ui->gadget.dev.parent = &pdev->dev;
-	ui->gadget.dev.dma_mask = pdev->dev.dma_mask;
 
 #ifdef CONFIG_USB_OTG
 	ui->gadget.is_otg = 1;
