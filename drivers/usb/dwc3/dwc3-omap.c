@@ -121,8 +121,7 @@ struct dwc3_omap {
 	int			irq;
 	void __iomem		*base;
 
-	void			*context;
-	u32			resource_size;
+	u32			utmi_otg_status;
 
 	u32			dma_status:1;
 };
@@ -250,6 +249,34 @@ static int dwc3_omap_remove_core(struct device *dev, void *c)
 	return 0;
 }
 
+static void dwc3_omap_enable_irqs(struct dwc3_omap *omap)
+{
+	u32			reg;
+
+	/* enable all IRQs */
+	reg = USBOTGSS_IRQO_COREIRQ_ST;
+	dwc3_omap_writel(omap->base, USBOTGSS_IRQENABLE_SET_0, reg);
+
+	reg = (USBOTGSS_IRQ1_OEVT |
+			USBOTGSS_IRQ1_DRVVBUS_RISE |
+			USBOTGSS_IRQ1_CHRGVBUS_RISE |
+			USBOTGSS_IRQ1_DISCHRGVBUS_RISE |
+			USBOTGSS_IRQ1_IDPULLUP_RISE |
+			USBOTGSS_IRQ1_DRVVBUS_FALL |
+			USBOTGSS_IRQ1_CHRGVBUS_FALL |
+			USBOTGSS_IRQ1_DISCHRGVBUS_FALL |
+			USBOTGSS_IRQ1_IDPULLUP_FALL);
+
+	dwc3_omap_writel(omap->base, USBOTGSS_IRQENABLE_SET_1, reg);
+}
+
+static void dwc3_omap_disable_irqs(struct dwc3_omap *omap)
+{
+	/* disable all IRQs */
+	dwc3_omap_writel(omap->base, USBOTGSS_IRQENABLE_SET_1, 0x00);
+	dwc3_omap_writel(omap->base, USBOTGSS_IRQENABLE_SET_0, 0x00);
+}
+
 static int dwc3_omap_probe(struct platform_device *pdev)
 {
 	struct device_node	*node = pdev->dev.of_node;
@@ -266,7 +293,6 @@ static int dwc3_omap_probe(struct platform_device *pdev)
 	u32			reg;
 
 	void __iomem		*base;
-	void			*context;
 
 	if (!node) {
 		dev_err(dev, "device node not found\n");
@@ -299,16 +325,8 @@ static int dwc3_omap_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	context = devm_kzalloc(dev, resource_size(res), GFP_KERNEL);
-	if (!context) {
-		dev_err(dev, "couldn't allocate dwc3 context memory\n");
-		return -ENOMEM;
-	}
-
 	spin_lock_init(&omap->lock);
 
-	omap->resource_size = resource_size(res);
-	omap->context	= context;
 	omap->dev	= dev;
 	omap->irq	= irq;
 	omap->base	= base;
@@ -355,21 +373,7 @@ static int dwc3_omap_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	/* enable all IRQs */
-	reg = USBOTGSS_IRQO_COREIRQ_ST;
-	dwc3_omap_writel(omap->base, USBOTGSS_IRQENABLE_SET_0, reg);
-
-	reg = (USBOTGSS_IRQ1_OEVT |
-			USBOTGSS_IRQ1_DRVVBUS_RISE |
-			USBOTGSS_IRQ1_CHRGVBUS_RISE |
-			USBOTGSS_IRQ1_DISCHRGVBUS_RISE |
-			USBOTGSS_IRQ1_IDPULLUP_RISE |
-			USBOTGSS_IRQ1_DRVVBUS_FALL |
-			USBOTGSS_IRQ1_CHRGVBUS_FALL |
-			USBOTGSS_IRQ1_DISCHRGVBUS_FALL |
-			USBOTGSS_IRQ1_IDPULLUP_FALL);
-
-	dwc3_omap_writel(omap->base, USBOTGSS_IRQENABLE_SET_1, reg);
+	dwc3_omap_enable_irqs(omap);
 
 	ret = of_platform_populate(node, NULL, NULL, dev);
 	if (ret) {
@@ -382,6 +386,9 @@ static int dwc3_omap_probe(struct platform_device *pdev)
 
 static int dwc3_omap_remove(struct platform_device *pdev)
 {
+	struct dwc3_omap	*omap = platform_get_drvdata(pdev);
+
+	dwc3_omap_disable_irqs(omap);
 	pm_runtime_put_sync(&pdev->dev);
 	pm_runtime_disable(&pdev->dev);
 	device_for_each_child(&pdev->dev, NULL, dwc3_omap_remove_core);
@@ -397,12 +404,66 @@ static const struct of_device_id of_dwc3_match[] = {
 };
 MODULE_DEVICE_TABLE(of, of_dwc3_match);
 
+#ifdef CONFIG_PM
+static int dwc3_omap_prepare(struct device *dev)
+{
+	struct dwc3_omap	*omap = dev_get_drvdata(dev);
+
+	dwc3_omap_disable_irqs(omap);
+
+	return 0;
+}
+
+static void dwc3_omap_complete(struct device *dev)
+{
+	struct dwc3_omap	*omap = dev_get_drvdata(dev);
+
+	dwc3_omap_enable_irqs(omap);
+}
+
+static int dwc3_omap_suspend(struct device *dev)
+{
+	struct dwc3_omap	*omap = dev_get_drvdata(dev);
+
+	omap->utmi_otg_status = dwc3_omap_readl(omap->base,
+			USBOTGSS_UTMI_OTG_STATUS);
+
+	return 0;
+}
+
+static int dwc3_omap_resume(struct device *dev)
+{
+	struct dwc3_omap	*omap = dev_get_drvdata(dev);
+
+	dwc3_omap_writel(omap->base, USBOTGSS_UTMI_OTG_STATUS,
+			omap->utmi_otg_status);
+
+	pm_runtime_disable(dev);
+	pm_runtime_set_active(dev);
+	pm_runtime_enable(dev);
+
+	return 0;
+}
+
+static const struct dev_pm_ops dwc3_omap_dev_pm_ops = {
+	.prepare	= dwc3_omap_prepare,
+	.complete	= dwc3_omap_complete,
+
+	SET_SYSTEM_SLEEP_PM_OPS(dwc3_omap_suspend, dwc3_omap_resume)
+};
+
+#define DEV_PM_OPS	(&dwc3_omap_dev_pm_ops)
+#else
+#define DEV_PM_OPS	NULL
+#endif /* CONFIG_PM */
+
 static struct platform_driver dwc3_omap_driver = {
 	.probe		= dwc3_omap_probe,
 	.remove		= dwc3_omap_remove,
 	.driver		= {
 		.name	= "omap-dwc3",
 		.of_match_table	= of_dwc3_match,
+		.pm	= DEV_PM_OPS,
 	},
 };
 

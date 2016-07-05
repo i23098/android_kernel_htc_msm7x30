@@ -369,6 +369,9 @@ struct dwc3_trb;
  * @list: a list of event buffers
  * @buf: _THE_ buffer
  * @length: size of this buffer
+ * @lpos: event offset
+ * @count: cache of last read event count register
+ * @flags: flags related to this event buffer
  * @dma: dma_addr_t
  * @dwc: pointer to DWC controller
  */
@@ -376,6 +379,10 @@ struct dwc3_event_buffer {
 	void			*buf;
 	unsigned		length;
 	unsigned int		lpos;
+	unsigned int		count;
+	unsigned int		flags;
+
+#define DWC3_EVENT_PENDING	BIT(0)
 
 	dma_addr_t		dma;
 
@@ -485,12 +492,6 @@ enum dwc3_link_state {
 	DWC3_LINK_STATE_RESET		= 0x0e,
 	DWC3_LINK_STATE_RESUME		= 0x0f,
 	DWC3_LINK_STATE_MASK		= 0x0f,
-};
-
-enum dwc3_device_state {
-	DWC3_DEFAULT_STATE,
-	DWC3_ADDRESS_STATE,
-	DWC3_CONFIGURED_STATE,
 };
 
 /* TRB Length, PCM and Status */
@@ -618,7 +619,6 @@ struct dwc3_scratchpad_array {
  * @gadget_driver: pointer to the gadget driver
  * @regs: base address for our registers
  * @regs_size: address space size
- * @irq: IRQ number
  * @num_event_buffers: calculated number of event buffers
  * @u1u2: only used on revisions <1.83a for workaround
  * @maximum_speed: maximum speed requested (mainly for testing purposes)
@@ -626,6 +626,8 @@ struct dwc3_scratchpad_array {
  * @mode: mode of operation
  * @usb2_phy: pointer to USB2 PHY
  * @usb3_phy: pointer to USB3 PHY
+ * @dcfg: saved contents of DCFG register
+ * @gctl: saved contents of GCTL register
  * @is_selfpowered: true when we are selfpowered
  * @three_stage_setup: set if we perform a three phase setup
  * @ep0_bounced: true when we used bounce buffer
@@ -675,6 +677,10 @@ struct dwc3 {
 	void __iomem		*regs;
 	size_t			regs_size;
 
+	/* used for suspend/resume */
+	u32			dcfg;
+	u32			gctl;
+
 	u32			num_event_buffers;
 	u32			u1u2;
 	u32			maximum_speed;
@@ -704,11 +710,11 @@ struct dwc3 {
 	unsigned		delayed_status:1;
 	unsigned		needs_fifo_resize:1;
 	unsigned		resize_fifos:1;
+	unsigned		pullups_connected:1;
 
 	enum dwc3_ep0_next	ep0_next_event;
 	enum dwc3_ep0_state	ep0state;
 	enum dwc3_link_state	link_state;
-	enum dwc3_device_state	dev_state;
 
 	u16			isoch_delay;
 	u16			u2sel;
@@ -883,5 +889,32 @@ static inline int dwc3_gadget_init(struct dwc3 *dwc)
 static inline void dwc3_gadget_exit(struct dwc3 *dwc)
 { }
 #endif
+
+/* power management interface */
+#if !IS_ENABLED(CONFIG_USB_DWC3_HOST)
+int dwc3_gadget_prepare(struct dwc3 *dwc);
+void dwc3_gadget_complete(struct dwc3 *dwc);
+int dwc3_gadget_suspend(struct dwc3 *dwc);
+int dwc3_gadget_resume(struct dwc3 *dwc);
+#else
+static inline int dwc3_gadget_prepare(struct dwc3 *dwc)
+{
+	return 0;
+}
+
+static inline void dwc3_gadget_complete(struct dwc3 *dwc)
+{
+}
+
+static inline int dwc3_gadget_suspend(struct dwc3 *dwc)
+{
+	return 0;
+}
+
+static inline int dwc3_gadget_resume(struct dwc3 *dwc)
+{
+	return 0;
+}
+#endif /* !IS_ENABLED(CONFIG_USB_DWC3_HOST) */
 
 #endif /* __DRIVERS_USB_DWC3_CORE_H */

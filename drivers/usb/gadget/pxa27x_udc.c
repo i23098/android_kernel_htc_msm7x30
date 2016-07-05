@@ -24,14 +24,12 @@
 #include <linux/gpio.h>
 #include <linux/slab.h>
 #include <linux/prefetch.h>
-
-#include <asm/byteorder.h>
-#include <mach/hardware.h>
+#include <linux/byteorder/generic.h>
+#include <linux/platform_data/pxa2xx_udc.h>
 
 #include <linux/usb.h>
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
-#include <mach/udc.h>
 
 #include "pxa27x_udc.h"
 
@@ -2412,7 +2410,7 @@ static struct pxa_udc memory = {
  * Perform basic init : allocates udc clock, creates sysfs files, requests
  * irq.
  */
-static int __init pxa_udc_probe(struct platform_device *pdev)
+static int pxa_udc_probe(struct platform_device *pdev)
 {
 	struct resource *regs;
 	struct pxa_udc *udc = &memory;
@@ -2455,8 +2453,6 @@ static int __init pxa_udc_probe(struct platform_device *pdev)
 		goto err_map;
 	}
 
-	udc->gadget.dev.parent = &pdev->dev;
-	udc->gadget.dev.dma_mask = NULL;
 	udc->vbus_sensed = 0;
 
 	the_controller = udc;
@@ -2614,6 +2610,7 @@ static struct platform_driver udc_driver = {
 		.name	= "pxa27x-udc",
 		.owner	= THIS_MODULE,
 	},
+	.probe		= pxa_udc_probe,
 	.remove		= __exit_p(pxa_udc_remove),
 	.shutdown	= pxa_udc_shutdown,
 #ifdef CONFIG_PM
@@ -2622,22 +2619,7 @@ static struct platform_driver udc_driver = {
 #endif
 };
 
-static int __init udc_init(void)
-{
-	if (!cpu_is_pxa27x() && !cpu_is_pxa3xx())
-		return -ENODEV;
-
-	printk(KERN_INFO "%s: version %s\n", driver_name, DRIVER_VERSION);
-	return platform_driver_probe(&udc_driver, pxa_udc_probe);
-}
-module_init(udc_init);
-
-
-static void __exit udc_exit(void)
-{
-	platform_driver_unregister(&udc_driver);
-}
-module_exit(udc_exit);
+module_platform_driver(udc_driver);
 
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_AUTHOR("Robert Jarzmik");
