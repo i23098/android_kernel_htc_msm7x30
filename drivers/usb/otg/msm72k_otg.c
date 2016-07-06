@@ -56,10 +56,10 @@ static void send_usb_connect_notify(struct work_struct *w)
 	pr_info("send connect type %d\n", motg->connect_type);
 	mutex_lock(&notify_sem);
 #ifdef CONFIG_CABLE_DETECT_ACCESSORY
-        if (cable_get_accessory_type() == DOCK_STATE_DMB) {
-                motg->connect_type = CONNECT_TYPE_CLEAR;
-                pr_info("current accessory is DMB, send  %d\n", motg->connect_type);
-        }
+	if (cable_get_accessory_type() == DOCK_STATE_DMB) {
+		motg->connect_type = CONNECT_TYPE_CLEAR;
+		pr_info("current accessory is DMB, send  %d\n", motg->connect_type);
+	}
 #endif
 	list_for_each_entry(notifier, &g_lh_usb_notifier_list, notifier_link) {
 		if (notifier->func != NULL) {
@@ -154,8 +154,8 @@ static int ulpi_write(struct msm_otg *motg, unsigned val, unsigned reg)
 
 	/* initiate write operation */
 	writel(ULPI_RUN | ULPI_WRITE |
-	       ULPI_ADDR(reg) | ULPI_DATA(val),
-	       USB_ULPI_VIEWPORT);
+		ULPI_ADDR(reg) | ULPI_DATA(val),
+		USB_ULPI_VIEWPORT);
 
 	/* wait for completion */
 	while ((readl(USB_ULPI_VIEWPORT) & ULPI_RUN) && (--timeout))
@@ -361,26 +361,6 @@ static inline void set_driver_amplitude(struct msm_otg *motg)
 	ulpi_write(motg, res, ULPI_CONFIG_REG2);
 }
 
-static const char *state_string(enum usb_otg_state state)
-{
-	switch (state) {
-	case OTG_STATE_A_IDLE:		return "a_idle";
-	case OTG_STATE_A_WAIT_VRISE:	return "a_wait_vrise";
-	case OTG_STATE_A_WAIT_BCON:	return "a_wait_bcon";
-	case OTG_STATE_A_HOST:		return "a_host";
-	case OTG_STATE_A_SUSPEND:	return "a_suspend";
-	case OTG_STATE_A_PERIPHERAL:	return "a_peripheral";
-	case OTG_STATE_A_WAIT_VFALL:	return "a_wait_vfall";
-	case OTG_STATE_A_VBUS_ERR:	return "a_vbus_err";
-	case OTG_STATE_B_IDLE:		return "b_idle";
-	case OTG_STATE_B_SRP_INIT:	return "b_srp_init";
-	case OTG_STATE_B_PERIPHERAL:	return "b_peripheral";
-	case OTG_STATE_B_WAIT_ACON:	return "b_wait_acon";
-	case OTG_STATE_B_HOST:		return "b_host";
-	default:			return "UNDEFINED";
-	}
-}
-
 static const char *timer_string(int bit)
 {
 	switch (bit) {
@@ -535,7 +515,7 @@ static int msm_otg_start_hnp(struct usb_phy *phy)
 
 	if (motg->phy.state != OTG_STATE_A_HOST) {
 		pr_err("HNP can not be initiated in %s state\n",
-				state_string(motg->phy.state));
+				usb_otg_state_string(motg->phy.state));
 		return -EINVAL;
 	}
 
@@ -558,7 +538,7 @@ static int msm_otg_start_srp(struct usb_phy *phy)
 
 	if (motg->phy.state != OTG_STATE_B_IDLE) {
 		pr_err("SRP can not be initiated in %s state\n",
-				state_string(motg->phy.state));
+				usb_otg_state_string(motg->phy.state));
 		ret = -EINVAL;
 		goto out;
 	}
@@ -1062,17 +1042,15 @@ static int msm_usb_phy_set_suspend(struct usb_phy *phy, int suspend)
 	spin_unlock_irqrestore(&motg->lock, flags);
 
 	pr_debug("suspend request in state: %s\n",
-			state_string(motg->phy.state));
+			usb_otg_state_string(motg->phy.state));
 
 	if (suspend) {
 		switch (motg->phy.state) {
-#ifndef CONFIG_MSM_OTG_ENABLE_A_WAIT_BCON_TIMEOUT
 		case OTG_STATE_A_WAIT_BCON:
 			if (test_bit(ID_A, &motg->inputs))
 				msm_otg_set_power(phy, USB_IDCHG_MIN - 100);
 			msm_otg_put_suspend(motg);
 			break;
-#endif
 		case OTG_STATE_A_HOST:
 			clear_bit(A_BUS_REQ, &motg->inputs);
 			wake_lock(&motg->wlock);
@@ -1360,7 +1338,7 @@ static irqreturn_t msm_otg_irq(int irq, void *data)
 	spin_lock_irqsave(&motg->lock, flags);
 	spin_unlock_irqrestore(&motg->lock, flags);
 
-	pr_debug("IRQ state: %s, otgsc = 0x%08x\n", state_string(motg->phy.state), otgsc);
+	pr_debug("IRQ state: %s, otgsc = 0x%08x\n", usb_otg_state_string(motg->phy.state), otgsc);
 
 	if ((otgsc & OTGSC_IDIE) && (otgsc & OTGSC_IDIS)) {
 		if (otgsc & OTGSC_ID) {
@@ -1790,7 +1768,7 @@ static void msm_otg_sm_work(struct work_struct *w)
 	spin_lock_irqsave(&motg->lock, flags);
 	spin_unlock_irqrestore(&motg->lock, flags);
 
-	pr_info("%s: state:%s bit:0x%08x\n", __func__, state_string(motg->phy.state),
+	pr_info("%s: state:%s bit:0x%08x\n", __func__, usb_otg_state_string(motg->phy.state),
 			(unsigned) motg->inputs);
 	mutex_lock(&smwork_sem);
 	switch (otg->phy->state) {
@@ -2571,7 +2549,7 @@ static ssize_t otg_info_read(struct file *file, char __user *ubuf,
 			"se1_gate_state:        0x%x\n"
 			"swfi_latency:          0x%x\n"
 			"PHY Powercollapse:     0x%x\n",
-			state_string(motg->phy.state),
+			usb_otg_state_string(motg->phy.state),
 			motg->pdata->otg_mode,
 			motg->inputs,
 			atomic_read(&motg->chg_type),
