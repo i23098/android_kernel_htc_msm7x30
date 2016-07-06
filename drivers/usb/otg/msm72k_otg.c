@@ -20,6 +20,8 @@
 #include <linux/delay.h>
 #include <linux/io.h>
 #include <linux/ioport.h>
+#include <linux/uaccess.h>
+#include <linux/debugfs.h>
 #include <linux/pm_runtime.h>
 
 #include <linux/device.h>
@@ -27,8 +29,6 @@
 #include <mach/msm_hsusb_hw.h>
 #include <linux/usb/msm72k_hsusb.h>
 #include <mach/msm_hsusb.h>
-#include <linux/debugfs.h>
-#include <linux/uaccess.h>
 #include <mach/clk.h>
 
 #include <mach/cable_detect.h>
@@ -3067,33 +3067,25 @@ static int msm_otg_runtime_idle(struct device *dev)
 	return  0;
 }
 
-static struct dev_pm_ops msm_otg_dev_pm_ops = {
-	.runtime_suspend = msm_otg_runtime_suspend,
-	.runtime_resume = msm_otg_runtime_resume,
-	.runtime_idle = msm_otg_runtime_idle,
+#ifdef CONFIG_PM
+static const struct dev_pm_ops msm_otg_dev_pm_ops = {
+	SET_RUNTIME_PM_OPS(msm_otg_runtime_suspend, msm_otg_runtime_resume,
+				msm_otg_runtime_idle)
 };
+#endif
 
 static struct platform_driver msm_otg_driver = {
 	.remove = msm_otg_remove,
 	.driver = {
 		.name = DRIVER_NAME,
 		.owner = THIS_MODULE,
+#ifdef CONFIG_PM
 		.pm = &msm_otg_dev_pm_ops,
+#endif
 	},
 };
 
-static int __init msm_otg_init(void)
-{
-	return platform_driver_probe(&msm_otg_driver, msm_otg_probe);
-}
-
-static void __exit msm_otg_exit(void)
-{
-	platform_driver_unregister(&msm_otg_driver);
-}
-
-module_init(msm_otg_init);
-module_exit(msm_otg_exit);
+module_platform_driver_probe(msm_otg_driver, msm_otg_probe);
 
 MODULE_LICENSE("GPL v2");
-MODULE_DESCRIPTION("MSM USB transceiver driver");
+MODULE_DESCRIPTION("MSM72k USB transceiver driver");
