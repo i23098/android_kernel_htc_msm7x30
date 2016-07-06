@@ -5,7 +5,6 @@
 ccflags-$(CONFIG_USB_DEBUG)		:= -DDEBUG
 ccflags-$(CONFIG_USB_GADGET_DEBUG)	+= -DDEBUG
 
-obj-$(CONFIG_USB_OTG_WAKELOCK)		+= otg-wakelock.o
 obj-$(CONFIG_USB_OTG_UTILS)		+= otg_id.o
 
 # transceiver drivers
