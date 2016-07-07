@@ -434,12 +434,32 @@ static int dwc3_probe(struct platform_device *pdev)
 		dwc->usb3_phy = devm_usb_get_phy(dev, USB_PHY_TYPE_USB3);
 	}
 
-	if (IS_ERR_OR_NULL(dwc->usb2_phy)) {
+	if (IS_ERR(dwc->usb2_phy)) {
+		ret = PTR_ERR(dwc->usb2_phy);
+
+		/*
+		 * if -ENXIO is returned, it means PHY layer wasn't
+		 * enabled, so it makes no sense to return -EPROBE_DEFER
+		 * in that case, since no PHY driver will ever probe.
+		 */
+		if (ret == -ENXIO)
+			return ret;
+
 		dev_err(dev, "no usb2 phy configured\n");
 		return -EPROBE_DEFER;
 	}
 
-	if (IS_ERR_OR_NULL(dwc->usb3_phy)) {
+	if (IS_ERR(dwc->usb3_phy)) {
+		ret = PTR_ERR(dwc->usb2_phy);
+
+		/*
+		 * if -ENXIO is returned, it means PHY layer wasn't
+		 * enabled, so it makes no sense to return -EPROBE_DEFER
+		 * in that case, since no PHY driver will ever probe.
+		 */
+		if (ret == -ENXIO)
+			return ret;
+
 		dev_err(dev, "no usb3 phy configured\n");
 		return -EPROBE_DEFER;
 	}
@@ -453,6 +473,10 @@ static int dwc3_probe(struct platform_device *pdev)
 	dwc->regs	= regs;
 	dwc->regs_size	= resource_size(res);
 	dwc->dev	= dev;
+
+	dev->dma_mask	= dev->parent->dma_mask;
+	dev->dma_parms	= dev->parent->dma_parms;
+	dma_set_coherent_mask(dev, dev->parent->coherent_dma_mask);
 
 	if (!strncmp("super", maximum_speed, 5))
 		dwc->maximum_speed = DWC3_DCFG_SUPERSPEED;
@@ -610,7 +634,7 @@ static int dwc3_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#ifdef CONFIG_PM
+#ifdef CONFIG_PM_SLEEP
 static int dwc3_prepare(struct device *dev)
 {
 	struct dwc3	*dwc = dev_get_drvdata(dev);

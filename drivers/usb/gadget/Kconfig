@@ -145,7 +145,6 @@ config USB_LPC32XX
 	tristate "LPC32XX USB Peripheral Controller"
 	depends on ARCH_LPC32XX
 	select USB_ISP1301
-	select USB_OTG_UTILS
 	help
 	   This option selects the USB device controller in the LPC32xx SoC.
 
@@ -196,7 +195,6 @@ config USB_OMAP
 	tristate "OMAP USB Device Controller"
 	depends on ARCH_OMAP1
 	select ISP1301_OMAP if MACH_OMAP_H2 || MACH_OMAP_H3 || MACH_OMAP_H4_OTG
-	select USB_OTG_UTILS if ARCH_OMAP
 	help
 	   Many Texas Instruments OMAP processors have flexible full
 	   speed USB device controllers, with support for up to 30
@@ -211,7 +209,6 @@ config USB_OMAP
 config USB_PXA25X
 	tristate "PXA 25x or IXP 4xx"
 	depends on (ARCH_PXA && PXA25x) || ARCH_IXP4XX
-	select USB_OTG_UTILS
 	help
 	   Intel's PXA 25x series XScale ARM-5TE processors include
 	   an integrated full speed USB 1.1 device controller.  The
@@ -259,7 +256,6 @@ config USB_RENESAS_USBHS_UDC
 
 config USB_PXA27X
 	tristate "PXA 27x"
-	select USB_OTG_UTILS
 	help
 	   Intel's PXA 27x series XScale ARM v5TE processors include
 	   an integrated full speed USB 1.1 device controller.
@@ -328,9 +324,6 @@ config USB_MV_UDC
 
 config USB_MV_U3D
 	tristate "MARVELL PXA2128 USB 3.0 controller"
-	depends on CPU_MMP3
-	select USB_GADGET_DUALSPEED
-	select USB_GADGET_SUPERSPEED
 	help
 	  MARVELL PXA2128 Processor series include a super speed USB3.0 device
 	  controller, which support super speed USB peripheral.
@@ -511,6 +504,7 @@ endmenu
 # composite based drivers
 config USB_LIBCOMPOSITE
 	tristate
+	select CONFIGFS_FS
 	depends on USB_GADGET
 
 config USB_F_ACM
@@ -616,7 +610,7 @@ config USB_ETH
 	help
 	  This driver implements Ethernet style communication, in one of
 	  several ways:
-	  
+
 	   - The "Communication Device Class" (CDC) Ethernet Control Model.
 	     That protocol is often avoided with pure Ethernet adapters, in
 	     favor of simpler vendor-specific hardware, but is widely
@@ -657,7 +651,7 @@ config USB_ETH_RNDIS
 	   If you say "y" here, the Ethernet gadget driver will try to provide
 	   a second device configuration, supporting RNDIS to talk to such
 	   Microsoft USB hosts.
-	   
+
 	   To make MS-Windows work with this, use Documentation/usb/linux.inf
 	   as the "driver info file".  For versions of MS-Windows older than
 	   XP, you'll need to download drivers from Microsoft's website; a URL
@@ -965,6 +959,7 @@ config USB_G_NOKIA
 	depends on PHONET
 	select USB_LIBCOMPOSITE
 	select USB_U_SERIAL
+	select USB_F_ACM
 	help
 	  The Nokia composite gadget provides support for acm, obex
 	  and phonet in only one composite gadget driver.
@@ -1083,6 +1078,7 @@ config USB_G_WEBCAM
 	tristate "USB Webcam Gadget"
 	depends on VIDEO_DEV
 	select USB_LIBCOMPOSITE
+	select VIDEOBUF2_VMALLOC
 	help
 	  The Webcam Gadget acts as a composite USB Audio and Video Class
 	  device. It provides a userspace API to process UVC control requests

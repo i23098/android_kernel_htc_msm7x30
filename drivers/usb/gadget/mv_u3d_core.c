@@ -30,9 +30,6 @@
 #include <linux/platform_device.h>
 #include <linux/platform_data/mv_usb.h>
 #include <linux/clk.h>
-#include <asm/system.h>
-#include <asm/unaligned.h>
-#include <asm/byteorder.h>
 
 #include "mv_u3d.h"
 
@@ -125,7 +122,7 @@ static int mv_u3d_process_ep_req(struct mv_u3d *u3d, int index,
 	struct mv_u3d_trb	*curr_trb;
 	dma_addr_t cur_deq_lo;
 	struct mv_u3d_ep_context	*curr_ep_context;
-	int trb_complete, actual, remaining_length;
+	int trb_complete, actual, remaining_length = 0;
 	int direction, ep_num;
 	int retval = 0;
 	u32 tmp, status, length;
@@ -189,6 +186,8 @@ static int mv_u3d_process_ep_req(struct mv_u3d *u3d, int index,
  */
 static
 void mv_u3d_done(struct mv_u3d_ep *ep, struct mv_u3d_req *req, int status)
+	__releases(&ep->udc->lock)
+	__acquires(&ep->udc->lock)
 {
 	struct mv_u3d *u3d = (struct mv_u3d *)ep->u3d;
 
@@ -812,19 +811,19 @@ mv_u3d_ep_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_flags)
 		return 0;
 	}
 
-	dev_dbg(u3d->dev, "%s: %s, req: 0x%x\n",
-			__func__, _ep->name, (u32)req);
+	dev_dbg(u3d->dev, "%s: %s, req: 0x%p\n",
+			__func__, _ep->name, req);
 
 	/* catch various bogus parameters */
 	if (!req->req.complete || !req->req.buf
 			|| !list_empty(&req->queue)) {
 		dev_err(u3d->dev,
-			"%s, bad params, _req: 0x%x,"
-			"req->req.complete: 0x%x, req->req.buf: 0x%x,"
+			"%s, bad params, _req: 0x%p,"
+			"req->req.complete: 0x%p, req->req.buf: 0x%p,"
 			"list_empty: 0x%x\n",
-			__func__, (u32)_req,
-			(u32)req->req.complete, (u32)req->req.buf,
-			(u32)list_empty(&req->queue));
+			__func__, _req,
+			req->req.complete, req->req.buf,
+			list_empty(&req->queue));
 		return -EINVAL;
 	}
 	if (unlikely(!ep->ep.desc)) {
@@ -905,7 +904,7 @@ static int mv_u3d_ep_dequeue(struct usb_ep *_ep, struct usb_request *_req)
 					struct mv_u3d_req, queue);
 
 			/* Point first TRB of next request to the EP context. */
-			iowrite32((u32) next_req->trb_head,
+			iowrite32((unsigned long) next_req->trb_head,
 					&ep_context->trb_addr_lo);
 		} else {
 			struct mv_u3d_ep_context *ep_context;
@@ -1523,6 +1522,8 @@ static int mv_u3d_is_set_configuration(struct usb_ctrlrequest *setup)
 
 static void mv_u3d_handle_setup_packet(struct mv_u3d *u3d, u8 ep_num,
 	struct usb_ctrlrequest *setup)
+	__releases(&u3c->lock)
+	__acquires(&u3c->lock)
 {
 	bool delegate = false;
 
@@ -1820,7 +1821,7 @@ static int mv_u3d_probe(struct platform_device *dev)
 	u3d->dev = &dev->dev;
 	u3d->vbus = pdata->vbus;
 
-	u3d->clk = clk_get(&dev->dev, pdata->clkname[0]);
+	u3d->clk = clk_get(&dev->dev, NULL);
 	if (IS_ERR(u3d->clk)) {
 		retval = PTR_ERR(u3d->clk);
 		goto err_get_clk;
@@ -1840,8 +1841,9 @@ static int mv_u3d_probe(struct platform_device *dev)
 		retval = -EBUSY;
 		goto err_map_cap_regs;
 	} else {
-		dev_dbg(&dev->dev, "cap_regs address: 0x%x/0x%x\n",
-			(unsigned int)r->start, (unsigned int)u3d->cap_regs);
+		dev_dbg(&dev->dev, "cap_regs address: 0x%lx/0x%lx\n",
+			(unsigned long) r->start,
+			(unsigned long) u3d->cap_regs);
 	}
 
 	/* we will access controller register, so enable the u3d controller */
@@ -1855,10 +1857,10 @@ static int mv_u3d_probe(struct platform_device *dev)
 		}
 	}
 
-	u3d->op_regs = (struct mv_u3d_op_regs __iomem *)((u32)u3d->cap_regs
+	u3d->op_regs = (struct mv_u3d_op_regs __iomem *)(u3d->cap_regs
 		+ MV_U3D_USB3_OP_REGS_OFFSET);
 
-	u3d->vuc_regs = (struct mv_u3d_vuc_regs __iomem *)((u32)u3d->cap_regs
+	u3d->vuc_regs = (struct mv_u3d_vuc_regs __iomem *)(u3d->cap_regs
 		+ ioread32(&u3d->cap_regs->vuoff));
 
 	u3d->max_eps = 16;
@@ -2002,7 +2004,7 @@ err_pdata:
 	return retval;
 }
 
-#ifdef CONFIG_PM
+#ifdef CONFIG_PM_SLEEP
 static int mv_u3d_suspend(struct device *dev)
 {
 	struct mv_u3d *u3d = dev_get_drvdata(dev);
@@ -2045,9 +2047,9 @@ static int mv_u3d_resume(struct device *dev)
 
 	return 0;
 }
-
-SIMPLE_DEV_PM_OPS(mv_u3d_pm_ops, mv_u3d_suspend, mv_u3d_resume);
 #endif
+
+static SIMPLE_DEV_PM_OPS(mv_u3d_pm_ops, mv_u3d_suspend, mv_u3d_resume);
 
 static void mv_u3d_shutdown(struct platform_device *dev)
 {
@@ -2066,9 +2068,7 @@ static struct platform_driver mv_u3d_driver = {
 	.driver		= {
 		.owner	= THIS_MODULE,
 		.name	= "mv-u3d",
-#ifdef CONFIG_PM
 		.pm	= &mv_u3d_pm_ops,
-#endif
 	},
 };
 

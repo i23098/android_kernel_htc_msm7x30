@@ -80,7 +80,6 @@ int gsmd_connect(struct gserial *, u8 port_num);
 void gsmd_disconnect(struct gserial *, u8 portno);
 
 /* functions are bound to configurations by a config or gadget driver */
-int acm_bind_config(struct usb_configuration *c, u8 port_num);
 int gser_bind_config(struct usb_configuration *c, u8 port_num);
 int obex_bind_config(struct usb_configuration *c, u8 port_num);
 

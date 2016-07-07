@@ -126,7 +126,7 @@ struct dwc3_omap {
 	u32			dma_status:1;
 };
 
-struct dwc3_omap		*_omap;
+static struct dwc3_omap		*_omap;
 
 static inline u32 dwc3_omap_readl(void __iomem *base, u32 offset)
 {
@@ -138,10 +138,13 @@ static inline void dwc3_omap_writel(void __iomem *base, u32 offset, u32 value)
 	writel(value, base + offset);
 }
 
-void dwc3_omap_mailbox(enum omap_dwc3_vbus_id_status status)
+int dwc3_omap_mailbox(enum omap_dwc3_vbus_id_status status)
 {
 	u32			val;
 	struct dwc3_omap	*omap = _omap;
+
+	if (!omap)
+		return -EPROBE_DEFER;
 
 	switch (status) {
 	case OMAP_DWC3_ID_GROUND:
@@ -185,7 +188,7 @@ void dwc3_omap_mailbox(enum omap_dwc3_vbus_id_status status)
 		dev_dbg(omap->dev, "ID float\n");
 	}
 
-	return;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(dwc3_omap_mailbox);
 
@@ -277,6 +280,8 @@ static void dwc3_omap_disable_irqs(struct dwc3_omap *omap)
 	dwc3_omap_writel(omap->base, USBOTGSS_IRQENABLE_SET_0, 0x00);
 }
 
+static u64 dwc3_omap_dma_mask = DMA_BIT_MASK(32);
+
 static int dwc3_omap_probe(struct platform_device *pdev)
 {
 	struct device_node	*node = pdev->dev.of_node;
@@ -330,6 +335,7 @@ static int dwc3_omap_probe(struct platform_device *pdev)
 	omap->dev	= dev;
 	omap->irq	= irq;
 	omap->base	= base;
+	dev->dma_mask	= &dwc3_omap_dma_mask;
 
 	/*
 	 * REVISIT if we ever have two instances of the wrapper, we will be
@@ -404,7 +410,7 @@ static const struct of_device_id of_dwc3_match[] = {
 };
 MODULE_DEVICE_TABLE(of, of_dwc3_match);
 
-#ifdef CONFIG_PM
+#ifdef CONFIG_PM_SLEEP
 static int dwc3_omap_prepare(struct device *dev)
 {
 	struct dwc3_omap	*omap = dev_get_drvdata(dev);
@@ -455,7 +461,7 @@ static const struct dev_pm_ops dwc3_omap_dev_pm_ops = {
 #define DEV_PM_OPS	(&dwc3_omap_dev_pm_ops)
 #else
 #define DEV_PM_OPS	NULL
-#endif /* CONFIG_PM */
+#endif /* CONFIG_PM_SLEEP */
 
 static struct platform_driver dwc3_omap_driver = {
 	.probe		= dwc3_omap_probe,

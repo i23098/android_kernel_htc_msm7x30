@@ -1,7 +1,7 @@
 /*
  * drivers/usb/musb/ux500_dma.c
  *
- * U8500 and U5500 DMA support code
+ * U8500 DMA support code
  *
  * Copyright (C) 2009 STMicroelectronics
  * Copyright (C) 2011 ST-Ericsson SA
@@ -57,7 +57,7 @@ struct ux500_dma_controller {
 };
 
 /* Work function invoked from DMA callback to handle rx transfers. */
-void ux500_dma_callback(void *private_data)
+static void ux500_dma_callback(void *private_data)
 {
 	struct dma_channel *channel = private_data;
 	struct ux500_dma_channel *ux500_channel = channel->private_data;
@@ -374,12 +374,17 @@ struct dma_controller *dma_controller_create(struct musb *musb, void __iomem *ba
 
 	controller = kzalloc(sizeof(*controller), GFP_KERNEL);
 	if (!controller)
-		return NULL;
+		goto kzalloc_fail;
 
 	controller->private_data = musb;
 
 	/* Save physical address for DMA controller. */
 	iomem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!iomem) {
+		dev_err(musb->controller, "no memory resource defined\n");
+		goto plat_get_fail;
+	}
+
 	controller->phy_base = (dma_addr_t) iomem->start;
 
 	controller->controller.start = ux500_dma_controller_start;
@@ -391,4 +396,9 @@ struct dma_controller *dma_controller_create(struct musb *musb, void __iomem *ba
 	controller->controller.is_compatible = ux500_dma_is_compatible;
 
 	return &controller->controller;
+
+plat_get_fail:
+	kfree(controller);
+kzalloc_fail:
+	return NULL;
 }

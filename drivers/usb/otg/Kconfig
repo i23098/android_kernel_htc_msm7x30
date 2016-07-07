@@ -11,7 +11,6 @@ if USB || USB_GADGET
 config USB_MSM_OTG_72K
 	bool "OTG support for Legcay Qualcomm on-chip USB controller"
 	depends on ARCH_MSM
-	select USB_OTG_UTILS
 	default USB_MSM_72K
 	help
 	  Enable this to support the USB OTG transceiver on MSM chips. It

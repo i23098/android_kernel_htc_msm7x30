@@ -1853,9 +1853,8 @@ static int musb_gadget_start(struct usb_gadget *g,
 		goto err;
 	}
 
-	if ((musb->xceiv->last_event == USB_EVENT_ID)
-				&& otg->set_vbus)
-		otg_set_vbus(otg, 1);
+	if (musb->xceiv->last_event == USB_EVENT_ID)
+		musb_platform_set_vbus(musb, 1);
 
 	hcd->self.uses_pio_for_control = 1;
 
@@ -1939,6 +1938,7 @@ static int musb_gadget_stop(struct usb_gadget *g,
 	dev_dbg(musb->controller, "unregistering driver %s\n", driver->function);
 
 	musb->is_active = 0;
+	musb->gadget_driver = NULL;
 	musb_platform_try_idle(musb, 0);
 	spin_unlock_irqrestore(&musb->lock, flags);
 

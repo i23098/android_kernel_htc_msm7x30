@@ -597,6 +597,8 @@ struct ecm_function_config {
 	u8      ethaddr[ETH_ALEN];
 };
 
+static struct eth_dev *the_dev_ecm;
+
 static int ecm_function_init(struct android_usb_function *f, struct usb_composite_dev *cdev)
 {
 	struct ecm_function_config *ecm;
@@ -630,12 +632,11 @@ static int ecm_function_bind_config(struct android_usb_function *f,
 		ecm->ethaddr[0], ecm->ethaddr[1], ecm->ethaddr[2],
 		ecm->ethaddr[3], ecm->ethaddr[4], ecm->ethaddr[5]);
 
-	ret = gether_setup_name(c->cdev->gadget, ecm->ethaddr, "usb");
-	if (ret) {
+	the_dev_ecm = gether_setup_name(c->cdev->gadget, ecm->ethaddr, "usb");
+	if (IS_ERR(the_dev_ecm)) {
 		pr_err("%s: gether_setup failed\n", __func__);
-		return ret;
+		return PTR_ERR(the_dev_ecm);
 	}
-
 
 	return ecm_bind_config(c, ecm->ethaddr);
 }
@@ -643,7 +644,7 @@ static int ecm_function_bind_config(struct android_usb_function *f,
 static void ecm_function_unbind_config(struct android_usb_function *f,
 						struct usb_configuration *c)
 {
-	gether_cleanup();
+	gether_cleanup(the_dev_ecm);
 }
 
 static ssize_t ecm_ethaddr_show(struct device *dev,
@@ -698,6 +699,8 @@ struct rndis_function_config {
 	bool	wceis;
 };
 
+static struct eth_dev *the_dev_rndis;
+
 static int rndis_function_init(struct android_usb_function *f, struct usb_composite_dev *cdev)
 {
 	struct rndis_function_config *rndis;
@@ -724,7 +727,6 @@ static void rndis_function_cleanup(struct android_usb_function *f)
 static int rndis_function_bind_config(struct android_usb_function *f,
 					struct usb_configuration *c)
 {
-	int ret;
 	struct rndis_function_config *rndis = f->config;
 
 	if (!rndis) {
@@ -736,10 +738,10 @@ static int rndis_function_bind_config(struct android_usb_function *f,
 		rndis->ethaddr[0], rndis->ethaddr[1], rndis->ethaddr[2],
 		rndis->ethaddr[3], rndis->ethaddr[4], rndis->ethaddr[5]);
 
-	ret = gether_setup_name(c->cdev->gadget, rndis->ethaddr, "usb");
-	if (ret) {
+	the_dev_rndis = gether_setup_name(c->cdev->gadget, rndis->ethaddr, "usb");
+	if (IS_ERR(the_dev_rndis)) {
 		pr_err("%s: gether_setup failed\n", __func__);
-		return ret;
+		return PTR_ERR(the_dev_rndis);
 	}
 
 	if (rndis->wceis) {
@@ -755,13 +757,13 @@ static int rndis_function_bind_config(struct android_usb_function *f,
 	}
 
 	return rndis_bind_config_vendor(c, rndis->ethaddr, rndis->vendorID,
-				    rndis->manufacturer);
+				    rndis->manufacturer, the_dev_rndis);
 }
 
 static void rndis_function_unbind_config(struct android_usb_function *f,
 						struct usb_configuration *c)
 {
-	gether_cleanup();
+	gether_cleanup(the_dev_rndis);
 }
 
 static ssize_t rndis_manufacturer_show(struct device *dev,

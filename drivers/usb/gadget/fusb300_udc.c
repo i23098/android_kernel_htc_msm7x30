@@ -394,7 +394,7 @@ static void fusb300_clear_epnstall(struct fusb300 *fusb300, u8 ep)
 
 	if (reg & FUSB300_EPSET0_STL) {
 		printk(KERN_DEBUG "EP%d stall... Clear!!\n", ep);
-		reg &= ~FUSB300_EPSET0_STL;
+		reg |= FUSB300_EPSET0_STL_CLR;
 		iowrite32(reg, fusb300->reg + FUSB300_OFFSET_EPSET0(ep));
 	}
 }
@@ -930,12 +930,15 @@ static void fusb300_wait_idma_finished(struct fusb300_ep *ep)
 
 	fusb300_clear_int(ep->fusb300, FUSB300_OFFSET_IGR0,
 		FUSB300_IGR0_EPn_PRD_INT(ep->epnum));
+	return;
+
 IDMA_RESET:
-	fusb300_clear_int(ep->fusb300, FUSB300_OFFSET_IGER0,
-		FUSB300_IGER0_EEPn_PRD_INT(ep->epnum));
+	reg = ioread32(ep->fusb300->reg + FUSB300_OFFSET_IGER0);
+	reg &= ~FUSB300_IGER0_EEPn_PRD_INT(ep->epnum);
+	iowrite32(reg, ep->fusb300->reg + FUSB300_OFFSET_IGER0);
 }
 
-static void  fusb300_set_idma(struct fusb300_ep *ep,
+static void fusb300_set_idma(struct fusb300_ep *ep,
 			struct fusb300_request *req)
 {
 	int ret;
