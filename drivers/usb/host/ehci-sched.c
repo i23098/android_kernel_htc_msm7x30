@@ -539,7 +539,6 @@ static void qh_link_periodic(struct ehci_hcd *ehci, struct ehci_qh *qh)
 	}
 	qh->qh_state = QH_STATE_LINKED;
 	qh->xacterrs = 0;
-	qh->exception = 0;
 
 	/* update per-qh bandwidth for usbfs */
 	ehci_to_hcd(ehci)->self.bandwidth_allocated += qh->period
@@ -603,9 +602,15 @@ static void qh_unlink_periodic(struct ehci_hcd *ehci, struct ehci_qh *qh)
 
 static void start_unlink_intr(struct ehci_hcd *ehci, struct ehci_qh *qh)
 {
-	/* If the QH isn't linked then there's nothing we can do. */
-	if (qh->qh_state != QH_STATE_LINKED)
+	/* If the QH isn't linked then there's nothing we can do
+	 * unless we were called during a giveback, in which case
+	 * qh_completions() has to deal with it.
+	 */
+	if (qh->qh_state != QH_STATE_LINKED) {
+		if (qh->qh_state == QH_STATE_COMPLETING)
+			qh->needs_rescan = 1;
 		return;
+	}
 
 	qh_unlink_periodic (ehci, qh);
 
@@ -620,13 +625,17 @@ static void start_unlink_intr(struct ehci_hcd *ehci, struct ehci_qh *qh)
 	qh->unlink_cycle = ehci->intr_unlink_cycle;
 
 	/* New entries go at the end of the intr_unlink list */
-	list_add_tail(&qh->unlink_node, &ehci->intr_unlink);
+	if (ehci->intr_unlink)
+		ehci->intr_unlink_last->unlink_next = qh;
+	else
+		ehci->intr_unlink = qh;
+	ehci->intr_unlink_last = qh;
 
 	if (ehci->intr_unlinking)
 		;	/* Avoid recursive calls */
 	else if (ehci->rh_state < EHCI_RH_RUNNING)
 		ehci_handle_intr_unlinks(ehci);
-	else if (ehci->intr_unlink.next == &qh->unlink_node) {
+	else if (ehci->intr_unlink == qh) {
 		ehci_enable_event(ehci, EHCI_HRTIMER_UNLINK_INTR, true);
 		++ehci->intr_unlink_cycle;
 	}
@@ -640,8 +649,7 @@ static void end_unlink_intr(struct ehci_hcd *ehci, struct ehci_qh *qh)
 	qh->qh_state = QH_STATE_IDLE;
 	hw->hw_next = EHCI_LIST_END(ehci);
 
-	if (!list_empty(&qh->qtd_list))
-		qh_completions(ehci, qh);
+	qh_completions(ehci, qh);
 
 	/* reschedule QH iff another request is queued */
 	if (!list_empty(&qh->qtd_list) && ehci->rh_state == EHCI_RH_RUNNING) {
@@ -784,6 +792,7 @@ static int qh_schedule(struct ehci_hcd *ehci, struct ehci_qh *qh)
 	unsigned	frame;		/* 0..(qh->period - 1), or NO_FRAME */
 	struct ehci_qh_hw	*hw = qh->hw;
 
+	qh_refresh(ehci, qh);
 	hw->hw_next = EHCI_LIST_END(ehci);
 	frame = qh->start;
 
@@ -835,6 +844,8 @@ static int qh_schedule(struct ehci_hcd *ehci, struct ehci_qh *qh)
 	} else
 		ehci_dbg (ehci, "reused qh %p schedule\n", qh);
 
+	/* stuff into the periodic schedule */
+	qh_link_periodic(ehci, qh);
 done:
 	return status;
 }
@@ -880,12 +891,6 @@ static int intr_submit (
 	qh = qh_append_tds(ehci, urb, qtd_list, epnum, &urb->ep->hcpriv);
 	BUG_ON (qh == NULL);
 
-	/* stuff into the periodic schedule */
-	if (qh->qh_state == QH_STATE_IDLE) {
-		qh_refresh(ehci, qh);
-		qh_link_periodic(ehci, qh);
-	}
-
 	/* ... update usbfs periodic stats */
 	ehci_to_hcd(ehci)->self.bandwidth_int_reqs++;
 
@@ -906,7 +911,7 @@ static void scan_intr(struct ehci_hcd *ehci)
 
 	list_for_each_entry_safe(qh, ehci->qh_scan_next, &ehci->intr_qh_list,
 			intr_node) {
-
+ rescan:
 		/* clean any finished work for this qh */
 		if (!list_empty(&qh->qtd_list)) {
 			int temp;
@@ -919,9 +924,12 @@ static void scan_intr(struct ehci_hcd *ehci)
 			 * in qh_unlink_periodic().
 			 */
 			temp = qh_completions(ehci, qh);
-			if (unlikely(temp || (list_empty(&qh->qtd_list) &&
-					qh->qh_state == QH_STATE_LINKED)))
+			if (unlikely(qh->needs_rescan ||
+					(list_empty(&qh->qtd_list) &&
+						qh->qh_state == QH_STATE_LINKED)))
 				start_unlink_intr(ehci, qh);
+			else if (temp != 0)
+				goto rescan;
 		}
 	}
 }

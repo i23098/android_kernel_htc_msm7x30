@@ -127,9 +127,9 @@ config USB_OTG_HOST
 	depends on USB_OTG
 	default n
 
-if USB
-
 source "drivers/usb/core/Kconfig"
+
+source "drivers/usb/dwc3/Kconfig"
 
 source "drivers/usb/mon/Kconfig"
 
@@ -139,6 +139,8 @@ source "drivers/usb/host/Kconfig"
 
 source "drivers/usb/musb/Kconfig"
 
+source "drivers/usb/chipidea/Kconfig"
+
 source "drivers/usb/renesas_usbhs/Kconfig"
 
 source "drivers/usb/class/Kconfig"
@@ -147,19 +149,12 @@ source "drivers/usb/storage/Kconfig"
 
 source "drivers/usb/image/Kconfig"
 
-endif
-
-source "drivers/usb/dwc3/Kconfig"
-
-source "drivers/usb/chipidea/Kconfig"
-
 comment "USB port drivers"
-
-if USB
+	depends on USB
 
 config USB_USS720
 	tristate "USS720 parport driver"
-	depends on PARPORT
+	depends on USB && PARPORT
 	select PARPORT_NOT_PC
 	---help---
 	  This driver is for USB parallel port adapters that use the Lucent
@@ -190,11 +185,9 @@ source "drivers/usb/serial/Kconfig"
 
 source "drivers/usb/misc/Kconfig"
 
-source "drivers/usb/atm/Kconfig"
-
-endif # USB
-
 source "drivers/usb/phy/Kconfig"
+
+source "drivers/usb/atm/Kconfig"
 
 source "drivers/usb/gadget/Kconfig"
 

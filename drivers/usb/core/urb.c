@@ -683,12 +683,9 @@ EXPORT_SYMBOL_GPL(usb_kill_urb);
 void usb_poison_urb(struct urb *urb)
 {
 	might_sleep();
-	if (!urb)
+	if (!(urb && urb->dev && urb->ep))
 		return;
 	atomic_inc(&urb->reject);
-
-	if (!urb->dev || !urb->ep)
-		return;
 
 	usb_hcd_unlink_urb(urb, -ENOENT);
 	wait_event(usb_kill_urb_queue, atomic_read(&urb->use_count) == 0);
