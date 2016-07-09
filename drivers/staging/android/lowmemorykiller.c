@@ -115,56 +115,6 @@ int adjust_minadj(short *min_score_adj)
 	return ret;
 }
 
-static int lmk_vmpressure_notifier(struct notifier_block *nb,
-			unsigned long action, void *data)
-{
-	int other_free = 0, other_file = 0;
-	unsigned long pressure = action;
-	int array_size = ARRAY_SIZE(lowmem_adj);
-
-	if (!enable_adaptive_lmk)
-		return 0;
-
-	if (pressure >= 95) {
-		other_file = global_page_state(NR_FILE_PAGES) -
-			global_page_state(NR_SHMEM) -
-			total_swapcache_pages();
-		other_free = global_page_state(NR_FREE_PAGES);
-
-		atomic_set(&shift_adj, 1);
-	} else if (pressure >= 90) {
-		if (lowmem_adj_size < array_size)
-			array_size = lowmem_adj_size;
-		if (lowmem_minfree_size < array_size)
-			array_size = lowmem_minfree_size;
-
-		other_file = global_page_state(NR_FILE_PAGES) -
-			global_page_state(NR_SHMEM) -
-			total_swapcache_pages();
-
-		other_free = global_page_state(NR_FREE_PAGES);
-
-		if ((other_free < lowmem_minfree[array_size - 1]) &&
-			(other_file < vmpressure_file_min)) {
-				atomic_set(&shift_adj, 1);
-		}
-	} else if (atomic_read(&shift_adj)) {
-		/*
-		 * shift_adj would have been set by a previous invocation
-		 * of notifier, which is not followed by a lowmem_shrink yet.
-		 * Since vmpressure has improved, reset shift_adj to avoid
-		 * false adaptive LMK trigger.
-		 */
-		atomic_set(&shift_adj, 0);
-	}
-
-	return 0;
-}
-
-static struct notifier_block lmk_vmpr_nb = {
-	.notifier_call = lmk_vmpressure_notifier,
-};
-
 static int test_task_flag(struct task_struct *p, int flag)
 {
 	struct task_struct *t;
@@ -324,7 +274,6 @@ static struct shrinker lowmem_shrinker = {
 static int __init lowmem_init(void)
 {
 	register_shrinker(&lowmem_shrinker);
-	vmpressure_notifier_register(&lmk_vmpr_nb);
 	return 0;
 }
 
