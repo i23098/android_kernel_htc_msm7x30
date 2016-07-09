@@ -817,6 +817,28 @@ static int gser_bind(struct usb_configuration *c, struct usb_function *f)
 		gser_string_defs[0].id = status;
 	}
 
+	switch (p->func_type) {
+	case USB_FSER_FUNC_MODEM:
+		gser->port.func.name = "modem";
+		gser->port.func.strings = modem_strings;
+		gser_interface_desc.iInterface = modem_string_defs[0].id;
+		break;
+	case USB_FSER_FUNC_MODEM_MDM:
+		gser->port.func.name = "modem_mdm";
+		gser->port.func.strings = modem_strings;
+		gser_interface_desc.iInterface = modem_string_defs[1].id;
+		break;
+	case USB_FSER_FUNC_SERIAL:
+	case USB_FSER_FUNC_AUTOBOT:
+		gser->port.func.name = "serial";
+		gser->port.func.strings = gser_strings;
+		gser_interface_desc.iInterface = gser_string_defs[0].id;
+		break;
+	case USB_FSER_FUNC_NONE:
+	default	:
+		break;
+	}
+
 	/* allocate instance-specific interface IDs */
 	status = usb_interface_id(c, f);
 	if (status < 0)
@@ -908,99 +930,58 @@ fail:
 	return status;
 }
 
-#ifdef USB_FSERIAL_INCLUDED
-
-static void
-gser_old_unbind(struct usb_configuration *c, struct usb_function *f)
+static inline struct f_serial_opts *to_f_serial_opts(struct config_item *item)
 {
-#ifdef CONFIG_MODEM_SUPPORT
-	struct f_gser *gser = func_to_gser(f);
-#endif
-	usb_free_all_descriptors(f);
-#ifdef CONFIG_MODEM_SUPPORT
-	gs_free_req(gser->notify, gser->notify_req);
-#endif
-	kfree(func_to_gser(f));
+	return container_of(to_config_group(item), struct f_serial_opts,
+			    func_inst.group);
 }
 
-/**
- * gser_bind_config - add a generic serial function to a configuration
- * @c: the configuration to support the serial instance
- * @port_num: /dev/ttyGS* port this interface will use
- * Context: single threaded during gadget setup
- *
- * Returns zero on success, else negative errno.
- */
-int __init gser_bind_config(struct usb_configuration *c, u8 port_num)
+CONFIGFS_ATTR_STRUCT(f_serial_opts);
+static ssize_t f_serial_attr_show(struct config_item *item,
+				  struct configfs_attribute *attr,
+				  char *page)
 {
-	struct f_gser	*gser;
-	int		status;
-	struct port_info *p = &gserial_ports[port_num];
-	/* allocate and initialize one new instance */
-	gser = kzalloc(sizeof *gser, GFP_KERNEL);
-	if (!gser)
-		return -ENOMEM;
+	struct f_serial_opts *opts = to_f_serial_opts(item);
+	struct f_serial_opts_attribute *f_serial_opts_attr =
+		container_of(attr, struct f_serial_opts_attribute, attr);
+	ssize_t ret = 0;
 
-#ifdef CONFIG_MODEM_SUPPORT
-	spin_lock_init(&gser->lock);
-#endif
-	gser->port_num = port_num;
+	if (f_serial_opts_attr->show)
+		ret = f_serial_opts_attr->show(opts, page);
 
-	gser->port.func.name = "gser";
-	gser->port.func.strings = gser_strings;
-	gser->port.func.bind = gser_bind;
-	gser->port.func.unbind = gser_old_unbind;
-	gser->port.func.set_alt = gser_set_alt;
-	gser->port.func.disable = gser_disable;
-	gser->transport		= gserial_ports[port_num].transport;
-#ifdef CONFIG_MODEM_SUPPORT
-	/* We support only three ports for now */
-	if (port_num == 0)
-		gser->port.func.name = "modem";
-	else if (port_num == 1)
-		gser->port.func.name = "nmea";
-	else
-		gser->port.func.name = "modem2";
-	gser->port.func.setup = gser_setup;
-	gser->port.connect = gser_connect;
-	gser->port.get_dtr = gser_get_dtr;
-	gser->port.get_rts = gser_get_rts;
-	gser->port.send_carrier_detect = gser_send_carrier_detect;
-	gser->port.send_ring_indicator = gser_send_ring_indicator;
-	gser->port.send_modem_ctrl_bits = gser_send_modem_ctrl_bits;
-	gser->port.disconnect = gser_disconnect;
-	gser->port.send_break = gser_send_break;
-#endif
-
-	switch (p->func_type) {
-	case USB_FSER_FUNC_MODEM:
-		gser->port.func.name = "modem";
-		gser->port.func.strings = modem_strings;
-		gser_interface_desc.iInterface = modem_string_defs[0].id;
-		break;
-	case USB_FSER_FUNC_MODEM_MDM:
-		gser->port.func.name = "modem_mdm";
-		gser->port.func.strings = modem_strings;
-		gser_interface_desc.iInterface = modem_string_defs[1].id;
-		break;
-	case USB_FSER_FUNC_SERIAL:
-	case USB_FSER_FUNC_AUTOBOT:
-		gser->port.func.name = "serial";
-		gser->port.func.strings = gser_strings;
-		gser_interface_desc.iInterface = gser_string_defs[0].id;
-		break;
-	case USB_FSER_FUNC_NONE:
-	default	:
-		break;
-	}
-
-	status = usb_add_function(c, &gser->port.func);
-	if (status)
-		kfree(gser);
-	return status;
+	return ret;
 }
 
-#else
+static void serial_attr_release(struct config_item *item)
+{
+	struct f_serial_opts *opts = to_f_serial_opts(item);
+
+	usb_put_function_instance(&opts->func_inst);
+}
+
+static struct configfs_item_operations serial_item_ops = {
+	.release	= serial_attr_release,
+	.show_attribute = f_serial_attr_show,
+};
+
+static ssize_t f_serial_port_num_show(struct f_serial_opts *opts, char *page)
+{
+	return sprintf(page, "%u\n", opts->port_num);
+}
+
+static struct f_serial_opts_attribute f_serial_port_num =
+	__CONFIGFS_ATTR_RO(port_num, f_serial_port_num_show);
+
+static struct configfs_attribute *acm_attrs[] = {
+	&f_serial_port_num.attr,
+	NULL,
+};
+
+static struct config_item_type serial_func_type = {
+	.ct_item_ops	= &serial_item_ops,
+	.ct_attrs	= acm_attrs,
+	.ct_owner	= THIS_MODULE,
+};
 
 static void gser_free_inst(struct usb_function_instance *f)
 {
@@ -1026,6 +1007,8 @@ static struct usb_function_instance *gser_alloc_inst(void)
 		kfree(opts);
 		return ERR_PTR(ret);
 	}
+	config_group_init_type_name(&opts->func_inst.group, "",
+				    &serial_func_type);
 
 	return &opts->func_inst;
 }
@@ -1040,7 +1023,13 @@ static void gser_free(struct usb_function *f)
 
 static void gser_unbind(struct usb_configuration *c, struct usb_function *f)
 {
+#ifdef CONFIG_MODEM_SUPPORT
+	struct f_gser *gser = func_to_gser(f);
+#endif
 	usb_free_all_descriptors(f);
+#ifdef CONFIG_MODEM_SUPPORT
+	gs_free_req(gser->notify, gser->notify_req);
+#endif
 }
 
 struct usb_function *gser_alloc(struct usb_function_instance *fi)
@@ -1055,6 +1044,10 @@ struct usb_function *gser_alloc(struct usb_function_instance *fi)
 
 	opts = container_of(fi, struct f_serial_opts, func_inst);
 
+#ifdef CONFIG_MODEM_SUPPORT
+	spin_lock_init(&gser->lock);
+#endif
+
 	gser->port_num = opts->port_num;
 
 	gser->port.func.name = "gser";
@@ -1064,6 +1057,25 @@ struct usb_function *gser_alloc(struct usb_function_instance *fi)
 	gser->port.func.set_alt = gser_set_alt;
 	gser->port.func.disable = gser_disable;
 	gser->port.func.free_func = gser_free;
+	gser->transport		= gserial_ports[opts->port_num].transport;
+#ifdef CONFIG_MODEM_SUPPORT
+	/* We support only three ports for now */
+	if (opts->port_num == 0)
+		gser->port.func.name = "modem";
+	else if (opts->port_num == 1)
+		gser->port.func.name = "nmea";
+	else
+		gser->port.func.name = "modem2";
+	gser->port.func.setup = gser_setup;
+	gser->port.connect = gser_connect;
+	gser->port.get_dtr = gser_get_dtr;
+	gser->port.get_rts = gser_get_rts;
+	gser->port.send_carrier_detect = gser_send_carrier_detect;
+	gser->port.send_ring_indicator = gser_send_ring_indicator;
+	gser->port.send_modem_ctrl_bits = gser_send_modem_ctrl_bits;
+	gser->port.disconnect = gser_disconnect;
+	gser->port.send_break = gser_send_break;
+#endif
 
 	return &gser->port.func;
 }
@@ -1072,8 +1084,6 @@ DECLARE_USB_FUNCTION_INIT(gser, gser_alloc_inst, gser_alloc);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Al Borchers");
 MODULE_AUTHOR("David Brownell");
-
-#endif
 
 /**
  * gserial_init_port - bind a gserial_port to its transport

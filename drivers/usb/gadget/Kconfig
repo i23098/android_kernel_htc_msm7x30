@@ -519,6 +519,9 @@ config USB_U_SERIAL
 config USB_F_SERIAL
 	tristate
 
+config USB_F_OBEX
+	tristate
+
 choice
 	tristate "USB Gadget Drivers"
 	default USB_ETH
@@ -774,6 +777,7 @@ config USB_G_SERIAL
 	select USB_U_SERIAL
 	select USB_F_ACM
 	select USB_F_SERIAL
+	select USB_F_OBEX
 	select USB_LIBCOMPOSITE
 	help
 	  The Serial Gadget talks to the Linux-USB generic serial driver.
@@ -825,6 +829,7 @@ config USB_G_PRINTER
 
 config USB_G_ANDROID
 	boolean "Android Gadget"
+	select CONFIGFS_FS
 	depends on SWITCH
 	help
 	  The Android gadget driver supports multiple USB functions.
