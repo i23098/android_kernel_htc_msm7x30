@@ -63,6 +63,7 @@
 #include <mach/board.h>
 #include <mach/board_htc.h>
 #include <asm/system_misc.h>
+#include <linux/cpu.h>
 
 
 /******************************************************************************
@@ -204,7 +205,7 @@ static struct kobj_attribute *msm_pm_mode_kobj_attrs[MSM_PM_SLEEP_MODE_NR];
 #define BOOT_LOCK_TIMEOUT_SHORT 	(10 * HZ)
 static void do_expire_boot_lock(struct work_struct *work)
 {
-	enable_hlt();
+	cpu_idle_poll_ctrl(false);
 	pr_info("Release 'boot-time' no_halt_lock\n");
 }
 static DECLARE_DELAYED_WORK(work_expire_boot_lock, do_expire_boot_lock);
@@ -1709,7 +1710,7 @@ static void __init boot_lock_nohalt(void)
 		nohalt_timeout = BOOT_LOCK_TIMEOUT_SHORT;
 		break;
 	}
-	disable_hlt();
+	cpu_idle_poll_ctrl(true);
 	schedule_delayed_work(&work_expire_boot_lock, nohalt_timeout);
 	pr_info("Acquire 'boot-time' no_halt_lock %ds\n", nohalt_timeout / HZ);
 }
