@@ -487,10 +487,6 @@ struct bfq_data {
 	struct bfq_group *root_group;
 	struct rb_root rq_pos_tree;
 
-#ifdef CONFIG_CGROUP_BFQIO
-	int active_numerous_groups;
-#endif
-
 	struct rb_root queue_weights_tree;
 	struct rb_root group_weights_tree;
 
@@ -640,86 +636,12 @@ enum bfqq_expiration {
 	BFQ_BFQQ_NO_MORE_REQUESTS,	/* the queue has no more requests */
 };
 
-#ifdef CONFIG_CGROUP_BFQIO
-/**
- * struct bfq_group - per (device, cgroup) data structure.
- * @entity: schedulable entity to insert into the parent group sched_data.
- * @sched_data: own sched_data, to contain child entities (they may be
- *              both bfq_queues and bfq_groups).
- * @group_node: node to be inserted into the bfqio_cgroup->group_data
- *              list of the containing cgroup's bfqio_cgroup.
- * @bfqd_node: node to be inserted into the @bfqd->group_list list
- *             of the groups active on the same device; used for cleanup.
- * @bfqd: the bfq_data for the device this group acts upon.
- * @async_bfqq: array of async queues for all the tasks belonging to
- *              the group, one queue per ioprio value per ioprio_class,
- *              except for the idle class that has only one queue.
- * @async_idle_bfqq: async queue for the idle class (ioprio is ignored).
- * @my_entity: pointer to @entity, %NULL for the toplevel group; used
- *             to avoid too many special cases during group creation/
- *             migration.
- * @active_entities: number of active entities belonging to the group;
- *                   unused for the root group. Used to know whether there
- *                   are groups with more than one active @bfq_entity
- *                   (see the comments to the function
- *                   bfq_bfqq_must_not_expire()).
- *
- * Each (device, cgroup) pair has its own bfq_group, i.e., for each cgroup
- * there is a set of bfq_groups, each one collecting the lower-level
- * entities belonging to the group that are acting on the same device.
- *
- * Locking works as follows:
- *    o @group_node is protected by the bfqio_cgroup lock, and is accessed
- *      via RCU from its readers.
- *    o @bfqd is protected by the queue lock, RCU is used to access it
- *      from the readers.
- *    o All the other fields are protected by the @bfqd queue lock.
- */
-struct bfq_group {
-	struct bfq_entity entity;
-	struct bfq_sched_data sched_data;
-
-	struct hlist_node group_node;
-	struct hlist_node bfqd_node;
-
-	void *bfqd;
-
-	struct bfq_queue *async_bfqq[2][IOPRIO_BE_NR];
-	struct bfq_queue *async_idle_bfqq;
-
-	struct bfq_entity *my_entity;
-
-	int active_entities;
-};
-
-/**
- * struct bfqio_cgroup - bfq cgroup data structure.
- * @css: subsystem state for bfq in the containing cgroup.
- * @weight: cgroup weight.
- * @ioprio: cgroup ioprio.
- * @ioprio_class: cgroup ioprio_class.
- * @lock: spinlock that protects @ioprio, @ioprio_class and @group_data.
- * @group_data: list containing the bfq_group belonging to this cgroup.
- *
- * @group_data is accessed using RCU, with @lock protecting the updates,
- * @ioprio and @ioprio_class are protected by @lock.
- */
-struct bfqio_cgroup {
-	struct cgroup_subsys_state css;
-
-	unsigned short weight, ioprio, ioprio_class;
-
-	spinlock_t lock;
-	struct hlist_head group_data;
-};
-#else
 struct bfq_group {
 	struct bfq_sched_data sched_data;
 
 	struct bfq_queue *async_bfqq[2][IOPRIO_BE_NR];
 	struct bfq_queue *async_idle_bfqq;
 };
-#endif
 
 static inline struct bfq_service_tree *
 bfq_entity_service_tree(struct bfq_entity *entity)

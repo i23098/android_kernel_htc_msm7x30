@@ -10,68 +10,6 @@
  * Copyright (C) 2010 Paolo Valente <paolo.valente@unimore.it>
  */
 
-#ifdef CONFIG_CGROUP_BFQIO
-#define for_each_entity(entity)	\
-	for (; entity != NULL; entity = entity->parent)
-
-#define for_each_entity_safe(entity, parent) \
-	for (; entity && ({ parent = entity->parent; 1; }); entity = parent)
-
-static struct bfq_entity *bfq_lookup_next_entity(struct bfq_sched_data *sd,
-						 int extract,
-						 struct bfq_data *bfqd);
-
-static inline void bfq_update_budget(struct bfq_entity *next_in_service)
-{
-	struct bfq_entity *bfqg_entity;
-	struct bfq_group *bfqg;
-	struct bfq_sched_data *group_sd;
-
-	BUG_ON(next_in_service == NULL);
-
-	group_sd = next_in_service->sched_data;
-
-	bfqg = container_of(group_sd, struct bfq_group, sched_data);
-	/*
-	 * bfq_group's my_entity field is not NULL only if the group
-	 * is not the root group. We must not touch the root entity
-	 * as it must never become an in-service entity.
-	 */
-	bfqg_entity = bfqg->my_entity;
-	if (bfqg_entity != NULL)
-		bfqg_entity->budget = next_in_service->budget;
-}
-
-static int bfq_update_next_in_service(struct bfq_sched_data *sd)
-{
-	struct bfq_entity *next_in_service;
-
-	if (sd->in_service_entity != NULL)
-		/* will update/requeue at the end of service */
-		return 0;
-
-	/*
-	 * NOTE: this can be improved in many ways, such as returning
-	 * 1 (and thus propagating upwards the update) only when the
-	 * budget changes, or caching the bfqq that will be scheduled
-	 * next from this subtree.  By now we worry more about
-	 * correctness than about performance...
-	 */
-	next_in_service = bfq_lookup_next_entity(sd, 0, NULL);
-	sd->next_in_service = next_in_service;
-
-	if (next_in_service != NULL)
-		bfq_update_budget(next_in_service);
-
-	return 1;
-}
-
-static inline void bfq_check_next_in_service(struct bfq_sched_data *sd,
-					     struct bfq_entity *entity)
-{
-	BUG_ON(sd->next_in_service != entity);
-}
-#else
 #define for_each_entity(entity)	\
 	for (; entity != NULL; entity = NULL)
 
@@ -91,7 +29,6 @@ static inline void bfq_check_next_in_service(struct bfq_sched_data *sd,
 static inline void bfq_update_budget(struct bfq_entity *next_in_service)
 {
 }
-#endif
 
 /*
  * Shift for timestamp calculations.  This actually limits the maximum
@@ -355,11 +292,6 @@ static void bfq_active_insert(struct bfq_service_tree *st,
 {
 	struct bfq_queue *bfqq = bfq_entity_to_bfqq(entity);
 	struct rb_node *node = &entity->rb_node;
-#ifdef CONFIG_CGROUP_BFQIO
-	struct bfq_sched_data *sd = NULL;
-	struct bfq_group *bfqg = NULL;
-	struct bfq_data *bfqd = NULL;
-#endif
 
 	bfq_insert(&st->active, entity);
 
@@ -370,27 +302,8 @@ static void bfq_active_insert(struct bfq_service_tree *st,
 
 	bfq_update_active_tree(node);
 
-#ifdef CONFIG_CGROUP_BFQIO
-	sd = entity->sched_data;
-	bfqg = container_of(sd, struct bfq_group, sched_data);
-	BUG_ON(!bfqg);
-	bfqd = (struct bfq_data *)bfqg->bfqd;
-#endif
 	if (bfqq != NULL)
 		list_add(&bfqq->bfqq_list, &bfqq->bfqd->active_list);
-#ifdef CONFIG_CGROUP_BFQIO
-	else { /* bfq_group */
-		BUG_ON(!bfqd);
-		bfq_weights_tree_add(bfqd, entity, &bfqd->group_weights_tree);
-	}
-	if (bfqg != bfqd->root_group) {
-		BUG_ON(!bfqg);
-		BUG_ON(!bfqd);
-		bfqg->active_entities++;
-		if (bfqg->active_entities == 2)
-			bfqd->active_numerous_groups++;
-	}
-#endif
 }
 
 /**
@@ -468,11 +381,6 @@ static void bfq_active_extract(struct bfq_service_tree *st,
 {
 	struct bfq_queue *bfqq = bfq_entity_to_bfqq(entity);
 	struct rb_node *node;
-#ifdef CONFIG_CGROUP_BFQIO
-	struct bfq_sched_data *sd = NULL;
-	struct bfq_group *bfqg = NULL;
-	struct bfq_data *bfqd = NULL;
-#endif
 
 	node = bfq_find_deepest(&entity->rb_node);
 	bfq_extract(&st->active, entity);
@@ -480,31 +388,8 @@ static void bfq_active_extract(struct bfq_service_tree *st,
 	if (node != NULL)
 		bfq_update_active_tree(node);
 
-#ifdef CONFIG_CGROUP_BFQIO
-	sd = entity->sched_data;
-	bfqg = container_of(sd, struct bfq_group, sched_data);
-	BUG_ON(!bfqg);
-	bfqd = (struct bfq_data *)bfqg->bfqd;
-#endif
 	if (bfqq != NULL)
 		list_del(&bfqq->bfqq_list);
-#ifdef CONFIG_CGROUP_BFQIO
-	else { /* bfq_group */
-		BUG_ON(!bfqd);
-		bfq_weights_tree_remove(bfqd, entity,
-					&bfqd->group_weights_tree);
-	}
-	if (bfqg != bfqd->root_group) {
-		BUG_ON(!bfqg);
-		BUG_ON(!bfqd);
-		BUG_ON(!bfqg->active_entities);
-		bfqg->active_entities--;
-		if (bfqg->active_entities == 1) {
-			BUG_ON(!bfqd->active_numerous_groups);
-			bfqd->active_numerous_groups--;
-		}
-	}
-#endif
 }
 
 /**
@@ -605,22 +490,9 @@ __bfq_entity_update_weight_prio(struct bfq_service_tree *old_st,
 		unsigned short prev_weight, new_weight;
 		struct bfq_data *bfqd = NULL;
 		struct rb_root *root;
-#ifdef CONFIG_CGROUP_BFQIO
-		struct bfq_sched_data *sd;
-		struct bfq_group *bfqg;
-#endif
 
 		if (bfqq != NULL)
 			bfqd = bfqq->bfqd;
-#ifdef CONFIG_CGROUP_BFQIO
-		else {
-			sd = entity->my_sched_data;
-			bfqg = container_of(sd, struct bfq_group, sched_data);
-			BUG_ON(!bfqg);
-			bfqd = (struct bfq_data *)bfqg->bfqd;
-			BUG_ON(!bfqd);
-		}
-#endif
 
 		BUG_ON(old_st->wsum < entity->weight);
 		old_st->wsum -= entity->weight;
