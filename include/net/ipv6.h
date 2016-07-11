@@ -217,7 +217,7 @@ struct ipv6_txoptions {
 };
 
 struct ip6_flowlabel {
-	struct ip6_flowlabel	*next;
+	struct ip6_flowlabel __rcu *next;
 	__be32			label;
 	atomic_t		users;
 	struct in6_addr		dst;
@@ -238,9 +238,9 @@ struct ip6_flowlabel {
 #define IPV6_FLOWLABEL_MASK	cpu_to_be32(0x000FFFFF)
 
 struct ipv6_fl_socklist {
-	struct ipv6_fl_socklist	*next;
-	struct ip6_flowlabel	*fl;
-	struct rcu_head		rcu;
+	struct ipv6_fl_socklist	__rcu	*next;
+	struct ip6_flowlabel		*fl;
+	struct rcu_head			rcu;
 };
 
 extern struct ip6_flowlabel	*fl6_sock_lookup(struct sock *sk, __be32 label);
@@ -481,6 +481,7 @@ struct ip6_create_arg {
 	u32 user;
 	const struct in6_addr *src;
 	const struct in6_addr *dst;
+	u8 ecn;
 };
 
 void ip6_frag_init(struct inet_frag_queue *q, void *a);
@@ -500,6 +501,7 @@ struct frag_queue {
 	int			iif;
 	unsigned int		csum;
 	__u16			nhoffset;
+	u8			ecn;
 };
 
 void ip6_expire_frag_queue(struct net *net, struct frag_queue *fq,
