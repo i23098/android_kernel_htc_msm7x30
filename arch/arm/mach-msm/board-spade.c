@@ -2809,6 +2809,21 @@ static struct platform_device *devices[] __initdata = {
         &pm8058_leds,
 };
 
+static const struct file_operations emmc_partition_fops = {
+	.open		= emmc_partition_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= seq_release,
+};
+
+static const struct file_operations dying_processors_fops = {
+	.open		= dying_processors_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= seq_release,
+};
+
+
 static void __init spade_init(void)
 {
 	int rc = 0;
@@ -2836,10 +2851,10 @@ static void __init spade_init(void)
 
 #ifdef CONFIG_SERIAL_MSM_HS
 #ifdef CONFIG_SERIAL_MSM_HS_PURE_ANDROID
-        msm_uart_dm1_pdata.rx_wakeup_irq = -1;
+	msm_uart_dm1_pdata.rx_wakeup_irq = -1;
 #else
-        msm_uart_dm1_pdata.rx_wakeup_irq = gpio_to_irq(SPADE_GPIO_BT_HOST_WAKE);
-        msm_device_uart_dm1.name = "msm_serial_hs";
+	msm_uart_dm1_pdata.rx_wakeup_irq = gpio_to_irq(SPADE_GPIO_BT_HOST_WAKE);
+	msm_device_uart_dm1.name = "msm_serial_hs";
 #endif
 	msm_device_uart_dm1.dev.platform_data = &msm_uart_dm1_pdata;
 #endif
@@ -2917,11 +2932,11 @@ static void __init spade_init(void)
 	rmt_storage_add_ramfs();
 #endif
 
-	entry = create_proc_read_entry("emmc", 0, NULL, emmc_partition_read_proc, NULL);
+	entry = proc_create_data("emmc", 0, NULL, &emmc_partition_fops, NULL);
 	if (!entry)
 		printk(KERN_ERR"Create /proc/emmc FAILED!\n");
 
-	entry = create_proc_read_entry("dying_processes", 0, NULL, dying_processors_read_proc, NULL);
+	entry = proc_create_data("dying_processes", 0, NULL, &dying_processors_fops, NULL);
 	if (!entry)
 		printk(KERN_ERR"Create /proc/dying_processes FAILED!\n");
 

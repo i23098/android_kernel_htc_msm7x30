@@ -652,16 +652,14 @@ void msm_snddev_tx_route_deconfig(void);
 
 extern unsigned int msm_shared_ram_phys; /* defined in arch/arm/mach-msm/io.c */
 
-extern int emmc_partition_read_proc(char *page, char **start, off_t off,
-				int count, int *eof, void *data);
+int emmc_partition_open(struct inode *inode, struct file *file);
 
 #ifdef CONFIG_ARCH_MSM8X60
 extern int processor_name_read_proc(char *page, char **start, off_t off,
 			   int count, int *eof, void *data);
 #endif
 
-extern int dying_processors_read_proc(char *page, char **start, off_t off,
-			   int count, int *eof, void *data);
+extern int dying_processors_open(struct inode *inode, struct file *file);
 
 #if 0
 void __init msm_add_devices(void);

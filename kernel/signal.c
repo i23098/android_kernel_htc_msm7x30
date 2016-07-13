@@ -36,6 +36,9 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/signal.h>
 
+#include <linux/seq_file.h>
+#include <linux/proc_fs.h>
+
 #include <asm/param.h>
 #include <asm/uaccess.h>
 #include <asm/unistd.h>
@@ -1150,17 +1153,20 @@ ret:
 	return ret;
 }
 
-int dying_processors_read_proc(char *page, char **start, off_t off,
-			   int count, int *eof, void *data)
+static int dying_processors_show(struct seq_file *m, void *data)
 {
-	char *p = page;
 	unsigned long jiffy = jiffies;
 	int i;
 
 	for (i = 0; i < MAX_DYING_PROC_COUNT; i++)
-		p += sprintf(p, "%ld:%ld\n", (long int)dying_pid_buf[i].pid, (dying_pid_buf[i].pid == 0? 0: (jiffy - dying_pid_buf[i].jiffy)));
+		seq_printf(m, "%ld:%ld\n", (long int)dying_pid_buf[i].pid, (dying_pid_buf[i].pid == 0? 0: (jiffy - dying_pid_buf[i].jiffy)));
 
-	return p - page;
+	return 0;
+}
+
+int dying_processors_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, dying_processors_show, PDE_DATA(inode));
 }
 
 static int send_signal(int sig, struct siginfo *info, struct task_struct *t,

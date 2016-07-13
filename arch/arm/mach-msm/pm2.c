@@ -64,6 +64,7 @@
 #include <mach/board_htc.h>
 #include <asm/system_misc.h>
 #include <linux/cpu.h>
+#include <linux/seq_file.h>
 
 
 /******************************************************************************
@@ -790,91 +791,53 @@ static void msm_pm_add_stat(enum msm_pm_time_stats_id id, int64_t t)
 }
 
 /*
- * Helper function of snprintf where buf is auto-incremented, size is auto-
- * decremented, and there is no return value.
- *
- * NOTE: buf and size must be l-values (e.g. variables)
- */
-#define SNPRINTF(buf, size, format, ...) \
-	do { \
-		if (size > 0) { \
-			int ret; \
-			ret = snprintf(buf, size, format, ## __VA_ARGS__); \
-			if (ret > size) { \
-				buf += size; \
-				size = 0; \
-			} else { \
-				buf += ret; \
-				size -= ret; \
-			} \
-		} \
-	} while (0)
-
-/*
  * Write out the power management statistics.
  */
-static int msm_pm_read_proc
-	(char *page, char **start, off_t off, int count, int *eof, void *data)
+static int msm_pm_stats_show(struct seq_file *m, void *v)
 {
-	int i;
-	char *p = page;
+	int i, off;
 
-	if (count < 1024) {
-		*start = (char *) 0;
-		*eof = 0;
-		return 0;
-	}
+	int64_t bucket_time;
+	int64_t s;
+	uint32_t ns;
 
-	if (!off) {
-		SNPRINTF(p, count, "Last power collapse voted ");
-		if ((msm_pm_sleep_limit & SLEEP_LIMIT_MASK) ==
-			SLEEP_LIMIT_NONE)
-			SNPRINTF(p, count, "for TCXO shutdown\n\n");
-		else
-			SNPRINTF(p, count, "against TCXO shutdown\n\n");
+	seq_printf(m, "Last power collapse voted ");
+	if ((msm_pm_sleep_limit & SLEEP_LIMIT_MASK) ==
+		SLEEP_LIMIT_NONE)
+		seq_printf(m, "for TCXO shutdown\n\n");
+	else
+		seq_printf(m, "against TCXO shutdown\n\n");
 
-		*start = (char *) 1;
-		*eof = 0;
-	} else if (--off < ARRAY_SIZE(msm_pm_stats)) {
-		int64_t bucket_time;
-		int64_t s;
-		uint32_t ns;
-
+	for (off = 0; off < MSM_PM_STAT_COUNT; off++) {
 		s = msm_pm_stats[off].total_time;
 		ns = do_div(s, NSEC_PER_SEC);
-		SNPRINTF(p, count,
-			"%s:\n"
+		seq_printf(m, "%s:\n"
 			"  count: %7d\n"
 			"  total_time: %lld.%09u\n",
 			msm_pm_stats[off].name,
 			msm_pm_stats[off].count,
 			s, ns);
-
+	
 		bucket_time = msm_pm_stats[off].first_bucket_time;
 		for (i = 0; i < CONFIG_MSM_IDLE_STATS_BUCKET_COUNT - 1; i++) {
 			s = bucket_time;
 			ns = do_div(s, NSEC_PER_SEC);
-			SNPRINTF(p, count,
-				"   <%6lld.%09u: %7d (%lld-%lld)\n",
+			seq_printf(m, "   <%6lld.%09u: %7d (%lld-%lld)\n",
 				s, ns, msm_pm_stats[off].bucket[i],
 				msm_pm_stats[off].min_time[i],
 				msm_pm_stats[off].max_time[i]);
-
+	
 			bucket_time <<= CONFIG_MSM_IDLE_STATS_BUCKET_SHIFT;
 		}
-
-		SNPRINTF(p, count, "  >=%6lld.%09u: %7d (%lld-%lld)\n",
+	
+		seq_printf(m, "  >=%6lld.%09u: %7d (%lld-%lld)\n",
 			s, ns, msm_pm_stats[off].bucket[i],
 			msm_pm_stats[off].min_time[i],
 			msm_pm_stats[off].max_time[i]);
-
-		*start = (char *) 1;
-		*eof = (off + 1 >= ARRAY_SIZE(msm_pm_stats));
 	}
 
-	return p - page;
+	return 0;
 }
-#undef SNPRINTF
 
 #define MSM_PM_STATS_RESET "reset"
 
@@ -882,7 +845,7 @@ static int msm_pm_read_proc
  * Reset the power management statistics values.
  */
 static int msm_pm_write_proc(struct file *file, const char __user *buffer,
-	unsigned long count, void *data)
+	size_t count, loff_t *off)
 {
 	char buf[sizeof(MSM_PM_STATS_RESET)];
 	int ret;
@@ -925,6 +888,20 @@ write_proc_failed:
 	return ret;
 }
 #undef MSM_PM_STATS_RESET
+
+static int msm_pm_stats_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, msm_pm_stats_show, NULL);
+}
+
+static const struct file_operations msm_pm_stats_fops = {
+	.open		= msm_pm_stats_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+	.write 		= msm_pm_write_proc,
+};   
+
 #endif /* CONFIG_MSM_IDLE_STATS */
 
 
@@ -1800,17 +1777,12 @@ static int __init msm_pm_init(void)
 
 	msm_pm_mode_sysfs_add();
 #ifdef CONFIG_MSM_IDLE_STATS
-	d_entry = create_proc_entry("msm_pm_stats",
-			S_IRUGO | S_IWUSR | S_IWGRP, NULL);
-	if (d_entry) {
-		d_entry->read_proc = msm_pm_read_proc;
-		d_entry->write_proc = msm_pm_write_proc;
-		d_entry->data = NULL;
-	}
+	d_entry = proc_create_data("msm_pm_stats", S_IRUGO | S_IWUSR | S_IWGRP,
+			NULL, &msm_pm_stats_fops, NULL);
 #endif
 
 	boot_lock_nohalt();
 	return 0;
-}
+} 
 
 late_initcall_sync(msm_pm_init);

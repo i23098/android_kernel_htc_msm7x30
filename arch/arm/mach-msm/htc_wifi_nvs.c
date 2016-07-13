@@ -31,8 +31,6 @@
 #define NVS_DATA_OFFSET	0x40
 
 static unsigned char wifi_nvs_ram[NVS_MAX_SIZE];
-static struct proc_dir_entry *wifi_calibration;
-static struct proc_dir_entry *wifi_data;
 
 unsigned char *get_wifi_nvs_ram( void )
 {
@@ -90,48 +88,50 @@ static unsigned wifi_get_nvs_size(void)
 	return len;
 }
 
-int wifi_calibration_size_set(void)
+static int wifi_calibration_read_proc(struct file *file, char __user *buf,
+			size_t len, loff_t *offset)
 {
-	if (wifi_calibration != NULL)
-		wifi_calibration->size = wifi_get_nvs_size();
-	return 0;
+	unsigned char *ptr = get_wifi_nvs_ram();
+	return simple_read_from_buffer(buf, len, offset,
+				ptr + NVS_DATA_OFFSET, wifi_get_nvs_size());
 }
 
-static int wifi_calibration_read_proc(char *page, char **start, off_t off,
-					int count, int *eof, void *data)
+static int wifi_data_read_proc(struct file *file, char __user *buf,
+			size_t len, loff_t *offset)
 {
-	unsigned char *ptr;
-	unsigned len;
-
-	ptr = get_wifi_nvs_ram();
-	len = min(wifi_get_nvs_size(), (unsigned)count);
-	memcpy(page, ptr + NVS_DATA_OFFSET, len);
-	return len;
+	unsigned char *ptr = get_wifi_nvs_ram();
+	return simple_read_from_buffer(buf, len, offset,
+				ptr, NVS_DATA_OFFSET);
 }
 
-static int wifi_data_read_proc(char *page, char **start, off_t off,
-					int count, int *eof, void *data)
-{
-	unsigned char *ptr;
+static struct file_operations wifi_calibration_fops = {
+	.read = wifi_calibration_read_proc,
+	.llseek = default_llseek,
+};
 
-	ptr = get_wifi_nvs_ram();
-	memcpy(page, ptr, NVS_DATA_OFFSET);
-	return NVS_DATA_OFFSET;
-}
+static struct file_operations wifi_data_fops = {
+	.read = wifi_data_read_proc,
+	.llseek = default_llseek,
+};
 
 static int __init wifi_nvs_init(void)
 {
-	wifi_calibration = create_proc_entry("calibration", 0444, NULL);
-	if (wifi_calibration != NULL) {
-		wifi_calibration->size = wifi_get_nvs_size();
-		wifi_calibration->read_proc = wifi_calibration_read_proc;
-		wifi_calibration->write_proc = NULL;
+	struct proc_dir_entry *entry;
+
+	entry = proc_create("calibration", 0444, NULL,
+				&wifi_calibration_fops);
+	if (!entry) {
+		pr_err("%s: could not create proc entry for wifi calibration\n",
+				__func__);
+		return 0;
 	}
-	wifi_data = create_proc_entry("wifi_data", 0444, NULL);
-	if (wifi_data != NULL) {
-		wifi_data->size = NVS_DATA_OFFSET;
-		wifi_data->read_proc = wifi_data_read_proc;
-		wifi_data->write_proc = NULL;
+
+	entry = proc_create("wifi_data", 0444, NULL,
+				&wifi_data_fops);
+	if (!entry) {
+		pr_err("%s: could not create proc entry for wifi data\n",
+				__func__);
+		return 0;
 	}
 	return 0;
 }

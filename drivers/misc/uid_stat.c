@@ -25,6 +25,7 @@
 #include <linux/stat.h>
 #include <linux/uid_stat.h>
 #include <net/activity_stats.h>
+#include <linux/seq_file.h>
 
 static DEFINE_SPINLOCK(uid_lock);
 static LIST_HEAD(uid_list);
@@ -48,41 +49,53 @@ static struct uid_stat *find_uid_stat(uid_t uid) {
 	return NULL;
 }
 
-static int tcp_snd_read_proc(char *page, char **start, off_t off,
-				int count, int *eof, void *data)
+static int tcp_snd_show(struct seq_file *m, void *data)
 {
-	int len;
-	unsigned int bytes;
-	char *p = page;
+	int bytes;
 	struct uid_stat *uid_entry = (struct uid_stat *) data;
 	if (!data)
 		return 0;
 
 	bytes = (unsigned int) (atomic_read(&uid_entry->tcp_snd) + INT_MIN);
-	p += sprintf(p, "%u\n", bytes);
-	len = (p - page) - off;
-	*eof = (len <= count) ? 1 : 0;
-	*start = page + off;
-	return len;
+	seq_printf(m, "%u\n", bytes);
+	return 0;
 }
 
-static int tcp_rcv_read_proc(char *page, char **start, off_t off,
-				int count, int *eof, void *data)
+static int tcp_snd_open(struct inode *inode, struct file *file)
 {
-	int len;
-	unsigned int bytes;
-	char *p = page;
+	return single_open(file, tcp_snd_show, PDE_DATA(inode));
+}
+
+static const struct file_operations tcp_snd_fops = {
+	.open		= tcp_snd_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= seq_release,
+};
+
+static int tcp_rcv_show(struct seq_file *m, void *data)
+{
+	int bytes;
 	struct uid_stat *uid_entry = (struct uid_stat *) data;
 	if (!data)
 		return 0;
 
 	bytes = (unsigned int) (atomic_read(&uid_entry->tcp_rcv) + INT_MIN);
-	p += sprintf(p, "%u\n", bytes);
-	len = (p - page) - off;
-	*eof = (len <= count) ? 1 : 0;
-	*start = page + off;
-	return len;
+	seq_printf(m, "%u\n", bytes);
+	return 0;
 }
+
+static int tcp_rcv_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, tcp_rcv_show, PDE_DATA(inode));
+}
+
+static const struct file_operations tcp_rcv_fops = {
+	.open		= tcp_rcv_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= seq_release,
+};
 
 /* Create a new entry for tracking the specified uid. */
 static struct uid_stat *create_stat(uid_t uid) {
@@ -109,10 +122,10 @@ static void create_stat_proc(struct uid_stat *new_uid)
 	entry = proc_mkdir(uid_s, parent);
 
 	/* Keep reference to uid_stat so we know what uid to read stats from. */
-	create_proc_read_entry("tcp_snd", S_IRUGO, entry , tcp_snd_read_proc,
+	proc_create_data("tcp_snd", S_IRUGO, entry, &tcp_snd_fops,
 		(void *) new_uid);
 
-	create_proc_read_entry("tcp_rcv", S_IRUGO, entry, tcp_rcv_read_proc,
+	proc_create_data("tcp_rcv", S_IRUGO, entry, &tcp_rcv_fops,
 		(void *) new_uid);
 }
 

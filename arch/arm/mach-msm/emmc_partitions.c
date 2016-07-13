@@ -34,6 +34,9 @@
 
 #include <mach/board.h>
 
+#include <linux/seq_file.h>
+#include <linux/proc_fs.h>
+
 
 /* configuration tags specific to msm */
 struct msm_ptbl_entry
@@ -51,23 +54,26 @@ static char msm_nand_names[MSM_MAX_PARTITIONS * 16];
 
 extern struct flash_platform_data msm_nand_data;
 
-int emmc_partition_read_proc(char *page, char **start, off_t off,
-			   int count, int *eof, void *data)
+static int emmc_partition_show(struct seq_file *m, void *data)
 {
 	struct mtd_partition *ptn = msm_nand_partitions;
-	char *p = page;
 	int i;
 	uint64_t offset;
 	uint64_t size;
 
-	p += sprintf(p, "dev:        size     erasesize name\n");
+	seq_printf(m, "dev:        size     erasesize name\n");
 	for (i = 0; i < MSM_MAX_PARTITIONS && ptn->name; i++, ptn++) {
 		offset = ptn->offset;
 		size = ptn->size;
-		p += sprintf(p, "mmcblk0p%llu: %08llx %08x \"%s\"\n", offset, size * 512, 512, ptn->name);
+		seq_printf(m, "mmcblk0p%llu: %08llx %08x \"%s\"\n", offset, size * 512, 512, ptn->name);
 	}
 
-	return p - page;
+	return 0;
+}
+
+int emmc_partition_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, emmc_partition_show, PDE_DATA(inode));
 }
 
 int get_partition_num_by_name(char *name)
