@@ -137,6 +137,11 @@ static void dhd_hang_process(struct work_struct *work);
 MODULE_LICENSE("GPL v2");
 #endif /* LinuxVer */
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0))
+#define random32() prandom_u32()
+#define srandom32(seed) prandom_seed(seed)
+#endif /* LinuxVer */
+
 #include <dhd_bus.h>
 
 #ifndef PROP_TXSTATUS
