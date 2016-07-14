@@ -85,19 +85,24 @@ static int asoc_msm_codec_probe(struct platform_device *pdev)
 
 static int asoc_msm_codec_remove(struct platform_device *pdev)
 {
-	snd_soc_unregister_dai(&pdev->dev);
+	snd_soc_unregister_component(&pdev->dev);
 	return 0;
 }
+
+static const struct snd_soc_component_driver msm_pcm_cpu_dais_component = {
+	.name		= "msm7kv2-dai",
+};
 
 static int asoc_msm_cpu_probe(struct platform_device *pdev)
 {
 	dev_info(&pdev->dev, "%s: dev name %s\n", __func__, dev_name(&pdev->dev));
-	return snd_soc_register_dai(&pdev->dev, msm_pcm_cpu_dais);
+	return snd_soc_register_component(&pdev->dev, &msm_pcm_cpu_dais_component,
+					 msm_pcm_cpu_dais, 1);
 }
 
 static int asoc_msm_cpu_remove(struct platform_device *pdev)
 {
-	snd_soc_unregister_dai(&pdev->dev);
+	snd_soc_unregister_component(&pdev->dev);
 	return 0;
 }
 

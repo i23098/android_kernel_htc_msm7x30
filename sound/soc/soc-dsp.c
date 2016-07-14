@@ -196,7 +196,7 @@ static int dsp_add_new_paths(struct snd_soc_pcm_runtime *fe,
 	}
 
 	/* get number of valid playback paths and their widgets */
-	paths = snd_soc_dapm_get_connected_widgets_type(&card->dapm,
+	paths = snd_soc_dapm_get_connected_widgets_type(cpu_dai, &card->dapm,
 			cpu_dai->driver->name, &list, stream, fe_type);
 
 	dev_dbg(fe->dev, "found %d audio %s paths\n", paths,
@@ -267,7 +267,7 @@ static int dsp_prune_old_paths(struct snd_soc_pcm_runtime *fe, int stream,
 	}
 
 	/* get number of valid playback paths and their widgets */
-	paths = snd_soc_dapm_get_connected_widgets_type(&card->dapm,
+	paths = snd_soc_dapm_get_connected_widgets_type(cpu_dai, &card->dapm,
 			cpu_dai->driver->name, &list, stream, fe_type);
 
 	dev_dbg(fe->dev, "found %d audio %s paths\n", paths,
