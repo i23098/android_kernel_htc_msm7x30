@@ -50,10 +50,10 @@ endchoice
 
 config ARCH_MSM8X60
 	bool "MSM8X60"
-	select ARCH_MSM_SCORPIONMP
 	select ARM_GIC
 	select CPU_V7
 	select GPIO_MSM_V2
+	select HAVE_SMP
 	select MSM_GPIOMUX
 	select MSM_SCM if SMP
 	select MSM_V2_TLMM
@@ -61,9 +61,9 @@ config ARCH_MSM8X60
 
 config ARCH_MSM8960
 	bool "MSM8960"
-	select ARCH_MSM_SCORPIONMP
 	select ARM_GIC
 	select CPU_V7
+	select HAVE_SMP
 	select MSM_GPIOMUX
 	select MSM_SCM if SMP
 	select MSM_V2_TLMM
@@ -94,21 +94,6 @@ config  ARCH_MSM_KRAIT
 
 config  MSM_SMP
 	bool
-
-config  ARCH_MSM_SCORPIONMP
-	select ARCH_MSM_SCORPION
-	select MSM_SMP
-	bool
-	select HAVE_SMP
-
-config  ARCH_MSM_KRAITMP
-	select ARCH_MSM_KRAIT
-	select MSM_SMP
-	bool
-
-config  ARCH_MSM_CORTEX_A5
-	bool
-	select HAVE_HW_BRKPT_RESERVED_RW_ACCESS
 
 config  MSM_VIC
 	bool
