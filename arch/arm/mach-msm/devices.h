@@ -39,6 +39,10 @@ extern struct platform_device asoc_msm_dai1;
 extern struct platform_device msm_ebi0_thermal;
 extern struct platform_device msm_ebi1_thermal;
 
+extern struct platform_device msm_device_gpio_7201;
+extern struct platform_device msm_device_gpio_7x30;
+extern struct platform_device msm_device_gpio_8x50;
+
 extern struct platform_device msm_device_uart1;
 extern struct platform_device msm_device_uart2;
 extern struct platform_device msm_device_uart3;

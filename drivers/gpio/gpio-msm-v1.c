@@ -20,7 +20,6 @@
 #include <linux/irq.h>
 #include <linux/module.h>
 #include <mach/gpiomux.h>
-#include <mach/cpu.h>
 #include <mach/msm_gpiomux.h>
 #include "../../../arch/arm/mach-msm/proc_comm.h"
 #include <mach/msm_smsm.h>
@@ -731,18 +730,8 @@ static int __init msm_init_gpio(void)
 {
 	int i, j = 0;
 
-	if (cpu_is_msm7x01()) {
-		msm_gpio_chips = msm_gpio_chips_msm7x01;
-		msm_gpio_count = ARRAY_SIZE(msm_gpio_chips_msm7x01);
-	} else if (cpu_is_msm7x30()) {
-		msm_gpio_chips = msm_gpio_chips_msm7x30;
-		msm_gpio_count = ARRAY_SIZE(msm_gpio_chips_msm7x30);
-	} else if (cpu_is_qsd8x50()) {
-		msm_gpio_chips = msm_gpio_chips_qsd8x50;
-		msm_gpio_count = ARRAY_SIZE(msm_gpio_chips_qsd8x50);
-	} else {
-		return 0;
-	}
+	msm_gpio_chips = msm_gpio_chips_msm7x30;
+	msm_gpio_count = ARRAY_SIZE(msm_gpio_chips_msm7x30);
 
 	for (i = FIRST_GPIO_IRQ; i < FIRST_GPIO_IRQ + NR_GPIO_IRQS; i++) {
 		if (i - FIRST_GPIO_IRQ >=
