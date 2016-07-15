@@ -23,11 +23,24 @@
 #include <linux/spinlock.h>
 #include <linux/pm_runtime.h>
 #include <mach/dma.h>
+#include <mach/msm_iomap.h>
 
 #define MODULE_NAME "msm_dmov"
 
 #define MSM_DMOV_CHANNEL_COUNT 16
 #define MSM_DMOV_CRCI_COUNT 16
+
+#define DMOV_CMD_PTR(ch)      DMOV_ADDR(0x000, ch)
+#define DMOV_RSLT(ch)         DMOV_ADDR(0x040, ch)
+#define DMOV_FLUSH0(ch)       DMOV_ADDR(0x080, ch)
+#define DMOV_FLUSH1(ch)       DMOV_ADDR(0x0C0, ch)
+#define DMOV_FLUSH2(ch)       DMOV_ADDR(0x100, ch)
+#define DMOV_FLUSH3(ch)       DMOV_ADDR(0x140, ch)
+#define DMOV_FLUSH4(ch)       DMOV_ADDR(0x180, ch)
+#define DMOV_FLUSH5(ch)       DMOV_ADDR(0x1C0, ch)
+
+#define DMOV_STATUS(ch)       DMOV_ADDR(0x200, ch)
+#define DMOV_ISR              DMOV_ADDR(0x380, 0)
 
 enum {
 	CLK_DIS,
