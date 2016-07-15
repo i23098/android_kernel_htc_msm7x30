@@ -59,12 +59,6 @@ config TOUCHSCREEN_NTRIG
 	help
 	  This is support for N-trig over spi based touchscreens
 
-config TOUCHSCREEN_ATMEL_224E
-	tristate "Atmel i2c touchscreen"
-	depends on I2C
-	help
-	  This enables support for Atmel over I2C based touchscreens.
-
 config TOUCHSCREEN_88PM860X
 	tristate "Marvell 88PM860x touchscreen"
 	depends on MFD_88PM860X
@@ -112,23 +106,6 @@ config TOUCHSCREEN_AD7877
 config TOUCHSCREEN_AD7879
 	tristate
 	default n
-
-config TOUCHSCREEN_ATMEL_MAXTOUCH
-       tristate "Atmel maXTouch based touchscreens"
-       depends on I2C
-       default n
-       help
-         Say Y here if you have an Atmel Maxtouch based touchscreen.
-
-         If unsure, say N.
-
-         To compile this driver as a module, choose M here: the
-         module will be called maXTouch.
-
-config TOUCHSCREEN_CYPRESS_TMA
-        tristate "Cypress TMA300 based touchscreens"
-        depends on I2C
-        default n
 
 config TOUCHSCREEN_COMPATIBLE_REPORT
 		bool "Touchscreen compatible repodepends on I2C"
@@ -260,14 +237,6 @@ config TOUCHSCREEN_DA9034
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called da9034-ts.
-
-config TOUCHSCREEN_CYPRESS_CS
-        tristate "Cypress CY8C20x34 based touchKey"
-        depends on I2C
-        default n
-	help
-	  Say Y here if you have cap sensor on your device
-	  If unsure, say N.
 
 config TOUCHSCREEN_DA9052
 	tristate "Dialog DA9052/DA9053 TSI"
@@ -999,56 +968,5 @@ config TOUCHSCREEN_TPS6507X
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called tps6507x_ts.
-
-config TOUCHSCREEN_CY8C_TS
-	tristate "Cypress TMA300-TMG200 based touchscreens"
-	depends on I2C
-	default n
-	help
-	  Say Y here if you have a Cypress TMA300/TMG200 based touchscreen.
-	  TMA300 is a multi-touch screen which can report upto 10
-	  touches at a time. TMG200 supports 2 touches.
-
-	  If unsure, say N.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called cy8c_ts.
-
-config TOUCHSCREEN_CYTTSP_I2C
-       tristate "Cypress TTSP based touchscreens"
-       depends on I2C
-       default n
-       help
-         Say Y here if you have a Cypress TTSP based touchscreen.
-         TMA300 is a multi-touch screen which can report upto 10
-         touches at a time.
-
-         If unsure, say N.
-
-         To compile this driver as a module, choose M here: the
-         module will be called cyttsp-i2c.
-
-config TOUCHSCREEN_HIMAX
-	tristate "Himax 8526A based touchscreen"
-	depends on I2C
-	default n
-
-config TOUCHSCREEN_HIMAX_SH
-	tristate "Secondary Himax 8526A touchscreen"
-	depends on I2C
-	default n
-	help
-	  Maintained by Touch Team in Shanghai:
-	    Haiping Qin <haiping_qin@htc.com>
-	    Allen Xu <allen_xu@htc.com>
-
-config TOUCHSCREEN_HIMAX_SH2
-	tristate "The Third Himax 8526A touchscreen"
-	depends on I2C
-	default n
-	help
-	  Maintained by Touch Team in Shanghai:
-	    Haiping Qin <haiping_qin@htc.com>
-	    Allen Xu <allen_xu@htc.com>
 
 endif
