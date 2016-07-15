@@ -2678,6 +2678,7 @@ static int __init board_serialno_setup(char *serialno)
 __setup("androidboot.serialno=", board_serialno_setup);
 
 static struct platform_device *devices[] __initdata = {
+	&msm_device_gpio_7x30,
 	&ram_console_device,
 #if defined(CONFIG_SERIAL_MSM) || defined(CONFIG_MSM_SERIAL_DEBUGGER)
 	&msm_device_uart2,
