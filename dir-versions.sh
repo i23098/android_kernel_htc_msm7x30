@@ -1,10 +1,5 @@
-##########
-# fs/f2fs 3.11
-rm -rf fs/f2fs
-git checkout HEAD -- fs/f2fs
-
 ####v3.17
-git checkout HEAD -- crypto/sha512_generic.c arch/arm/crypto/aes-armv4.S  arch/arm/crypto/aes_glue.c  arch/arm/crypto/sha1-armv4-large.S arch/arm/crypto/sha1_glue.c | wc -l
+git checkout HEAD -- crypto/sha512_generic.c arch/arm/crypto/aes-armv4.S  arch/arm/crypto/aes_glue.c  arch/arm/crypto/sha1-armv4-large.S arch/arm/crypto/sha1_glue.c
 
 ####v3.18
 git checkout HEAD -- lib/lzo/lzo1x_decompress_safe.c
