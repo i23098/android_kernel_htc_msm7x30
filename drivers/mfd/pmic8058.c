@@ -731,35 +731,6 @@ static struct mfd_cell debugfs_cell = {
 	.pdata_size	= sizeof("pm8058-dbg"),
 };
 
-static const struct resource othc0_cell_resources[] = {
-	{
-		.name	= "othc_base",
-		.start	= PM8058_OTHC_CNTR_BASE0,
-		.end	= PM8058_OTHC_CNTR_BASE0,
-		.flags	= IORESOURCE_IO,
-	},
-};
-
-static const struct resource othc1_cell_resources[] = {
-	SINGLE_IRQ_RESOURCE(NULL, PM8058_SW_1_IRQ),
-	SINGLE_IRQ_RESOURCE(NULL, PM8058_IR_1_IRQ),
-	{
-		.name	= "othc_base",
-		.start	= PM8058_OTHC_CNTR_BASE1,
-		.end	= PM8058_OTHC_CNTR_BASE1,
-		.flags	= IORESOURCE_IO,
-	},
-};
-
-static const struct resource othc2_cell_resources[] = {
-	{
-		.name	= "othc_base",
-		.start	= PM8058_OTHC_CNTR_BASE2,
-		.end	= PM8058_OTHC_CNTR_BASE2,
-		.flags	= IORESOURCE_IO,
-	},
-};
-
 static const struct resource batt_alarm_cell_resources[] = {
 	SINGLE_IRQ_RESOURCE("pm8058_batt_alarm_irq", PM8058_BATT_ALARM_IRQ),
 };
@@ -767,27 +738,6 @@ static const struct resource batt_alarm_cell_resources[] = {
 static struct mfd_cell leds_cell = {
 	.name		= "pm8058-led",
 	.id		= -1,
-};
-
-static struct mfd_cell othc0_cell = {
-	.name		= "pm8058-othc",
-	.id		= 0,
-	.resources	= othc0_cell_resources,
-	.num_resources  = ARRAY_SIZE(othc0_cell_resources),
-};
-
-static struct mfd_cell othc1_cell = {
-	.name		= "pm8058-othc",
-	.id		= 1,
-	.resources	= othc1_cell_resources,
-	.num_resources  = ARRAY_SIZE(othc1_cell_resources),
-};
-
-static struct mfd_cell othc2_cell = {
-	.name		= "pm8058-othc",
-	.id		= 2,
-	.resources	= othc2_cell_resources,
-	.num_resources  = ARRAY_SIZE(othc2_cell_resources),
 };
 
 static struct pm8xxx_batt_alarm_core_data batt_alarm_cdata = {
@@ -1068,40 +1018,6 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 				irq_base, NULL);
 		if (rc) {
 			pr_err("Failed to add leds subdevice ret=%d\n", rc);
-			goto bail;
-		}
-	}
-
-	if (pdata->othc0_pdata) {
-		othc0_cell.platform_data = pdata->othc0_pdata;
-		othc0_cell.pdata_size =
-			sizeof(struct pmic8058_othc_config_pdata);
-		rc = mfd_add_devices(pmic->dev, 0, &othc0_cell, 1, NULL, 0, NULL);
-		if (rc) {
-			pr_err("Failed to add othc0 subdevice ret=%d\n", rc);
-			goto bail;
-		}
-	}
-
-	if (pdata->othc1_pdata) {
-		othc1_cell.platform_data = pdata->othc1_pdata;
-		othc1_cell.pdata_size =
-			sizeof(struct pmic8058_othc_config_pdata);
-		rc = mfd_add_devices(pmic->dev, 0, &othc1_cell, 1, NULL,
-				irq_base, NULL);
-		if (rc) {
-			pr_err("Failed to add othc1 subdevice ret=%d\n", rc);
-			goto bail;
-		}
-	}
-
-	if (pdata->othc2_pdata) {
-		othc2_cell.platform_data = pdata->othc2_pdata;
-		othc2_cell.pdata_size =
-			sizeof(struct pmic8058_othc_config_pdata);
-		rc = mfd_add_devices(pmic->dev, 0, &othc2_cell, 1, NULL, 0, NULL);
-		if (rc) {
-			pr_err("Failed to add othc2 subdevice ret=%d\n", rc);
 			goto bail;
 		}
 	}
