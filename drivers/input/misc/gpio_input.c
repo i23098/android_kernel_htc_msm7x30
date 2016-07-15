@@ -22,18 +22,6 @@
 #include <linux/slab.h>
 #include <linux/wakelock.h>
 
-#ifdef CONFIG_POWER_KEY_LED
-#include <linux/leds-pm8058.h>
-#include <linux/leds-max8957-lpg.h>
-
-#define PWRKEYLEDON_DELAY 3*HZ
-#define PWRKEYLEDOFF_DELAY 0
-
-static int power_key_led_requested;
-static int pre_power_key_status;
-static int pre_power_key_led_status;
-#endif
-
 enum {
 	DEBOUNCE_UNSTABLE     = BIT(0),	/* Got irq, while debouncing */
 	DEBOUNCE_PRESSED      = BIT(1),
@@ -60,55 +48,6 @@ struct gpio_input_state {
 	struct wake_lock wake_lock;
 	struct gpio_key_state key_state[0];
 };
-
-#ifdef CONFIG_POWER_KEY_LED
-static void power_key_led_on_work_func(struct work_struct *dummy)
-{
-	pr_info("[PWR] %s in (%x)\n", __func__, power_key_led_requested);
-	if (power_key_led_requested == 1) {
-		pre_power_key_led_status = 1;
-		pr_info("[PWR] change power key led on\n");
-		button_backlight_flash(1);
-	}
-}
-static DECLARE_DELAYED_WORK(power_key_led_on_work, power_key_led_on_work_func);
-
-static void power_key_led_off_work_func(struct work_struct *dummy)
-{
-	if (power_key_led_requested) {
-		if (cancel_delayed_work_sync(&power_key_led_on_work)) {
-			pr_info("[PWR] cancel power key led work successfully(%x)\n", power_key_led_requested);
-		} else
-			pr_info("[PWR] cancel power key led work unsuccessfully (%x)\n", power_key_led_requested);
-
-		power_key_led_requested = 0;
-	}
-	if (pre_power_key_led_status == 1) {
-		pr_info("[PWR] change power key led off\n");
-		button_backlight_flash(0);
-		pre_power_key_led_status = 0;
-	}
-}
-static DECLARE_DELAYED_WORK(power_key_led_off_work, power_key_led_off_work_func);
-
-static void handle_power_key_led(unsigned int code, int value)
-{
-	if (code == KEY_POWER) {
-		if (pre_power_key_status == value)
-			return;
-		pre_power_key_status = value;
-		if (value) {
-			pr_info("[PWR] start count for power key led on\n");
-			schedule_delayed_work(&power_key_led_on_work, PWRKEYLEDON_DELAY);
-			power_key_led_requested = 1;
-		}
-		else {
-			pr_info("[PWR] start count for power key led off\n");
-			schedule_delayed_work(&power_key_led_off_work, PWRKEYLEDOFF_DELAY);
-		}
-	}
-}
-#endif
 
 static enum hrtimer_restart gpio_event_input_timer_func(struct hrtimer *timer)
 {
@@ -184,9 +123,6 @@ static enum hrtimer_restart gpio_event_input_timer_func(struct hrtimer *timer)
 			pr_info("gpio_keys_scan_keys: key %x-%x, %d (%d) "
 				"changed to %d\n", ds->info->type,
 				key_entry->code, i, key_entry->gpio, pressed);
-#ifdef CONFIG_POWER_KEY_LED
-		handle_power_key_led(key_entry->code, pressed);
-#endif
 		input_event(ds->input_devs->dev[key_entry->dev], ds->info->type,
 			key_entry->code, pressed);
 		sync_needed = true;
