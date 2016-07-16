@@ -644,9 +644,13 @@ static void ac_detect_expired(unsigned long _data)
 	}
 }
 
-static void msm_otg_notify_charger_attached(struct usb_phy *otg, int connect_type)
+static void msm_otg_notify_charger_attached(struct usb_phy *phy, int connect_type)
 {
-	struct msm_otg *motg = the_msm_otg;
+	struct msm_otg *motg = container_of(phy, struct msm_otg, phy);
+
+	if (!motg || (motg != the_msm_otg))
+		return;
+
 	pr_info("chg_type: %s %s => %s\n",
 		charger_string(atomic_read(&motg->chg_type)),
 		connect_to_string(motg->connect_type),
@@ -2393,7 +2397,7 @@ static ssize_t
 set_pwr_down(struct device *dev, struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	struct msm_otg *motg = the_msm_otg;
+	struct msm_otg *motg = dev_get_drvdata(dev);
 	int value;
 	enum usb_otg_state state;
 	unsigned long flags;
@@ -2422,7 +2426,7 @@ static ssize_t
 set_srp_req(struct device *dev, struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	struct msm_otg *motg = the_msm_otg;
+	struct msm_otg *motg = dev_get_drvdata(dev);
 	enum usb_otg_state state;
 	unsigned long flags;
 
@@ -2445,7 +2449,7 @@ static ssize_t
 set_clr_err(struct device *dev, struct device_attribute *attr,
 		const char *buf, size_t count)
 {
-	struct msm_otg *motg = the_msm_otg;
+	struct msm_otg *motg = dev_get_drvdata(dev);
 	enum usb_otg_state state;
 	unsigned long flags;
 
@@ -2657,6 +2661,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	phy->dev = &pdev->dev;
 
 	the_msm_otg = motg;
+	platform_set_drvdata(pdev, motg);
 	motg->phy.dev = &pdev->dev;
 
 	if (!motg->pdata) {
@@ -2989,7 +2994,7 @@ free_motg:
 
 static int msm_otg_remove(struct platform_device *pdev)
 {
-	struct msm_otg *motg = the_msm_otg;
+	struct msm_otg *motg = platform_get_drvdata(pdev);
 
 	msm_otg_debugfs_cleanup();
 #ifdef CONFIG_USB_OTG
@@ -3047,7 +3052,7 @@ static int msm_otg_remove(struct platform_device *pdev)
 
 static int msm_otg_runtime_suspend(struct device *dev)
 {
-	struct msm_otg *motg = the_msm_otg;
+	struct msm_otg *motg = dev_get_drvdata(dev);
 
 	dev_dbg(dev, "OTG runtime suspend\n");
 	return msm_otg_suspend(motg);
@@ -3055,7 +3060,7 @@ static int msm_otg_runtime_suspend(struct device *dev)
 
 static int msm_otg_runtime_resume(struct device *dev)
 {
-	struct msm_otg *motg = the_msm_otg;
+	struct msm_otg *motg = dev_get_drvdata(dev);
 
 	dev_dbg(dev, "OTG runtime resume\n");
 	return msm_otg_resume(motg);
