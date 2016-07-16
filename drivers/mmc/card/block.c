@@ -67,10 +67,6 @@ MODULE_ALIAS("mmc:block");
 
 static DEFINE_MUTEX(block_mutex);
 
-#if defined(CONFIG_ARCH_MSM7X30)
-extern int board_emmc_boot(void);
-#endif
-
 /*
  * The defaults come from config options but can be overriden by module
  * or bootarg options.
@@ -943,7 +939,7 @@ static int mmc_blk_issue_secdiscard_rq(struct mmc_queue *mq,
 {
 	struct mmc_blk_data *md = mq->data;
 	struct mmc_card *card = md->queue.card;
-	unsigned int from = 0, nr = 0, arg = 0, trim_arg, erase_arg;
+	unsigned int from, nr, arg, trim_arg, erase_arg;
 	int err = 0, type = MMC_BLK_SECDISCARD;
 
 	if (!(mmc_can_secure_erase_trim(card) || mmc_can_sanitize(card))) {
@@ -1238,7 +1234,7 @@ free:
 	return check;
 }
 
-static int mmc_blk_rw_rq_prep(struct mmc_queue_req *mqrq,
+static void mmc_blk_rw_rq_prep(struct mmc_queue_req *mqrq,
 			       struct mmc_card *card,
 			       int disable_multi,
 			       struct mmc_queue *mq)
@@ -1318,21 +1314,6 @@ static int mmc_blk_rw_rq_prep(struct mmc_queue_req *mqrq,
 	} else {
 		brq->cmd.opcode = writecmd;
 		brq->data.flags |= MMC_DATA_WRITE;
-#if defined(CONFIG_ARCH_MSM7X30)
-		if (board_emmc_boot())
-			if (mmc_card_mmc(card)) {
-				if (brq->cmd.arg < 131073) {/* should not write any value before 131073 */
-					pr_err("%s: pid %d(tgid %d)(%s)\n", __func__,
-						(unsigned)(current->pid), (unsigned)(current->tgid),
-						current->comm);
-					pr_err("ERROR! Attemp to write radio partition start %d size %d\n"
-						, brq->cmd.arg, blk_rq_sectors(req));
-					BUG();
-
-					return 0;
-				}
-			}
-#endif
 	}
 
 	if (do_rel_wr)
@@ -1405,8 +1386,6 @@ static int mmc_blk_rw_rq_prep(struct mmc_queue_req *mqrq,
 	mqrq->mmc_active.err_check = mmc_blk_err_check;
 
 	mmc_queue_bounce_pre(mqrq);
-
-	return 1;
 }
 
 static inline u8 mmc_calc_packed_hdr_segs(struct request_queue *q,
@@ -1750,12 +1729,12 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 				mq_rq = mq->mqrq_cur;
 				goto cmd_abort;
 			}
+
 			if (reqs >= packed_nr)
 				mmc_blk_packed_hdr_wrq_prep(mq->mqrq_cur,
 							    card, mq);
 			else
-				if (mmc_blk_rw_rq_prep(mq->mqrq_cur, card, 0, mq) == 0)
-				    return 0;
+				mmc_blk_rw_rq_prep(mq->mqrq_cur, card, 0, mq);
 			areq = &mq->mqrq_cur->mmc_active;
 		} else
 			areq = NULL;
@@ -2139,7 +2118,6 @@ static struct mmc_blk_data *mmc_blk_alloc(struct mmc_card *card)
 	return md;
 }
 
-#if 0
 static int mmc_blk_alloc_part(struct mmc_card *card,
 			      struct mmc_blk_data *md,
 			      unsigned int part_type,
@@ -2193,28 +2171,6 @@ static int mmc_blk_alloc_parts(struct mmc_card *card, struct mmc_blk_data *md)
 	}
 
 	return ret;
-}
-#endif
-
-static int
-mmc_blk_set_blksize(struct mmc_blk_data *md, struct mmc_card *card)
-{
-	int err;
-
-	if (mmc_card_blockaddr(card) || mmc_card_ddr_mode(card))
-		return 0;
-
-	mmc_claim_host(card->host);
-	err = mmc_set_blocklen(card, 512);
-	mmc_release_host(card->host);
-
-	if (err) {
-		pr_err("%s: unable to set block size to 512: %d\n",
-			md->disk->disk_name, err);
-		return -EINVAL;
-	}
-
-	return 0;
 }
 
 static void mmc_blk_remove_req(struct mmc_blk_data *md)
@@ -2386,10 +2342,10 @@ static int mmc_blk_probe(struct mmc_card *card)
 	pr_info("%s: %s %s %s %s\n",
 		md->disk->disk_name, mmc_card_id(card), mmc_card_name(card),
 		cap_str, md->read_only ? "(ro)" : "");
-#if 0
+
 	if (mmc_blk_alloc_parts(card, md))
 		goto out;
-#endif
+
 	mmc_set_drvdata(card, md);
 	mmc_fixup_device(card, blk_fixups);
 	mmc_init_bus_resume_flags(card->host);
