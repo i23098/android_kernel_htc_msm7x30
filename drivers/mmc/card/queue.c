@@ -288,11 +288,8 @@ int mmc_init_queue(struct mmc_queue *mq, struct mmc_card *card,
 
 	sema_init(&mq->thread_sem, 1);
 
-	if (mmc_card_sd(card))
-		mq->thread = kthread_run(mmc_queue_thread, mq, "sd-qd");
-	else
-		mq->thread = kthread_run(mmc_queue_thread, mq, "mmcqd/%d%s",
-					host->index, subname ? subname : "");
+	mq->thread = kthread_run(mmc_queue_thread, mq, "mmcqd/%d%s",
+		host->index, subname ? subname : "");
 
 	if (IS_ERR(mq->thread)) {
 		ret = PTR_ERR(mq->thread);

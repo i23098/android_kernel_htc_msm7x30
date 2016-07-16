@@ -1015,37 +1015,6 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 			goto free_card;
 	}
 
-	/* For SanDisk X3, we have to enable power class 4 */
-	if (card->cid.manfid == 0x45) {
-		if (card->ext_csd.sectors > 33554432) { /* the storage size larger than 16GB */
-				err = mmc_switch(card, EXT_CSD_CMD_SET_ZERO, EXT_CSD_POWER_CLASS, 4, 0);
-				if (err && err != -EBADMSG)
-					goto free_card;
-
-				if (err) {
-					printk(KERN_WARNING "%s: switch to power class 4 failed\n",
-						mmc_hostname(card->host));
-					err = 0;
-				} else {
-					printk(KERN_WARNING "%s: switch to power class 4 sucessfully\n",
-						mmc_hostname(card->host));
-				}
-		} else if (card->ext_csd.sectors == 31105024) {
-				err = mmc_switch(card, EXT_CSD_CMD_SET_ZERO, EXT_CSD_POWER_CLASS, 4, 0);
-				if (err && err != -EBADMSG)
-					goto free_card;
-
-				if (err) {
-					printk(KERN_WARNING "%s: switch to power class 4 failed\n",
-						mmc_hostname(card->host));
-					err = 0;
-				} else {
-					printk(KERN_WARNING "%s: switch to power class 4 sucessfully\n",
-						mmc_hostname(card->host));
-				}
-		}
-	}
-
 	/*
 	 * If the host supports the power_off_notify capability then
 	 * set the notification byte in the ext_csd register of device
