@@ -33,11 +33,6 @@ static char *usb_functions_adb[] = {
 	"adb",
 };
 
-#ifdef CONFIG_USB_ANDROID_ECM
-static char *usb_functions_ecm[] = {
-	"cdc_ethernet",
-};
-#endif
 #ifdef CONFIG_USB_ANDROID_RNDIS
 static char *usb_functions_rndis[] = {
 	"rndis",
@@ -279,9 +274,6 @@ static char *usb_functions_all[] = {
 #endif
 	"mass_storage",
 	"adb",
-#ifdef CONFIG_USB_ANDROID_ECM
-	"cdc_ethernet",
-#endif
 #if defined(CONFIG_USB_ANDROID_DIAG) || defined(CONFIG_USB_ANDROID_QCT_DIAG)
 	"diag",
 #endif
@@ -304,13 +296,6 @@ static struct android_usb_product usb_products[] = {
 		.num_functions	= ARRAY_SIZE(usb_functions_ums),
 		.functions	= usb_functions_ums,
 	},
-#ifdef CONFIG_USB_ANDROID_ECM
-	{
-		.product_id	= 0x0ff8,
-		.num_functions	= ARRAY_SIZE(usb_functions_ecm),
-		.functions	= usb_functions_ecm,
-	},
-#endif
 #ifdef CONFIG_USB_ANDROID_SERIAL
 	{
 		.product_id	= 0x0fc5,

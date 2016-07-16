@@ -634,106 +634,6 @@ static struct android_usb_function ptp_function = {
 };
 #endif
 
-#ifdef CONFIG_USB_ANDROID_ECM
-/* ECM */
-struct ecm_function_config {
-	u8      ethaddr[ETH_ALEN];
-};
-
-static struct eth_dev *the_dev_ecm;
-
-static int ecm_function_init(struct android_usb_function *f, struct usb_composite_dev *cdev)
-{
-	struct ecm_function_config *ecm;
-	f->config = kzalloc(sizeof(struct ecm_function_config), GFP_KERNEL);
-	if (!f->config)
-		return -ENOMEM;
-
-	ecm = f->config;
-	return 0;
-}
-
-static void ecm_function_cleanup(struct android_usb_function *f)
-{
-	kfree(f->config);
-	f->config = NULL;
-}
-
-static int ecm_function_bind_config(struct android_usb_function *f,
-					struct usb_configuration *c)
-{
-	int ret;
-	struct ecm_function_config *ecm = f->config;
-
-	if (!ecm) {
-		pr_err("%s: ecm_pdata\n", __func__);
-		return -1;
-	}
-
-
-	pr_info("%s MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", __func__,
-		ecm->ethaddr[0], ecm->ethaddr[1], ecm->ethaddr[2],
-		ecm->ethaddr[3], ecm->ethaddr[4], ecm->ethaddr[5]);
-
-	the_dev_ecm = gether_setup_name(c->cdev->gadget, dev_addr, 
-					  host_addr, ecm->ethaddr, "usb");
-	if (IS_ERR(the_dev_ecm)) {
-		pr_err("%s: gether_setup failed\n", __func__);
-		return PTR_ERR(the_dev_ecm);
-	}
-
-	return ecm_bind_config(c, ecm->ethaddr);
-}
-
-static void ecm_function_unbind_config(struct android_usb_function *f,
-						struct usb_configuration *c)
-{
-	gether_cleanup(the_dev_ecm);
-}
-
-static ssize_t ecm_ethaddr_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct android_usb_function *f = dev_get_drvdata(dev);
-	struct ecm_function_config *ecm = f->config;
-	return sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x\n",
-		ecm->ethaddr[0], ecm->ethaddr[1], ecm->ethaddr[2],
-		ecm->ethaddr[3], ecm->ethaddr[4], ecm->ethaddr[5]);
-}
-
-static ssize_t ecm_ethaddr_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t size)
-{
-	struct android_usb_function *f = dev_get_drvdata(dev);
-	struct ecm_function_config *ecm = f->config;
-
-	if (sscanf(buf, "%02x:%02x:%02x:%02x:%02x:%02x\n",
-		    (int *)&ecm->ethaddr[0], (int *)&ecm->ethaddr[1],
-		    (int *)&ecm->ethaddr[2], (int *)&ecm->ethaddr[3],
-		    (int *)&ecm->ethaddr[4], (int *)&ecm->ethaddr[5]) == 6)
-		return size;
-	return -EINVAL;
-}
-
-static DEVICE_ATTR(ecm_ethaddr, S_IRUGO | S_IWUSR, ecm_ethaddr_show,
-					       ecm_ethaddr_store);
-
-static struct device_attribute *ecm_function_attributes[] = {
-	&dev_attr_ecm_ethaddr,
-	NULL
-};
-
-static struct android_usb_function ecm_function = {
-	.name		= "cdc_ethernet",
-	.init		= ecm_function_init,
-	.cleanup	= ecm_function_cleanup,
-	.bind_config	= ecm_function_bind_config,
-	.unbind_config	= ecm_function_unbind_config,
-	.attributes	= ecm_function_attributes,
-	.performance_lock = 1,
-};
-#endif
-
 #ifdef CONFIG_USB_ANDROID_RNDIS
 /* RNDIS */
 struct rndis_function_config {
@@ -1165,9 +1065,6 @@ static struct android_usb_function *supported_functions[] = {
 #endif
 	&mass_storage_function,
 	&adb_function,
-#ifdef CONFIG_USB_ANDROID_ECM
-	&ecm_function,
-#endif
 	&diag_function,
 	&modem_function,
 	&serial_function,
