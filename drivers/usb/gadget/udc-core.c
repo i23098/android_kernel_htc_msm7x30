@@ -154,24 +154,6 @@ static inline int usb_gadget_udc_start(struct usb_gadget *gadget,
 }
 
 /**
- * usb_gadget_stop - tells usb device controller we don't need it anymore
- * @gadget: The device we want to stop activity
- * @driver: The driver to unbind from @gadget
- *
- * This call is issued by the UDC Class driver after calling
- * gadget driver's unbind() method.
- *
- * The details are implementation specific, but it can go as
- * far as powering off UDC completely and disable its data
- * line pullups.
- */
-static inline void usb_gadget_stop(struct usb_gadget *gadget,
-		struct usb_gadget_driver *driver)
-{
-	gadget->ops->stop(driver);
-}
-
-/**
  * usb_gadget_udc_stop - tells usb device controller we don't need it anymore
  * @gadget: The device we want to stop activity
  * @driver: The driver to unbind from @gadget
@@ -303,11 +285,10 @@ EXPORT_SYMBOL_GPL(usb_add_gadget_udc);
 
 static int udc_is_newstyle(struct usb_udc *udc)
 {
-	if (udc->gadget->ops->udc_start && udc->gadget->ops->udc_stop)
+	if (udc->gadget->ops->udc_start)
 		return 1;
 	return 0;
 }
-
 
 static void usb_gadget_remove_driver(struct usb_udc *udc)
 {
@@ -316,14 +297,10 @@ static void usb_gadget_remove_driver(struct usb_udc *udc)
 
 	kobject_uevent(&udc->dev.kobj, KOBJ_CHANGE);
 
-	if (udc_is_newstyle(udc)) {
-		usb_gadget_disconnect(udc->gadget);
-		udc->driver->disconnect(udc->gadget);
-		udc->driver->unbind(udc->gadget);
-		usb_gadget_udc_stop(udc->gadget, NULL);
-	} else {
-		usb_gadget_stop(udc->gadget, udc->driver);
-	}
+	usb_gadget_disconnect(udc->gadget);
+	udc->driver->disconnect(udc->gadget);
+	udc->driver->unbind(udc->gadget);
+	usb_gadget_udc_stop(udc->gadget, NULL);
 
 	udc->driver = NULL;
 	udc->dev.driver = NULL;
@@ -504,8 +481,7 @@ static ssize_t usb_udc_softconn_store(struct device *dev,
 		usb_gadget_connect(udc->gadget);
 	} else if (sysfs_streq(buf, "disconnect")) {
 		usb_gadget_disconnect(udc->gadget);
-		if (udc_is_newstyle(udc))
-			usb_gadget_udc_stop(udc->gadget, udc->driver);
+		usb_gadget_udc_stop(udc->gadget, udc->driver);
 	} else {
 		dev_err(dev, "unsupported command '%s'\n", buf);
 		return -EINVAL;

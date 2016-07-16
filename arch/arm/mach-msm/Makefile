@@ -81,8 +81,9 @@ obj-$(CONFIG_ARCH_MSM7X30) += dal_axi.o htc_sdservice.o
 obj-$(CONFIG_MSM7KV2_AUDIO) += qdsp5v2/
 obj-$(CONFIG_MSM7KV2_AUDIO) += htc_acoustic_7x30.o htc_acdb_7x30.o
 
+obj-$(CONFIG_MSM_IDLE_STATS) += pm-stats.o
 ifdef CONFIG_PM
-	obj-$(CONFIG_ARCH_MSM7X30) += pm2.o arch-init-7x30.o
+	obj-$(CONFIG_ARCH_MSM7X30) += arch-init-7x30.o
 	obj-y += pm-boot.o
 endif
 obj-y += pwrtest.o

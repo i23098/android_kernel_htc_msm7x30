@@ -477,7 +477,6 @@ struct usb_gadget_ops {
 	int	(*start)(struct usb_gadget_driver *,
 			int (*bind)(struct usb_gadget *,
 				struct usb_gadget_driver *driver));
-	int	(*stop)(struct usb_gadget_driver *);
 };
 
 /**

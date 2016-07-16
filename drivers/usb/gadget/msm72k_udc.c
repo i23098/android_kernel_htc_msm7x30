@@ -219,8 +219,8 @@ struct usb_info {
 static const struct usb_ep_ops msm72k_ep_ops;
 static struct usb_info *the_usb_info = NULL;
 
-static int msm72k_wakeup(struct usb_gadget *_gadget);
-static int msm72k_pullup_internal(struct usb_gadget *_gadget, int is_active);
+static int msm72k_wakeup(struct usb_gadget *gadget);
+static int msm72k_pullup_internal(struct usb_gadget *gadget, int is_active);
 static int msm72k_set_halt(struct usb_ep *_ep, int value);
 static void flush_endpoint(struct msm_endpoint *ept);
 static void usb_reset(struct usb_info *ui);
@@ -1953,18 +1953,18 @@ static const struct usb_ep_ops msm72k_ep_ops = {
 	.fifo_flush	= msm72k_fifo_flush,
 };
 
-static int msm72k_get_frame(struct usb_gadget *_gadget)
+static int msm72k_get_frame(struct usb_gadget *gadget)
 {
-	struct usb_info *ui = container_of(_gadget, struct usb_info, gadget);
+	struct usb_info *ui = container_of(gadget, struct usb_info, gadget);
 
 	/* frame number is in bits 13:3 */
 	return (readl(USB_FRINDEX) >> 3) & 0x000007FF;
 }
 
 /* VBUS reporting logically comes from a transceiver */
-static int msm72k_udc_vbus_session(struct usb_gadget *_gadget, int is_active)
+static int msm72k_udc_vbus_session(struct usb_gadget *gadget, int is_active)
 {
-	struct usb_info *ui = container_of(_gadget, struct usb_info, gadget);
+	struct usb_info *ui = container_of(gadget, struct usb_info, gadget);
 	struct msm_otg *otg = to_msm_otg(ui->xceiv);
 
 	if (is_active || atomic_read(&otg->chg_type)
@@ -1982,9 +1982,9 @@ SW workaround	- Making opmode non-driving and SuspendM set in function
 		register of SMSC phy
 */
 /* drivers may have software control over D+ pullup */
-static int msm72k_pullup_internal(struct usb_gadget *_gadget, int is_active)
+static int msm72k_pullup_internal(struct usb_gadget *gadget, int is_active)
 {
-	struct usb_info *ui = container_of(_gadget, struct usb_info, gadget);
+	struct usb_info *ui = container_of(gadget, struct usb_info, gadget);
 	unsigned long flags;
 
 	if (is_active) {
@@ -2013,9 +2013,9 @@ static int msm72k_pullup_internal(struct usb_gadget *_gadget, int is_active)
 	return 0;
 }
 
-static int msm72k_pullup(struct usb_gadget *_gadget, int is_active)
+static int msm72k_pullup(struct usb_gadget *gadget, int is_active)
 {
-	struct usb_info *ui = container_of(_gadget, struct usb_info, gadget);
+	struct usb_info *ui = container_of(gadget, struct usb_info, gadget);
 	unsigned long flags;
 
 	atomic_set(&ui->softconnect, is_active);
@@ -2027,13 +2027,13 @@ static int msm72k_pullup(struct usb_gadget *_gadget, int is_active)
 	}
 	spin_unlock_irqrestore(&ui->lock, flags);
 
-	msm72k_pullup_internal(_gadget, is_active);
+	msm72k_pullup_internal(gadget, is_active);
 	return 0;
 }
 
-static int msm72k_wakeup(struct usb_gadget *_gadget)
+static int msm72k_wakeup(struct usb_gadget *gadget)
 {
-	struct usb_info *ui = container_of(_gadget, struct usb_info, gadget);
+	struct usb_info *ui = container_of(gadget, struct usb_info, gadget);
 	struct msm_otg *otg = to_msm_otg(ui->xceiv);
 
 	if (!atomic_read(&ui->remote_wakeup)) {
@@ -2065,9 +2065,9 @@ static int msm72k_wakeup(struct usb_gadget *_gadget)
 /* when Gadget is configured, it will indicate how much power
  * can be pulled from vbus, as specified in configuiration descriptor
  */
-static int msm72k_udc_vbus_draw(struct usb_gadget *_gadget, unsigned mA)
+static int msm72k_udc_vbus_draw(struct usb_gadget *gadget, unsigned mA)
 {
-	struct usb_info *ui = container_of(_gadget, struct usb_info, gadget);
+	struct usb_info *ui = container_of(gadget, struct usb_info, gadget);
 	unsigned long flags;
 
 
@@ -2081,9 +2081,9 @@ static int msm72k_udc_vbus_draw(struct usb_gadget *_gadget, unsigned mA)
 	return 0;
 }
 
-static int msm72k_set_selfpowered(struct usb_gadget *_gadget, int set)
+static int msm72k_set_selfpowered(struct usb_gadget *gadget, int set)
 {
-	struct usb_info *ui = container_of(_gadget, struct usb_info, gadget);
+	struct usb_info *ui = container_of(gadget, struct usb_info, gadget);
 	unsigned long flags;
 	int ret = 0;
 
@@ -2347,44 +2347,43 @@ fail:
 	return retval;
 }
 
-static int msm72k_stop(struct usb_gadget_driver *driver)
+static int msm72k_udc_stop(struct usb_gadget *gadget,
+		struct usb_gadget_driver *driver)
 {
-	struct usb_info *dev = the_usb_info;
+	struct usb_info *ui = container_of(gadget, struct usb_info, gadget);
 
-	if (!the_usb_info) {
+	if (!ui) {
 		pr_err("%s called before driver initialized\n", __func__);
 		return -ENODEV;
 	}
 
-	if (!dev)
-		return -ENODEV;
-	if (!driver || driver != dev->driver || !driver->unbind)
+	if (!driver || driver != ui->driver) {
+		pr_err("%s called without driver\n", __func__);
 		return -EINVAL;
-
-	msm72k_pullup_internal(&dev->gadget, 0);
-	if (dev->irq) {
-		free_irq(dev->irq, dev);
-		dev->irq = 0;
 	}
-	dev->state = USB_STATE_IDLE;
-	atomic_set(&dev->configured, 0);
-	switch_set_state(&dev->sdev, 0);
+
+	msm72k_pullup_internal(&ui->gadget, 0);
+	if (ui->irq) {
+		free_irq(ui->irq, ui);
+		ui->irq = 0;
+	}
+	ui->state = USB_STATE_IDLE;
+	atomic_set(&ui->configured, 0);
+	switch_set_state(&ui->sdev, 0);
 	/* cancel pending ep0 transactions */
-	flush_endpoint(&dev->ep0out);
-	flush_endpoint(&dev->ep0in);
+	flush_endpoint(&ui->ep0out);
+	flush_endpoint(&ui->ep0in);
 
-	device_remove_file(&dev->gadget.dev, &dev_attr_wakeup);
-	device_remove_file(&dev->gadget.dev, &dev_attr_usb_state);
-	device_remove_file(&dev->gadget.dev, &dev_attr_usb_speed);
-	device_remove_file(&dev->gadget.dev, &dev_attr_chg_type);
-	device_remove_file(&dev->gadget.dev, &dev_attr_chg_current);
-	driver->disconnect(&dev->gadget);
-	driver->unbind(&dev->gadget);
-	dev->driver = NULL;
+	device_remove_file(&ui->gadget.dev, &dev_attr_wakeup);
+	device_remove_file(&ui->gadget.dev, &dev_attr_usb_state);
+	device_remove_file(&ui->gadget.dev, &dev_attr_usb_speed);
+	device_remove_file(&ui->gadget.dev, &dev_attr_chg_type);
+	device_remove_file(&ui->gadget.dev, &dev_attr_chg_current);
+	ui->driver = NULL;
 
-	device_del(&dev->gadget.dev);
+	device_del(&ui->gadget.dev);
 
-	dev_dbg(&dev->pdev->dev,
+	dev_dbg(&ui->pdev->dev,
 		"unregistered gadget driver '%s'\n", driver->driver.name);
 	return 0;
 }
@@ -2397,7 +2396,7 @@ static const struct usb_gadget_ops msm72k_ops = {
 	.wakeup		= msm72k_wakeup,
 	.set_selfpowered = msm72k_set_selfpowered,
 	.start		= msm72k_start,
-	.stop		= msm72k_stop,
+	.udc_stop	= msm72k_udc_stop,
 };
 
 static int msm72k_probe(struct platform_device *pdev)
