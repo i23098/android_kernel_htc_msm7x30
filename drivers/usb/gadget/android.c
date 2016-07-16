@@ -66,6 +66,7 @@
 #include "f_accessory.c"
 #define USB_ETH_RNDIS y
 #ifdef CONFIG_USB_ANDROID_RNDIS
+#define USB_FRNDIS_INCLUDED
 #include "f_rndis.c"
 #include "rndis.c"
 #endif
@@ -674,7 +675,8 @@ static int ecm_function_bind_config(struct android_usb_function *f,
 		ecm->ethaddr[0], ecm->ethaddr[1], ecm->ethaddr[2],
 		ecm->ethaddr[3], ecm->ethaddr[4], ecm->ethaddr[5]);
 
-	the_dev_ecm = gether_setup_name(c->cdev->gadget, ecm->ethaddr, "usb");
+	the_dev_ecm = gether_setup_name(c->cdev->gadget, dev_addr, 
+					  host_addr, ecm->ethaddr, "usb");
 	if (IS_ERR(the_dev_ecm)) {
 		pr_err("%s: gether_setup failed\n", __func__);
 		return PTR_ERR(the_dev_ecm);
@@ -743,6 +745,16 @@ struct rndis_function_config {
 
 static struct eth_dev *the_dev_rndis;
 
+/* initial value, changed by "ifconfig usb0 hw ether xx:xx:xx:xx:xx:xx" */
+static char *dev_addr;
+module_param(dev_addr, charp, S_IRUGO);
+MODULE_PARM_DESC(dev_addr, "Device Ethernet Address");
+
+/* this address is invisible to ifconfig */
+static char *host_addr;
+module_param(host_addr, charp, S_IRUGO);
+MODULE_PARM_DESC(host_addr, "Host Ethernet Address");
+
 static int rndis_function_init(struct android_usb_function *f, struct usb_composite_dev *cdev)
 {
 	struct rndis_function_config *rndis;
@@ -780,7 +792,9 @@ static int rndis_function_bind_config(struct android_usb_function *f,
 		rndis->ethaddr[0], rndis->ethaddr[1], rndis->ethaddr[2],
 		rndis->ethaddr[3], rndis->ethaddr[4], rndis->ethaddr[5]);
 
-	the_dev_rndis = gether_setup_name(c->cdev->gadget, rndis->ethaddr, "usb");
+	the_dev_rndis = gether_setup_name(c->cdev->gadget, dev_addr,
+					  host_addr, rndis->ethaddr,
+					  QMULT_DEFAULT, "usb");
 	if (IS_ERR(the_dev_rndis)) {
 		pr_err("%s: gether_setup failed\n", __func__);
 		return PTR_ERR(the_dev_rndis);
