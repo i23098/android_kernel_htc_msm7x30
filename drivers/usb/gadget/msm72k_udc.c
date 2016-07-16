@@ -2288,11 +2288,9 @@ static int msm72k_start(struct usb_gadget_driver *driver,
 
 	/* first hook up the driver ... */
 	ui->driver = driver;
-	ui->gadget.name = driver_name;
 	INIT_LIST_HEAD(&ui->gadget.ep_list);
 	ui->gadget.ep0 = &ui->ep0in.ep;
 	INIT_LIST_HEAD(&ui->gadget.ep0->ep_list);
-	ui->gadget.speed = USB_SPEED_UNKNOWN;
 	atomic_set(&ui->softconnect, 1);
 
 	for (n = 1; n < 16; n++) {
@@ -2433,6 +2431,8 @@ static int msm72k_probe(struct platform_device *pdev)
 
 	ui->gadget.ops = &msm72k_ops;
 	ui->gadget.max_speed = USB_SPEED_HIGH;
+	ui->gadget.name = driver_name;
+	ui->gadget.speed = USB_SPEED_UNKNOWN;
 
 #ifdef CONFIG_USB_OTG
 	ui->gadget.is_otg = 1;
