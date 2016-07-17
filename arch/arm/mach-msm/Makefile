@@ -25,9 +25,8 @@ obj-$(CONFIG_ARCH_QSD8X50) += board-qsd8x50.o devices-qsd8x50.o
 obj-$(CONFIG_ARCH_MSM8X60) += board-dt-8660.o
 obj-$(CONFIG_ARCH_MSM8960) += board-dt-8960.o
 
-obj-$(CONFIG_ARCH_MSM7X30) += gpiomux-v1.o gpiomux.o
-obj-$(CONFIG_ARCH_QSD8X50) += gpiomux-8x50.o gpiomux-v1.o gpiomux.o
-obj-$(CONFIG_ARCH_MSM8X60) += gpiomux-8x60.o gpiomux-v2.o gpiomux.o
+obj-$(CONFIG_MSM_GPIOMUX) += gpiomux.o
+obj-$(CONFIG_ARCH_QSD8X50) += gpiomux-8x50.o
 
 obj-$(CONFIG_MSM_IOMMU) += iommu.o iommu_dev.o iommu_domains.o
 obj-y += memory.o clock-voter.o clock-dummy.o

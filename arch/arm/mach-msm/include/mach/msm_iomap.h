@@ -106,8 +106,6 @@
 #if !defined(CONFIG_MACH_SPADE) && !defined(CONFIG_MACH_SAGA)
 /* Virtual addresses shared across all MSM targets. */
 #define MSM_CSR_BASE		IOMEM(0xE0001000)
-#define MSM_QGIC_DIST_BASE	IOMEM(0xF0000000)
-#define MSM_QGIC_CPU_BASE	IOMEM(0xF0001000)
 #define MSM_TMR_BASE		IOMEM(0xF0200000)
 #define MSM_TMR0_BASE		IOMEM(0xF0201000)
 #define MSM_GPIO1_BASE		IOMEM(0xE0003000)
