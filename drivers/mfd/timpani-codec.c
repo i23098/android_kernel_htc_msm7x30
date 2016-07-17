@@ -2864,7 +2864,7 @@ static int timpani_adie_set_device_analog_volume(struct adie_codec_path *path_pt
 
 	/* To support adjusting analog volume along with Beats effect
 	 * Only do gain changes for headset currently */
-	pr_aud_info("%s, channel = %d, volume = 0x%X\n", __func__, num_channels, volume);
+	printk(KERN_INFO "%s, channel = %d, volume = 0x%X\n", __func__, num_channels, volume);
 
 	/* Apply indicated analog gain to left channel */
 	if (num_channels > 0)

@@ -187,7 +187,7 @@ static void amrnb_in_listener(u32 evt_id, union auddev_evt_data *evt_payload,
 		break;
 	}
 	default:
-		pr_aud_err("wrong event %d\n", evt_id);
+		printk(KERN_ERR "wrong event %d\n", evt_id);
 		break;
 	}
 }
@@ -201,7 +201,7 @@ static void audpreproc_dsp_event(void *data, unsigned id,  void *msg)
 	case AUDPREPROC_ERROR_MSG: {
 		struct audpreproc_err_msg *err_msg = msg;
 
-		pr_aud_err("ERROR_MSG: stream id %d err idx %d\n",
+		printk(KERN_ERR "ERROR_MSG: stream id %d err idx %d\n",
 		err_msg->stream_id, err_msg->aud_preproc_err_idx);
 		/* Error case */
 		wake_up(&audio->wait_enable);
@@ -237,7 +237,7 @@ static void audpreproc_dsp_event(void *data, unsigned id,  void *msg)
 		break;
 	}
 	default:
-		pr_aud_err("Unknown Event id %d\n", id);
+		printk(KERN_ERR "Unknown Event id %d\n", id);
 	}
 }
 
@@ -261,7 +261,7 @@ static void audrec_dsp_event(void *data, unsigned id, size_t len,
 		struct audrec_fatal_err_msg fatal_err_msg;
 
 		getevent(&fatal_err_msg, AUDREC_FATAL_ERR_MSG_LEN);
-		pr_aud_err("FATAL_ERR_MSG: err id %d\n",
+		printk(KERN_ERR "FATAL_ERR_MSG: err id %d\n",
 				fatal_err_msg.audrec_err_id);
 		/* Error stop the encoder */
 		audio->stopped = 1;
@@ -283,7 +283,7 @@ static void audrec_dsp_event(void *data, unsigned id, size_t len,
 		break;
 	}
 	default:
-		pr_aud_err("Unknown Event id %d\n", id);
+		printk(KERN_ERR "Unknown Event id %d\n", id);
 	}
 }
 
@@ -427,12 +427,12 @@ static int audamrnb_in_enable(struct audio_in *audio)
 		return 0;
 
 	if (audpreproc_enable(audio->enc_id, &audpreproc_dsp_event, audio)) {
-		pr_aud_err("msm_adsp_enable(audpreproc) failed\n");
+		printk(KERN_ERR "msm_adsp_enable(audpreproc) failed\n");
 		return -ENODEV;
 	}
 
 	if (msm_adsp_enable(audio->audrec)) {
-		pr_aud_err("msm_adsp_enable(audrec) failed\n");
+		printk(KERN_ERR "msm_adsp_enable(audrec) failed\n");
 		audpreproc_disable(audio->enc_id, audio);
 		return -ENODEV;
 	}
@@ -615,7 +615,7 @@ static long audamrnb_in_ioctl(struct file *file,
 		if (cfg.rec_mode != VOC_REC_BOTH &&
 			cfg.rec_mode != VOC_REC_UPLINK &&
 			cfg.rec_mode != VOC_REC_DOWNLINK) {
-			pr_aud_err("invalid rec_mode\n");
+			printk(KERN_ERR "invalid rec_mode\n");
 			rc = -EINVAL;
 			break;
 		} else {
@@ -701,7 +701,7 @@ static ssize_t audamrnb_in_read(struct file *file,
 			count -= size;
 			buf += size;
 		} else {
-			pr_aud_err("short read\n");
+			printk(KERN_ERR "short read\n");
 			break;
 		}
 	}
@@ -763,13 +763,13 @@ static int audamrnb_in_open(struct inode *inode, struct file *file)
 	if (!IS_ERR((void *)audio->phys)) {
 		audio->data = ioremap(audio->phys, DMASZ);
 		if (!audio->data) {
-			pr_aud_err("could not allocate DMA buffers\n");
+			printk(KERN_ERR "could not allocate DMA buffers\n");
 			rc = -ENOMEM;
 			pmem_kfree(audio->phys);
 			goto done;
 		}
 	} else {
-		pr_aud_err("could not allocate DMA buffers\n");
+		printk(KERN_ERR "could not allocate DMA buffers\n");
 		rc = -ENOMEM;
 		goto done;
 	}
@@ -778,7 +778,7 @@ static int audamrnb_in_open(struct inode *inode, struct file *file)
 	if ((file->f_mode & FMODE_WRITE) &&
 			(file->f_mode & FMODE_READ)) {
 		rc = -EACCES;
-		pr_aud_err("Non tunnel encoding is not supported\n");
+		printk(KERN_ERR "Non tunnel encoding is not supported\n");
 		goto done;
 	} else if (!(file->f_mode & FMODE_WRITE) &&
 					(file->f_mode & FMODE_READ)) {
@@ -802,7 +802,7 @@ static int audamrnb_in_open(struct inode *inode, struct file *file)
 	encid = audpreproc_aenc_alloc(audio->enc_type, &audio->module_name,
 			&audio->queue_ids);
 	if (encid < 0) {
-		pr_aud_err("No free encoder available\n");
+		printk(KERN_ERR "No free encoder available\n");
 		rc = -ENODEV;
 		goto done;
 	}
@@ -829,7 +829,7 @@ static int audamrnb_in_open(struct inode *inode, struct file *file)
 					AUDDEV_CLNT_ENC, audio->enc_id,
 					amrnb_in_listener, (void *) audio);
 	if (rc) {
-		pr_aud_err("failed to register device event listener\n");
+		printk(KERN_ERR "failed to register device event listener\n");
 		goto evt_error;
 	}
 	file->private_data = audio;

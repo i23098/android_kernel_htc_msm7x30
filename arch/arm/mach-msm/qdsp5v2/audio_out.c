@@ -122,7 +122,7 @@ static void audio_out_listener(u32 evt_id, union auddev_evt_data *evt_payload,
 					POPP);
 		break;
 	default:
-		pr_aud_err("ERROR:wrong event\n");
+		printk(KERN_ERR "ERROR:wrong event\n");
 		break;
        }
 }
@@ -133,8 +133,8 @@ static void audio_prevent_sleep(struct audio *audio)
 	struct rtc_time tm;
 	getnstimeofday(&ts);
 	rtc_time_to_tm(ts.tv_sec, &tm);
-	pr_aud_info("++++++++++++++++++++++++++++++\n");
-	pr_aud_info1("[ATS][play_music][successful] at %lld \
+	printk(KERN_INFO "++++++++++++++++++++++++++++++\n");
+	printk(KERN_INFO "[ATS][play_music][successful] at %lld \
 		(%d-%02d-%02d %02d:%02d:%02d.%09lu UTC)\n",
 		ktime_to_ns(ktime_get()),
 		tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
@@ -153,12 +153,12 @@ static void audio_allow_sleep(struct audio *audio)
 	MM_DBG("\n"); /* Macro prints the file name and function */
 	getnstimeofday(&ts);
 	rtc_time_to_tm(ts.tv_sec, &tm);
-	pr_aud_info1("[ATS][stop_music][successful] at %lld \
+	printk(KERN_INFO "[ATS][stop_music][successful] at %lld \
 		(%d-%02d-%02d %02d:%02d:%02d.%09lu UTC)\n",
 		ktime_to_ns(ktime_get()),
 		tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 		tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec);
-	pr_aud_info("------------------------------\n");
+	printk(KERN_INFO "------------------------------\n");
 }
 
 static int audio_dsp_out_enable(struct audio *audio, int yes);
@@ -170,7 +170,7 @@ static void audio_dsp_event(void *private, unsigned id, uint16_t *msg);
 /* must be called with audio->lock held */
 static int audio_enable(struct audio *audio)
 {
-	pr_aud_info("audio_enable\n");
+	printk(KERN_INFO "audio_enable\n");
 
 	if (audio->enabled)
 		return 0;
@@ -188,7 +188,7 @@ static int audio_enable(struct audio *audio)
 	audio_prevent_sleep(audio);
 
 	if (audpp_enable(-1, audio_dsp_event, audio)) {
-		pr_aud_err("audpp_enable() failed\n");
+		printk(KERN_ERR "audpp_enable() failed\n");
 		audio_allow_sleep(audio);
 		return -ENODEV;
 	}
@@ -201,7 +201,7 @@ static int audio_enable(struct audio *audio)
 /* must be called with audio->lock held */
 static int audio_disable(struct audio *audio)
 {
-	pr_aud_info("audio_disable\n");
+	printk(KERN_INFO "audio_disable\n");
 	if (audio->enabled) {
 		audio->enabled = 0;
 		audio_dsp_out_enable(audio, 0);
@@ -230,11 +230,11 @@ static void audio_dsp_event(void *private, unsigned id, uint16_t *msg)
 
 		MM_DBG("HOST_PCM id %d idx %d\n", id, idx);
 		if (id != AUDPP_MSG_HOSTPCM_ID_ARM_RX) {
-			pr_aud_err("bogus id\n");
+			printk(KERN_ERR "bogus id\n");
 			break;
 		}
 		if (idx > 1) {
-			pr_aud_err("bogus buffer idx\n");
+			printk(KERN_ERR "bogus buffer idx\n");
 			break;
 		}
 		spin_lock_irqsave(&audio->dsp_lock, flags);
@@ -262,7 +262,7 @@ static void audio_dsp_event(void *private, unsigned id, uint16_t *msg)
 		/* prints only if 1 second is elapsed since the last time
 		 * this message has been printed */
 		if (printk_timed_ratelimit(&pcmdmamsd_time, 1000))
-			pr_aud_info("PCMDMAMISSED %d\n", msg[0]);
+			printk(KERN_INFO "PCMDMAMISSED %d\n", msg[0]);
 		audio->teos++;
 		MM_DBG("PCMDMAMISSED Count per Buffer %d\n", audio->teos);
 		wake_up(&audio->wait);
@@ -280,11 +280,11 @@ static void audio_dsp_event(void *private, unsigned id, uint16_t *msg)
 			MM_DBG("CFG_MSG DISABLE\n");
 			audio->running = 0;
 		} else {
-			pr_aud_err("CFG_MSG %d?\n", msg[0]);
+			printk(KERN_ERR "CFG_MSG %d?\n", msg[0]);
 		}
 		break;
 	default:
-		pr_aud_err("UNKNOWN (%d)\n", id);
+		printk(KERN_ERR "UNKNOWN (%d)\n", id);
 	}
 }
 
@@ -387,7 +387,7 @@ static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	mutex_lock(&audio->lock);
 	switch (cmd) {
 	case AUDIO_START:
-		pr_aud_info("AUDIO_START\n");
+		printk(KERN_INFO "AUDIO_START\n");
 		rc = audio_enable(audio);
 		break;
 	case AUDIO_STOP:
@@ -527,7 +527,7 @@ static ssize_t audio_write(struct file *file, const char __user *buf,
 			cap_raise(new->cap_effective, CAP_SYS_NICE);
 			commit_creds(new);
 			if ((sched_setscheduler(current, SCHED_RR, &s)) < 0)
-				pr_aud_err("sched_setscheduler failed\n");
+				printk(KERN_ERR "sched_setscheduler failed\n");
 		}
 	}
 
@@ -576,7 +576,7 @@ static ssize_t audio_write(struct file *file, const char __user *buf,
 	if (!rt_policy(old_policy)) {
 		struct sched_param v = { .sched_priority = old_prio };
 		if ((sched_setscheduler(current, old_policy, &v)) < 0)
-			pr_aud_err("sched_setscheduler failed\n");
+			printk(KERN_ERR "sched_setscheduler failed\n");
 		if (likely(!cap_nice)) {
 			struct cred *new = prepare_creds();
 			if (new != NULL) {
@@ -613,9 +613,9 @@ static int audio_open(struct inode *inode, struct file *file)
 	int rc;
 
 	mutex_lock(&audio->lock);
-	pr_aud_info("host pcm open\n");
+	printk(KERN_INFO "host pcm open\n");
 	if (audio->opened) {
-		pr_aud_err("busy\n");
+		printk(KERN_ERR "busy\n");
 		rc = -EBUSY;
 		goto done;
 	}
@@ -626,13 +626,13 @@ static int audio_open(struct inode *inode, struct file *file)
 		if (!IS_ERR((void *)audio->phys)) {
 			audio->data = ioremap(audio->phys, DMASZ);
 			if (!audio->data) {
-				pr_aud_err("could not allocate DMA buffers\n");
+				printk(KERN_ERR "could not allocate DMA buffers\n");
 				rc = -ENOMEM;
 				pmem_kfree(audio->phys);
 				goto done;
 			}
 		} else {
-			pr_aud_err("could not allocate DMA buffers\n");
+			printk(KERN_ERR "could not allocate DMA buffers\n");
 			rc = -ENOMEM;
 			goto done;
 		}
@@ -671,7 +671,7 @@ static int audio_open(struct inode *inode, struct file *file)
 					audio_out_listener,
 					(void *)audio);
 	if (rc) {
-		pr_aud_err("%s: failed to register listener\n", __func__);
+		printk(KERN_ERR "%s: failed to register listener\n", __func__);
 		dma_free_coherent(NULL, DMASZ, audio->data, audio->phys);
 		goto done;
 	}
