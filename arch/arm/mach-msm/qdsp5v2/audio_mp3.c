@@ -281,7 +281,7 @@ static void mp3_listner(u32 evt_id, union auddev_evt_data *evt_payload,
 					POPP);
 		break;
 	default:
-		pr_aud_err(":ERROR:wrong event\n");
+		printk(KERN_ERR ":ERROR:wrong event\n");
 		break;
 	}
 }
@@ -298,12 +298,12 @@ static int audio_enable(struct audio *audio)
 	audio->out_needed = 0;
 
 	if (msm_adsp_enable(audio->audplay)) {
-		pr_aud_err("msm_adsp_enable(audplay) failed\n");
+		printk(KERN_ERR "msm_adsp_enable(audplay) failed\n");
 		return -ENODEV;
 	}
 
 	if (audpp_enable(audio->dec_id, audio_dsp_event, audio)) {
-		pr_aud_err("audpp_enable() failed\n");
+		printk(KERN_ERR "audpp_enable() failed\n");
 		msm_adsp_disable(audio->audplay);
 		return -ENODEV;
 	}
@@ -366,7 +366,7 @@ static void audmp3_async_pcm_buf_update(struct audio *audio, uint32_t *payload)
 						event_payload);
 			kfree(filled_buf);
 		} else {
-			pr_aud_err("expected=%lx ret=%x\n", filled_buf->paddr,
+			printk(KERN_ERR "expected=%lx ret=%x\n", filled_buf->paddr,
 					payload[2 + index * 2]);
 			break;
 		}
@@ -397,7 +397,7 @@ static void audio_update_pcm_buf_entry(struct audio *audio, uint32_t *payload)
 				audio->fill_next = 0;
 
 		} else {
-			pr_aud_err("expected=%x ret=%x\n",
+			printk(KERN_ERR "expected=%x ret=%x\n",
 					audio->in[audio->fill_next].addr,
 					payload[2 + index * 2]);
 			break;
@@ -420,7 +420,7 @@ static void audmp3_bitstream_error_info(struct audio *audio, uint32_t *payload)
 	union msm_audio_event_payload e_payload;
 
 	if (payload[0] != AUDDEC_DEC_MP3) {
-		pr_aud_err("Unexpected bitstream error info from DSP:\
+		printk(KERN_ERR "Unexpected bitstream error info from DSP:\
 				Invalid decoder\n");
 		return;
 	}
@@ -433,7 +433,7 @@ static void audmp3_bitstream_error_info(struct audio *audio, uint32_t *payload)
 	audio->bitstream_error_info.err_type = payload[2];
 
 	spin_unlock_irqrestore(&audio->dsp_lock, flags);
-	pr_aud_err("bit_stream_error_type=%d error_count=%d\n",
+	printk(KERN_ERR "bit_stream_error_type=%d error_count=%d\n",
 			audio->bitstream_error_info.err_type, (0x0000FFFF &
 			audio->bitstream_error_info.err_msg_indicator));
 
@@ -507,7 +507,7 @@ static void audplay_dsp_event(void *data, unsigned id, size_t len,
 		break;
 
 	default:
-		pr_aud_err("unexpected message from decoder \n");
+		printk(KERN_ERR "unexpected message from decoder \n");
 		break;
 	}
 }
@@ -565,7 +565,7 @@ static void audio_dsp_event(void *private, unsigned id, uint16_t *msg)
 				wake_up(&audio->wait);
 				break;
 			default:
-				pr_aud_err("unknown decoder status \n");
+				printk(KERN_ERR "unknown decoder status \n");
 				break;
 			}
 			break;
@@ -615,7 +615,7 @@ static void audio_dsp_event(void *private, unsigned id, uint16_t *msg)
 		break;
 
 	default:
-		pr_aud_err("UNKNOWN (%d)\n", id);
+		printk(KERN_ERR "UNKNOWN (%d)\n", id);
 	}
 
 }
@@ -1063,7 +1063,7 @@ static long audmp3_process_event_req(struct audio *audio, void __user *arg)
 		usr_evt.event_payload = drv_evt->payload;
 		list_add_tail(&drv_evt->list, &audio->free_event_queue);
 	} else {
-		pr_aud_err("%s: fail to find event\n", __func__);
+		printk(KERN_ERR "%s: fail to find event\n", __func__);
 		spin_unlock_irqrestore(&audio->event_queue_lock, flags);
 		return -1;
 	}
@@ -1092,7 +1092,7 @@ static int audmp3_pmem_check(struct audio *audio,
 	list_for_each_entry(region_elt, &audio->pmem_region_queue, list) {
 		if (CONTAINS(region_elt, &t) || CONTAINS(&t, region_elt) ||
 		    OVERLAPS(region_elt, &t)) {
-			pr_aud_err("region (vaddr %p len %ld)"
+			printk(KERN_ERR "region (vaddr %p len %ld)"
 				" clashes with registered region"
 				" (vaddr %p paddr %p len %ld)\n",
 				vaddr, len,
@@ -1206,13 +1206,13 @@ static int audmp3_pmem_lookup_vaddr(struct audio *audio, void *addr,
 	}
 
 	if (match_count > 1) {
-		pr_aud_err("multiple hits for vaddr %p, len %ld\n", addr, len);
+		printk(KERN_ERR "multiple hits for vaddr %p, len %ld\n", addr, len);
 		list_for_each_entry(region_elt,
 		  &audio->pmem_region_queue, list) {
 			if (addr >= region_elt->vaddr &&
 			    addr < region_elt->vaddr + region_elt->len &&
 			    addr + len <= region_elt->vaddr + region_elt->len)
-				pr_aud_err("\t%p, %ld --> %p\n", region_elt->vaddr,
+				printk(KERN_ERR "\t%p, %ld --> %p\n", region_elt->vaddr,
 						region_elt->len,
 						(void *)region_elt->paddr);
 		}
@@ -1230,7 +1230,7 @@ unsigned long audmp3_pmem_fixup(struct audio *audio, void *addr,
 
 	ret = audmp3_pmem_lookup_vaddr(audio, addr, len, &region);
 	if (ret) {
-		pr_aud_err("lookup (%p, %ld) failed\n", addr, len);
+		printk(KERN_ERR "lookup (%p, %ld) failed\n", addr, len);
 		return 0;
 	}
 	if (ref_up)
@@ -1453,7 +1453,7 @@ static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			rc = wait_event_interruptible_timeout(audio->wait,
 				audio->dec_state != MSM_AUD_DECODER_STATE_NONE,
 				msecs_to_jiffies(MSM_AUD_DECODER_WAIT_MS));
-			pr_aud_info("dec_state %d rc = %d\n", audio->dec_state, rc);
+			printk(KERN_INFO "dec_state %d rc = %d\n", audio->dec_state, rc);
 
 			if (audio->dec_state != MSM_AUD_DECODER_STATE_SUCCESS)
 				rc = -ENODEV;
@@ -1478,7 +1478,7 @@ static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			rc = wait_event_interruptible(audio->write_wait,
 				!audio->wflush);
 			if (rc < 0) {
-				pr_aud_err("AUDIO_FLUSH interrupted\n");
+				printk(KERN_ERR "AUDIO_FLUSH interrupted\n");
 				rc = -EINTR;
 			}
 		} else {
@@ -1501,7 +1501,7 @@ static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		rc = wait_event_interruptible(audio->read_wait,
 				!audio->rflush);
 		if (rc < 0) {
-			pr_aud_err("AUDPLAY_OUTPORT_FLUSH interrupted\n");
+			printk(KERN_ERR "AUDPLAY_OUTPORT_FLUSH interrupted\n");
 			rc = -EINTR;
 		}
 		break;
@@ -1565,7 +1565,7 @@ static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 
 			if (config.pcm_feedback != audio->pcm_feedback) {
-				pr_aud_err("Not sufficient permission to"
+				printk(KERN_ERR "Not sufficient permission to"
 					 "change the playback mode\n");
 				rc = -EACCES;
 				break;
@@ -1600,7 +1600,7 @@ static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 							config.buffer_size *
 							config.buffer_count);
 				if (!audio->read_data) {
-					pr_aud_err("malloc read buf failed\n");
+					printk(KERN_ERR "malloc read buf failed\n");
 					rc = -ENOMEM;
 					pmem_kfree(audio->read_phys);
 				} else {
@@ -1875,7 +1875,7 @@ static ssize_t audio_read(struct file *file, char __user *buf, size_t count,
 			if (copy_to_user
 			    (buf, audio->in[audio->read_next].data,
 			     audio->in[audio->read_next].used)) {
-				pr_aud_err("invalid addr %x \n", (unsigned int)buf);
+				printk(KERN_ERR "invalid addr %x \n", (unsigned int)buf);
 				rc = -EFAULT;
 				break;
 			}
@@ -2107,7 +2107,7 @@ static int audio_release(struct inode *inode, struct file *file)
 {
 	struct audio *audio = file->private_data;
 
-	pr_aud_info("audio instance 0x%08x freeing\n", (int)audio);
+	printk(KERN_INFO "audio instance 0x%08x freeing\n", (int)audio);
 	mutex_lock(&audio->lock);
 	auddev_unregister_evt_listner(AUDDEV_CLNT_DEC, audio->dec_id);
 	audio_disable(audio);
@@ -2154,7 +2154,7 @@ static void audmp3_post_event(struct audio *audio, int type,
 	} else {
 		e_node = kmalloc(sizeof(struct audmp3_event), GFP_ATOMIC);
 		if (!e_node) {
-			pr_aud_err("No mem to post event %d\n", type);
+			printk(KERN_ERR "No mem to post event %d\n", type);
 			return;
 		}
 	}
@@ -2259,11 +2259,11 @@ static int audio_open(struct inode *inode, struct file *file)
 	/* Allocate audio instance, set to zero */
 	audio = kzalloc(sizeof(struct audio), GFP_KERNEL);
 	if (!audio) {
-		pr_aud_err("no memory to allocate audio instance \n");
+		printk(KERN_ERR "no memory to allocate audio instance \n");
 		rc = -ENOMEM;
 		goto done;
 	}
-	pr_aud_info("audio instance 0x%08x created\n", (int)audio);
+	printk(KERN_INFO "audio instance 0x%08x created\n", (int)audio);
 
 	/* Allocate the decoder */
 	dec_attrb = AUDDEC_DEC_MP3;
@@ -2284,7 +2284,7 @@ static int audio_open(struct inode *inode, struct file *file)
 	decid = audpp_adec_alloc(dec_attrb, &audio->module_name,
 			&audio->queue_id);
 	if (decid < 0) {
-		pr_aud_err("No free decoder available, freeing instance 0x%08x\n",
+		printk(KERN_ERR "No free decoder available, freeing instance 0x%08x\n",
 				(int)audio);
 		rc = -ENODEV;
 		kfree(audio);
@@ -2311,7 +2311,7 @@ static int audio_open(struct inode *inode, struct file *file)
 			if (!IS_ERR((void *)audio->phys)) {
 				audio->data = ioremap(audio->phys, pmem_sz);
 				if (!audio->data) {
-					pr_aud_err("could not allocate write \
+					printk(KERN_ERR "could not allocate write \
 						buffers, freeing instance \
 						0x%08x\n", (int)audio);
 					rc = -ENOMEM;
@@ -2325,7 +2325,7 @@ static int audio_open(struct inode *inode, struct file *file)
 					(int)audio->data);
 				break;
 			} else if (pmem_sz == DMASZ_MIN) {
-				pr_aud_err("could not allocate write buffers, \
+				printk(KERN_ERR "could not allocate write buffers, \
 						freeing instance 0x%08x\n",
 						(int)audio);
 				rc = -ENOMEM;
@@ -2355,7 +2355,7 @@ static int audio_open(struct inode *inode, struct file *file)
 		&audplay_adsp_ops, audio);
 
 	if (rc) {
-		pr_aud_err("failed to get %s module freeing instance 0x%08x\n",
+		printk(KERN_ERR "failed to get %s module freeing instance 0x%08x\n",
 				audio->module_name, (int)audio);
 		goto err;
 	}
@@ -2399,7 +2399,7 @@ static int audio_open(struct inode *inode, struct file *file)
 					mp3_listner,
 					(void *)audio);
 	if (rc) {
-		pr_aud_err("%s: failed to register listner\n", __func__);
+		printk(KERN_ERR "%s: failed to register listner\n", __func__);
 		goto event_err;
 	}
 
@@ -2416,7 +2416,7 @@ static int audio_open(struct inode *inode, struct file *file)
 		if (e_node)
 			list_add_tail(&e_node->list, &audio->free_event_queue);
 		else {
-			pr_aud_err("event pkt alloc failed\n");
+			printk(KERN_ERR "event pkt alloc failed\n");
 			break;
 		}
 	}

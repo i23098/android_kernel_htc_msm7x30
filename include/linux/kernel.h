@@ -457,22 +457,6 @@ static inline char * __deprecated pack_hex_byte(char *buf, u8 byte)
 extern int hex_to_bin(char ch);
 extern int __must_check hex2bin(u8 *dst, const char *src, size_t count);
 
-#define pr_aud_fmt(fmt) "[AUD] " KBUILD_MODNAME ": " fmt
-#define pr_aud_fmt1(fmt) "[AUD]" fmt
-#define pr_aud_err(fmt, ...) \
-			printk(KERN_ERR pr_aud_fmt(fmt), ##__VA_ARGS__)
-#define pr_aud_err1(fmt, ...) \
-			printk(KERN_ERR pr_aud_fmt1(fmt), ##__VA_ARGS__)
-#ifdef CONFIG_DEBUG_KERNEL
-#define pr_aud_info(fmt, ...) \
-			printk(KERN_INFO pr_aud_fmt(fmt), ##__VA_ARGS__)
-#define pr_aud_info1(fmt, ...) \
-			printk(KERN_INFO pr_aud_fmt1(fmt), ##__VA_ARGS__)
-#else
-#define pr_aud_info(fmt, ...) do { } while (0)
-#define pr_aud_info1(fmt, ...) do { } while (0)
-#endif
-
 int mac_pton(const char *s, u8 *mac);
 
 /*

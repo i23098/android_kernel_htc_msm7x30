@@ -213,7 +213,7 @@ static void voice_auddev_cb_function(u32 evt_id,
 					pr_info("wait timeout, voc_state = %d\n", v->voc_state);
 					return;
 				}
-				pr_aud_info("wait done, voc_state = %d\n", v->voc_state);
+				printk(KERN_INFO "wait done, voc_state = %d\n", v->voc_state);
 			} else {
 				MM_ERR("Get AUDDEV_EVT_DEV_CHG_VOICE "
 				       "at improper voc_state %d\n", v->voc_state);
