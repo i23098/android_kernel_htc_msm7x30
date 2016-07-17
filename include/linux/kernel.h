@@ -473,6 +473,8 @@ extern int __must_check hex2bin(u8 *dst, const char *src, size_t count);
 #define pr_aud_info1(fmt, ...) do { } while (0)
 #endif
 
+int mac_pton(const char *s, u8 *mac);
+
 /*
  * General tracing related utility functions - trace_printk(),
  * tracing_on/tracing_off and tracing_start()/tracing_stop
