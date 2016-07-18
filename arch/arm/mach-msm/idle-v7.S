@@ -21,10 +21,6 @@
 
 /* 11 general purpose registers (r4-r14), 10 cp15 registers */
 #define CPU_SAVED_STATE_SIZE (4 * 11 + 4 * 10)
-#ifdef CONFIG_ARCH_MSM_KRAIT
-#define SCM_SVC_BOOT 0x1
-#define SCM_CMD_TERMINATE_PC 0x2
-#endif
 
 ENTRY(msm_arch_idle)
 	wfi
@@ -66,9 +62,6 @@ ENTRY(msm_pm_collapse)
 #ifdef CONFIG_MSM_DEBUG_ACROSS_PC
 	bl      msm_save_jtag_debug
 #endif
-#ifdef CONFIG_MSM_TRACE_ACROSS_PC
-	bl      etm_save_reg_check
-#endif
 
 	ldr	r0, =msm_pm_flush_l2_flag
 	ldr	r0, [r0]
@@ -94,23 +87,12 @@ skip:	ldr	r0, =saved_state
 	mcr     p15, 0, r0, c1, c0, 0    /* disable d/i cache  */
 
 	dsb
-#ifdef CONFIG_ARCH_MSM_KRAIT
-	ldr	r0, =SCM_SVC_BOOT
-	ldr	r1, =SCM_CMD_TERMINATE_PC
-	ldr	r2, =msm_pm_flush_l2_flag
-	ldr	r2, [r2]
-	bl	scm_call_atomic1
-#else
 	wfi
-#endif
 	mcr     p15, 0, r4, c1, c0, 0    /* restore d/i cache  */
 	isb
 
 #if defined(CONFIG_MSM_FIQ_SUPPORT)
 	cpsie   f
-#endif
-#ifdef CONFIG_MSM_TRACE_ACROSS_PC
-	bl	etm_restore_reg_check
 #endif
 #ifdef CONFIG_MSM_DEBUG_ACROSS_PC
 	bl	msm_restore_jtag_debug
@@ -195,9 +177,6 @@ msm_pm_pa_to_va:
 	isb
 	stmfd   sp!, {lr}
 	bl      v7_flush_kern_cache_all
-#ifdef CONFIG_MSM_TRACE_ACROSS_PC
-	bl      etm_restore_reg_check
-#endif
 #ifdef CONFIG_MSM_DEBUG_ACROSS_PC
 	bl      msm_restore_jtag_debug
 #endif

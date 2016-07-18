@@ -1463,17 +1463,10 @@ static struct msm_pm_platform_data msm_pm_data[MSM_PM_SLEEP_MODE_NR] = {
 		.residency = 23740,
 	},
 	[MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE] = {
-#ifdef CONFIG_MSM_STANDALONE_POWER_COLLAPSE
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 0,
-#else /*CONFIG_MSM_STANDALONE_POWER_COLLAPSE*/
 		.idle_supported = 0,
 		.suspend_supported = 0,
 		.idle_enabled = 0,
 		.suspend_enabled = 0,
-#endif /*CONFIG_MSM_STANDALONE_POWER_COLLAPSE*/
 		.latency = 500,
 		.residency = 6000,
 	},
@@ -1746,19 +1739,6 @@ static struct platform_device ds2746_battery_pdev = {
 #endif
 
 static int isl29028_power(int pwr_device, uint8_t enable);
-
-#ifdef CONFIG_SUPPORT_DQ_BATTERY
-static int __init check_dq_setup(char *str)
-{
-	if (!strcmp(str, "PASS"))
-		tps65200_data.dq_result = 1;
-	else
-		tps65200_data.dq_result = 0;
-
-	return 1;
-}
-__setup("androidboot.dq=", check_dq_setup);
-#endif
 
 #ifdef CONFIG_SERIAL_MSM_HS
 static struct msm_serial_hs_platform_data msm_uart_dm1_pdata = {
@@ -2521,17 +2501,6 @@ out:
 
 #endif
 
-#ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
-#ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
-static unsigned int msm7x30_sdcc_slot_status(struct device *dev)
-{
-	return (unsigned int)
-		!gpio_get_value_cansleep(
-			PM8058_GPIO_PM_TO_SYS(SPADE_GPIO_SDMC_CD_N));
-}
-#endif
-#endif
-
 #ifdef CONFIG_MMC_MSM_SDC2_SUPPORT
 static unsigned int spade_sdc2_slot_type = MMC_TYPE_MMC;
 static struct msm_mmc_platform_data msm7x30_sdc2_data = {
@@ -2556,12 +2525,6 @@ static struct msm_mmc_platform_data msm7x30_sdc4_data = {
 	.ocr_mask	= MMC_VDD_27_28 | MMC_VDD_28_29,
 	.translate_vdd	= msm_sdcc_setup_power,
 	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
-
-#ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
-	.status      = msm7x30_sdcc_slot_status,
-	.status_irq  = PM8058_GPIO_IRQ(PMIC8058_IRQ_BASE, SPADE_GPIO_SDMC_CD_N),
-	.irq_flags   = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-#endif
 
 #ifdef CONFIG_MMC_MSM_SDC4_WP_SUPPORT
 	.wpswitch    = msm_sdcc_get_wpswitch,

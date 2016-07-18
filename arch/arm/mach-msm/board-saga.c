@@ -428,19 +428,6 @@ static int pm8058_gpios_init(void)
 		}
 	};
 
-#ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
-	struct pm8xxx_gpio_init_info sdcc_det = {
-		PM8058_GPIO_PM_TO_SYS(SAGA_SDMC_CD_N),
-		{
-			.direction      = PM_GPIO_DIR_IN,
-			.pull           = PM_GPIO_PULL_UP_31P5,
-			.vin_sel        = PM8058_GPIO_VIN_L5,
-			.function       = PM_GPIO_FUNC_NORMAL,
-			.inv_int_pol    = 0,
-		},
-	};
-#endif
-
 	rc = pm8xxx_gpio_config(gpio24.gpio, &gpio24.config);
 	if (rc) {
 		pr_err("%s PMIC_GPIO_SAGA_GREEN_LED config failed\n", __func__);
@@ -452,17 +439,6 @@ static int pm8058_gpios_init(void)
 		pr_err("%s PMIC_GPIO_SAGA_GREEN_GREEN config failed\n", __func__);
 		return rc;
 	}
-
-#ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
-	if (machine_is_msm7x30_fluid())
-		sdcc_det.config.inv_int_pol = 1;
-
-	rc = pm8xxx_gpio_config(sdcc_det.gpio, &sdcc_det.config);
-	if (rc) {
-		pr_err("%s SAGA_SDMC_CD_N config failed\n", __func__);
-		return rc;
-	}
-#endif
 
 	return 0;
 }
@@ -2082,17 +2058,10 @@ static struct msm_pm_platform_data msm_pm_data[MSM_PM_SLEEP_MODE_NR] = {
 		.residency = 23740,
 	},
 	[MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE] = {
-#ifdef CONFIG_MSM_STANDALONE_POWER_COLLAPSE
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 0,
-#else /*CONFIG_MSM_STANDALONE_POWER_COLLAPSE*/
 		.idle_supported = 0,
 		.suspend_supported = 0,
 		.idle_enabled = 0,
 		.suspend_enabled = 0,
-#endif /*CONFIG_MSM_STANDALONE_POWER_COLLAPSE*/
 		.latency = 500,
 		.residency = 6000,
 	},
@@ -3558,14 +3527,6 @@ out:
 #endif
 
 #ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
-#ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
-static unsigned int msm7x30_sdcc_slot_status(struct device *dev)
-{
-	return (unsigned int)
-		!gpio_get_value_cansleep(
-			PM8058_GPIO_PM_TO_SYS(SAGA_SDMC_CD_N));
-}
-#endif
 #ifdef CONFIG_MMC_MSM_SDC4_WP_SUPPORT
 static int msm_sdcc_get_wpswitch(struct device *dv)
 {
@@ -3644,12 +3605,6 @@ static struct msm_mmc_platform_data msm7x30_sdc4_data = {
 	.ocr_mask	= MMC_VDD_27_28 | MMC_VDD_28_29,
 	.translate_vdd	= msm_sdcc_setup_power,
 	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
-
-#ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
-	.status      = msm7x30_sdcc_slot_status,
-	.status_irq  = PM8058_GPIO_IRQ(PMIC8058_IRQ_BASE, SAGA_SDMC_CD_N),
-	.irq_flags   = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-#endif
 
 #ifdef CONFIG_MMC_MSM_SDC4_WP_SUPPORT
 	.wpswitch    = msm_sdcc_get_wpswitch,

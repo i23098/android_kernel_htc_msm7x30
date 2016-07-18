@@ -27,7 +27,6 @@
 #include <asm/io.h>
 
 #include <mach/vreg.h>
-#include <mach/htc_pwrsink.h>
 
 #include <linux/platform_data/mmc-msm_sdcc.h>
 

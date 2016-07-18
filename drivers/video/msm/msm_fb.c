@@ -2944,7 +2944,7 @@ static inline void dma_cache_post_ops(void *virtual_addr,
 
 	BUG_ON(!valid_dma_direction(dir));
 	
-#if defined CONFIG_ARCH_MSM_SCORPION || defined CONFIG_ARCH_MSM_KRAIT
+#if defined CONFIG_ARCH_MSM_SCORPION
 	if (dir != DMA_TO_DEVICE)
 		/*
 		 * Treat DMA_BIDIRECTIONAL and DMA_FROM_DEVICE

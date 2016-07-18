@@ -52,9 +52,6 @@ static const struct smd_tty_channel_desc smd_default_tty_channels[] = {
 	{ .id = 21, .name = "SMD_DATA21" },
 	{ .id = 27, .name = "SMD_GPSNMEA" },
 	{ .id = 36, .name = "SMD_LOOPBACK" },
-#ifdef CONFIG_BUILD_OMA_DM
-	{ .id = 19, .name = "SMD_DATA3" }, /* MASD requested OMA_DM AT-channel */
-#endif
 #ifdef CONFIG_BUILD_CIQ
 	{ .id = 26, .name = "SMD_DATA20" }, /* CIQ Master/Slaver Bridge */
 #endif
