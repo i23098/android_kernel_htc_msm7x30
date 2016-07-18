@@ -19,7 +19,6 @@
 #include <linux/errno.h>
 #include <linux/io.h>
 #include <linux/spinlock.h>
-#include <linux/module.h>
 #include <mach/msm_iomap.h>
 
 #include "proc_comm.h"
@@ -27,16 +26,14 @@
 static inline void msm_a2m_int(uint32_t irq)
 {
 #if defined(CONFIG_ARCH_MSM7X30)
-	__raw_writel(1 << irq, MSM_GCC_BASE + 0x8);
+	writel(1 << irq, MSM_GCC_BASE + 0x8);
 #else
-	__raw_writel(1, MSM_CSR_BASE + 0x400 + (irq * 4));
+	writel(1, MSM_CSR_BASE + 0x400 + (irq * 4));
 #endif
 }
 
 static inline void notify_other_proc_comm(void)
 {
-	/* Make sure the write completes before interrupt */
-	wmb();
 	msm_a2m_int(6);
 }
 
@@ -68,9 +65,7 @@ int (*msm_check_for_modem_crash)(void);
 static int proc_comm_wait_for(void __iomem *addr, unsigned value)
 {
 	for (;;) {
-		/* Barrier here prevents excessive spinning */
-		mb();
-		if (readl_relaxed(addr) == value)
+		if (readl(addr) == value)
 			return 0;
 
 		if (msm_check_for_modem_crash)
@@ -104,7 +99,6 @@ again:
 
 	return;
 }
-EXPORT_SYMBOL(msm_proc_comm_reset_modem_now);
 
 int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2)
 {
@@ -118,22 +112,20 @@ int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2)
 		if (proc_comm_wait_for(base + MDM_STATUS, PCOM_READY))
 			continue;
 
-		writel_relaxed(cmd, base + APP_COMMAND);
-		writel_relaxed(data1 ? *data1 : 0, base + APP_DATA1);
-		writel_relaxed(data2 ? *data2 : 0, base + APP_DATA2);
+		writel(cmd, base + APP_COMMAND);
+		writel(data1 ? *data1 : 0, base + APP_DATA1);
+		writel(data2 ? *data2 : 0, base + APP_DATA2);
 
-		/* Make sure the writes complete before notifying the other side */
-		wmb();
 		notify_other_proc_comm();
 
 		if (proc_comm_wait_for(base + APP_COMMAND, PCOM_CMD_DONE))
 			continue;
 
-		if (readl_relaxed(base + APP_STATUS) == PCOM_CMD_SUCCESS) {
+		if (readl(base + APP_STATUS) != PCOM_CMD_FAIL) {
 			if (data1)
-				*data1 = readl_relaxed(base + APP_DATA1);
+				*data1 = readl(base + APP_DATA1);
 			if (data2)
-				*data2 = readl_relaxed(base + APP_DATA2);
+				*data2 = readl(base + APP_DATA2);
 			ret = 0;
 		} else {
 			ret = -EIO;
@@ -141,24 +133,12 @@ int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2)
 		break;
 	}
 
-	writel_relaxed(PCOM_CMD_IDLE, base + APP_COMMAND);
+	writel(PCOM_CMD_IDLE, base + APP_COMMAND);
 
-	switch (cmd) {
-	case PCOM_RESET_CHIP:
-	case PCOM_RESET_CHIP_IMM:
-	case PCOM_RESET_APPS:
-		/* Do not disable proc_comm when device reset */
-		break;
-	}
-
-	/* Make sure the writes complete before returning */
-	wmb();
 	spin_unlock_irqrestore(&proc_comm_lock, flags);
 
 	return ret;
 }
-
-EXPORT_SYMBOL(msm_proc_comm);
 
 /*
  * We need to wait for the ARM9 to at least partially boot

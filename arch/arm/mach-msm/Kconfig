@@ -880,19 +880,6 @@ config MSM_QDSP6
 	help
 	  Enable support for qdsp6. This provides audio and video functionality.
 
-config RTAC
-	bool "MSM8K real-time audio calibration support"
-	default y
-	help
-	  Enable support for rtac. This enables calibration during
-	  audio operation
-
-config MSM_VREG_SWITCH_INVERTED
-	bool "Reverse vreg switch polarity"
-	default n
-	help
-	  Reverses the enable and disable for vreg switch.
-
 config MSM_DMA_TEST
 	tristate "MSM DMA test module"
 	default m

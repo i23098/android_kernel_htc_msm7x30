@@ -23,6 +23,7 @@
 #include <linux/io.h>
 
 #include <mach/msm_iomap.h>
+
 #include "smd_private.h"
 
 enum {
@@ -370,7 +371,6 @@ static int debug_read_smsm_state(char *buf, int max)
 				       n, smsm[n]);
 
 	return i;
-
 }
 
 static int debug_read_mem(char *buf, int max)
@@ -473,7 +473,7 @@ static int debug_read_smem_version(char *buf, int max)
 }
 
 /* NNV: revist, it may not be smd version */
-static int debug_read_smd_version(char *buf, int max)
+static int debug_read_version(char *buf, int max)
 {
 	uint32_t *smd_ver;
 	uint32_t n, version, i = 0;
@@ -591,14 +591,14 @@ static const struct file_operations debug_ops = {
 	.open = debug_open,
 };
 
-static void debug_create(const char *name, mode_t mode,
+static void debug_create(const char *name, umode_t mode,
 			 struct dentry *dent,
 			 int (*fill)(char *buf, int max))
 {
 	debugfs_create_file(name, mode, dent, fill, &debug_ops);
 }
 
-static int __init smd_debugfs_init(void)
+int __init smd_debugfs_init(void)
 {
 	struct dentry *dent;
 
@@ -609,7 +609,7 @@ static int __init smd_debugfs_init(void)
 	debug_create("ch", 0444, dent, debug_read_ch);
 	debug_create("diag", 0444, dent, debug_read_diag_msg);
 	debug_create("mem", 0444, dent, debug_read_mem);
-	debug_create("version", 0444, dent, debug_read_smd_version);
+	debug_create("version", 0444, dent, debug_read_version);
 	debug_create("tbl", 0444, dent, debug_read_alloc_tbl);
 	debug_create("modem_err", 0444, dent, debug_modem_err);
 	debug_create("modem_err_f3", 0444, dent, debug_modem_err_f3);

@@ -65,12 +65,4 @@ struct proccomm_regulator_platform_data {
 	size_t				nregs;
 };
 
-#if defined(CONFIG_MSM_VREG_SWITCH_INVERTED)
-#define VREG_SWITCH_ENABLE 0
-#define VREG_SWITCH_DISABLE 1
-#else
-#define VREG_SWITCH_ENABLE 1
-#define VREG_SWITCH_DISABLE 0
-#endif
-
 #endif

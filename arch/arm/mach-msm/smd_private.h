@@ -16,8 +16,13 @@
 #ifndef _ARCH_ARM_MACH_MSM_MSM_SMD_PRIVATE_H_
 #define _ARCH_ARM_MACH_MSM_MSM_SMD_PRIVATE_H_
 
-#include <linux/types.h>
+#include <linux/platform_device.h>
 #include <linux/spinlock.h>
+#include <linux/list.h>
+#include <linux/io.h>
+
+#include <mach/msm_iomap.h>
+#include <linux/types.h>
 #include <mach/msm_smsm.h>
 
 
@@ -45,6 +50,7 @@ struct smem_proc_comm {
 #define PC_APPS  0
 #define PC_MODEM 1
 
+#define VERSION_SMD       0
 #define VERSION_QDSP6     4
 #define VERSION_APPS_SBL  6
 #define VERSION_MODEM_SBL 7
@@ -52,18 +58,20 @@ struct smem_proc_comm {
 #define VERSION_MODEM     9
 #define VERSION_DSPS      10
 
-#define SMD_HEAP_SIZE 512
-
 struct smem_shared {
 	struct smem_proc_comm proc_comm[4];
 	unsigned version[32];
 	struct smem_heap_info heap_info;
-	struct smem_heap_entry heap_toc[SMD_HEAP_SIZE];
+	struct smem_heap_entry heap_toc[512];
 };
 
-/* Add by Andy for HTC pm.c */
-/* ========================================================================*/
-#if defined(CONFIG_MSM_N_WAY_SMD)
+#ifdef CONFIG_MSM_SMD_PKG3
+struct smsm_interrupt_info {
+	uint32_t interrupt_mask;
+	uint32_t pending_interrupts;
+	uint32_t wakeup_reason;
+};
+#else
 #define DEM_MAX_PORT_NAME_LEN (20)
 struct msm_dem_slave_data {
 	uint32_t sleep_time;
@@ -79,6 +87,7 @@ struct msm_dem_slave_data {
 	uint32_t reserved2;
 };
 #endif
+
 /* ========================================================================*/
 #if defined(CONFIG_MSM_SMD_PKG4)
 struct smsm_interrupt_info {
@@ -113,9 +122,13 @@ void *smem_alloc(unsigned id, unsigned size)
 
 #define SMSM_UNKNOWN           0x80000000
 
-/* Add by Andy for HTC irq.c */
-/* ========================================================================*/
-#if defined(CONFIG_MSM_N_WAY_SMD)
+#ifdef CONFIG_ARCH_MSM7X00A
+enum smsm_state_item {
+	SMSM_STATE_APPS = 1,
+	SMSM_STATE_MODEM = 3,
+	SMSM_STATE_COUNT,
+};
+#else
 enum smsm_state_item {
 	SMSM_STATE_APPS,
 	SMSM_STATE_MODEM,
@@ -127,14 +140,7 @@ enum smsm_state_item {
 	SMSM_STATE_TIME_MASTER_DEM,
 	SMSM_STATE_COUNT,
 };
-#else
-enum smsm_state_item {
-	SMSM_STATE_APPS = 1,
-	SMSM_STATE_MODEM = 3,
-	SMSM_STATE_COUNT,
-};
 #endif
-/* ========================================================================*/
 
 /* Add by Andy for HTC pm.c */
 /* ========================================================================*/
@@ -257,5 +263,6 @@ enum {
 extern spinlock_t smem_lock;
 
 void smd_diag(void);
+
 
 #endif
