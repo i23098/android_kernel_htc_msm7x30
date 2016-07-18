@@ -13,10 +13,11 @@
  *
  */
 
-#include <linux/kernel.h>
 #include <linux/err.h>
-
+#include <linux/ctype.h>
+#include <linux/stddef.h>
 #include <mach/clk.h>
+#include <linux/kernel.h>
 #include <mach/socinfo.h>
 
 #include "proc_comm.h"

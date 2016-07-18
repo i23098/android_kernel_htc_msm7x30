@@ -22,17 +22,8 @@
 #include <linux/module.h>
 #include <linux/string.h>
 #include <mach/vreg.h>
-#include <linux/export.h>
 
 #include "proc_comm.h"
-
-#if defined(CONFIG_MSM_VREG_SWITCH_INVERTED)
-#define VREG_SWITCH_ENABLE 0
-#define VREG_SWITCH_DISABLE 1
-#else
-#define VREG_SWITCH_ENABLE 1
-#define VREG_SWITCH_DISABLE 0
-#endif
 
 struct vreg {
 	const char *name;
@@ -113,7 +104,6 @@ struct vreg *vreg_get(struct device *dev, const char *id)
 	}
 	return ERR_PTR(-ENOENT);
 }
-EXPORT_SYMBOL(vreg_get);
 
 void vreg_put(struct vreg *vreg)
 {
@@ -122,7 +112,7 @@ void vreg_put(struct vreg *vreg)
 int vreg_enable(struct vreg *vreg)
 {
 	unsigned id = vreg->id;
-	int enable = VREG_SWITCH_ENABLE;
+	unsigned enable = 1;
 
 #if 1
 	/* set refcnt as vreg state */
@@ -140,16 +130,15 @@ int vreg_enable(struct vreg *vreg)
 
 	return vreg->status;
 }
-EXPORT_SYMBOL(vreg_enable);
 
 int vreg_disable(struct vreg *vreg)
 {
 	unsigned id = vreg->id;
-	int disable = VREG_SWITCH_DISABLE;
+	unsigned enable = 0;
 
 #if 1
 	/* set refcnt as vreg state */
-	vreg->status = msm_proc_comm(PCOM_VREG_SWITCH, &id, &disable);
+	vreg->status = msm_proc_comm(PCOM_VREG_SWITCH, &id, &enable);
 
 	if (!vreg->status)
 		vreg->refcnt = 0;
@@ -158,7 +147,7 @@ int vreg_disable(struct vreg *vreg)
 		return 0;
 
 	if (vreg->refcnt == 1)
-		vreg->status = msm_proc_comm(PCOM_VREG_SWITCH, &id, &disable);
+		vreg->status = msm_proc_comm(PCOM_VREG_SWITCH, &id, &enable);
 
 	if (!vreg->status)
 		vreg->refcnt--;
@@ -166,7 +155,6 @@ int vreg_disable(struct vreg *vreg)
 
 	return vreg->status;
 }
-EXPORT_SYMBOL(vreg_disable);
 
 int vreg_set_level(struct vreg *vreg, unsigned mv)
 {
@@ -175,7 +163,6 @@ int vreg_set_level(struct vreg *vreg, unsigned mv)
 	vreg->status = msm_proc_comm(PCOM_VREG_SET_LEVEL, &id, &mv);
 	return vreg->status;
 }
-EXPORT_SYMBOL(vreg_set_level);
 
 #if defined(CONFIG_DEBUG_FS)
 
