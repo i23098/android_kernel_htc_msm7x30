@@ -26,7 +26,7 @@
 #include <asm/system_info.h>
 #include <asm/tlbflush.h>
 #include <asm/cputype.h>
-#if defined(CONFIG_ARCH_MSM_SCORPION) && !defined(CONFIG_MSM_SMP)
+#if defined(CONFIG_ARCH_MSM_SCORPION)
 #include <asm/io.h>
 #include <mach/msm_iomap.h>
 #endif
@@ -512,7 +512,7 @@ do_bad(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
 	return 1;
 }
 
-#if defined(CONFIG_ARCH_MSM_SCORPION) && !defined(CONFIG_MSM_SMP)
+#if defined(CONFIG_ARCH_MSM_SCORPION)
 #define __str(x) #x
 #define MRC(x, v1, v2, v4, v5, v6) do {					\
 	unsigned int __##x;						\

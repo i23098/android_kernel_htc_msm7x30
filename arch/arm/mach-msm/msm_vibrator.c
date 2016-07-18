@@ -1,5 +1,4 @@
-/* include/asm/mach-msm/htc_pwrsink.h
- *
+/* 
  * Copyright (C) 2008 HTC Corporation.
  * Copyright (C) 2007 Google, Inc.
  * Copyright (c) 2011 Code Aurora Forum. All rights reserved.
@@ -27,11 +26,7 @@
 #include <linux/module.h>
 
 #define PM_LIBPROG      0x30000061
-#ifdef  CONFIG_RPC_VER_60001
-#define PM_LIBVERS	0x60001
-#else
 #define PM_LIBVERS	0x30001
-#endif
 #define VIB_MAX_LEVEL_mV	3100
 #define VIB_MIN_LEVEL_mV	1200
 #define PMIC_VIBRATOR_LEVEL (3000)

@@ -1338,7 +1338,7 @@ config ARM_ERRATA_754327
 
 config KSAPI
 	tristate "KSAPI support (EXPERIMENTAL)"
-	depends on ARCH_MSM_SCORPION || ARCH_MSM_KRAIT
+	depends on ARCH_MSM_SCORPION
 	default n
 	help
 	  KSAPI: Performance monitoring tool for linux.

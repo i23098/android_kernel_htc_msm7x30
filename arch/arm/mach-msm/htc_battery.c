@@ -36,9 +36,6 @@
 #include "smd_private.h"
 #endif
 
-#if defined(CONFIG_TROUT_BATTCHG_DOCK)
-#include <mach/htc_one_wire.h>
-#endif
 #ifdef CONFIG_BATTERY_DS2784
 #include <linux/ds2784_battery.h>
 #elif defined(CONFIG_BATTERY_DS2746)
@@ -1673,22 +1670,6 @@ static void batt_charger_ctrl_alarm_handler(struct alarm *alarm)
 	queue_work(batt_charger_ctrl_wq, &batt_charger_ctrl_work);
 }
 
-#ifdef CONFIG_HTC_BATT_ALARM
-int htc_battery_core_update(enum power_supplies_type supply)
-{
-	if (battery_register) {
-		BATT_ERR("No battery driver exists.");
-		return -1;
-	}
-
-	mutex_lock(&battery_core_info.info_lock);
-	htc_battery_update_change();
-	mutex_unlock(&battery_core_info.info_lock);
-	power_supply_changed(&htc_power_supplies[supply]);
-
-	return 0;
-}
-#endif
 static int htc_battery_core_probe(struct platform_device *pdev)
 {
 	int i, rc;
@@ -1820,9 +1801,6 @@ static int handle_battery_call(struct msm_rpc_server *server,
 		if (htc_batt_debug_mask & HTC_BATT_DEBUG_M2A_RPC)
 			BATT_LOG("M2A_RPC: cable_update: %s", charger_tags[args->status]);
 		htc_cable_status_update(args->status);
-#if defined(CONFIG_TROUT_BATTCHG_DOCK)
-		dock_detect_start(args->status);
-#endif
 		return 0;
 	}
 	case RPC_BATT_MTOA_LEVEL_UPDATE_PROC: {

@@ -83,13 +83,6 @@ enum {
 	MSM_PM_DEBUG_IDLE_CLOCK = 1U << 11,
 };
 
-#ifdef CONFIG_HTC_OFFMODE_ALARM
-static int offalarm_size = 10;
-static unsigned int offalarm[10];
-module_param_array_named(offalarm, offalarm, uint, &offalarm_size,
-			S_IRUGO | S_IWUSR);
-#endif
-
 static int msm_pm_debug_mask = MSM_PM_DEBUG_CLOCK | MSM_PM_DEBUG_WAKEUP_REASON;
 module_param_named(
 	debug_mask, msm_pm_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP
@@ -1563,46 +1556,12 @@ void msm_pm_flush_console(void)
 
 static uint32_t restart_reason = 0x776655AA;
 
-#ifdef CONFIG_HTC_OFFMODE_ALARM
-
-static int msm_wakeup_after;	/* default, no wakeup by alarm */
-
-static int set_offmode_alarm(void)
-{
-	struct timespec rtc_now;
-	int next_alarm_interval;
-	int i;
-
-	getnstimeofday(&rtc_now);
-
-	for (i = 0; i < offalarm_size; i++) {
-		if (offalarm[i] > rtc_now.tv_sec) {
-			next_alarm_interval = offalarm[i] - rtc_now.tv_sec;
-			if (next_alarm_interval > 604800)	/* ignore alarm if the interval of timer is over one week */
-				continue;
-			next_alarm_interval = next_alarm_interval * 1000;	/* convert to msec */
-			if (msm_wakeup_after == 0)
-				msm_wakeup_after = next_alarm_interval;
-			else if (next_alarm_interval < msm_wakeup_after)
-				msm_wakeup_after = next_alarm_interval;
-		}
-	}
-	return 0;
-}
-#endif
-
 static void msm_pm_power_off(void)
 {
 #if !defined(CONFIG_ARCH_MSM7X30)
 	msm_rpcrouter_close();
 #endif
 
-#ifdef CONFIG_HTC_OFFMODE_ALARM
-	set_offmode_alarm();
-	printk(KERN_INFO "msm_pm_power_off:wakeup after %d\r\n", msm_wakeup_after);
-	if (msm_wakeup_after)
-		msm_proc_comm(PCOM_SET_RTC_ALARM, &msm_wakeup_after, 0);
-#endif
 	msm_proc_comm(PCOM_POWER_DOWN, 0, 0);
 	for (;;)
 		;

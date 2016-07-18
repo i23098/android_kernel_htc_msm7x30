@@ -96,3 +96,9 @@ config MSM_KGSL_DISABLE_SHADOW_WRITES
 	bool "Disable register shadow writes for context switches"
 	default n
 	depends on MSM_KGSL
+
+config KERNEL_PMEM_SMI_REGION
+	bool "Enable in-kernel PMEM region for SMI"
+	default y if ARCH_MSM8X60
+	help
+	   Enable the in-kernel PMEM allocator to use SMI memory.

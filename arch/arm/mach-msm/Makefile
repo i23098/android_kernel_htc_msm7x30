@@ -40,9 +40,7 @@ obj-y += acpuclock.o
 obj-y += drv_callback.o
 obj-$(CONFIG_ARCH_MSM_SCORPION) += pmu.o
 
-ifndef CONFIG_MSM_SMP
 obj-$(CONFIG_ARCH_MSM_SCORPION) += msm_fault_handlers.o
-endif
 
 obj-$(CONFIG_MSM_PROC_COMM) += mpp.o
 ifdef CONFIG_MSM_PROC_COMM
@@ -89,7 +87,6 @@ obj-y += pwrtest.o
 
 obj-$(CONFIG_MSM_SPM_V1) += spm.o
 
-obj-$(CONFIG_MSM_DMA_TEST) += dma_test.o
 obj-$(CONFIG_SURF_FFA_GPIO_KEYPAD) += keypad-surf-ffa.o
 
 obj-$(CONFIG_HTC_BATTCHG) += htc_battery.o
