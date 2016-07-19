@@ -12,7 +12,7 @@
  *
  */
 
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <linux/gpio.h>
 
 extern ssize_t otg_store_usb_phy_setting(const char *buf, size_t count);

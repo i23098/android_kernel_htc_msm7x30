@@ -27,6 +27,7 @@
 #include <linux/device.h>
 #include <linux/pm_qos.h>
 #include <mach/msm_hsusb_hw.h>
+#include <mach/board_htc.h>
 #include <linux/usb/msm72k_hsusb.h>
 #include <mach/msm_hsusb.h>
 #include <mach/clk.h>

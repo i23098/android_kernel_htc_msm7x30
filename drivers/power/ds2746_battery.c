@@ -44,7 +44,7 @@ Original Auther:
 #include <linux/time.h>
 #include <linux/rtc.h>
 #include <linux/slab.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 
 struct ds2746_device_info {
 

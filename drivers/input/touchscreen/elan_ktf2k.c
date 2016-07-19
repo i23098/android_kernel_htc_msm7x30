@@ -23,7 +23,7 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/gpio.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <linux/elan_ktf2k.h>
 #include <linux/device.h>
 #include <linux/jiffies.h>

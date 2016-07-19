@@ -33,12 +33,12 @@
 #include <linux/switch.h>
 #include <linux/pm_runtime.h>
 
+#include <mach/board_htc.h>
 #include <linux/usb/msm72k_hsusb.h>
 #include <linux/io.h>
 
 #include <asm/mach-types.h>
 
-#include <mach/board.h>
 #include <mach/msm_hsusb.h>
 #include <linux/device.h>
 #include <mach/msm_hsusb_hw.h>

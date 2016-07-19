@@ -315,15 +315,6 @@ static int tps65200_dump_register(void)
 	return result;
 }
 
-u32 htc_fake_charger_for_testing(u32 ctl)
-{
-	u32 new_ctl = POWER_SUPPLY_ENABLE_FAST_CHARGE;
-	/* set charger to 1A AC  by default */
-	pr_tps_info("[BATT] %s(%d -> %d)\n", __func__, ctl , new_ctl);
-	batt_charging_state = new_ctl;
-	return new_ctl;
-}
-
 static void set_vdpm(struct work_struct *work)
 {
 	if (tps65200_vdpm_chg)
@@ -337,9 +328,6 @@ int tps_set_charger_ctrl(u32 ctl)
 	u8 regh = 0;
 	u8 regh1 = 0, regh2 = 0, regh3 = 0;
 	int i2c_status = 0;
-
-	if (get_kernel_flag() & KERNEL_FLAG_ENABLE_FAST_CHARGE)
-		ctl = htc_fake_charger_for_testing(ctl);
 
 	if (tps65200_initial < 0)
 		return 0;
