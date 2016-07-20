@@ -24,7 +24,6 @@
 #include <linux/wakelock.h>
 #include <asm/gpio.h>
 #include <mach/msm_rpcrouter.h>
-#include <mach/board.h>
 #include <asm/mach-types.h>
 #include <mach/board_htc.h>
 #include <linux/platform_data/video-msm_fb.h> /*to register display notifier */

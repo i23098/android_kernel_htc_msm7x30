@@ -21,7 +21,7 @@
 #include <linux/platform_device.h>
 #include <linux/gpio.h>
 /*#include <linux/msm_adc.h>*/
-#include <mach/board.h>
+#include <mach/board_htc.h>
 
 #include <mach/cable_detect.h>
 #include <mach/mpp.h>
@@ -58,10 +58,6 @@ struct cable_detect_info {
 	struct workqueue_struct *cable_detect_wq;
 	struct delayed_work cable_detect_work;
 	struct delayed_work vbus_detect_work;
-#if 0
-	struct wake_lock vbus_wlock;
-	struct wake_lock cable_detect_wlock;
-#endif
 	void (*usb_uart_switch)(int);
 	void (*usb_dpdn_switch)(int);
 	struct usb_id_mpp_config_data *mpp_data;
@@ -147,6 +143,16 @@ int cable_detect_register_notifier(struct t_cable_status_notifier *notifier)
 }
 
 #if (defined(CONFIG_USB_OTG) && defined(CONFIG_USB_OTG_HOST))
+/***********************************
+Direction: cable detect drvier -> usb driver
+ ***********************************/
+struct t_usb_host_status_notifier{
+	struct list_head usb_host_notifier_link;
+	const char *name;
+	void (*func)(bool cable_in);
+};
+static LIST_HEAD(g_lh_usb_host_detect_notifier_list);
+
 static DEFINE_MUTEX(usb_host_notify_sem);
 static void send_usb_host_connect_notify(int cable_in)
 {
@@ -165,18 +171,6 @@ static void send_usb_host_connect_notify(int cable_in)
 		}
 	}
 	mutex_unlock(&usb_host_notify_sem);
-}
-
-int usb_host_detect_register_notifier(struct t_usb_host_status_notifier *notifier)
-{
-	if (!notifier || !notifier->name || !notifier->func)
-		return -EINVAL;
-
-	mutex_lock(&usb_host_notify_sem);
-	list_add(&notifier->usb_host_notifier_link,
-			&g_lh_usb_host_detect_notifier_list);
-	mutex_unlock(&usb_host_notify_sem);
-	return 0;
 }
 #endif
 
@@ -352,9 +346,6 @@ static void cable_detect_handler(struct work_struct *w)
 		set_irq_type(pInfo->idpin_irq, IRQF_TRIGGER_HIGH);
 
 	enable_irq(pInfo->idpin_irq);
-#if 0
-	wake_unlock(&pInfo->cable_detect_wlock);
-#endif
 }
 
 void set_mfg_usb_carkit_enable(int enable)
@@ -461,9 +452,6 @@ static irqreturn_t usbid_interrupt(int irq, void *data)
 	pInfo->cable_redetect = 0;
 	queue_delayed_work(pInfo->cable_detect_wq,
 			&pInfo->cable_detect_work, ADC_DELAY);
-#if 0
-	wake_lock_timeout(&pInfo->cable_detect_wlock, HZ*2);
-#endif
 	return IRQ_HANDLED;
 }
 
@@ -621,16 +609,6 @@ static int cable_detect_probe(struct platform_device *pdev)
 		}
 		if (pdata->vbus_mpp_config)
 			pdata->vbus_mpp_config();
-#if 0
-		wake_lock_init(&pInfo->vbus_wlock,
-				WAKE_LOCK_SUSPEND, "vbus_lock");
-#endif
-#ifdef CONFIG_CABLE_DETECT_ACCESSORY
-#if 0
-		wake_lock_init(&pInfo->cable_detect_wlock,
-				WAKE_LOCK_SUSPEND, "cable_detect_lock");
-#endif
-#endif
 		if (pdata->vbus_mpp_gpio) {
 			gpio_request(pdata->vbus_mpp_gpio, "vbus_cable_detect");
 			CABLE_INFO("vbus_mpp_gpio: %d\n", pdata->vbus_mpp_gpio);
@@ -690,10 +668,6 @@ static irqreturn_t vbus_irq_handler(int irq, void *dev_id)
 	queue_delayed_work(pInfo->cable_detect_wq,
 			&pInfo->vbus_detect_work, HZ/10);
 	spin_unlock_irqrestore(&pInfo->lock, flags);
-#if 0
-	wake_lock_timeout(&pInfo->vbus_wlock, HZ*2);
-#endif
-
 
 	return IRQ_HANDLED;
 }
@@ -711,27 +685,6 @@ static void usb_status_notifier_func(int cable_type)
 	struct cable_detect_info*pInfo = &the_cable_info;
 
 	CABLE_INFO("%s: cable_type = %d\n", __func__, cable_type);
-#if 0
-	if (pInfo->accessory_adc > 0 && pInfo->accessory_adc < 150 && cable_type == CONNECT_TYPE_AC) {
-		pInfo->connect_type = CONNECT_TYPE_9V_AC;
-		send_cable_connect_notify(CONNECT_TYPE_9V_AC);
-	} else if (pInfo->accessory_adc > 0 && pInfo->accessory_adc < 150) {
-		pInfo->connect_type = cable_type;
-		send_cable_connect_notify(cable_type);
-		/*enable MHL*/
-		gpio_set_value(pInfo->mhl_usb_sel_gpio, 1);
-		gpio_set_value(pInfo->mhl_reset_gpio, 1);
-	} else if (cable_type == CONNECT_TYPE_NONE) {
-		/*disable MHL*/
-		gpio_set_value(pInfo->mhl_usb_sel_gpio, 0);
-		gpio_set_value(pInfo->mhl_reset_gpio, 0);
-		pInfo->connect_type = cable_type;
-		send_cable_connect_notify(cable_type);
-	} else {
-		pInfo->connect_type = cable_type;
-		send_cable_connect_notify(cable_type);
-	}
-#else
 	if (cable_type > CONNECT_TYPE_NONE) {
 		if (pInfo->is_wireless_charger) {
 			if (pInfo->is_wireless_charger())
@@ -749,7 +702,6 @@ static void usb_status_notifier_func(int cable_type)
 #endif
 	pInfo->connect_type = cable_type;
 	send_cable_connect_notify(cable_type);
-#endif
 }
 
 static struct t_usb_status_notifier usb_status_notifier = {

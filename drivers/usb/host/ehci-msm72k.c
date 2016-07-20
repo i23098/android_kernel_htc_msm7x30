@@ -28,7 +28,7 @@
 #include <linux/clk.h>
 #include <linux/spinlock.h>
 
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <mach/rpc_hsusb.h>
 #include <mach/msm_hsusb.h>
 #include <mach/msm_hsusb_hw.h>
