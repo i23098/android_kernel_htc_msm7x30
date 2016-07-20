@@ -34,7 +34,6 @@
 #define CLKFLAG_HANDOFF_RATE		0x00000010
 #define CLKFLAG_MIN			0x00000400
 #define CLKFLAG_MAX			0x00000800
-#define CLKFLAG_IGNORE		0x10000000	/*added by htc for clock debugging*/
 
 #define MAX_VDD_LEVELS			4
 
@@ -68,6 +67,7 @@ struct clk_ops {
 	int (*handoff)(struct clk *clk);
 	int (*reset)(struct clk *clk, enum clk_reset_action action);
 	int (*set_rate)(struct clk *clk, unsigned long rate);
+	int (*set_min_rate)(struct clk *clk, unsigned rate);
 	int (*set_max_rate)(struct clk *clk, unsigned long rate);
 	int (*set_flags)(struct clk *clk, unsigned flags);
 	unsigned long (*get_rate)(struct clk *clk);
@@ -88,6 +88,9 @@ struct clk_ops {
  * @fmax: maximum frequency in Hz supported at each voltage level
  */
 struct clk {
+	uint32_t id;
+	uint32_t remote_id;
+	uint32_t count;
 	uint32_t flags;
 	struct clk_ops *ops;
 	const char *dbg_name;
@@ -98,9 +101,7 @@ struct clk {
 
 	struct list_head children;
 	struct list_head siblings;
-	struct list_head enable_list;	/*added by htc for clock debugging*/
 
-	unsigned count;
 	spinlock_t lock;
 };
 
@@ -108,12 +109,6 @@ struct clk {
 	.lock = __SPIN_LOCK_UNLOCKED((name).lock), \
 	.children = LIST_HEAD_INIT((name).children), \
 	.siblings = LIST_HEAD_INIT((name).siblings)
-
-/*added by htc for clock debugging*/
-extern struct list_head clk_enable_list;
-extern spinlock_t clk_enable_list_lock;
-extern int is_xo_src(struct clk *);
-extern void clk_ignor_list_add(const char *, const char *);
 
 /**
  * struct clock_init_data - SoC specific clock initialization data
@@ -167,4 +162,3 @@ extern struct clk dummy_clk;
 #define CLK_LOOKUP(con, c, dev) { .con_id = con, .clk = &c, .dev_id = dev }
 
 #endif
-

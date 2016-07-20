@@ -15,6 +15,7 @@
  */
 
 #include <linux/kernel.h>
+#include <linux/list.h>
 #include <linux/err.h>
 #include <linux/spinlock.h>
 #include <linux/pm_qos.h>
@@ -26,6 +27,8 @@
 #include <linux/clkdev.h>
 
 #include "clock.h"
+
+static DEFINE_SPINLOCK(clocks_lock);
 
 /* Find the voltage level required for a given rate. */
 static int find_vdd_level(struct clk *clk, unsigned long rate)
@@ -130,9 +133,6 @@ static void unvote_rate_vdd(struct clk *clk, unsigned long rate)
 	unvote_vdd_level(clk->vdd_class, level);
 }
 
-/*added by htc for clock debugging*/
-LIST_HEAD(clk_enable_list);
-DEFINE_SPINLOCK(clk_enable_list_lock);
 /*
  * Standard clock functions defined in include/linux/clk.h
  */
@@ -145,17 +145,15 @@ int clk_enable(struct clk *clk)
 	if (!clk)
 		return 0;
 
-	spin_lock_irqsave(&clk->lock, flags);
+	spin_lock_irqsave(&clocks_lock, flags);
 	if (clk->count == 0) {
 		parent = clk_get_parent(clk);
-		if (!(clk->flags&CLKFLAG_IGNORE)) {
-			ret = clk_enable(parent);
-			if (ret)
-				goto err_enable_parent;
-			ret = clk_enable(clk->depends);
-			if (ret)
-				goto err_enable_depends;
-		}
+		    ret = clk_enable(parent);
+		    if (ret)
+			    goto err_enable_parent;
+		    ret = clk_enable(clk->depends);
+		    if (ret)
+			    goto err_enable_depends;
 		ret = vote_rate_vdd(clk, clk->rate);
 		if (ret)
 			goto err_vote_vdd;
@@ -164,12 +162,6 @@ int clk_enable(struct clk *clk)
 		if (ret)
 			goto err_enable_clock;
 
-		/*added by htc for clock debugging*/
-		if (!(clk->flags&CLKFLAG_IGNORE)) {
-			spin_lock(&clk_enable_list_lock);
-			list_add(&clk->enable_list, &clk_enable_list);
-			spin_unlock(&clk_enable_list_lock);
-		}
 	} else if (clk->flags & CLKFLAG_HANDOFF_RATE) {
 		/*
 		 * The clock was already enabled by handoff code so there is no
@@ -182,8 +174,7 @@ int clk_enable(struct clk *clk)
 	}
 	clk->count++;
 out:
-	spin_unlock_irqrestore(&clk->lock, flags);
-
+	spin_unlock_irqrestore(&clocks_lock, flags);
 	return 0;
 
 err_enable_clock:
@@ -193,7 +184,7 @@ err_vote_vdd:
 err_enable_depends:
 	clk_disable(parent);
 err_enable_parent:
-	spin_unlock_irqrestore(&clk->lock, flags);
+	spin_unlock_irqrestore(&clocks_lock, flags);
 	return ret;
 }
 EXPORT_SYMBOL(clk_enable);
@@ -205,7 +196,7 @@ void clk_disable(struct clk *clk)
 	if (!clk)
 		return;
 
-	spin_lock_irqsave(&clk->lock, flags);
+	spin_lock_irqsave(&clocks_lock, flags);
 	if (clk->count == 0) {
 		printk(KERN_INFO "%s is unbalanced", clk->dbg_name);
 		goto out;
@@ -217,18 +208,12 @@ void clk_disable(struct clk *clk)
 			clk->ops->disable(clk);
 		unvote_rate_vdd(clk, clk->rate);
 
-		if (!(clk->flags&CLKFLAG_IGNORE)) {	/*added by htc for clock debugging*/
-			clk_disable(clk->depends);
-			clk_disable(parent);
-			/*added by htc for clock debugging*/
-			spin_lock(&clk_enable_list_lock);
-			list_del(&clk->enable_list);
-			spin_unlock(&clk_enable_list_lock);
-		}
+		clk_disable(clk->depends);
+		clk_disable(parent);
 	}
 	clk->count--;
 out:
-	spin_unlock_irqrestore(&clk->lock, flags);
+	spin_unlock_irqrestore(&clocks_lock, flags);
 }
 EXPORT_SYMBOL(clk_disable);
 
@@ -258,7 +243,7 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
 	if (!clk->ops->set_rate)
 		return -ENOSYS;
 
-	spin_lock_irqsave(&clk->lock, flags);
+	spin_lock_irqsave(&clocks_lock, flags);
 	if (clk->count) {
 		start_rate = clk->rate;
 		/* Enforce vdd requirements for target frequency. */
@@ -277,13 +262,13 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
 	if (!rc)
 		clk->rate = rate;
 
-	spin_unlock_irqrestore(&clk->lock, flags);
+	spin_unlock_irqrestore(&clocks_lock, flags);
 	return rc;
 
 err_set_rate:
 	unvote_rate_vdd(clk, rate);
 err_vote_vdd:
-	spin_unlock_irqrestore(&clk->lock, flags);
+	spin_unlock_irqrestore(&clocks_lock, flags);
 	return rc;
 }
 EXPORT_SYMBOL(clk_set_rate);
@@ -296,6 +281,15 @@ long clk_round_rate(struct clk *clk, unsigned long rate)
 	return clk->ops->round_rate(clk, rate);
 }
 EXPORT_SYMBOL(clk_round_rate);
+
+int clk_set_min_rate(struct clk *clk, unsigned long rate)
+{
+	if (!clk->ops->set_min_rate)
+		return -ENOSYS;
+
+	return clk->ops->set_min_rate(clk, rate);
+}
+EXPORT_SYMBOL(clk_set_min_rate);
 
 int clk_set_max_rate(struct clk *clk, unsigned long rate)
 {
@@ -378,4 +372,6 @@ static int __init clock_late_init(void)
 		ret = clk_init_data->late_init();
 	return ret;
 }
+
 late_initcall(clock_late_init);
+

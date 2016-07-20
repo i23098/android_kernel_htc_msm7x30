@@ -136,8 +136,6 @@
 
 struct clk_ops;
 extern struct clk_ops clk_ops_pcom;
-extern struct clk_ops clk_ops_pcom_div2;
-extern struct clk_ops clk_ops_pcom_ext_config;
 
 int pc_clk_reset(unsigned id, enum clk_reset_action action);
 

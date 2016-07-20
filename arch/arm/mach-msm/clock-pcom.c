@@ -131,17 +131,6 @@ static int pc_clk_set_flags(struct clk *clk, unsigned flags)
 		return (int)id < 0 ? -EINVAL : 0;
 }
 
-static int pc_clk_set_ext_config(struct clk *clk, unsigned long config)
-{
-	int id = to_pcom_clk(clk)->id;
-	unsigned c = config;
-	int rc = msm_proc_comm(PCOM_CLKCTL_RPC_SET_EXT_CONFIG, &id, &c);
-	if (rc < 0)
-		return rc;
-	else
-		return (int)id < 0 ? -EINVAL : 0;
-}
-
 static unsigned long pc_clk_get_rate(struct clk *clk)
 {
 	int id = to_pcom_clk(clk)->id;
@@ -184,17 +173,3 @@ struct clk_ops clk_ops_pcom = {
 	.round_rate = pc_clk_round_rate,
 	.is_local = pc_clk_is_local,
 };
-
-struct clk_ops clk_ops_pcom_ext_config = {
-	.enable = pc_clk_enable,
-	.disable = pc_clk_disable,
-	.reset = pc_reset,
-	.set_rate = pc_clk_set_ext_config,
-	.set_max_rate = pc_clk_set_max_rate,
-	.set_flags = pc_clk_set_flags,
-	.get_rate = pc_clk_get_rate,
-	.is_enabled = pc_clk_is_enabled,
-	.round_rate = pc_clk_round_rate,
-	.is_local = pc_clk_is_local,
-};
-
