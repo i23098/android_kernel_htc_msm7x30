@@ -1,7 +1,7 @@
 /* arch/arm/mach-msm/clock.c
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2007-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2007-2012, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -14,14 +14,7 @@
  *
  */
 
-#include <linux/kernel.h>
-#include <linux/list.h>
-#include <linux/err.h>
-#include <linux/spinlock.h>
-#include <linux/pm_qos.h>
-#include <linux/mutex.h>
-#include <linux/clk.h>
-#include <linux/string.h>
+#include <linux/clk-provider.h>
 #include <linux/module.h>
 #include <linux/clk.h>
 #include <linux/clkdev.h>
@@ -361,11 +354,7 @@ void __init msm_clock_init(struct clock_init_data *data)
 
 static int __init clock_late_init(void)
 {
-	int n, ret = 0;
-
-	clock_debug_init(clk_init_data);
-	for (n = 0; n < clk_init_data->size; n++)
-		clock_debug_add(clk_init_data->table[n].clk);
+	int ret = 0;
 
 	pr_info("%s: Removing enables held for handed-off clocks\n", __func__);
 	if (clk_init_data->late_init)

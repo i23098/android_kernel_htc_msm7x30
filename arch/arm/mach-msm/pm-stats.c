@@ -1005,11 +1005,6 @@ static int msm_pm_power_collapse
 	msm_sirc_enter_sleep();
 	msm_gpio_enter_sleep(from_idle);
 
-	if (((!from_idle) && (MSM_PM_DEBUG_CLOCK & msm_pm_debug_mask)) ||
-			((from_idle) && (MSM_PM_DEBUG_IDLE_CLOCK & msm_pm_debug_mask))) {
-			clock_debug_print_enabled();
-	}
-
 	msm_pm_smem_data->sleep_time = sleep_delay;
 	msm_pm_smem_data->resources_used = sleep_limit;
 
@@ -1450,8 +1445,6 @@ static int msm_pm_enter(suspend_state_t state)
 		enum msm_pm_time_stats_id id;
 		int64_t end_time;
 #endif
-
-/*		clock_debug_print_enabled();	*/
 
 #ifdef CONFIG_MSM_SLEEP_TIME_OVERRIDE
 		if (msm_pm_sleep_time_override > 0) {

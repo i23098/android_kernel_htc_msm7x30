@@ -151,6 +151,9 @@ extern struct platform_device msm_device_ssbi2;
 extern struct platform_device msm_device_ssbi3;
 extern struct platform_device msm_device_ssbi6;
 extern struct platform_device msm_device_ssbi7;
+extern struct platform_device msm_clock_7x01a;
+extern struct platform_device msm_clock_7x30;
+extern struct platform_device msm_clock_8x50;
 
 #ifdef CONFIG_MSM_SSBI
 extern struct platform_device msm_device_pm8058;
