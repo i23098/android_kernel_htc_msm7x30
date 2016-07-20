@@ -190,7 +190,7 @@ void smd_diag(void)
 		SMD_INFO("smem: DIAG '%s'\n", x);
 	}
 
-	x = smem_get_entry(SMEM_ERR_CRASH_LOG, &size);
+	x = smem_item(SMEM_ERR_CRASH_LOG, &size);
 	if (x != 0) {
 		x[size - 1] = 0;
 		pr_err("[SMD] smem: CRASH LOG\n'%s'\n", x);
@@ -315,7 +315,7 @@ static void smd_channel_probe_worker(struct work_struct *work)
 
 		/* channel should be allocated only if APPS
 		   processor is involved */
-		type = SMD_CHANNEL_TYPE(shared[n].type);
+		type = SMD_CHANNEL_TYPE(shared[n].ctype);
 		if ((type != SMD_APPS_MODEM) && (type != SMD_APPS_QDSP_I) &&
 		    (type != SMD_APPS_DSPS_I))
 			continue;
@@ -677,9 +677,9 @@ void smd_kick(smd_channel_t *ch)
 
 static int smd_is_packet(struct smd_alloc_elm *alloc_elm)
 {
-	if (SMD_XFER_TYPE(alloc_elm->type) == 1)
+	if (SMD_XFER_TYPE(alloc_elm->ctype) == 1)
 		return 0;
-	else if (SMD_XFER_TYPE(alloc_elm->type) == 2)
+	else if (SMD_XFER_TYPE(alloc_elm->ctype) == 2)
 		return 1;
 
 	/* for cases where xfer type is 0 */
@@ -833,7 +833,7 @@ static int smd_alloc_v2(struct smd_channel *ch)
 		SMD_INFO("smem_alloc failed ch=%d\n", ch->n);
 		return -1;
 	}
-	buffer = smem_get_entry(SMEM_SMD_FIFO_BASE_ID + ch->n, &buffer_sz);
+	buffer = smem_item(SMEM_SMD_FIFO_BASE_ID + ch->n, &buffer_sz);
 	if (!buffer) {
 		SMD_INFO("smem_get_entry failed \n");
 		return -1;
@@ -885,7 +885,7 @@ static int smd_alloc_channel(struct smd_alloc_elm *alloc_elm)
 	}
 
 	ch->fifo_mask = ch->fifo_size - 1;
-	ch->type = SMD_CHANNEL_TYPE(alloc_elm->type);
+	ch->type = SMD_CHANNEL_TYPE(alloc_elm->ctype);
 
 	if (ch->type == SMD_APPS_MODEM)
 		ch->notify_other_cpu = notify_modem_smd;
@@ -1279,7 +1279,7 @@ void *smem_alloc2(unsigned id, unsigned size_in)
 	return ret;
 }
 
-void *smem_get_entry(unsigned id, unsigned *size)
+void __iomem *smem_item(unsigned id, unsigned *size)
 {
 	struct smem_shared *shared = (void *) MSM_SHARED_RAM_BASE;
 	struct smem_heap_entry *toc = shared->heap_toc;
@@ -1302,7 +1302,7 @@ void *smem_find(unsigned id, unsigned size_in)
 	unsigned size;
 	void *ptr;
 
-	ptr = smem_get_entry(id, &size);
+	ptr = smem_item(id, &size);
 	if (!ptr)
 		return 0;
 

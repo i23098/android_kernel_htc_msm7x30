@@ -2861,7 +2861,7 @@ static void __init spade_init(void)
 		printk(KERN_ERR"Create /proc/dying_processes FAILED!\n");
 
 	boot_reason = *(unsigned int *)
-		(smem_get_entry(SMEM_POWER_ON_STATUS_INFO, &smem_size));
+		(smem_item(SMEM_POWER_ON_STATUS_INFO, &smem_size));
 	printk(KERN_NOTICE "Boot Reason = 0x%02x\n", boot_reason);
 
 #ifdef CONFIG_MSM_CAMERA

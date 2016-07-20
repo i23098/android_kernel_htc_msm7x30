@@ -194,7 +194,7 @@ static int debug_f3(char *buf, int max)
 	i += scnprintf(buf + i, max - i,
 		       "Printing to log\n");
 
-	x = smem_get_entry(SMEM_ERR_F3_TRACE_LOG, &size);
+	x = smem_item(SMEM_ERR_F3_TRACE_LOG, &size);
 	if (x != 0) {
 		pr_info("smem: F3 TRACE LOG\n");
 		while (size > 0) {
@@ -249,7 +249,7 @@ static int debug_modem_err_f3(char *buf, int max)
 	unsigned cols = 0;
 	char str[4*sizeof(unsigned)+1] = {0};
 
-	x = smem_get_entry(SMEM_ERR_F3_TRACE_LOG, &size);
+	x = smem_item(SMEM_ERR_F3_TRACE_LOG, &size);
 	if (x != 0) {
 		pr_info("smem: F3 TRACE LOG\n");
 		while (size > 0 && max - i) {
@@ -302,7 +302,7 @@ static int debug_modem_err(char *buf, int max)
 			       "smem: DIAG '%s'\n", x);
 	}
 
-	x = smem_get_entry(SMEM_ERR_CRASH_LOG, &size);
+	x = smem_item(SMEM_ERR_CRASH_LOG, &size);
 	if (x != 0) {
 		x[size - 1] = 0;
 		i += scnprintf(buf + i, max - i,
@@ -429,7 +429,7 @@ static int debug_read_ch_v2(char *buf, int max)
 		if (shared == 0)
 			continue;
 
-		buffer = smem_get_entry(SMEM_SMD_FIFO_BASE_ID + n, &buffer_sz);
+		buffer = smem_item(SMEM_SMD_FIFO_BASE_ID + n, &buffer_sz);
 
 		if (buffer == 0)
 			continue;
@@ -497,7 +497,7 @@ static int debug_read_build_id(char *buf, int max)
 	unsigned size;
 	void *data;
 
-	data = smem_get_entry(SMEM_HW_SW_BUILD_ID, &size);
+	data = smem_item(SMEM_HW_SW_BUILD_ID, &size);
 	if (!data)
 		return 0;
 
@@ -524,8 +524,8 @@ static int debug_read_alloc_tbl(char *buf, int max)
 				"xfer type=%d ref_count=%d\n",
 				shared[n].name,
 				shared[n].cid,
-				SMD_CHANNEL_TYPE(shared[n].type),
-				SMD_XFER_TYPE(shared[n].type),
+				SMD_CHANNEL_TYPE(shared[n].ctype),
+				SMD_XFER_TYPE(shared[n].ctype),
 				shared[n].ref_count);
 	}
 
