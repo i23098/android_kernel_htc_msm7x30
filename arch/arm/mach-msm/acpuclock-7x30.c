@@ -491,7 +491,7 @@ static void setup_cpufreq_table(void)
 
 	for (speed = acpu_freq_tbl; speed->acpu_clk_khz; speed++)
 		if (speed->use_for_scaling) {
-			cpufreq_tbl[i].index = i;
+			cpufreq_tbl[i].driver_data = i;
 			cpufreq_tbl[i].frequency = speed->acpu_clk_khz;
 			i++;
 		}

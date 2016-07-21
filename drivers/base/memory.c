@@ -571,6 +571,7 @@ int register_memory(struct memory_block *memory)
 	memory->dev.id = memory->start_section_nr / sections_per_block;
 	memory->dev.release = memory_block_release;
 	memory->dev.groups = memory_memblk_attr_groups;
+	memory->dev.offline = memory->state == MEM_OFFLINE;
 
 	error = device_register(&memory->dev);
 	return error;

@@ -541,7 +541,7 @@ int acpi_pm_device_sleep_state(struct device *dev, int *d_min_p, int d_max_in)
 {
 	acpi_handle handle = DEVICE_ACPI_HANDLE(dev);
 	struct acpi_device *adev;
-	int ret, d_max;
+	int ret, d_min, d_max;
 
 	if (d_max_in < ACPI_STATE_D0 || d_max_in > ACPI_STATE_D3_COLD)
 		return -EINVAL;
@@ -560,19 +560,23 @@ int acpi_pm_device_sleep_state(struct device *dev, int *d_min_p, int d_max_in)
 	}
 
 	ret = acpi_dev_pm_get_state(dev, adev, acpi_target_system_state(),
-				    d_min_p, &d_max);
+				    &d_min, &d_max);
 	if (ret)
 		return ret;
 
-	if (d_max_in < *d_min_p)
+	if (d_max_in < d_min)
 		return -EINVAL;
 
 	if (d_max > d_max_in) {
-		for (d_max = d_max_in; d_max > *d_min_p; d_max--) {
+		for (d_max = d_max_in; d_max > d_min; d_max--) {
 			if (adev->power.states[d_max].flags.valid)
 				break;
 		}
 	}
+
+	if (d_min_p)
+		*d_min_p = d_min;
+
 	return d_max;
 }
 EXPORT_SYMBOL(acpi_pm_device_sleep_state);
@@ -933,7 +937,6 @@ static struct dev_pm_domain acpi_general_pm_domain = {
 #ifdef CONFIG_PM_RUNTIME
 		.runtime_suspend = acpi_subsys_runtime_suspend,
 		.runtime_resume = acpi_subsys_runtime_resume,
-		.runtime_idle = pm_generic_runtime_idle,
 #endif
 #ifdef CONFIG_PM_SLEEP
 		.prepare = acpi_subsys_prepare,
