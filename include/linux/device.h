@@ -423,6 +423,7 @@ extern void class_remove_file(struct class *class,
 			      const struct class_attribute *attr);
 
 /* Simple class attribute that is just a static string */
+
 struct class_attribute_string {
 	struct class_attribute attr;
 	char *str;
