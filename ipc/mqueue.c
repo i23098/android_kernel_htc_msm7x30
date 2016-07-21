@@ -575,7 +575,7 @@ static int wq_sleep(struct mqueue_inode_info *info, int sr,
 
 		spin_unlock(&info->lock);
  		time = schedule_hrtimeout_range_clock(timeout, 0,
-		        HRTIMER_MODE_ABS, CLOCK_REALTIME, NULL);
+		        HRTIMER_MODE_ABS, CLOCK_REALTIME);
 
 		while (ewp->state == STATE_PENDING)
 			cpu_relax();
