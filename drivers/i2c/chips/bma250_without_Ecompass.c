@@ -546,7 +546,7 @@ int sensor_open(void)
 			}
 			BMA_set_mode(bma250_MODE_NORMAL);
 
-			usleep(2000);
+			usleep_range(2000, 2000);
 
 			buffer = bma250_MODE_CTRL_REG;
 			ret = BMA_I2C_RxData(&buffer, 1);

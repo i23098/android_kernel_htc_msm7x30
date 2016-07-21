@@ -37,7 +37,7 @@
  * 03/02/19	B. Helgaas	Make pcat_compat system-wide, not per-IOSAPIC.
  *				Remove iosapic_address & gsi_base from
  *				external interfaces.  Rationalize
- *				__init/attributes.
+ *				__init/__devinit attributes.
  * 04/12/04 Ashok Raj	<ashok.raj@intel.com> Intel Corporation 2004
  *				Updated to work with irq migration necessary
  *				for CPU Hotplug

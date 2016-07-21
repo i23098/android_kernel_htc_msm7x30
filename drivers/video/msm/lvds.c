@@ -66,7 +66,7 @@ static void lvds_init(struct msm_fb_data_type *mfd)
 	mdp_clk_ctrl(1);
 
 	MDP_OUTP(MDP_BASE + 0xc2034, 0x33);
-	usleep(1000);
+	usleep_range(1000, 1000);
 
 	/* LVDS PHY PLL configuration */
 	if (mfd->panel_info.clk_rate == 74250000) {
@@ -115,7 +115,7 @@ static void lvds_init(struct msm_fb_data_type *mfd)
 
 	writel_relaxed((0x80 | readl_relaxed(mmss_cc_base + 0x00E4)),
 	       mmss_cc_base + 0x00E4);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	writel_relaxed((~0x80 & readl_relaxed(mmss_cc_base + 0x00E4)),
 	       mmss_cc_base + 0x00E4);
 
@@ -229,7 +229,7 @@ static void lvds_init(struct msm_fb_data_type *mfd)
 
 	/* Wait until LVDS PHY registers are configured */
 	mb();
-	usleep(1);
+	usleep_range(1, 1);
 	/* MDP_LVDSPHY_CFG0, enable serialization */
 	MDP_OUTP(MDP_BASE +  0xc3100, lvds_phy_cfg0);
 	mdp_clk_ctrl(0);
@@ -249,7 +249,7 @@ static int lvds_off(struct platform_device *pdev)
 	mdp_clk_ctrl(1);
 	MDP_OUTP(MDP_BASE +  0xc3100, 0x0);
 	MDP_OUTP(MDP_BASE + 0xc3000, 0x0);
-	usleep(10);
+	usleep_range(10, 10);
 	mdp_clk_ctrl(0);
 
 	if (lvds_pdata && lvds_pdata->lcdc_power_save)

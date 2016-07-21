@@ -176,7 +176,6 @@ handle_irq_event_percpu(struct irq_desc *desc, struct irqaction *action)
 
 	if (!noirqdebug)
 		note_interrupt(irq, desc, retval);
-
 	return retval;
 }
 

@@ -507,7 +507,7 @@ static void vfe31_release(struct platform_device *pdev)
 	/* release AXI frequency request */
 	pr_info("[CAM] %s, release_axi_qos\n", __func__);
 	msm_camio_set_perf_lvl(S_EXIT);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	vfe_syncdata = NULL;
 
 	if (sinfo->csi_if) {
@@ -990,7 +990,7 @@ static int vfe31_multishot(void)
 	msm_io_w(irq_comp_mask, vfe31_ctrl->vfebase + VFE_IRQ_COMP_MASK);
 	msm_io_r(vfe31_ctrl->vfebase + VFE_IRQ_COMP_MASK);
 	msm_camio_set_perf_lvl(S_CAPTURE);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	vfe31_start_common();
 	msm_io_r(vfe31_ctrl->vfebase + VFE_IRQ_COMP_MASK);
 	/* for debug */
@@ -1066,7 +1066,7 @@ static int vfe31_capture(uint32_t num_frames_capture)
 	msm_io_w(irq_comp_mask, vfe31_ctrl->vfebase + VFE_IRQ_COMP_MASK);
 	msm_io_r(vfe31_ctrl->vfebase + VFE_IRQ_COMP_MASK);
 	msm_camio_set_perf_lvl(S_CAPTURE);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	vfe31_start_common();
 	msm_io_r(vfe31_ctrl->vfebase + VFE_IRQ_COMP_MASK);
 	/* for debug */
@@ -1110,7 +1110,7 @@ static int vfe31_start(void)
 	}
 
 	msm_camio_set_perf_lvl(S_PREVIEW);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	vfe31_start_common();
 	return 0;
 }
@@ -3123,7 +3123,7 @@ static int vfe31_init(struct msm_vfe_callback *presp,
 		pr_err("[CAM]msm_camio_enable error\n");
 
 	msm_camio_set_perf_lvl(S_INIT);
-	usleep(1000);
+	usleep_range(1000, 1000);
 
 	if (msm_vpe_open() < 0)
 		CDBG("[CAM] %s: vpe_open failed\n", __func__);

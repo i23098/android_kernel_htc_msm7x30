@@ -44,15 +44,15 @@ static int lvds_frc_panel_on(struct platform_device *pdev)
 	gpio_direction_output(gpio_reset, 1);
 	gpio_direction_output(gpio_pwr, 0);
 	gpio_direction_output(gpio_update, 0);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	gpio_direction_output(gpio_reset, 0);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	gpio_direction_output(gpio_pwr, 1);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	gpio_direction_output(gpio_update, 1);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	gpio_direction_output(gpio_reset, 1);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	gpio_free(gpio_reset);
 panel_on_exit2:
 	gpio_free(gpio_update);
@@ -85,11 +85,11 @@ static int lvds_frc_panel_off(struct platform_device *pdev)
 		goto panel_off_exit2;
 	}
 	gpio_direction_output(gpio_reset, 0);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	gpio_direction_output(gpio_update, 0);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	gpio_direction_output(gpio_pwr, 0);
-	usleep(1000);
+	usleep_range(1000, 1000);
 	gpio_free(gpio_reset);
 panel_off_exit2:
 	gpio_free(gpio_update);

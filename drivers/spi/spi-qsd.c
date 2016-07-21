@@ -878,7 +878,7 @@ static inline int msm_spi_wait_valid(struct msm_spi *dd)
 		 * would negate the usage of usleep
 		 */
 		if (delay > 20)
-			usleep(delay);
+			usleep_range(delay, delay);
 		else if (delay)
 			udelay(delay);
 	}
