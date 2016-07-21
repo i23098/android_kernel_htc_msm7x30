@@ -2131,9 +2131,10 @@ M:	Mike Turquette <mturquette@linaro.org>
 L:	linux-arm-kernel@lists.infradead.org (same as CLK API & CLKDEV)
 T:	git git://git.linaro.org/people/mturquette/linux.git
 S:	Maintained
-F:	drivers/clk/clk.c
-F:	drivers/clk/clk-*
+F:	drivers/clk/
+X:	drivers/clk/clkdev.c
 F:	include/linux/clk-pr*
+F:	include/linux/clk/
 
 COMMON INTERNET FILE SYSTEM (CIFS)
 M:	Steve French <sfrench@samba.org>
@@ -4000,7 +4001,8 @@ S:	Maintained
 F:	arch/ia64/
 
 IBM Power in-Nest Crypto Acceleration
-M:	Kent Yoder <key@linux.vnet.ibm.com>
+M:	Marcelo Henrique Cerri <mhcerri@linux.vnet.ibm.com>
+M:	Fionnuala Gunter <fin@linux.vnet.ibm.com>
 L:	linux-crypto@vger.kernel.org
 S:	Supported
 F:	drivers/crypto/nx/
@@ -4129,6 +4131,7 @@ F:	drivers/ipack/
 
 INTEGRITY MEASUREMENT ARCHITECTURE (IMA)
 M:	Mimi Zohar <zohar@us.ibm.com>
+M:	Dmitry Kasatkin <d.kasatkin@samsung.com>
 S:	Supported
 F:	security/integrity/ima/
 
@@ -4732,10 +4735,10 @@ F:	arch/s390/kvm/
 F:	drivers/s390/kvm/
 
 KERNEL VIRTUAL MACHINE (KVM) FOR ARM
-M:	Christoffer Dall <cdall@cs.columbia.edu>
+M:	Christoffer Dall <christoffer.dall@linaro.org>
 L:	kvmarm@lists.cs.columbia.edu
 W:	http://systems.cs.columbia.edu/projects/kvm-arm
-S:	Maintained
+S:	Supported
 F:	arch/arm/include/uapi/asm/kvm*
 F:	arch/arm/include/asm/kvm*
 F:	arch/arm/kvm/
@@ -6294,6 +6297,16 @@ M:	Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
 L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 S:	Maintained
 F:	drivers/pinctrl/pinctrl-at91.c
+
+PIN CONTROLLER - SAMSUNG
+M:	Tomasz Figa <t.figa@samsung.com>
+M:	Thomas Abraham <thomas.abraham@linaro.org>
+L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
+L:	linux-samsung-soc@vger.kernel.org (moderated for non-subscribers)
+S:	Maintained
+F:	drivers/pinctrl/pinctrl-exynos.*
+F:	drivers/pinctrl/pinctrl-s3c*
+F:	drivers/pinctrl/pinctrl-samsung.*
 
 PIN CONTROLLER - ST SPEAR
 M:	Viresh Kumar <viresh.linux@gmail.com>
@@ -8271,7 +8284,8 @@ S:	Odd fixes
 F:	drivers/media/usb/tm6000/
 
 TPM DEVICE DRIVER
-M:	Kent Yoder <key@linux.vnet.ibm.com>
+M:	Leonidas Da Silva Barbosa <leosilva@linux.vnet.ibm.com>
+M:	Ashley Lai <ashley@ashleylai.com>
 M:	Rajiv Andrade <mail@srajiv.net>
 W:	http://tpmdd.sourceforge.net
 M:	Marcel Selhorst <tpmdd@selhorst.net>
