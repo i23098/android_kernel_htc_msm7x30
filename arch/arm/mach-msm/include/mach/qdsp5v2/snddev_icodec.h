@@ -29,7 +29,7 @@
 #ifndef __MACH_QDSP5_V2_SNDDEV_ICODEC_H
 #define __MACH_QDSP5_V2_SNDDEV_ICODEC_H
 #include <mach/qdsp5v2/audio_def.h>
-#include <../pmic.h>
+#include <mach/pmic.h>
 
 /* Context for each internal codec sound device */
 struct snddev_icodec_state {
