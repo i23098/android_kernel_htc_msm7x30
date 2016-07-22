@@ -355,6 +355,15 @@ config RTC_DRV_PALMAS
 	  This driver can also be built as a module. If so, the module
 	  will be called rtc-palma.
 
+config RTC_DRV_PCF2127
+	tristate "NXP PCF2127"
+	help
+	  If you say yes here you get support for the NXP PCF2127/29 RTC
+	  chips.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called rtc-pcf2127.
+
 config RTC_DRV_PCF8523
 	tristate "NXP PCF8523"
 	help
@@ -1282,35 +1291,6 @@ config RTC_DRV_PUV3
 	  This drive can also be built as a module. If so, the module
 	  will be called rtc-puv3.
 
-config RTC_PM8058
-	tristate "PMIC8058 RTC support"
-	default n
-	depends on PMIC8058
-	help
-	  Say Y here if you want support for the PMIC8058 RTC.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called pmic8058-rtc.
-
-config RTC_PM8058_WRITE_ENABLE
-	bool "PM8058 RTC write enable"
-	default n
-	depends on RTC_PM8058
-	help
-	  Say Y here if you want to support the write operation for
-	  PMIC8058 RTC.
-
-	  By default the write operation is not supported.
-
-config RTC_DRV_PM8XXX
-	tristate "Qualcomm PMIC8XXX RTC"
-	depends on MFD_PM8XXX
-	help
-	  Say Y here if you want to support the Qualcomm PMIC8XXX RTC.
-
-	  To compile this driver as a module, choose M here: the
-	  module will be called rtc-pm8xxx.
-
 config RTC_DRV_LOONGSON1
 	tristate "loongson1 RTC support"
 	depends on MACH_LOONGSON1
@@ -1341,6 +1321,13 @@ config RTC_DRV_SNVS
 
 	   This driver can also be built as a module, if so, the module
 	   will be called "rtc-snvs".
+
+config RTC_DRV_SIRFSOC
+	tristate "SiRFSOC RTC"
+	depends on ARCH_SIRF
+	help
+	  Say "yes" here to support the real time clock on SiRF SOC chips.
+	  This driver can also be built as a module called rtc-sirfsoc.
 
 comment "HID Sensor RTC drivers"
 
