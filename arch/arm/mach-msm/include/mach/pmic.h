@@ -377,11 +377,15 @@ enum pm_vib_mot_pol {
 };
 
 struct rtc_time {
-	uint  sec;
-};
-
-enum rtc_alarm {
-	PM_RTC_ALARM_1,
+	int tm_sec;
+	int tm_min;
+	int tm_hour;
+	int tm_mday;
+	int tm_mon;
+	int tm_year;
+	int tm_wday;
+	int tm_yday;
+	int tm_isdst;
 };
 
 enum hsed_controller {
@@ -636,11 +640,6 @@ int pmic_secure_mpp_config_digital_input(enum mpp_which	which,
 int pmic_rtc_start(struct rtc_time *time);
 int pmic_rtc_stop(void);
 int pmic_rtc_get_time(struct rtc_time *time);
-int pmic_rtc_enable_alarm(enum rtc_alarm alarm,
-				struct rtc_time *time);
-int pmic_rtc_disable_alarm(enum rtc_alarm alarm);
-int pmic_rtc_get_alarm_time(enum rtc_alarm alarm,
-				struct rtc_time *time);
 int pmic_rtc_get_alarm_status(uint *status);
 int pmic_rtc_set_time_adjust(uint adjust);
 int pmic_rtc_get_time_adjust(uint *adjust);

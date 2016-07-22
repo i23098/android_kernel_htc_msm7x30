@@ -704,28 +704,6 @@ int pmic_rtc_get_time(struct rtc_time *time)
 }
 EXPORT_SYMBOL(pmic_rtc_get_time);
 
-int pmic_rtc_enable_alarm(enum rtc_alarm alarm,
-	struct rtc_time *time)
-{
-	return pmic_rpc_set_struct(1, alarm, (uint *)time, sizeof(*time),
-				RTC_ENABLE_ALARM_PROC);
-}
-EXPORT_SYMBOL(pmic_rtc_enable_alarm);
-
-int pmic_rtc_disable_alarm(enum rtc_alarm alarm)
-{
-	return pmic_rpc_set_only(alarm, 0, 0, 0, 1, RTC_DISABLE_ALARM_PROC);
-}
-EXPORT_SYMBOL(pmic_rtc_disable_alarm);
-
-int pmic_rtc_get_alarm_time(enum rtc_alarm	alarm,
-	struct rtc_time *time)
-{
-	return pmic_rpc_set_get(alarm, (uint *)time, sizeof(*time),
-				RTC_GET_ALARM_TIME_PROC);
-}
-EXPORT_SYMBOL(pmic_rtc_get_alarm_time);
-
 int pmic_rtc_get_alarm_status(uint *status)
 {
 	return pmic_rpc_get_only(status, sizeof(*status),

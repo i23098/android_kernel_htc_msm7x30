@@ -18,6 +18,7 @@
 
 #include <linux/ioctl.h>
 #include <linux/time.h>
+#include <linux/hrtimer.h>
 
 enum android_alarm_type {
 	/* return code bit numbers or set alarm arg */
@@ -58,11 +59,14 @@ enum android_alarm_type {
  */
 
 struct alarm {
-	struct rb_node 		node;
+	struct rb_node		node;
+	struct hrtimer		timer;
+	void			(*function)(struct alarm *);
 	enum android_alarm_type type;
+	int			state;
+	void			*data;
 	ktime_t			softexpires;
 	ktime_t			expires;
-	void			(*function)(struct alarm *);
 };
 
 void alarm_init(struct alarm *alarm,

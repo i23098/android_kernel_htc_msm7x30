@@ -18,7 +18,7 @@
 #include <linux/err.h>
 #include <linux/hrtimer.h>
 #include <linux/sched.h>
-#include "pmic.h"
+#include <mach/pmic.h>
 #include "timed_output.h"
 #include <linux/debug_by_vibrator.h>
 #include <linux/wakelock.h>

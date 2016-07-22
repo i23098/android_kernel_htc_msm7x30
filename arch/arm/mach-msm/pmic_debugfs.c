@@ -168,56 +168,6 @@ static int debug_rtc_get_time(char *buf, int size)
 
 static int	debug_rtc_alarm_ndx;
 
-int debug_rtc_enable_alarm(char *buf, int size)
-{
-	enum rtc_alarm alarm;
-	struct rtc_time	*hal;
-	uint time;
-	int	cnt;
-
-
-	cnt = sscanf(buf, "%u %u", &alarm, &time);
-	if (cnt < 2) {
-		printk(KERN_ERR "%s: sscanf failed cnt=%d" , __func__, cnt);
-		return -EINVAL;
-	}
-	hal = (struct rtc_time 	*)&time;
-
-	if (pmic_rtc_enable_alarm(alarm, hal) < 0)
-		return -EFAULT;
-
-	debug_rtc_alarm_ndx = alarm;
-	return size;
-}
-
-static int debug_rtc_disable_alarm(char *buf, int size)
-{
-
-	enum rtc_alarm alarm;
-	int	cnt;
-
-	cnt = sscanf(buf, "%u", &alarm);
-	if (cnt < 1) {
-		printk(KERN_ERR "%s: sscanf failed cnt=%d" , __func__, cnt);
-		return -EINVAL;
-	}
-	if (pmic_rtc_disable_alarm(alarm) < 0)
-		return -EFAULT;
-
-	return size;
-}
-
-static int debug_rtc_get_alarm_time(char *buf, int size)
-{
-	uint time;
-	struct rtc_time	*hal;
-
-	hal = (struct rtc_time 	*)&time;
-	if (pmic_rtc_get_alarm_time(debug_rtc_alarm_ndx, hal) < 0)
-		return -EFAULT;
-
-	return snprintf(buf, size, "%d\n", time);
-}
 static int debug_rtc_get_alarm_status(char *buf, int size)
 {
 	int	status;;
@@ -935,9 +885,6 @@ struct pmic_debug_desc pmic_debug[] = {
 	{NULL, debug_rtc_start}, /*RTC_START_PROC */
 	{NULL, debug_rtc_stop}, /* RTC_STOP_PROC */
 	{debug_rtc_get_time, NULL}, /* RTC_GET_TIME_PROC */
-	{NULL, debug_rtc_enable_alarm}, /* RTC_ENABLE_ALARM_PROC */
-	{NULL , debug_rtc_disable_alarm}, /*RTC_DISABLE_ALARM_PROC */
-	{debug_rtc_get_alarm_time, NULL}, /* RTC_GET_ALARM_TIME_PROC */
 	{debug_rtc_get_alarm_status, NULL}, /* RTC_GET_ALARM_STATUS_PROC */
 	{NULL, debug_rtc_set_time_adjust}, /* RTC_SET_TIME_ADJUST_PROC */
 	{debug_rtc_get_time_adjust, NULL}, /* RTC_GET_TIME_ADJUST_PROC */
