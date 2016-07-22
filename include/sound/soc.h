@@ -302,10 +302,6 @@
 #define SND_SOC_DAI_LINK_NO_HOST		0x1
 #define SND_SOC_DAI_LINK_OPT_HOST		0x2
 
-#define snd_soc_get_enum_text(soc_enum, idx) \
-	(soc_enum->texts ? soc_enum->texts[idx] : soc_enum->dtexts[idx])
-
-
 /*
  * Component probe and remove ordering levels for components with runtime
  * dependencies.
@@ -871,7 +867,6 @@ struct snd_soc_platform {
 	struct list_head card_list;
 	int num_dai;
 
-	/* dapm */
 	struct snd_soc_dapm_context dapm;
 
 #ifdef CONFIG_DEBUG_FS
@@ -1147,7 +1142,6 @@ struct soc_enum {
 	unsigned int max;
 	unsigned int mask;
 	const char * const *texts;
-	char **dtexts;
 	const unsigned int *values;
 };
 

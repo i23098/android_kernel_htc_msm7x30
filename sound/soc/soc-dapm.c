@@ -23,8 +23,6 @@
  *
  */
 
-#undef DEBUG
-
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/init.h>
@@ -373,7 +371,7 @@ static void dapm_set_path_status(struct snd_soc_dapm_widget *w,
 		val = soc_widget_read(w, e->reg);
 		item = (val >> e->shift_l) & e->mask;
 
-		if (item < e->max && !strcmp(p->name, snd_soc_get_enum_text(e, item)))
+		if (item < e->max && !strcmp(p->name, e->texts[item]))
 			p->connect = 1;
 		else
 			p->connect = 0;
@@ -390,7 +388,7 @@ static void dapm_set_path_status(struct snd_soc_dapm_widget *w,
 		 * that the default mux choice (the first) will be
 		 * correctly powered up during initialization.
 		 */
-		if (!strcmp(p->name, snd_soc_get_enum_text(e, 0)))
+		if (!strcmp(p->name, e->texts[0]))
 			p->connect = 1;
 	}
 	break;
@@ -406,7 +404,7 @@ static void dapm_set_path_status(struct snd_soc_dapm_widget *w,
 				break;
 		}
 
-		if (item < e->max && !strcmp(p->name, snd_soc_get_enum_text(e, item)))
+		if (item < e->max && !strcmp(p->name, e->texts[item]))
 			p->connect = 1;
 		else
 			p->connect = 0;
@@ -454,11 +452,11 @@ static int dapm_connect_mux(struct snd_soc_dapm_context *dapm,
 	int i;
 
 	for (i = 0; i < e->max; i++) {
-		if (!(strcmp(control_name, snd_soc_get_enum_text(e, i)))) {
+		if (!(strcmp(control_name, e->texts[i]))) {
 			list_add(&path->list, &dapm->card->paths);
 			list_add(&path->list_sink, &dest->sources);
 			list_add(&path->list_source, &src->sinks);
-			path->name = (char*)snd_soc_get_enum_text(e, i);
+			path->name = (char*)e->texts[i];
 			dapm_set_path_status(dest, path, 0);
 			return 0;
 		}
@@ -2240,12 +2238,12 @@ static int soc_dapm_mux_update_power(struct snd_soc_dapm_widget *widget,
 		if (path->kcontrol != kcontrol)
 			continue;
 
-		if (!path->name || !snd_soc_get_enum_text(e, mux))
+		if (!path->name || !e->texts[mux])
 			continue;
 
 		found = 1;
 		/* we now need to match the string in the enum to the path */
-		if (!(strcmp(path->name, snd_soc_get_enum_text(e, mux)))) {
+		if (!(strcmp(path->name, e->texts[mux]))) {
 			path->connect = 1; /* new connection */
 			dapm_mark_dirty(path->source, "mux connection");
 		} else {
