@@ -1065,6 +1065,12 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 			return 0;
 		}
 
+		rc = cpufreq_get_global_kobject();
+		if (rc) {
+			mutex_unlock(&gov_lock);
+			return rc;
+		}
+
 		rc = sysfs_create_group(cpufreq_global_kobject,
 				&interactive_attr_group);
 		if (rc) {
@@ -1099,6 +1105,7 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		idle_notifier_unregister(&cpufreq_interactive_idle_nb);
 		sysfs_remove_group(cpufreq_global_kobject,
 				&interactive_attr_group);
+		cpufreq_put_global_kobject();
 		mutex_unlock(&gov_lock);
 
 		break;
