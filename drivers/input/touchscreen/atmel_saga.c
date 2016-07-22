@@ -23,6 +23,7 @@
 #include <asm/io.h>
 #include <asm/gpio.h>
 #include <mach/board.h>
+#include <mach/board_htc.h>
 #include <asm/mach-types.h>
 #include <linux/atmel_qt602240.h>
 #include <linux/jiffies.h>
