@@ -283,7 +283,7 @@ void nfs_put_client(struct nfs_client *clp)
 }
 EXPORT_SYMBOL_GPL(nfs_put_client);
 
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 /*
  * Test if two ip6 socket addresses refer to the same socket by
  * comparing relevant fields. The padding bytes specifically, are not

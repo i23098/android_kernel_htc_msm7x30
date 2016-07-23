@@ -46,7 +46,7 @@
 #include <net/inet_common.h>
 #include <net/checksum.h>
 
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 #include <linux/in6.h>
 #include <linux/icmpv6.h>
 #include <net/addrconf.h>
@@ -167,7 +167,7 @@ static struct sock *ping_v4_lookup(struct net *net, struct sk_buff *skb, u16 ide
 	if (skb->protocol == htons(ETH_P_IP)) {
 		pr_debug("try to find: num = %d, daddr = %pI4, dif = %d\n",
 			 (int)ident, &ip_hdr(skb)->daddr, dif);
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 	} else if (skb->protocol == htons(ETH_P_IPV6)) {
 		pr_debug("try to find: num = %d, daddr = %pI6c, dif = %d\n",
 			 (int)ident, &ipv6_hdr(skb)->daddr, dif);
@@ -192,7 +192,7 @@ static struct sock *ping_v4_lookup(struct net *net, struct sk_buff *skb, u16 ide
 			if (isk->inet_rcv_saddr &&
 			    isk->inet_rcv_saddr != ip_hdr(skb)->daddr)
 				continue;
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 		} else if (skb->protocol == htons(ETH_P_IPV6) &&
 			   sk->sk_family == AF_INET6) {
 			struct ipv6_pinfo *np = inet6_sk(sk);
@@ -299,7 +299,7 @@ int ping_check_bind_addr(struct sock *sk, struct inet_sock *isk,
 		    chk_addr_ret == RTN_BROADCAST)
 			return -EADDRNOTAVAIL;
 
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 	} else if (sk->sk_family == AF_INET6) {
 		struct sockaddr_in6 *addr = (struct sockaddr_in6 *) uaddr;
 		int addr_type, scoped, has_addr;
@@ -349,7 +349,7 @@ void ping_set_saddr(struct sock *sk, struct sockaddr *saddr)
 		struct inet_sock *isk = inet_sk(sk);
 		struct sockaddr_in *addr = (struct sockaddr_in *) saddr;
 		isk->inet_rcv_saddr = isk->inet_saddr = addr->sin_addr.s_addr;
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 	} else if (saddr->sa_family == AF_INET6) {
 		struct sockaddr_in6 *addr = (struct sockaddr_in6 *) saddr;
 		struct ipv6_pinfo *np = inet6_sk(sk);
@@ -364,7 +364,7 @@ void ping_clear_saddr(struct sock *sk, int dif)
 	if (sk->sk_family == AF_INET) {
 		struct inet_sock *isk = inet_sk(sk);
 		isk->inet_rcv_saddr = isk->inet_saddr = 0;
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 	} else if (sk->sk_family == AF_INET6) {
 		struct ipv6_pinfo *np = inet6_sk(sk);
 		memset(&np->rcv_saddr, 0, sizeof(np->rcv_saddr));
@@ -418,7 +418,7 @@ int ping_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 	isk->inet_daddr = 0;
 	isk->inet_dport = 0;
 
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 	if (sk->sk_family == AF_INET6)
 		memset(&inet6_sk(sk)->daddr, 0, sizeof(inet6_sk(sk)->daddr));
 #endif
@@ -531,7 +531,7 @@ void ping_err(struct sk_buff *skb, int offset, u32 info)
 			err = EREMOTEIO;
 			break;
 		}
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 	} else if (skb->protocol == htons(ETH_P_IPV6)) {
 		harderr = pingv6_ops.icmpv6_err_convert(type, code, &err);
 #endif
@@ -549,7 +549,7 @@ void ping_err(struct sk_buff *skb, int offset, u32 info)
 		if (family == AF_INET) {
 			ip_icmp_error(sk, skb, err, 0 /* no remote port */,
 				      info, (u8 *)icmph);
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 		} else if (family == AF_INET6) {
 			pingv6_ops.ipv6_icmp_error(sk, skb, err, 0,
 						   info, (u8 *)icmph);
@@ -595,7 +595,7 @@ int ping_getfrag(void *from, char *to,
 			return -EFAULT;
 	}
 
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 	/* For IPv6, checksum each skb as we go along, as expected by
 	 * icmpv6_push_pending_frames. For IPv4, accumulate the checksum in
 	 * wcheck, it will be finalized in ping_push_pending_frames.
@@ -648,7 +648,7 @@ int ping_common_sendmsg(int family, struct msghdr *msg, size_t len,
 	if (family == AF_INET) {
 		type = ((struct icmphdr *) user_icmph)->type;
 		code = ((struct icmphdr *) user_icmph)->code;
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 	} else if (family == AF_INET6) {
 		type = ((struct icmp6hdr *) user_icmph)->icmp6_type;
 		code = ((struct icmp6hdr *) user_icmph)->icmp6_code;
@@ -846,7 +846,7 @@ int ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 	if (flags & MSG_ERRQUEUE) {
 		if (family == AF_INET) {
 			return ip_recv_error(sk, msg, len);
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 		} else if (family == AF_INET6) {
 			return pingv6_ops.ipv6_recv_error(sk, msg, len);
 #endif
@@ -883,7 +883,7 @@ int ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		if (isk->cmsg_flags)
 			ip_cmsg_recv(msg, skb);
 
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 	} else if (family == AF_INET6) {
 		struct ipv6_pinfo *np = inet6_sk(sk);
 		struct ipv6hdr *ip6 = ipv6_hdr(skb);

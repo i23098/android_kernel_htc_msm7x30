@@ -3800,7 +3800,7 @@ out:
 	return ret;
 }
 
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 
 /* Returns error only if unable to parse addresses */
 static int selinux_parse_skb_ipv6(struct sk_buff *skb,
@@ -3891,7 +3891,7 @@ static int selinux_parse_skb(struct sk_buff *skb, struct common_audit_data *ad,
 				       &ad->u.net->v4info.daddr);
 		goto okay;
 
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 	case PF_INET6:
 		ret = selinux_parse_skb_ipv6(skb, ad, proto);
 		if (ret)
@@ -4824,7 +4824,7 @@ static unsigned int selinux_ipv4_forward(unsigned int hooknum,
 	return selinux_ip_forward(skb, in->ifindex, PF_INET);
 }
 
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 static unsigned int selinux_ipv6_forward(unsigned int hooknum,
 					 struct sk_buff *skb,
 					 const struct net_device *in,
@@ -4993,7 +4993,7 @@ static unsigned int selinux_ipv4_postroute(unsigned int hooknum,
 	return selinux_ip_postroute(skb, out->ifindex, PF_INET);
 }
 
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 static unsigned int selinux_ipv6_postroute(unsigned int hooknum,
 					   struct sk_buff *skb,
 					   const struct net_device *in,
@@ -6039,7 +6039,7 @@ static struct nf_hook_ops selinux_ipv4_ops[] = {
 	}
 };
 
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 
 static struct nf_hook_ops selinux_ipv6_ops[] = {
 	{
@@ -6073,7 +6073,7 @@ static int __init selinux_nf_ip_init(void)
 	if (err)
 		panic("SELinux: nf_register_hooks for IPv4: error %d\n", err);
 
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 	err = nf_register_hooks(selinux_ipv6_ops, ARRAY_SIZE(selinux_ipv6_ops));
 	if (err)
 		panic("SELinux: nf_register_hooks for IPv6: error %d\n", err);
@@ -6091,7 +6091,7 @@ static void selinux_nf_ip_exit(void)
 	printk(KERN_DEBUG "SELinux:  Unregistering netfilter hooks\n");
 
 	nf_unregister_hooks(selinux_ipv4_ops, ARRAY_SIZE(selinux_ipv4_ops));
-#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+#if IS_ENABLED(CONFIG_IPV6)
 	nf_unregister_hooks(selinux_ipv6_ops, ARRAY_SIZE(selinux_ipv6_ops));
 #endif	/* IPV6 */
 }
