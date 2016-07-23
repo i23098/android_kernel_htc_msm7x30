@@ -25,7 +25,7 @@ Original Auther:
 #include <linux/workqueue.h>
 #include <linux/pm.h>
 #include <linux/platform_device.h>
-#include <linux/android_alarm.h>
+#include <linux/alarmtimer.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/err.h>
@@ -1360,7 +1360,7 @@ static int ds2746_battery_probe(struct platform_device *pdev)
 	}
 	wake_lock_init(&di->work_wake_lock, WAKE_LOCK_SUSPEND, "ds2746-battery");
 	alarm_init(&di->alarm,
-		ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP,
+		ALARM_BOOTTIME,
 		ds2746_battery_alarm);
 	wake_lock(&di->work_wake_lock);
 	queue_work(di->monitor_wqueue, &di->monitor_work);

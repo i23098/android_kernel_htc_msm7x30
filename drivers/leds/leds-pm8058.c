@@ -18,7 +18,6 @@
 #include <linux/leds.h>
 #include <linux/workqueue.h>
 #include <linux/pwm.h>
-#include <linux/android_alarm.h>
 #include <linux/pmic8058-pwm.h>
 #include <linux/leds-pm8058.h>
 #include <linux/wakelock.h>
@@ -634,7 +633,7 @@ static int pm8058_led_probe(struct platform_device *pdev)
 			}
 			INIT_WORK(&ldata[i].led_work, led_work_func);
 			alarm_init(&ldata[i].led_alarm,
-				   ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP,
+				   ALARM_BOOTTIME,
 				   led_alarm_handler);
 		}
 	}

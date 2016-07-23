@@ -29,6 +29,7 @@
 #include <linux/platform_data/video-msm_fb.h> /*to register display notifier */
 #include <mach/htc_battery.h>
 #include <linux/rtc.h>
+#include <linux/alarmtimer.h>
 #include <linux/workqueue.h>
 #include <linux/tps65200.h>
 #ifdef CONFIG_HTC_BATTCHG_SMEM
@@ -44,8 +45,6 @@
 #ifdef CONFIG_FORCE_FAST_CHARGE
 #include <linux/fastchg.h>
 #endif
-
-#include <linux/android_alarm.h>
 
 static struct wake_lock vbus_wake_lock;
 
@@ -1992,7 +1991,7 @@ static int htc_battery_probe(struct platform_device *pdev)
 	charger_ctrl_stat = ENABLE_CHARGER;
 	INIT_WORK(&batt_charger_ctrl_work, batt_charger_ctrl_func);
 	alarm_init(&batt_charger_ctrl_alarm,
-		    ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP,
+		    ALARM_BOOTTIME,
 		    batt_charger_ctrl_alarm_handler);
 	batt_charger_ctrl_wq =
 			create_singlethread_workqueue("charger_ctrl_timer");

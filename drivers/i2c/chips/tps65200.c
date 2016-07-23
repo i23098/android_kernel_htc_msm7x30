@@ -26,7 +26,7 @@
 #include <linux/power_supply.h>
 #include <linux/spinlock.h>
 #include <linux/wakelock.h>
-#include <linux/android_alarm.h>
+#include <linux/alarmtimer.h>
 #include <linux/usb/android_composite.h>
 #include <mach/board_htc.h>
 #include <mach/board.h>
@@ -723,7 +723,7 @@ static int tps65200_probe(struct i2c_client *client,
 	/* for boost mode safety timer */
 	INIT_WORK(&check_alarm_work, check_alarm_work_func);
 	alarm_init(&tps65200_check_alarm,
-			ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP,
+			ALARM_BOOTTIME,
 			tps65200_check_alarm_handler);
 
 #ifdef CONFIG_SUPPORT_DQ_BATTERY
