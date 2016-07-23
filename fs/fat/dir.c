@@ -803,7 +803,7 @@ static long fat_dir_ioctl(struct file *filp, unsigned int cmd,
 		short_only = 0;
 		both = 1;
 		break;
-	case VFAT_IOCTL_GET_VOLUME_ID:
+	case VFAT_IOCTL_GET_ANDROID_VOLUME_ID:
 		return fat_ioctl_volume_id(inode);
 	default:
 		return fat_generic_ioctl(filp, cmd, arg);
