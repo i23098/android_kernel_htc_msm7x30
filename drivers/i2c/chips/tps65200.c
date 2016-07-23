@@ -78,8 +78,8 @@ static void tps65200_set_check_alarm(void)
 	ktime_t next_alarm;
 
 	interval = ktime_set(TPS65200_CHECK_INTERVAL, 0);
-	next_alarm = ktime_add(alarm_get_elapsed_realtime(), interval);
-	alarm_start_range(&tps65200_check_alarm, next_alarm, next_alarm);
+	next_alarm = ktime_add(ktime_get_boottime(), interval);
+	alarm_start(&tps65200_check_alarm, next_alarm);
 }
 
 /**
@@ -686,9 +686,11 @@ static void kick_tps_watchdog(struct work_struct *work)
 	return;
 }
 
-static void tps65200_check_alarm_handler(struct alarm *alarm)
+static enum alarmtimer_restart tps65200_check_alarm_handler(struct alarm *alarm,
+							ktime_t now)
 {
 	queue_work(tps65200_wq, &check_alarm_work);
+	return ALARMTIMER_NORESTART;
 }
 
 static void check_alarm_work_func(struct work_struct *work)

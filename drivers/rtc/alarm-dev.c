@@ -252,7 +252,8 @@ static int alarm_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static void alarm_triggered(struct alarm *alarm)
+static enum alarmtimer_restart alarm_triggered(struct alarm *alarm,
+						ktime_t now)
 {
 	unsigned long flags;
 	uint32_t alarm_type_mask = 1U << alarm->type;
@@ -266,6 +267,7 @@ static void alarm_triggered(struct alarm *alarm)
 		wake_up(&alarm_wait_queue);
 	}
 	spin_unlock_irqrestore(&alarm_slock, flags);
+	return ALARMTIMER_NORESTART;
 }
 
 static const struct file_operations alarm_fops = {

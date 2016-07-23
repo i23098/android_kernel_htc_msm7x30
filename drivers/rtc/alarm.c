@@ -164,7 +164,7 @@ static void alarm_enqueue_locked(struct alarm *alarm)
  * @function:	alarm callback function
  */
 void alarm_init(struct alarm *alarm,
-	enum android_alarm_type type, void (*function)(struct alarm *))
+	enum android_alarm_type type, enum alarmtimer_restart (*function)(struct alarm *, ktime_t now))
 {
 	RB_CLEAR_NODE(&alarm->node);
 	alarm->type = type;
@@ -189,6 +189,12 @@ void alarm_start_range(struct alarm *alarm, ktime_t start, ktime_t end)
 	alarm->expires = end;
 	alarm_enqueue_locked(alarm);
 	spin_unlock_irqrestore(&alarm_slock, flags);
+}
+
+int alarm_start(struct alarm *alarm, ktime_t start)
+{
+	alarm_start_range(alarm, start, start);
+	return 0;    
 }
 
 /**
@@ -384,7 +390,7 @@ static enum hrtimer_restart alarm_timer_triggered(struct hrtimer *timer)
 			ktime_to_ns(alarm->expires),
 			ktime_to_ns(alarm->softexpires));
 		spin_unlock_irqrestore(&alarm_slock, flags);
-		alarm->function(alarm);
+		alarm->function(alarm, ktime_get_boottime());
 		spin_lock_irqsave(&alarm_slock, flags);
 	}
 	if (!base->first)
@@ -398,7 +404,7 @@ static void alarm_triggered_func(void *p)
 {
 	struct rtc_device *rtc = alarm_rtc_dev;
 	if (!(rtc->irq_data & RTC_AF))
-		return;
+		return ;
 	pr_alarm(INT, "rtc alarm triggered\n");
 	wake_lock_timeout(&alarm_rtc_wake_lock, 1 * HZ);
 }

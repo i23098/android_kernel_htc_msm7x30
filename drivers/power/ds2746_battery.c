@@ -40,7 +40,7 @@ Original Auther:
 #include <mach/htc_battery.h>
 #include <asm/mach-types.h>
 #include "../../arch/arm/mach-msm/proc_comm.h"
-#include <linux/i2c.h>  					/* for i2c_adapter, i2c_client define*/
+#include <linux/i2c.h>  /* for i2c_adapter, i2c_client define*/
 #include <linux/time.h>
 #include <linux/rtc.h>
 #include <linux/slab.h>
@@ -1151,13 +1151,12 @@ ssize_t htc_battery_show_attr(struct device_attribute *attr, char *buf)
 static void ds2746_program_alarm(struct ds2746_device_info *di, int seconds)
 {
 	ktime_t low_interval = ktime_set(seconds, 0);
-	ktime_t slack = ktime_set(1, 0);
 	ktime_t next;
 
 	next = ktime_add(di->last_poll, low_interval);
 
 	delta_time_sec = seconds;
-	alarm_start_range(&di->alarm, next, ktime_add(next, slack));
+	alarm_start(&di->alarm, next);
 }
 
 static int cable_status_handler_func(struct notifier_block *nfb,
@@ -1285,7 +1284,7 @@ static void ds2746_battery_work(struct work_struct *work)
 
 	do_power_alg(0);
 	get_state_check_interval_min_sec();
-	di->last_poll = alarm_get_elapsed_realtime();
+	di->last_poll = ktime_get_boottime();
 
 	/* prevent suspend before starting the alarm */
 	local_irq_save(flags);
@@ -1299,11 +1298,13 @@ static void ds2746_battery_work(struct work_struct *work)
 	local_irq_restore(flags);
 }
 
-static void ds2746_battery_alarm(struct alarm *alarm)
+static enum alarmtimer_restart ds2746_battery_alarm(struct alarm *alarm,
+							ktime_t now)
 {
 	struct ds2746_device_info *di = container_of(alarm, struct ds2746_device_info, alarm);
 	wake_lock(&di->work_wake_lock);
 	queue_work(di->monitor_wqueue, &di->monitor_work);
+	return ALARMTIMER_NORESTART;
 }
 
 static int ds2746_battery_probe(struct platform_device *pdev)
@@ -1351,7 +1352,7 @@ static int ds2746_battery_probe(struct platform_device *pdev)
 	di->monitor_wqueue = create_singlethread_workqueue(dev_name(&pdev->dev));
 
 	/* init to something sane */
-	di->last_poll = alarm_get_elapsed_realtime();
+	di->last_poll = ktime_get_boottime();
 
 	if (!di->monitor_wqueue){
 		rc = -ESRCH;
