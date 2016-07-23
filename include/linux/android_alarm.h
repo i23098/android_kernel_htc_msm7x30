@@ -58,10 +58,15 @@ enum android_alarm_type {
  *
  */
 
+enum alarmtimer_restart {
+	ALARMTIMER_NORESTART,
+	ALARMTIMER_RESTART,
+};
+
 struct alarm {
 	struct rb_node		node;
 	struct hrtimer		timer;
-	void			(*function)(struct alarm *);
+	enum alarmtimer_restart	(*function)(struct alarm *, ktime_t now);
 	enum android_alarm_type type;
 	int			state;
 	void			*data;
@@ -70,7 +75,8 @@ struct alarm {
 };
 
 void alarm_init(struct alarm *alarm,
-	enum android_alarm_type type, void (*function)(struct alarm *));
+	enum android_alarm_type type, enum alarmtimer_restart (*function)(struct alarm *, ktime_t now));
+int alarm_start(struct alarm *alarm, ktime_t start);
 void alarm_start_range(struct alarm *alarm, ktime_t start, ktime_t end);
 int alarm_try_to_cancel(struct alarm *alarm);
 int alarm_cancel(struct alarm *alarm);

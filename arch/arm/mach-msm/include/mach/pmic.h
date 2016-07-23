@@ -16,6 +16,7 @@
 
 #include <linux/types.h>
 #include <linux/seq_file.h>
+#include <linux/rtc.h>
 
 enum spkr_ldo_v_sel {
 	VOLT_LEVEL_1_1V,
@@ -374,18 +375,6 @@ enum pm_vib_mot_mode {
 enum pm_vib_mot_pol {
 	PM_VIB_MOT_POL__ACTIVE_HIGH,
 	PM_VIB_MOT_POL__ACTIVE_LOW,
-};
-
-struct rtc_time {
-	int tm_sec;
-	int tm_min;
-	int tm_hour;
-	int tm_mday;
-	int tm_mon;
-	int tm_year;
-	int tm_wday;
-	int tm_yday;
-	int tm_isdst;
 };
 
 enum hsed_controller {

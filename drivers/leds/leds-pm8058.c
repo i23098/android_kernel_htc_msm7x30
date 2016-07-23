@@ -151,12 +151,14 @@ static void led_work_func(struct work_struct *work)
 		charming_led_enable(0);
 }
 
-static void led_alarm_handler(struct alarm *alarm)
+static enum alarmtimer_restart led_alarm_handler(struct alarm *alarm,
+							ktime_t now)
 {
 	struct pm8058_led_data *ldata;
 
 	ldata = container_of(alarm, struct pm8058_led_data, led_alarm);
 	queue_work(g_led_work_queue, &ldata->led_work);
+	return ALARMTIMER_NORESTART;
 }
 
 static void pm8058_pwm_led_brightness_set(struct led_classdev *led_cdev,
@@ -454,8 +456,8 @@ static ssize_t pm8058_led_off_timer_store(struct device *dev,
 	cancel_work_sync(&ldata->led_work);
 	if (off_timer) {
 		interval = ktime_set(off_timer, 0);
-		next_alarm = ktime_add(alarm_get_elapsed_realtime(), interval);
-		alarm_start_range(&ldata->led_alarm, next_alarm, next_alarm);
+		next_alarm = ktime_add(ktime_get_boottime(), interval);
+		alarm_start(&ldata->led_alarm, next_alarm);
 	}
 	return count;
 }
