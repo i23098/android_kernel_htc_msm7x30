@@ -2587,7 +2587,10 @@ static int mdp_irq_clk_setup(struct platform_device *pdev,
 	if (IS_ERR(footswitch)) {
 		footswitch = NULL;
 	} else {
-		regulator_enable(footswitch);
+		ret = regulator_enable(footswitch);
+		if (ret)
+			pr_err("%s: regulator_enable failed(%d).\n",
+				__func__, ret);
 		mdp_footswitch_on = 1;
 	}
 
@@ -3131,6 +3134,8 @@ static int mdp_probe(struct platform_device *pdev)
 
 void mdp_footswitch_ctrl(boolean on)
 {
+	int ret;
+
 	mutex_lock(&mdp_suspend_mutex);
 	if (!mdp_suspended || mdp4_extn_disp || !footswitch ||
 		mdp_rev <= MDP_REV_41) {
@@ -3138,11 +3143,19 @@ void mdp_footswitch_ctrl(boolean on)
 		return;
 	}
 
-	if (dsi_pll_vddio)
-		regulator_enable(dsi_pll_vddio);
+	if (dsi_pll_vddio) {
+		ret = regulator_enable(dsi_pll_vddio);
+		if (ret)
+			pr_err("%s: regulator_enable failed(%d).\n",
+				__func__, ret);
+	}
 
-	if (dsi_pll_vdda)
-		regulator_enable(dsi_pll_vdda);
+	if (dsi_pll_vdda) {
+		ret = regulator_enable(dsi_pll_vdda);
+		if (ret)
+			pr_err("%s: regulator_enable failed(%d).\n",
+				__func__, ret);
+	}
 
 	mipi_dsi_prepare_ahb_clocks();
 	mipi_dsi_ahb_ctrl(1);
@@ -3151,7 +3164,10 @@ void mdp_footswitch_ctrl(boolean on)
 
 	if (on && !mdp_footswitch_on) {
 		pr_debug("Enable MDP FS\n");
-		regulator_enable(footswitch);
+		ret = regulator_enable(footswitch);
+		if (ret)
+			pr_err("%s: regulator_enable failed(%d).\n",
+				__func__, ret);
 		mdp_footswitch_on = 1;
 	} else if (!on && mdp_footswitch_on) {
 		pr_debug("Disable MDP FS\n");

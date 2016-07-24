@@ -490,7 +490,7 @@ static void enable_rot_clks(void)
 	if (msm_rotator_dev->regulator)
 		rc = regulator_enable(msm_rotator_dev->regulator);
 	if (rc)
-		pr_err("%s: regulator_enable failed. rc=%d\n",
+		pr_err("%s: regulator_enable failed(%d).\n",
 			__func__, rc);
 	if (msm_rotator_dev->core_clk != NULL)
 		clk_prepare_enable(msm_rotator_dev->core_clk);
