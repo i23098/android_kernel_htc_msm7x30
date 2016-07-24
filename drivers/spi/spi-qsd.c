@@ -2592,7 +2592,7 @@ static struct platform_driver msm_spi_driver = {
 	},
 	.suspend        = msm_spi_suspend,
 	.resume         = msm_spi_resume,
-	.remove		= __exit_p(msm_spi_remove),
+	.remove		= msm_spi_remove,
 };
 
 static int __init msm_spi_init(void)
