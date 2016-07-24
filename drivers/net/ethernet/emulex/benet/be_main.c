@@ -848,12 +848,24 @@ static struct sk_buff *be_xmit_workarounds(struct be_adapter *adapter,
 	unsigned int eth_hdr_len;
 	struct iphdr *ip;
 
+	/* Lancer ASIC has a bug wherein packets that are 32 bytes or less
+	 * may cause a transmit stall on that port. So the work-around is to
+	 * pad such packets to a 36-byte length.
+	 */
+	if (unlikely(lancer_chip(adapter) && skb->len <= 32)) {
+		if (skb_padto(skb, 36))
+			goto tx_drop;
+		skb->len = 36;
+	}
+
 	/* For padded packets, BE HW modifies tot_len field in IP header
 	 * incorrecly when VLAN tag is inserted by HW.
+	 * For padded packets, Lancer computes incorrect checksum.
 	 */
 	eth_hdr_len = ntohs(skb->protocol) == ETH_P_8021Q ?
 						VLAN_ETH_HLEN : ETH_HLEN;
-	if (skb->len <= 60 && vlan_tx_tag_present(skb) &&
+	if (skb->len <= 60 &&
+	    (lancer_chip(adapter) || vlan_tx_tag_present(skb)) &&
 	    is_ipv4_pkt(skb)) {
 		ip = (struct iphdr *)ip_hdr(skb);
 		pskb_trim(skb, eth_hdr_len + ntohs(ip->tot_len));
@@ -3198,7 +3210,7 @@ static int be_setup(struct be_adapter *adapter)
 	if (status)
 		goto err;
 
-	be_cmd_get_fw_ver(adapter, adapter->fw_ver, NULL);
+	be_cmd_get_fw_ver(adapter, adapter->fw_ver, adapter->fw_on_flash);
 
 	if (adapter->vlans_added)
 		be_vid_config(adapter);
@@ -3789,6 +3801,10 @@ int be_load_fw(struct be_adapter *adapter, u8 *fw_file)
 		status = lancer_fw_download(adapter, fw);
 	else
 		status = be_fw_download(adapter, fw);
+
+	if (!status)
+		be_cmd_get_fw_ver(adapter, adapter->fw_ver,
+				  adapter->fw_on_flash);
 
 fw_exit:
 	release_firmware(fw);
