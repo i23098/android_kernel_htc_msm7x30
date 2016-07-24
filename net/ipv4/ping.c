@@ -74,7 +74,7 @@ static inline struct hlist_nulls_head *ping_hashslot(struct ping_table *table,
 	return &table->hash[ping_hashfn(net, num, PING_HTABLE_MASK)];
 }
 
-int ping_v4_get_port(struct sock *sk, unsigned short ident)
+int ping_get_port(struct sock *sk, unsigned short ident)
 {
 	struct hlist_nulls_node *node;
 	struct hlist_nulls_head *hlist;
@@ -135,16 +135,16 @@ fail:
 	return 1;
 }
 
-void ping_v4_hash(struct sock *sk)
+void ping_hash(struct sock *sk)
 {
-	pr_debug("ping_v4_hash(sk->port=%u)\n", inet_sk(sk)->inet_num);
+	pr_debug("ping_hash(sk->port=%u)\n", inet_sk(sk)->inet_num);
 	BUG(); /* "Please do not press this button again." */
 }
 
-void ping_v4_unhash(struct sock *sk)
+void ping_unhash(struct sock *sk)
 {
 	struct inet_sock *isk = inet_sk(sk);
-	pr_debug("ping_v4_unhash(isk=%p,isk->num=%u)\n", isk, isk->inet_num);
+	pr_debug("ping_unhash(isk=%p,isk->num=%u)\n", isk, isk->inet_num);
 	if (sk_hashed(sk)) {
 		write_lock_bh(&ping_table.lock);
 		hlist_nulls_del(&sk->sk_nulls_node);
@@ -397,7 +397,7 @@ int ping_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 	err = -EADDRINUSE;
 	ping_set_saddr(sk, uaddr);
 	snum = ntohs(((struct sockaddr_in *)uaddr)->sin_port);
-	if (ping_v4_get_port(sk, snum) != 0) {
+	if (ping_get_port(sk, snum) != 0) {
 		ping_clear_saddr(sk, dif);
 		goto out;
 	}
@@ -903,7 +903,7 @@ int ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		}
 
 		if (inet6_sk(sk)->rxopt.all)
-			pingv6_ops.datagram_recv_ctl(sk, msg, skb);
+			pingv6_ops.ip6_datagram_recv_ctl(sk, msg, skb);
 #endif
 	} else {
 		BUG();
@@ -975,9 +975,9 @@ struct proto ping_prot = {
 	.bind =		ping_bind,
 	.backlog_rcv =	ping_queue_rcv_skb,
 	.release_cb =	ip4_datagram_release_cb,
-	.hash =		ping_v4_hash,
-	.unhash =	ping_v4_unhash,
-	.get_port =	ping_v4_get_port,
+	.hash =		ping_hash,
+	.unhash =	ping_unhash,
+	.get_port =	ping_get_port,
 	.obj_size =	sizeof(struct inet_sock),
 };
 EXPORT_SYMBOL(ping_prot);

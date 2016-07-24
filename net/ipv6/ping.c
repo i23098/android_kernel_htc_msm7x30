@@ -40,9 +40,9 @@ struct proto pingv6_prot = {
 	.recvmsg =	ping_recvmsg,
 	.bind =		ping_bind,
 	.backlog_rcv =	ping_queue_rcv_skb,
-	.hash =		ping_v4_hash,
-	.unhash =	ping_v4_unhash,
-	.get_port =	ping_v4_get_port,
+	.hash =		ping_hash,
+	.unhash =	ping_unhash,
+	.get_port =	ping_get_port,
 	.obj_size =	sizeof(struct raw6_sock),
 };
 EXPORT_SYMBOL_GPL(pingv6_prot);
@@ -74,7 +74,7 @@ int dummy_icmpv6_err_convert(u8 type, u8 code, int *err)
 void dummy_ipv6_icmp_error(struct sock *sk, struct sk_buff *skb, int err,
 			    __be16 port, u32 info, u8 *payload) {}
 int dummy_ipv6_chk_addr(struct net *net, const struct in6_addr *addr,
-			struct net_device *dev, int strict)
+			const struct net_device *dev, int strict)
 {
 	return 0;
 }
@@ -82,7 +82,7 @@ int dummy_ipv6_chk_addr(struct net *net, const struct in6_addr *addr,
 int __init pingv6_init(void)
 {
 	pingv6_ops.ipv6_recv_error = ipv6_recv_error;
-	pingv6_ops.datagram_recv_ctl = ip6_datagram_recv_ctl;
+	pingv6_ops.ip6_datagram_recv_ctl = ip6_datagram_recv_ctl;
 	pingv6_ops.icmpv6_err_convert = icmpv6_err_convert;
 	pingv6_ops.ipv6_icmp_error = ipv6_icmp_error;
 	pingv6_ops.ipv6_chk_addr = ipv6_chk_addr;
@@ -95,7 +95,7 @@ int __init pingv6_init(void)
 void pingv6_exit(void)
 {
 	pingv6_ops.ipv6_recv_error = dummy_ipv6_recv_error;
-	pingv6_ops.datagram_recv_ctl = dummy_datagram_recv_ctl;
+	pingv6_ops.ip6_datagram_recv_ctl = dummy_datagram_recv_ctl;
 	pingv6_ops.icmpv6_err_convert = dummy_icmpv6_err_convert;
 	pingv6_ops.ipv6_icmp_error = dummy_ipv6_icmp_error;
 	pingv6_ops.ipv6_chk_addr = dummy_ipv6_chk_addr;

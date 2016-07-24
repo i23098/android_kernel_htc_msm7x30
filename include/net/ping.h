@@ -32,13 +32,13 @@
 /* Compatibility glue so we can support IPv6 when it's compiled as a module */
 struct pingv6_ops {
 	int (*ipv6_recv_error)(struct sock *sk, struct msghdr *msg, int len);
-	int (*datagram_recv_ctl)(struct sock *sk, struct msghdr *msg,
-				 struct sk_buff *skb);
+	int (*ip6_datagram_recv_ctl)(struct sock *sk, struct msghdr *msg,
+				     struct sk_buff *skb);
 	int (*icmpv6_err_convert)(u8 type, u8 code, int *err);
 	void (*ipv6_icmp_error)(struct sock *sk, struct sk_buff *skb, int err,
 				__be16 port, u32 info, u8 *payload);
 	int (*ipv6_chk_addr)(struct net *net, const struct in6_addr *addr,
-			     struct net_device *dev, int strict);
+			     const struct net_device *dev, int strict);
 };
 
 struct ping_table {
@@ -64,15 +64,14 @@ struct pingfakehdr {
 	__wsum wcheck;
 };
 
-int  ping_v4_get_port(struct sock *sk, unsigned short ident);
-void ping_v4_hash(struct sock *sk);
-void ping_v4_unhash(struct sock *sk);
+int  ping_get_port(struct sock *sk, unsigned short ident);
+void ping_hash(struct sock *sk);
+void ping_unhash(struct sock *sk);
 
 int  ping_init_sock(struct sock *sk);
 void ping_close(struct sock *sk, long timeout);
 int  ping_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len);
 void ping_err(struct sk_buff *skb, int offset, u32 info);
-void ping_v4_err(struct sk_buff *skb, u32 info);
 int  ping_getfrag(void *from, char *to, int offset, int fraglen, int odd,
 		  struct sk_buff *);
 
@@ -80,7 +79,7 @@ int  ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		  size_t len, int noblock, int flags, int *addr_len);
 int  ping_common_sendmsg(int family, struct msghdr *msg, size_t len,
 			 void *user_icmph, size_t icmph_len);
-int  ping_sendmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
+int  ping_v4_sendmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		     size_t len);
 int  ping_v6_sendmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		     size_t len);
