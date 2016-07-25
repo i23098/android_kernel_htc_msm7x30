@@ -6582,7 +6582,11 @@ wl_cfg80211_netdev_notifier_call(struct notifier_block * nb,
 	unsigned long state,
 	void *ndev)
 {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
+	struct net_device *dev = netdev_notifier_info_to_dev(ndev);
+#else
 	struct net_device *dev = ndev;
+#endif
 	struct wireless_dev *wdev = dev->ieee80211_ptr;
 	struct wl_priv *wl = wlcfg_drv_priv;
 
