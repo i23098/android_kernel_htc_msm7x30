@@ -1597,26 +1597,14 @@ struct packet_offload {
 #define NETDEV_JOIN		0x0014
 #define NETDEV_CHANGEUPPER	0x0015
 
-extern int register_netdevice_notifier(struct notifier_block *nb);
-extern int unregister_netdevice_notifier(struct notifier_block *nb);
-
-struct netdev_notifier_info {
-	struct net_device *dev;
-};
-
-struct netdev_notifier_change_info {
-	struct netdev_notifier_info info; /* must be first */
-	unsigned int flags_changed;
-};
-
 static inline struct net_device *
-netdev_notifier_info_to_dev(const struct netdev_notifier_info *info)
+netdev_notifier_info_to_dev(struct net_device *info)
 {
-	return info->dev;
+	return info;
 }
 
-extern int call_netdevice_notifiers_info(unsigned long val, struct net_device *dev,
-					 struct netdev_notifier_info *info);
+extern int register_netdevice_notifier(struct notifier_block *nb);
+extern int unregister_netdevice_notifier(struct notifier_block *nb);
 extern int call_netdevice_notifiers(unsigned long val, struct net_device *dev);
 
 
