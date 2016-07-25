@@ -97,7 +97,6 @@ struct vxlan_net {
 };
 
 struct vxlan_rdst {
-	struct rcu_head		 rcu;
 	__be32			 remote_ip;
 	__be16			 remote_port;
 	u32			 remote_vni;
@@ -1282,7 +1281,7 @@ static int vxlan_open(struct net_device *dev)
 /* Purge the forwarding table */
 static void vxlan_flush(struct vxlan_dev *vxlan)
 {
-	unsigned h;
+	unsigned int h;
 
 	spin_lock_bh(&vxlan->hash_lock);
 	for (h = 0; h < FDB_HASH_SIZE; ++h) {
@@ -1346,7 +1345,7 @@ static void vxlan_free(struct net_device *dev)
 static void vxlan_setup(struct net_device *dev)
 {
 	struct vxlan_dev *vxlan = netdev_priv(dev);
-	unsigned h;
+	unsigned int h;
 	int low, high;
 
 	eth_hw_addr_random(dev);
@@ -1472,7 +1471,7 @@ static struct vxlan_sock *vxlan_socket_create(struct net *net, __be16 port)
 		.sin_addr.s_addr = htonl(INADDR_ANY),
 	};
 	int rc;
-	unsigned h;
+	unsigned int h;
 
 	vs = kmalloc(sizeof(*vs), GFP_KERNEL);
 	if (!vs)
@@ -1735,7 +1734,7 @@ static struct rtnl_link_ops vxlan_link_ops __read_mostly = {
 static __net_init int vxlan_init_net(struct net *net)
 {
 	struct vxlan_net *vn = net_generic(net, vxlan_net_id);
-	unsigned h;
+	unsigned int h;
 
 	INIT_LIST_HEAD(&vn->vxlan_list);
 
@@ -1784,7 +1783,7 @@ out2:
 out1:
 	return rc;
 }
-module_init(vxlan_init_module);
+late_initcall(vxlan_init_module);
 
 static void __exit vxlan_cleanup_module(void)
 {
