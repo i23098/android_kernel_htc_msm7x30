@@ -405,7 +405,7 @@ static int mlx4_en_vlan_rx_add_vid(struct net_device *dev,
 			en_err(priv, "Failed configuring VLAN filter\n");
 	}
 	if (mlx4_register_vlan(mdev->dev, priv->port, vid, &idx))
-		en_err(priv, "failed adding vlan %d\n", vid);
+		en_dbg(HW, priv, "failed adding vlan %d\n", vid);
 	mutex_unlock(&mdev->state_lock);
 
 	return 0;
@@ -428,7 +428,7 @@ static int mlx4_en_vlan_rx_kill_vid(struct net_device *dev,
 	if (!mlx4_find_cached_vlan(mdev->dev, priv->port, vid, &idx))
 		mlx4_unregister_vlan(mdev->dev, priv->port, idx);
 	else
-		en_err(priv, "could not find vid %d in cache\n", vid);
+		en_dbg(HW, priv, "could not find vid %d in cache\n", vid);
 
 	if (mdev->device_up && priv->port_up) {
 		err = mlx4_SET_VLAN_FLTR(mdev->dev, priv);
@@ -1236,9 +1236,18 @@ static void mlx4_en_tx_timeout(struct net_device *dev)
 {
 	struct mlx4_en_priv *priv = netdev_priv(dev);
 	struct mlx4_en_dev *mdev = priv->mdev;
+	int i;
 
 	if (netif_msg_timer(priv))
 		en_warn(priv, "Tx timeout called on port:%d\n", priv->port);
+
+	for (i = 0; i < priv->tx_ring_num; i++) {
+		if (!netif_tx_queue_stopped(netdev_get_tx_queue(dev, i)))
+			continue;
+		en_warn(priv, "TX timeout on queue: %d, QP: 0x%x, CQ: 0x%x, Cons: 0x%x, Prod: 0x%x\n",
+			i, priv->tx_ring[i].qpn, priv->tx_ring[i].cqn,
+			priv->tx_ring[i].cons, priv->tx_ring[i].prod);
+	}
 
 	priv->port_stats.tx_timeout++;
 	en_dbg(DRV, priv, "Scheduling watchdog\n");
@@ -1375,12 +1384,13 @@ static void mlx4_en_do_get_stats(struct work_struct *work)
 
 	mutex_lock(&mdev->state_lock);
 	if (mdev->device_up) {
-		err = mlx4_en_DUMP_ETH_STATS(mdev, priv->port, 0);
-		if (err)
-			en_dbg(HW, priv, "Could not update stats\n");
+		if (priv->port_up) {
+			err = mlx4_en_DUMP_ETH_STATS(mdev, priv->port, 0);
+			if (err)
+				en_dbg(HW, priv, "Could not update stats\n");
 
-		if (priv->port_up)
 			mlx4_en_auto_moderation(priv);
+		}
 
 		queue_delayed_work(mdev->workqueue, &priv->stats_task, STATS_DELAY);
 	}
@@ -1634,6 +1644,9 @@ void mlx4_en_stop_port(struct net_device *dev, int detach)
 		return;
 	}
 
+	/* close port*/
+	mlx4_CLOSE_PORT(mdev->dev, priv->port);
+
 	/* Synchronize with tx routine */
 	netif_tx_lock_bh(dev);
 	if (detach)
@@ -1734,14 +1747,11 @@ void mlx4_en_stop_port(struct net_device *dev, int detach)
 		}
 		local_bh_enable();
 
-		mlx4_en_deactivate_rx_ring(priv, &priv->rx_ring[i]);
 		while (test_bit(NAPI_STATE_SCHED, &cq->napi.state))
 			msleep(1);
+		mlx4_en_deactivate_rx_ring(priv, &priv->rx_ring[i]);
 		mlx4_en_deactivate_cq(priv, cq);
 	}
-
-	/* close port*/
-	mlx4_CLOSE_PORT(mdev->dev, priv->port);
 }
 
 static void mlx4_en_restart(struct work_struct *work)
@@ -2322,6 +2332,8 @@ int mlx4_en_init_netdev(struct mlx4_en_dev *mdev, int port,
 	mdev->pndev[port] = dev;
 
 	netif_carrier_off(dev);
+	mlx4_en_set_default_moderation(priv);
+
 	err = register_netdev(dev);
 	if (err) {
 		en_err(priv, "Netdev registration failed for port %d\n", port);
@@ -2353,7 +2365,6 @@ int mlx4_en_init_netdev(struct mlx4_en_dev *mdev, int port,
 		en_err(priv, "Failed Initializing port\n");
 		goto out;
 	}
-	mlx4_en_set_default_moderation(priv);
 	queue_delayed_work(mdev->workqueue, &priv->stats_task, STATS_DELAY);
 
 	if (mdev->dev->caps.flags2 & MLX4_DEV_CAP_FLAG2_TS)

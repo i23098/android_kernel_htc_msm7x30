@@ -104,6 +104,7 @@ static char *xmit_hash_policy;
 static int arp_interval = BOND_LINK_ARP_INTERV;
 static char *arp_ip_target[BOND_MAX_ARP_TARGETS];
 static char *arp_validate;
+static char *arp_all_targets;
 static char *fail_over_mac;
 static int all_slaves_active = 0;
 static struct bond_params bonding_defaults;
@@ -166,6 +167,8 @@ module_param(arp_validate, charp, 0);
 MODULE_PARM_DESC(arp_validate, "validate src/dst of ARP probes; "
 			       "0 for none (default), 1 for active, "
 			       "2 for backup, 3 for all");
+module_param(arp_all_targets, charp, 0);
+MODULE_PARM_DESC(arp_all_targets, "fail on any/all arp targets timeout; 0 for any (default), 1 for all");
 module_param(fail_over_mac, charp, 0);
 MODULE_PARM_DESC(fail_over_mac, "For active-backup, do not set all slaves to "
 				"the same MAC; 0 for none (default), "
@@ -213,6 +216,12 @@ const struct bond_parm_tbl xmit_hashtype_tbl[] = {
 {	"layer2",		BOND_XMIT_POLICY_LAYER2},
 {	"layer3+4",		BOND_XMIT_POLICY_LAYER34},
 {	"layer2+3",		BOND_XMIT_POLICY_LAYER23},
+{	NULL,			-1},
+};
+
+const struct bond_parm_tbl arp_all_targets_tbl[] = {
+{	"any",			BOND_ARP_TARGETS_ANY},
+{	"all",			BOND_ARP_TARGETS_ALL},
 {	NULL,			-1},
 };
 
@@ -824,6 +833,23 @@ static void bond_hw_addr_swap(struct bonding *bond, struct slave *new_active,
 	}
 }
 
+/**
+ * bond_set_dev_addr - clone slave's address to bond
+ * @bond_dev: bond net device
+ * @slave_dev: slave net device
+ *
+ * Should be called with RTNL held.
+ */
+static void bond_set_dev_addr(struct net_device *bond_dev,
+			      struct net_device *slave_dev)
+{
+	pr_debug("bond_dev=%p slave_dev=%p slave_dev->addr_len=%d\n",
+		 bond_dev, slave_dev, slave_dev->addr_len);
+	memcpy(bond_dev->dev_addr, slave_dev->dev_addr, slave_dev->addr_len);
+	bond_dev->addr_assign_type = NET_ADDR_STOLEN;
+	call_netdevice_notifiers(NETDEV_CHANGEADDR, bond_dev);
+}
+
 /*
  * bond_do_fail_over_mac
  *
@@ -846,11 +872,9 @@ static void bond_do_fail_over_mac(struct bonding *bond,
 	switch (bond->params.fail_over_mac) {
 	case BOND_FOM_ACTIVE:
 		if (new_active) {
-			memcpy(bond->dev->dev_addr,  new_active->dev->dev_addr,
-			       new_active->dev->addr_len);
 			write_unlock_bh(&bond->curr_slave_lock);
 			read_unlock(&bond->lock);
-			call_netdevice_notifiers(NETDEV_CHANGEADDR, bond->dev);
+			bond_set_dev_addr(bond->dev, new_active->dev);
 			read_lock(&bond->lock);
 			write_lock_bh(&bond->curr_slave_lock);
 		}
@@ -1281,17 +1305,6 @@ static void bond_netpoll_cleanup(struct net_device *bond_dev)
 
 /*---------------------------------- IOCTL ----------------------------------*/
 
-static void bond_set_dev_addr(struct net_device *bond_dev,
-			      struct net_device *slave_dev)
-{
-	pr_debug("bond_dev=%p\n", bond_dev);
-	pr_debug("slave_dev=%p\n", slave_dev);
-	pr_debug("slave_dev->addr_len=%d\n", slave_dev->addr_len);
-	memcpy(bond_dev->dev_addr, slave_dev->dev_addr, slave_dev->addr_len);
-	bond_dev->addr_assign_type = NET_ADDR_SET;
-	call_netdevice_notifiers(NETDEV_CHANGEADDR, bond_dev);
-}
-
 static netdev_features_t bond_fix_features(struct net_device *dev,
 	netdev_features_t features)
 {
@@ -1373,8 +1386,6 @@ done:
 static void bond_setup_by_slave(struct net_device *bond_dev,
 				struct net_device *slave_dev)
 {
-	struct bonding *bond = netdev_priv(bond_dev);
-
 	bond_dev->header_ops	    = slave_dev->header_ops;
 
 	bond_dev->type		    = slave_dev->type;
@@ -1383,7 +1394,6 @@ static void bond_setup_by_slave(struct net_device *bond_dev,
 
 	memcpy(bond_dev->broadcast, slave_dev->broadcast,
 		slave_dev->addr_len);
-	bond->setup_by_slave = 1;
 }
 
 /* On bonding slaves other than the currently active slave, suppress
@@ -1483,7 +1493,7 @@ int bond_enslave(struct net_device *bond_dev, struct net_device *slave_dev)
 	struct slave *new_slave = NULL;
 	struct sockaddr addr;
 	int link_reporting;
-	int res = 0;
+	int res = 0, i;
 
 	if (!bond->params.use_carrier &&
 	    slave_dev->ethtool_ops->get_link == NULL &&
@@ -1590,7 +1600,7 @@ int bond_enslave(struct net_device *bond_dev, struct net_device *slave_dev)
 
 	/* If this is the first slave, then we need to set the master's hardware
 	 * address to be the same as the slave's. */
-	if (bond->slave_cnt == 0 && bond->dev_addr_from_first)
+	if (!bond->slave_cnt && bond->dev->addr_assign_type == NET_ADDR_RANDOM)
 		bond_set_dev_addr(bond->dev, slave_dev);
 
 	new_slave = kzalloc(sizeof(struct slave), GFP_KERNEL);
@@ -1712,6 +1722,8 @@ int bond_enslave(struct net_device *bond_dev, struct net_device *slave_dev)
 
 	new_slave->last_arp_rx = jiffies -
 		(msecs_to_jiffies(bond->params.arp_interval) + 1);
+	for (i = 0; i < BOND_MAX_ARP_TARGETS; i++)
+		new_slave->target_last_arp_rx[i] = new_slave->last_arp_rx;
 
 	if (bond->params.miimon && !bond->params.use_carrier) {
 		link_reporting = bond_check_dev_link(bond, slave_dev, 1);
@@ -2033,7 +2045,6 @@ static int __bond_release_one(struct net_device *bond_dev,
 	if (bond->slave_cnt == 0) {
 		bond_set_carrier(bond);
 		eth_hw_addr_random(bond_dev);
-		bond->dev_addr_from_first = true;
 
 		if (bond_vlan_used(bond)) {
 			pr_warning("%s: Warning: clearing HW address of %s while it still has VLANs.\n",
@@ -2612,18 +2623,19 @@ static void bond_arp_send_all(struct bonding *bond, struct slave *slave)
 static void bond_validate_arp(struct bonding *bond, struct slave *slave, __be32 sip, __be32 tip)
 {
 	int i;
-	__be32 *targets = bond->params.arp_targets;
 
-	for (i = 0; (i < BOND_MAX_ARP_TARGETS) && targets[i]; i++) {
-		pr_debug("bva: sip %pI4 tip %pI4 t[%d] %pI4 bhti(tip) %d\n",
-			 &sip, &tip, i, &targets[i],
-			 bond_has_this_ip(bond, tip));
-		if (sip == targets[i]) {
-			if (bond_has_this_ip(bond, tip))
-				slave->last_arp_rx = jiffies;
-			return;
-		}
+	if (!sip || !bond_has_this_ip(bond, tip)) {
+		pr_debug("bva: sip %pI4 tip %pI4 not found\n", &sip, &tip);
+		return;
 	}
+
+	i = bond_get_targets_ip(bond->params.arp_targets, sip);
+	if (i == -1) {
+		pr_debug("bva: sip %pI4 not found in targets\n", &sip);
+		return;
+	}
+	slave->last_arp_rx = jiffies;
+	slave->target_last_arp_rx[i] = jiffies;
 }
 
 static int bond_arp_rcv(const struct sk_buff *skb, struct bonding *bond,
@@ -2638,6 +2650,10 @@ static int bond_arp_rcv(const struct sk_buff *skb, struct bonding *bond,
 		return RX_HANDLER_ANOTHER;
 
 	read_lock(&bond->lock);
+
+	if (!slave_do_arp_validate(bond, slave))
+		goto out_unlock;
+
 	alen = arp_hdr_len(bond->dev);
 
 	pr_debug("bond_arp_rcv: bond %s skb->dev %s\n",
@@ -2677,10 +2693,17 @@ static int bond_arp_rcv(const struct sk_buff *skb, struct bonding *bond,
 	 * configuration, the ARP probe will (hopefully) travel from
 	 * the active, through one switch, the router, then the other
 	 * switch before reaching the backup.
+	 *
+	 * We 'trust' the arp requests if there is an active slave and
+	 * it received valid arp reply(s) after it became active. This
+	 * is done to avoid endless looping when we can't reach the
+	 * arp_ip_target and fool ourselves with our own arp requests.
 	 */
 	if (bond_is_active_slave(slave))
 		bond_validate_arp(bond, slave, sip, tip);
-	else
+	else if (bond->curr_active_slave &&
+		 time_after(slave_last_rx(bond, bond->curr_active_slave),
+			    bond->curr_active_slave->jiffies))
 		bond_validate_arp(bond, slave, tip, sip);
 
 out_unlock:
@@ -3165,7 +3188,7 @@ static int bond_slave_netdev_event(unsigned long event,
 
 	switch (event) {
 	case NETDEV_UNREGISTER:
-		if (bond->setup_by_slave)
+		if (bond_dev->type != ARPHRD_ETHER)
 			bond_release_and_destroy(bond_dev, slave_dev);
 		else
 			bond_release(bond_dev, slave_dev);
@@ -4402,6 +4425,7 @@ int bond_parse_parm(const char *buf, const struct bond_parm_tbl *tbl)
 static int bond_check_params(struct bond_params *params)
 {
 	int arp_validate_value, fail_over_mac_value, primary_reselect_value, i;
+	int arp_all_targets_value;
 
 	/*
 	 * Convert string parameters.
@@ -4592,7 +4616,11 @@ static int bond_check_params(struct bond_params *params)
 				   arp_ip_target[i]);
 			arp_interval = 0;
 		} else {
-			arp_target[arp_ip_count++] = ip;
+			if (bond_get_targets_ip(arp_target, ip) == -1)
+				arp_target[arp_ip_count++] = ip;
+			else
+				pr_warning("Warning: duplicate address %pI4 in arp_ip_target, skipping\n",
+					   &ip);
 		}
 	}
 
@@ -4622,6 +4650,18 @@ static int bond_check_params(struct bond_params *params)
 		}
 	} else
 		arp_validate_value = 0;
+
+	arp_all_targets_value = 0;
+	if (arp_all_targets) {
+		arp_all_targets_value = bond_parse_parm(arp_all_targets,
+							arp_all_targets_tbl);
+
+		if (arp_all_targets_value == -1) {
+			pr_err("Error: invalid arp_all_targets_value \"%s\"\n",
+			       arp_all_targets);
+			arp_all_targets_value = 0;
+		}
+	}
 
 	if (miimon) {
 		pr_info("MII link monitoring set to %d ms\n", miimon);
@@ -4687,6 +4727,7 @@ static int bond_check_params(struct bond_params *params)
 	params->num_peer_notif = num_peer_notif;
 	params->arp_interval = arp_interval;
 	params->arp_validate = arp_validate_value;
+	params->arp_all_targets = arp_all_targets_value;
 	params->updelay = updelay;
 	params->downdelay = downdelay;
 	params->use_carrier = use_carrier;
@@ -4763,10 +4804,8 @@ static int bond_init(struct net_device *bond_dev)
 
 	/* Ensure valid dev_addr */
 	if (is_zero_ether_addr(bond_dev->dev_addr) &&
-	    bond_dev->addr_assign_type == NET_ADDR_PERM) {
+	    bond_dev->addr_assign_type == NET_ADDR_PERM)
 		eth_hw_addr_random(bond_dev);
-		bond->dev_addr_from_first = true;
-	}
 
 	return 0;
 }
@@ -4840,7 +4879,7 @@ static int __net_init bond_net_init(struct net *net)
 
 	bond_create_proc_dir(bn);
 	bond_create_sysfs(bn);
-	
+
 	return 0;
 }
 

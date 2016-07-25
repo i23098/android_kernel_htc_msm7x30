@@ -615,7 +615,7 @@ void bnx2x_read_dmae(struct bnx2x *bp, u32 src_addr, u32 len32)
 	if (rc) {
 		BNX2X_ERR("DMAE returned failure %d\n", rc);
 		bnx2x_panic();
-	};
+	}
 }
 
 static void bnx2x_write_dmae_phys_len(struct bnx2x *bp, dma_addr_t phys_addr,
@@ -5458,7 +5458,7 @@ static void bnx2x_timer(unsigned long data)
 
 	/* sample pf vf bulletin board for new posts from pf */
 	if (IS_VF(bp))
-		bnx2x_sample_bulletin(bp);
+		bnx2x_timer_sriov(bp);
 
 	mod_timer(&bp->timer, jiffies + bp->current_interval);
 }
@@ -9620,6 +9620,13 @@ sp_rtnl_not_reset:
 		   "sending set mcast vf pf channel message from rtnl sp-task\n");
 		bnx2x_vfpf_set_mcast(bp->dev);
 	}
+	if (test_and_clear_bit(BNX2X_SP_RTNL_VFPF_CHANNEL_DOWN,
+			       &bp->sp_rtnl_state)){
+		if (!test_bit(__LINK_STATE_NOCARRIER, &bp->dev->state)) {
+			bnx2x_tx_disable(bp);
+			BNX2X_ERR("PF indicated channel is not servicable anymore. This means this VF device is no longer operational\n");
+		}
+	}
 
 	if (test_and_clear_bit(BNX2X_SP_RTNL_VFPF_STORM_RX_MODE,
 			       &bp->sp_rtnl_state)) {
@@ -10541,6 +10548,10 @@ static void bnx2x_link_settings_supported(struct bnx2x *bp, u32 switch_cfg)
 		if (!(bp->link_params.speed_cap_mask[idx] &
 					PORT_HW_CFG_SPEED_CAPABILITY_D0_10G))
 			bp->port.supported[idx] &= ~SUPPORTED_10000baseT_Full;
+
+		if (!(bp->link_params.speed_cap_mask[idx] &
+					PORT_HW_CFG_SPEED_CAPABILITY_D0_20G))
+			bp->port.supported[idx] &= ~SUPPORTED_20000baseKR2_Full;
 	}
 
 	BNX2X_DEV_INFO("supported 0x%x 0x%x\n", bp->port.supported[0],
@@ -11624,6 +11635,8 @@ static int bnx2x_init_bp(struct bnx2x *bp)
 	else
 		bp->min_msix_vec_cnt = 2;
 	BNX2X_DEV_INFO("bp->min_msix_vec_cnt %d", bp->min_msix_vec_cnt);
+
+	bp->dump_preset_idx = 1;
 
 	return rc;
 }
@@ -12814,6 +12827,8 @@ static void __bnx2x_remove(struct pci_dev *pdev,
 		rtnl_unlock();
 	}
 
+	bnx2x_iov_remove_one(bp);
+
 	/* Power on: we can't let PCI layer write to us while we are in D3 */
 	if (IS_PF(bp))
 		bnx2x_set_power_state(bp, PCI_D0);
@@ -12827,8 +12842,6 @@ static void __bnx2x_remove(struct pci_dev *pdev,
 
 	/* Make sure RESET task is not scheduled before continuing */
 	cancel_delayed_work_sync(&bp->sp_rtnl_task);
-
-	bnx2x_iov_remove_one(bp);
 
 	/* send message via vfpf channel to release the resources of this vf */
 	if (IS_VF(bp))

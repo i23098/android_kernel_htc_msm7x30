@@ -23,6 +23,7 @@ obj-$(CONFIG_VETH) += veth.o
 obj-$(CONFIG_VIRTIO_NET) += virtio_net.o
 obj-$(CONFIG_KINETO_GAN) += kineto_gan.o
 obj-$(CONFIG_VXLAN) += vxlan.o
+obj-$(CONFIG_NLMON) += nlmon.o
 
 #
 # Networking Drivers

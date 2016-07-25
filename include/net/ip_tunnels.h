@@ -42,6 +42,7 @@ struct ip_tunnel {
 	struct ip_tunnel __rcu	*next;
 	struct hlist_node hash_node;
 	struct net_device	*dev;
+	struct net		*net;	/* netns for packet i/o */
 
 	int		err_count;	/* Number of arrived ICMP errors */
 	unsigned long	err_time;	/* Time when the last ICMP error
@@ -92,6 +93,8 @@ struct ip_tunnel_net {
 	struct hlist_head *tunnels;
 	struct net_device *fb_tunnel_dev;
 };
+
+#ifdef CONFIG_INET
 
 int ip_tunnel_init(struct net_device *dev);
 void ip_tunnel_uninit(struct net_device *dev);
@@ -180,4 +183,7 @@ static inline void iptunnel_xmit_stats(int err,
 		err_stats->tx_dropped++;
 	}
 }
+
+#endif /* CONFIG_INET */
+
 #endif /* __NET_IP_TUNNELS_H */

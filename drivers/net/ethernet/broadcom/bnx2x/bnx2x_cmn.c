@@ -1722,7 +1722,7 @@ static int bnx2x_req_irq(struct bnx2x *bp)
 	return request_irq(irq, bnx2x_interrupt, flags, bp->dev->name, bp->dev);
 }
 
-int bnx2x_setup_irqs(struct bnx2x *bp)
+static int bnx2x_setup_irqs(struct bnx2x *bp)
 {
 	int rc = 0;
 	if (bp->flags & USING_MSIX_FLAG &&
@@ -2871,6 +2871,9 @@ int bnx2x_nic_unload(struct bnx2x *bp, int unload_mode, bool keep_link)
 	bp->state = BNX2X_STATE_CLOSING_WAIT4_HALT;
 	smp_mb();
 
+	/* indicate to VFs that the PF is going down */
+	bnx2x_iov_channel_down(bp);
+
 	if (CNIC_LOADED(bp))
 		bnx2x_cnic_notify(bp, CNIC_CTL_STOP_CMD);
 
@@ -3540,9 +3543,12 @@ static void bnx2x_update_pbds_gso_enc(struct sk_buff *skb,
 	/* outer IP header info */
 	if (xmit_type & XMIT_CSUM_V4) {
 		struct iphdr *iph = ip_hdr(skb);
+		u16 csum = (__force u16)(~iph->check) -
+			   (__force u16)iph->tot_len -
+			   (__force u16)iph->frag_off;
+
 		pbd2->fw_ip_csum_wo_len_flags_frag =
-			bswab16(csum_fold((~iph->check) -
-					  iph->tot_len - iph->frag_off));
+			bswab16(csum_fold((__force __wsum)csum));
 	} else {
 		pbd2->fw_ip_hdr_to_payload_w =
 			hlen_w - ((sizeof(struct ipv6hdr)) >> 1);
