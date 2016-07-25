@@ -1425,7 +1425,6 @@ void dev_disable_lro(struct net_device *dev)
 }
 EXPORT_SYMBOL(dev_disable_lro);
 
-
 static int dev_boot_phase = 1;
 
 /**
