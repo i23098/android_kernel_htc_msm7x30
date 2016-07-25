@@ -1866,7 +1866,6 @@ irqreturn_t bnx2x_interrupt(int irq, void *dev_instance)
 		mask = 0x2 << (fp->index + CNIC_SUPPORT(bp));
 		if (status & mask) {
 			/* Handle Rx or Tx according to SB id */
-			prefetch(fp->rx_cons_sb);
 			for_each_cos_in_tx_queue(fp, cos)
 				prefetch(fp->txdata_ptr[cos]->tx_cons_sb);
 			prefetch(&fp->sb_running_index[SM_RX_ID]);
@@ -12013,6 +12012,10 @@ static const struct net_device_ops bnx2x_netdev_ops = {
 #ifdef NETDEV_FCOE_WWNN
 	.ndo_fcoe_get_wwn	= bnx2x_fcoe_get_wwn,
 #endif
+
+#ifdef CONFIG_NET_LL_RX_POLL
+	.ndo_ll_poll		= bnx2x_low_latency_recv,
+#endif
 };
 
 static int bnx2x_set_coherency_mask(struct bnx2x *bp)
@@ -12088,7 +12091,7 @@ static int bnx2x_init_dev(struct bnx2x *bp, struct pci_dev *pdev,
 	}
 
 	if (IS_PF(bp)) {
-		bp->pm_cap = pci_find_capability(pdev, PCI_CAP_ID_PM);
+		bp->pm_cap = pdev->pm_cap;
 		if (bp->pm_cap == 0) {
 			dev_err(&bp->pdev->dev,
 				"Cannot find power management capability, aborting\n");
@@ -12136,8 +12139,6 @@ static int bnx2x_init_dev(struct bnx2x *bp, struct pci_dev *pdev,
 				  ME_REG_ABS_PF_NUM_SHIFT);
 	}
 	BNX2X_DEV_INFO("me reg PF num: %d\n", bp->pf_num);
-
-	bnx2x_set_power_state(bp, PCI_D0);
 
 	/* clean indirect addresses */
 	pci_write_config_dword(bp->pdev, PCICFG_GRC_ADDRESS,

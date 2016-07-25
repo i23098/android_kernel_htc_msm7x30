@@ -24,12 +24,12 @@
 static int one = 1;
 
 #ifdef CONFIG_RPS
-static int rps_sock_flow_sysctl(ctl_table *table, int write,
+static int rps_sock_flow_sysctl(struct ctl_table *table, int write,
 				void __user *buffer, size_t *lenp, loff_t *ppos)
 {
 	unsigned int orig_size, size;
 	int ret, i;
-	ctl_table tmp = {
+	struct ctl_table tmp = {
 		.data = &size,
 		.maxlen = sizeof(size),
 		.mode = table->mode
@@ -91,7 +91,7 @@ static int rps_sock_flow_sysctl(ctl_table *table, int write,
 #ifdef CONFIG_NET_FLOW_LIMIT
 static DEFINE_MUTEX(flow_limit_update_mutex);
 
-static int flow_limit_cpu_sysctl(ctl_table *table, int write,
+static int flow_limit_cpu_sysctl(struct ctl_table *table, int write,
 				 void __user *buffer, size_t *lenp,
 				 loff_t *ppos)
 {
@@ -132,6 +132,8 @@ static int flow_limit_cpu_sysctl(ctl_table *table, int write,
 write_unlock:
 		mutex_unlock(&flow_limit_update_mutex);
 	} else {
+		char kbuf[128];
+
 		if (*ppos || !*lenp) {
 			*lenp = 0;
 			goto done;
@@ -146,9 +148,20 @@ write_unlock:
 		}
 		rcu_read_unlock();
 
-		len = cpumask_scnprintf(buffer, *lenp, mask);
-		*lenp = len + 1;
-		*ppos += len + 1;
+		len = min(sizeof(kbuf) - 1, *lenp);
+		len = cpumask_scnprintf(kbuf, len, mask);
+		if (!len) {
+			*lenp = 0;
+			goto done;
+		}
+		if (len < *lenp)
+			kbuf[len++] = '\n';
+		if (copy_to_user(buffer, kbuf, len)) {
+			ret = -EFAULT;
+			goto done;
+		}
+		*lenp = len;
+		*ppos += len;
 	}
 
 done:
@@ -156,7 +169,7 @@ done:
 	return ret;
 }
 
-static int flow_limit_table_len_sysctl(ctl_table *table, int write,
+static int flow_limit_table_len_sysctl(struct ctl_table *table, int write,
 				       void __user *buffer, size_t *lenp,
 				       loff_t *ppos)
 {
@@ -289,9 +302,9 @@ static struct ctl_table net_core_table[] = {
 	{
 		.procname	= "low_latency_poll",
 		.data		= &sysctl_net_ll_poll,
-		.maxlen		= sizeof(unsigned long),
+		.maxlen		= sizeof(unsigned int),
 		.mode		= 0644,
-		.proc_handler	= proc_doulongvec_minmax
+		.proc_handler	= proc_dointvec
 	},
 #endif
 #endif /* CONFIG_NET */

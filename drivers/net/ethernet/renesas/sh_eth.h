@@ -248,13 +248,19 @@ enum EESR_BIT {
 	EESR_CERF	= 0x00000001,
 };
 
+#define EESR_RX_CHECK		(EESR_FRC  | /* Frame recv */		\
+				 EESR_RMAF | /* Multicast address recv */ \
+				 EESR_RRF  | /* Bit frame recv */	\
+				 EESR_RTLF | /* Long frame recv */	\
+				 EESR_RTSF | /* Short frame recv */	\
+				 EESR_PRE  | /* PHY-LSI recv error */	\
+				 EESR_CERF)  /* Recv frame CRC error */
+
 #define DEFAULT_TX_CHECK	(EESR_FTC | EESR_CND | EESR_DLC | EESR_CD | \
 				 EESR_RTO)
 #define DEFAULT_EESR_ERR_CHECK	(EESR_TWB | EESR_TABT | EESR_RABT | EESR_RFE | \
 				 EESR_RDE | EESR_RFRMER | EESR_ADE | \
 				 EESR_TFE | EESR_TDE | EESR_ECI)
-#define DEFAULT_TX_ERROR_CHECK	(EESR_TWB | EESR_TABT | EESR_ADE | EESR_TDE | \
-				 EESR_TFE)
 
 /* EESIPR */
 enum DMAC_IM_BIT {
@@ -296,11 +302,11 @@ enum FCFTR_BIT {
 #define DEFAULT_FIFO_F_D_RFF	(FCFTR_RFF2 | FCFTR_RFF1 | FCFTR_RFF0)
 #define DEFAULT_FIFO_F_D_RFD	(FCFTR_RFD2 | FCFTR_RFD1 | FCFTR_RFD0)
 
-/* Transfer descriptor bit */
+/* Transmit descriptor bit */
 enum TD_STS_BIT {
-	TD_TACT = 0x80000000,
-	TD_TDLE = 0x40000000, TD_TFP1 = 0x20000000,
-	TD_TFP0 = 0x10000000,
+	TD_TACT = 0x80000000, TD_TDLE = 0x40000000,
+	TD_TFP1 = 0x20000000, TD_TFP0 = 0x10000000,
+	TD_TFE  = 0x08000000, TD_TWBI = 0x04000000,
 };
 #define TDF1ST	TD_TFP1
 #define TDFEND	TD_TFP0
@@ -460,7 +466,6 @@ struct sh_eth_cpu_data {
 	/* interrupt checking mask */
 	unsigned long tx_check;
 	unsigned long eesr_err_check;
-	unsigned long tx_error_check;
 
 	/* hardware features */
 	unsigned long irq_flags;	/* IRQ configuration flags */
@@ -476,6 +481,7 @@ struct sh_eth_cpu_data {
 	unsigned no_ade:1;	/* E-DMAC DO NOT have ADE bit in EESR */
 	unsigned hw_crc:1;	/* E-DMAC have CSMR */
 	unsigned select_mii:1;	/* EtherC have RMII_MII (MII select register) */
+	unsigned shift_rd0:1;	/* shift Rx descriptor word 0 right by 16 */
 };
 
 struct sh_eth_private {
@@ -497,6 +503,7 @@ struct sh_eth_private {
 	u32 cur_tx, dirty_tx;
 	u32 rx_buf_sz;		/* Based on MTU+slack. */
 	int edmac_endian;
+	struct napi_struct napi;
 	/* MII transceiver section. */
 	u32 phy_id;					/* PHY ID */
 	struct mii_bus *mii_bus;	/* MDIO bus control */
