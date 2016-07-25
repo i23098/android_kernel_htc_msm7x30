@@ -231,14 +231,14 @@ void tcp_select_initial_window(int __space, __u32 mss,
 	}
 
 	/* Set initial window to a value enough for senders starting with
-	 * initial congestion window of sysctl_tcp_default_init_rwnd. Place
+	 * initial congestion window of TCP_DEFAULT_INIT_RCVWND. Place
 	 * a limit on the initial window when mss is larger than 1460.
 	 */
 	if (mss > (1 << *rcv_wscale)) {
-		int init_cwnd = sysctl_tcp_default_init_rwnd;
+		int init_cwnd = TCP_DEFAULT_INIT_RCVWND;
 		if (mss > 1460)
 			init_cwnd =
-			max_t(u32, (1460 * init_cwnd) / mss, 2);
+			max_t(u32, (1460 * TCP_DEFAULT_INIT_RCVWND) / mss, 2);
 		/* when initializing use the value from init_rcv_wnd
 		 * rather than the default from above
 		 */
@@ -247,12 +247,6 @@ void tcp_select_initial_window(int __space, __u32 mss,
 		else
 			*rcv_wnd = min(*rcv_wnd, init_cwnd * mss);
 	}
-	/* Due to CONFIG_LARGE_TCP_INITIAL_BUFFER not work, hard code first.*/
-	*rcv_wnd = 65535;
-#ifdef CONFIG_LARGE_TCP_INITIAL_BUFFER
-	/* Lock the initial TCP window size to 64K*/
-	*rcv_wnd = 65535;
-#endif
 
 	/* Set the clamp no higher than max representable value */
 	(*window_clamp) = min(65535U << (*rcv_wscale), *window_clamp);
