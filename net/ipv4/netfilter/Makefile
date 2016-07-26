@@ -10,16 +10,6 @@ nf_conntrack_ipv4-objs	+= nf_conntrack_l3proto_ipv4_compat.o
 endif
 endif
 
-CFLAGS_nf_nat_standalone.o = -Wno-address
-CFLAGS_nf_nat_core.o = -Wno-address
-CFLAGS_nf_nat_amanda.o = -Wno-address
-CFLAGS_nf_nat_ftp.o = -Wno-address
-CFLAGS_nf_nat_irc.o = -Wno-address
-CFLAGS_nf_nat_pptp.o = -Wno-address
-CFLAGS_nf_nat_h323.o = -Wno-address
-CFLAGS_nf_nat_sip.o = -Wno-address
-CFLAGS_nf_nat_tftp.o = -Wno-address
-
 # connection tracking
 obj-$(CONFIG_NF_CONNTRACK_IPV4) += nf_conntrack_ipv4.o
 
