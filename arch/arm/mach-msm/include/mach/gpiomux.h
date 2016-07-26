@@ -122,12 +122,6 @@ int msm_gpiomux_init(size_t ngpio);
  */
 void msm_gpiomux_install(struct msm_gpiomux_config *configs, unsigned nconfigs);
 
-/* Increment a gpio's reference count, possibly activating the line. */
-int __must_check msm_gpiomux_get(unsigned gpio);
-
-/* Decrement a gpio's reference count, possibly suspending the line. */
-int msm_gpiomux_put(unsigned gpio);
-
 /* Install a new setting in a gpio.  To erase a slot, use NULL.
  * The old setting that was overwritten can be passed back to the caller
  * old_setting can be NULL if the caller is not interested in the previous
@@ -157,16 +151,6 @@ static inline int msm_gpiomux_init(size_t ngpio)
 static inline void
 msm_gpiomux_install(struct msm_gpiomux_config *configs, unsigned nconfigs) {}
 
-static inline int __must_check msm_gpiomux_get(unsigned gpio)
-{
-	return -ENOSYS;
-}
-
-static inline int msm_gpiomux_put(unsigned gpio)
-{
-	return -ENOSYS;
-}
-
 static inline int msm_gpiomux_write(unsigned gpio,
 	enum msm_gpiomux_setting which, struct gpiomux_setting *setting,
 	struct gpiomux_setting *old_setting)
@@ -174,4 +158,5 @@ static inline int msm_gpiomux_write(unsigned gpio,
 	return -ENOSYS;
 }
 #endif
-#endif
+
+#endif /* __ARCH_ARM_MACH_MSM_GPIOMUX_H */
