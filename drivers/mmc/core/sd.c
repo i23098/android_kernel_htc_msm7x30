@@ -13,7 +13,6 @@
 #include <linux/err.h>
 #include <linux/slab.h>
 #include <linux/stat.h>
-#include <linux/export.h>
 
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
@@ -21,7 +20,6 @@
 #include <linux/mmc/sd.h>
 
 #include "core.h"
-#include "host.h"
 #include "bus.h"
 #include "mmc_ops.h"
 #include "sd.h"
@@ -1018,9 +1016,7 @@ static void mmc_sd_remove(struct mmc_host *host)
 	BUG_ON(!host->card);
 
 	mmc_remove_card(host->card);
-	mmc_claim_host(host);
 	host->card = NULL;
-	mmc_release_host(host);
 }
 
 /*
@@ -1036,7 +1032,7 @@ static int mmc_sd_alive(struct mmc_host *host)
  */
 static void mmc_sd_detect(struct mmc_host *host)
 {
-	int err = 0;
+	int err;
 
 	BUG_ON(!host);
 	BUG_ON(!host->card);
@@ -1051,18 +1047,12 @@ static void mmc_sd_detect(struct mmc_host *host)
 	mmc_release_host(host);
 
 	if (err) {
-	/*
-	 * let card removal task run in worker thread to avoid sd-qd being blocked.
-	 */
-		remove_card(host);
-#if 0
 		mmc_sd_remove(host);
 
 		mmc_claim_host(host);
 		mmc_detach_bus(host);
 		mmc_power_off(host);
 		mmc_release_host(host);
-#endif
 	}
 }
 

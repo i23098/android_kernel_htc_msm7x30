@@ -1885,25 +1885,6 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *rqc)
 	return 0;
 }
 
-void remove_card(struct mmc_host *host)
-{
-	printk(KERN_INFO "%s: remove card\n",
-		mmc_hostname(host));
-
-	if (!host->card || host->card->removed) {
-		printk(KERN_INFO "%s: card already removed\n",
-			mmc_hostname(host));
-		return;
-	}
-	if (!mmc_card_present(host->card)) {
-		printk(KERN_INFO "%s: card is not present\n",
-			mmc_hostname(host));
-		return;
-	}
-	host->card->removed = 1;
-	mmc_schedule_card_removal_work(&host->remove, 0);
-}
-
 static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 {
 	int ret;

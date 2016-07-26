@@ -56,7 +56,6 @@
 
 static struct workqueue_struct *workqueue;
 static const unsigned freqs[] = { 400000, 300000, 200000, 100000 };
-static struct wake_lock mmc_removal_work_wake_lock;
 
 /*
  * Enabling software CRCs on the data blocks can be a significant (30%)
@@ -82,13 +81,6 @@ module_param_named(removable, mmc_assume_removable, bool, 0644);
 MODULE_PARM_DESC(
 	removable,
 	"MMC/SD cards are removable and may be removed during suspend");
-
-int mmc_schedule_card_removal_work(struct delayed_work *work,
-				     unsigned long delay)
-{
-	wake_lock(&mmc_removal_work_wake_lock);
-	return queue_delayed_work(workqueue, work, delay);
-}
 
 /*
  * Internal function. Schedule delayed work in the MMC work queue.
@@ -1721,28 +1713,6 @@ void mmc_detect_change(struct mmc_host *host, unsigned long delay)
 
 EXPORT_SYMBOL(mmc_detect_change);
 
-void mmc_remove_sd_card(struct work_struct *work)
-{
-	struct mmc_host *host =
-		container_of(work, struct mmc_host, remove.work);
-
-	printk(KERN_INFO "%s: %s\n", mmc_hostname(host),
-		__func__);
-	mmc_bus_get(host);
-	if (host->bus_ops && !host->bus_dead) {
-		if (host->bus_ops->remove)
-			host->bus_ops->remove(host);
-		mmc_claim_host(host);
-		mmc_detach_bus(host);
-		mmc_power_off(host);
-		mmc_release_host(host);
-	}
-	mmc_bus_put(host);
-	wake_unlock(&mmc_removal_work_wake_lock);
-	printk(KERN_INFO "%s: %s exit\n", mmc_hostname(host),
-		__func__);
-}
-
 void mmc_init_erase(struct mmc_card *card)
 {
 	unsigned int sz;
@@ -2913,8 +2883,6 @@ static int __init mmc_init(void)
 	if (!workqueue)
 		return -ENOMEM;
 
-	wake_lock_init(&mmc_removal_work_wake_lock, WAKE_LOCK_SUSPEND,
-		       "mmc_removal_work");
 	ret = mmc_register_bus();
 	if (ret)
 		goto destroy_workqueue;
@@ -2935,7 +2903,6 @@ unregister_bus:
 	mmc_unregister_bus();
 destroy_workqueue:
 	destroy_workqueue(workqueue);
-	wake_lock_destroy(&mmc_removal_work_wake_lock);
 
 	return ret;
 }
@@ -2946,7 +2913,6 @@ static void __exit mmc_exit(void)
 	mmc_unregister_host_class();
 	mmc_unregister_bus();
 	destroy_workqueue(workqueue);
-	wake_lock_destroy(&mmc_removal_work_wake_lock);
 }
 
 subsys_initcall(mmc_init);
