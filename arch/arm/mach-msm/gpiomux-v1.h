@@ -27,7 +27,13 @@
 
 typedef u32 gpiomux_config_t;
 
-enum {
+enum msm_gpiomux_setting {
+	GPIOMUX_ACTIVE = 0,
+	GPIOMUX_SUSPENDED,
+	GPIOMUX_NSETTINGS
+};
+
+enum gpiomux_drv {
 	GPIOMUX_DRV_2MA  = 0UL << 17,
 	GPIOMUX_DRV_4MA  = 1UL << 17,
 	GPIOMUX_DRV_6MA  = 2UL << 17,
@@ -38,7 +44,7 @@ enum {
 	GPIOMUX_DRV_16MA = 7UL << 17,
 };
 
-enum {
+enum gpiomux_func {
 	GPIOMUX_FUNC_GPIO = 0UL,
 	GPIOMUX_FUNC_1    = 1UL,
 	GPIOMUX_FUNC_2    = 2UL,
@@ -57,11 +63,43 @@ enum {
 	GPIOMUX_FUNC_F    = 15UL,
 };
 
-enum {
+enum gpiomux_pull {
 	GPIOMUX_PULL_NONE   = 0UL << 15,
 	GPIOMUX_PULL_DOWN   = 1UL << 15,
 	GPIOMUX_PULL_KEEPER = 2UL << 15,
 	GPIOMUX_PULL_UP     = 3UL << 15,
+};
+
+/* Direction settings are only meaningful when GPIOMUX_FUNC_GPIO is selected.
+ * This element is ignored for all other FUNC selections, as the output-
+ * enable pin is not under software control in those cases.  See the SWI
+ * for your target for more details.
+ */
+enum gpiomux_dir {
+	GPIOMUX_IN = 0,
+	GPIOMUX_OUT_HIGH,
+	GPIOMUX_OUT_LOW,
+};
+
+struct gpiomux_setting {
+	enum gpiomux_func func;
+	enum gpiomux_drv  drv;
+	enum gpiomux_pull pull;
+	enum gpiomux_dir  dir;
+};
+
+/**
+ * struct msm_gpiomux_configs: a collection of gpiomux configs.
+ *
+ * It is so common to manage blocks of gpiomux configs that the data structure
+ * for doing so has been standardized here as a convenience.
+ *
+ * @cfg:  A pointer to the first config in an array of configs.
+ * @ncfg: The number of configs in the array.
+ */
+struct msm_gpiomux_configs {
+	struct msm_gpiomux_config *cfg;
+	size_t                     ncfg;
 };
 
 #endif

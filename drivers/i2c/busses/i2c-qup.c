@@ -29,13 +29,13 @@
 #include <linux/timer.h>
 #include <linux/slab.h>
 #include <mach/board.h>
-#include <mach/gpiomux.h>
+#include <mach/msm_gpiomux.h>
 #include <linux/slab.h>
 #include <linux/pm_runtime.h>
 #include <linux/gpio.h>
 #include <mach/socinfo.h>
 #include <linux/module.h>
-#include "../../../arch/arm/mach-msm/devices-msm8x60.h"
+#include "../../../arch/arm/mach-msm/gpiomux.h"
 
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("0.2");
