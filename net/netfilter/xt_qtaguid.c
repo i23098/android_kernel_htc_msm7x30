@@ -1508,7 +1508,7 @@ static int iface_netdev_event_handler(struct notifier_block *nb,
 static int iface_inet6addr_event_handler(struct notifier_block *nb,
 					 unsigned long event, void *ptr)
 {
-	struct inet6_ifaddr *ifa = netdev_notifier_info_to_dev(ptr);
+	struct inet6_ifaddr *ifa = ptr;
 	struct net_device *dev;
 
 	if (unlikely(module_passive))
@@ -1539,7 +1539,7 @@ static int iface_inet6addr_event_handler(struct notifier_block *nb,
 static int iface_inetaddr_event_handler(struct notifier_block *nb,
 					unsigned long event, void *ptr)
 {
-	struct in_ifaddr *ifa = netdev_notifier_info_to_dev(ptr);
+	struct in_ifaddr *ifa = ptr;
 	struct net_device *dev;
 
 	if (unlikely(module_passive))

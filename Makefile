@@ -2,7 +2,7 @@ VERSION = 3
 PATCHLEVEL = 11
 SUBLEVEL = 0
 EXTRAVERSION = -rc1
-NAME = Unicycling Gorilla
+NAME = Linux for Workgroups
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
@@ -1136,6 +1136,7 @@ help:
 	@echo  '  gtags           - Generate GNU GLOBAL index'
 	@echo  '  kernelrelease	  - Output the release version string'
 	@echo  '  kernelversion	  - Output the version stored in Makefile'
+	@echo  '  image_name	  - Output the image name'
 	@echo  '  headers_install - Install sanitised kernel headers to INSTALL_HDR_PATH'; \
 	 echo  '                    (default: $(INSTALL_HDR_PATH))'; \
 	 echo  ''
@@ -1330,7 +1331,7 @@ export_report:
 endif #ifeq ($(config-targets),1)
 endif #ifeq ($(mixed-targets),1)
 
-PHONY += checkstack kernelrelease kernelversion
+PHONY += checkstack kernelrelease kernelversion image_name
 
 # UML needs a little special treatment here.  It wants to use the host
 # toolchain, so needs $(SUBARCH) passed to checkstack.pl.  Everyone
@@ -1350,6 +1351,9 @@ kernelrelease:
 
 kernelversion:
 	@echo $(KERNELVERSION)
+
+image_name:
+	@echo $(KBUILD_IMAGE)
 
 # Clear a bunch of variables before executing the submake
 tools/: FORCE
