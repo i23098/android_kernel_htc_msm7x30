@@ -2329,7 +2329,6 @@ static int mmc_blk_probe(struct mmc_card *card)
 
 	mmc_set_drvdata(card, md);
 	mmc_fixup_device(card, blk_fixups);
-	mmc_init_bus_resume_flags(card->host);
 
 	if (mmc_add_disk(md))
 		goto out;

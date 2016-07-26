@@ -1602,45 +1602,6 @@ static inline void mmc_bus_put(struct mmc_host *host)
 	spin_unlock_irqrestore(&host->lock, flags);
 }
 
-int mmc_resume_bus(struct mmc_host *host)
-{
-	unsigned long flags;
-	int ret = 0;
-	if (!mmc_bus_needs_resume(host))
-		return -EINVAL;
-
-	printk("%s: Starting deferred resume\n", mmc_hostname(host));
-	spin_lock_irqsave(&host->lock, flags);
-	host->bus_resume_flags &= ~MMC_BUSRESUME_NEEDS_RESUME;
-	host->rescan_disable = 0;
-	spin_unlock_irqrestore(&host->lock, flags);
-
-	mmc_bus_get(host);
-	if (host->bus_ops && !host->bus_dead) {
-		mmc_power_up(host);
-		if (host->bus_ops->awake && mmc_card_can_sleep(host)) {
-			ret = host->bus_ops->awake(host);
-			if (ret) {
-				BUG_ON(!host->bus_ops->resume);
-				ret = host->bus_ops->resume(host);
-			}
-		} else {
-			BUG_ON(!host->bus_ops->resume);
-			ret = host->bus_ops->resume(host);
-		}
-	}
-
-	if (host->bus_ops->detect && !host->bus_dead)
-		host->bus_ops->detect(host);
-
-	mmc_bus_put(host);
-	pr_info("%s: Deferred resume %s\n", mmc_hostname(host),
-		(ret == 0 ? "completed" : "Fail"));
-	return ret;
-}
-
-EXPORT_SYMBOL(mmc_resume_bus);
-
 /*
  * Assign a mmc bus handler to a host. Only one bus handler may control a
  * host at any given time.
@@ -2689,9 +2650,6 @@ int mmc_suspend_host(struct mmc_host *host)
 {
 	int err = 0;
 
-	if (mmc_bus_needs_resume(host))
-		return 0;
-
 	if (cancel_delayed_work(&host->detect))
 		wake_unlock(&host->detect_wake_lock);
 	mmc_flush_scheduled_work();
@@ -2724,10 +2682,6 @@ int mmc_suspend_host(struct mmc_host *host)
 			err = 0;
 		}
 	}
-#ifdef CONFIG_PM_RUNTIME
-	if (mmc_bus_manual_resume(host))
-		host->bus_resume_flags |= MMC_BUSRESUME_NEEDS_RESUME;
-#endif
 	mmc_bus_put(host);
 
 	if (!err && !mmc_card_keep_power(host))
@@ -2748,14 +2702,6 @@ int mmc_resume_host(struct mmc_host *host)
 	int err = 0;
 
 	mmc_bus_get(host);
-	if (mmc_bus_manual_resume(host)) {
-#ifndef CONFIG_PM_RUNTIME
-		host->bus_resume_flags |= MMC_BUSRESUME_NEEDS_RESUME;
-#endif
-		mmc_bus_put(host);
-		return 0;
-	}
-
 	if (host->bus_ops && !host->bus_dead) {
 		if (!mmc_card_keep_power(host)) {
 			mmc_power_up(host);
@@ -2816,10 +2762,6 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 		}
 
 		spin_lock_irqsave(&host->lock, flags);
-		if (mmc_bus_needs_resume(host)) {
-			spin_unlock_irqrestore(&host->lock, flags);
-			break;
-		}
 		host->rescan_disable = 1;
 		spin_unlock_irqrestore(&host->lock, flags);
 		if (cancel_delayed_work_sync(&host->detect))
@@ -2844,10 +2786,6 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 	case PM_POST_RESTORE:
 
 		spin_lock_irqsave(&host->lock, flags);
-		if (mmc_bus_manual_resume(host)) {
-			spin_unlock_irqrestore(&host->lock, flags);
-			break;
-		}
 		host->rescan_disable = 0;
 		spin_unlock_irqrestore(&host->lock, flags);
 		mmc_detect_change(host, 0);
