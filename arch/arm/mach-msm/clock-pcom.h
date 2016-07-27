@@ -137,7 +137,7 @@
 struct clk_ops;
 extern struct clk_ops clk_ops_pcom;
 
-int pc_clk_reset(unsigned id, enum clk_reset_action action);
+int pc_clk_reset(struct clk *clk, enum clk_reset_action action);
 
 /*
  * struct pcom_clk - proc_comm controlled clock
@@ -149,10 +149,6 @@ struct pcom_clk {
 	struct clk c;
 };
 
-static inline struct pcom_clk *to_pcom_clk(struct clk *clk)
-{
-	return container_of(clk, struct pcom_clk, c);
-}
 
 #define DEFINE_CLK_PCOM(clk_name, clk_id, clk_flags) \
 	struct pcom_clk clk_name = { \

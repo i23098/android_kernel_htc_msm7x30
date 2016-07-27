@@ -570,6 +570,10 @@ struct platform_device msm_device_hsusb_host = {
 	},
 };
 
+struct platform_device msm_clock_7x30 = {
+	.name = "msm-clock-pcom",
+};
+
 static struct platform_device *msm_host_devices[] = {
 	&msm_device_hsusb_host,
 };

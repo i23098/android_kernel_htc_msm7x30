@@ -2678,6 +2678,7 @@ static struct platform_device htc_headset_mgr = {
 };
 
 static struct platform_device *devices[] __initdata = {
+	&msm_clock_7x30,
 	&msm_device_gpio_7x30,
 	&ram_console_device,
 #if defined(CONFIG_SERIAL_MSM) || defined(CONFIG_MSM_SERIAL_DEBUGGER)

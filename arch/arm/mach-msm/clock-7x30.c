@@ -2689,14 +2689,12 @@ int soc_clk_set_flags(struct clk *clk, unsigned clk_flags)
 static int msm7x30_clk_reset(struct clk *clk, enum clk_reset_action action)
 {
 	/* reset_mask is actually a proc_comm id */
-	unsigned id = to_rcg_clk(clk)->b.reset_mask;
-	return pc_clk_reset(id, action);
+	return pc_clk_reset(clk, action);
 }
 
 static int soc_branch_clk_reset(struct clk *clk, enum clk_reset_action action)
 {
-	unsigned id = to_branch_clk(clk)->b.reset_mask;
-	return pc_clk_reset(id, action);
+	return pc_clk_reset(clk, action);
 }
 
 /*

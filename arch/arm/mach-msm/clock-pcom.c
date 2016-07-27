@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2007-2011, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2007-2012, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -13,24 +13,32 @@
  *
  */
 
+#include <linux/kernel.h>
 #include <linux/err.h>
+#include <linux/platform_device.h>
+#include <linux/module.h>
+
+#include <mach/clk.h>
 #include <linux/ctype.h>
 #include <linux/stddef.h>
-#include <mach/clk.h>
-#include <linux/kernel.h>
 #include <mach/socinfo.h>
 
 #include "proc_comm.h"
 #include "clock.h"
 #include "clock-pcom.h"
 
+static inline struct pcom_clk *to_clk_pcom(struct clk *clk)
+{
+	return container_of(clk, struct pcom_clk, c);
+}
+
 /*
  * glue for the proc_comm interface
  */
-static int pc_clk_enable(struct clk *clk)
+static int pc_clk_enable(struct clk *hw)
 {
 	int rc;
-	int id = to_pcom_clk(clk)->id;
+	unsigned id = to_clk_pcom(hw)->id;
 
 	/* Ignore clocks that are always on */
 	if (id == P_EBI1_CLK || id == P_EBI1_FIXED_CLK)
@@ -43,9 +51,9 @@ static int pc_clk_enable(struct clk *clk)
 		return (int)id < 0 ? -EINVAL : 0;
 }
 
-static void pc_clk_disable(struct clk *clk)
+static void pc_clk_disable(struct clk *hw)
 {
-	int id = to_pcom_clk(clk)->id;
+	unsigned id = to_clk_pcom(hw)->id;
 
 	/* Ignore clocks that are always on */
 	if (id == P_EBI1_CLK || id == P_EBI1_FIXED_CLK)
@@ -54,9 +62,10 @@ static void pc_clk_disable(struct clk *clk)
 	msm_proc_comm(PCOM_CLKCTL_RPC_DISABLE, &id, NULL);
 }
 
-int pc_clk_reset(unsigned id, enum clk_reset_action action)
+int pc_clk_reset(struct clk *hw, enum clk_reset_action action)
 {
 	int rc;
+	unsigned id = to_clk_pcom(hw)->id;
 
 	if (action == CLK_RESET_ASSERT)
 		rc = msm_proc_comm(PCOM_CLKCTL_RPC_RESET_ASSERT, &id, NULL);
@@ -69,20 +78,14 @@ int pc_clk_reset(unsigned id, enum clk_reset_action action)
 		return (int)id < 0 ? -EINVAL : 0;
 }
 
-static int pc_reset(struct clk *clk, enum clk_reset_action action)
-{
-	int id = to_pcom_clk(clk)->id;
-	return pc_clk_reset(id, action);
-}
-
-static int _pc_clk_set_rate(struct clk *clk, unsigned long rate)
+static int _pc_clk_set_rate(struct clk *hw, unsigned long rate)
 {
 	/* The rate _might_ be rounded off to the nearest KHz value by the
 	 * remote function. So a return value of 0 doesn't necessarily mean
 	 * that the exact rate was set successfully.
 	 */
 	unsigned r = rate;
-	int id = to_pcom_clk(clk)->id;
+	unsigned id = to_clk_pcom(hw)->id;
 	int rc = msm_proc_comm(PCOM_CLKCTL_RPC_SET_RATE, &id, &r);
 	if (rc < 0)
 		return rc;
@@ -90,10 +93,10 @@ static int _pc_clk_set_rate(struct clk *clk, unsigned long rate)
 		return (int)id < 0 ? -EINVAL : 0;
 }
 
-static int _pc_clk_set_min_rate(struct clk *clk, unsigned long rate)
+static int _pc_clk_set_min_rate(struct clk *hw, unsigned long rate)
 {
 	int rc;
-	int id = to_pcom_clk(clk)->id;
+	unsigned id = to_clk_pcom(hw)->id;
 	unsigned r = rate;
 	rc = msm_proc_comm(PCOM_CLKCTL_RPC_MIN_RATE, &id, &r);
 	if (rc < 0)
@@ -102,17 +105,17 @@ static int _pc_clk_set_min_rate(struct clk *clk, unsigned long rate)
 		return (int)id < 0 ? -EINVAL : 0;
 }
 
-static int pc_clk_set_rate(struct clk *clk, unsigned long rate)
+static int pc_clk_set_rate(struct clk *hw, unsigned long rate)
 {
-	if (clk->flags & CLKFLAG_MIN)
-		return _pc_clk_set_min_rate(clk, rate);
+	if (hw->flags & CLKFLAG_MIN)
+		return _pc_clk_set_min_rate(hw, rate);
 	else
-		return _pc_clk_set_rate(clk, rate);
+		return _pc_clk_set_rate(hw, rate);
 }
 
-static int pc_clk_set_max_rate(struct clk *clk, unsigned long rate)
+static int pc_clk_set_max_rate(struct clk *hw, unsigned long rate)
 {
-	int id = to_pcom_clk(clk)->id;
+	unsigned id = to_clk_pcom(hw)->id;
 	unsigned r = rate;
 	int rc = msm_proc_comm(PCOM_CLKCTL_RPC_MAX_RATE, &id, &r);
 	if (rc < 0)
@@ -121,9 +124,9 @@ static int pc_clk_set_max_rate(struct clk *clk, unsigned long rate)
 		return (int)id < 0 ? -EINVAL : 0;
 }
 
-static int pc_clk_set_flags(struct clk *clk, unsigned flags)
+static int pc_clk_set_flags(struct clk *hw, unsigned flags)
 {
-	int id = to_pcom_clk(clk)->id;
+	unsigned id = to_clk_pcom(hw)->id;
 	int rc = msm_proc_comm(PCOM_CLKCTL_RPC_SET_FLAGS, &id, &flags);
 	if (rc < 0)
 		return rc;
@@ -131,32 +134,31 @@ static int pc_clk_set_flags(struct clk *clk, unsigned flags)
 		return (int)id < 0 ? -EINVAL : 0;
 }
 
-static unsigned long pc_clk_get_rate(struct clk *clk)
+static unsigned long pc_clk_get_rate(struct clk *hw)
 {
-	int id = to_pcom_clk(clk)->id;
+	unsigned id = to_clk_pcom(hw)->id;
 	if (msm_proc_comm(PCOM_CLKCTL_RPC_RATE, &id, NULL))
 		return 0;
 	else
 		return id;
 }
 
-static int pc_clk_is_enabled(struct clk *clk)
+static int pc_clk_is_enabled(struct clk *hw)
 {
-	int id = to_pcom_clk(clk)->id;
+	unsigned id = to_clk_pcom(hw)->id;
 	if (msm_proc_comm(PCOM_CLKCTL_RPC_ENABLED, &id, NULL))
 		return 0;
 	else
 		return id;
 }
 
-static long pc_clk_round_rate(struct clk *clk, unsigned long rate)
+static long pc_clk_round_rate(struct clk *hw, unsigned long rate)
 {
-
 	/* Not really supported; pc_clk_set_rate() does rounding on it's own. */
 	return rate;
 }
 
-static bool pc_clk_is_local(struct clk *clk)
+static bool pc_clk_is_local(struct clk *hw)
 {
 	return false;
 }
@@ -164,7 +166,7 @@ static bool pc_clk_is_local(struct clk *clk)
 struct clk_ops clk_ops_pcom = {
 	.enable = pc_clk_enable,
 	.disable = pc_clk_disable,
-	.reset = pc_reset,
+	.reset = pc_clk_reset,
 	.set_rate = pc_clk_set_rate,
 	.set_max_rate = pc_clk_set_max_rate,
 	.set_flags = pc_clk_set_flags,
@@ -173,3 +175,19 @@ struct clk_ops clk_ops_pcom = {
 	.round_rate = pc_clk_round_rate,
 	.is_local = pc_clk_is_local,
 };
+
+static int msm_clock_pcom_probe(struct platform_device *pdev)
+{
+	return 0;
+}
+
+static struct platform_driver msm_clock_pcom_driver = {
+	.probe		= msm_clock_pcom_probe,
+	.driver		= {
+		.name	= "msm-clock-pcom",
+		.owner	= THIS_MODULE,
+	},
+};
+module_platform_driver(msm_clock_pcom_driver);
+
+MODULE_LICENSE("GPL v2");
