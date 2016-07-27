@@ -166,11 +166,6 @@ static struct clk *voter_clk_get_parent(struct clk *clk)
 	return v->parent;
 }
 
-static bool voter_clk_is_local(struct clk *clk)
-{
-	return true;
-}
-
 struct clk_ops clk_ops_voter = {
 	.enable = voter_clk_enable,
 	.disable = voter_clk_disable,
@@ -180,5 +175,4 @@ struct clk_ops clk_ops_voter = {
 	.round_rate = voter_clk_round_rate,
 	.set_parent = voter_clk_set_parent,
 	.get_parent = voter_clk_get_parent,
-	.is_local = voter_clk_is_local,
 };

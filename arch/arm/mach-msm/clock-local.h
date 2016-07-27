@@ -344,11 +344,6 @@ extern spinlock_t		local_clock_reg_lock;
 extern struct fixed_clk		gnd_clk;
 
 /*
- * Local-clock APIs
- */
-bool local_clk_is_local(struct clk *clk);
-
-/*
  * Generic set-rate implementations
  */
 void set_rate_mnd(struct rcg_clk *clk, struct clk_freq_tbl *nf);

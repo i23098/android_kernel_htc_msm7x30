@@ -158,11 +158,6 @@ static long pc_clk_round_rate(struct clk *hw, unsigned long rate)
 	return rate;
 }
 
-static bool pc_clk_is_local(struct clk *hw)
-{
-	return false;
-}
-
 struct clk_ops clk_ops_pcom = {
 	.enable = pc_clk_enable,
 	.disable = pc_clk_disable,
@@ -173,7 +168,6 @@ struct clk_ops clk_ops_pcom = {
 	.get_rate = pc_clk_get_rate,
 	.is_enabled = pc_clk_is_enabled,
 	.round_rate = pc_clk_round_rate,
-	.is_local = pc_clk_is_local,
 };
 
 static int msm_clock_pcom_probe(struct platform_device *pdev)

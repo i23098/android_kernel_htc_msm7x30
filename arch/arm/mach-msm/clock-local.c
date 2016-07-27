@@ -530,11 +530,6 @@ long rcg_clk_round_rate(struct clk *c, unsigned long rate)
 	return -EPERM;
 }
 
-bool local_clk_is_local(struct clk *clk)
-{
-	return true;
-}
-
 /* Return the nth supported frequency for a given clock. */
 int rcg_clk_list_rate(struct clk *c, unsigned n)
 {
@@ -641,7 +636,6 @@ struct clk_ops clk_ops_pll_vote = {
 	.disable = pll_vote_clk_disable,
 	.is_enabled = pll_vote_clk_is_enabled,
 	.get_parent = pll_vote_clk_get_parent,
-	.is_local = local_clk_is_local,
 };
 
 static int pll_clk_enable(struct clk *clk)
@@ -741,11 +735,9 @@ struct clk_ops clk_ops_pll = {
 	.enable = pll_clk_enable,
 	.disable = pll_clk_disable,
 	.get_parent = pll_clk_get_parent,
-	.is_local = local_clk_is_local,
 };
 
 struct clk_ops clk_ops_gnd = {
-	.is_local = local_clk_is_local,
 };
 
 struct fixed_clk gnd_clk = {
@@ -757,7 +749,6 @@ struct fixed_clk gnd_clk = {
 };
 
 struct clk_ops clk_ops_measure = {
-	.is_local = local_clk_is_local,
 };
 
 int branch_clk_enable(struct clk *clk)
@@ -936,5 +927,4 @@ struct clk_ops clk_ops_cdiv = {
 	.get_rate = cdiv_clk_get_rate,
 	.list_rate = cdiv_clk_list_rate,
 	.round_rate = cdiv_clk_round_rate,
-	.is_local = local_clk_is_local,
 };

@@ -76,7 +76,6 @@ struct clk_ops {
 	long (*round_rate)(struct clk *clk, unsigned long rate);
 	int (*set_parent)(struct clk *clk, struct clk *parent);
 	struct clk *(*get_parent)(struct clk *clk);
-	bool (*is_local)(struct clk *clk);
 };
 
 /**

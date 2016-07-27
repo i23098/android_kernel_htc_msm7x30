@@ -202,11 +202,6 @@ static DEFINE_VDD_CLASS(vdd_dig, set_vdd_dig);
 #define PCOM_XO_TCXO	0
 #define PCOM_XO_LPXO	1
 
-static bool pcom_is_local(struct clk *clk)
-{
-	return false;
-}
-
 static int pcom_xo_enable(unsigned pcom_id, unsigned enable)
 {
 	/* TODO: Check return code in pcom_id */
@@ -226,7 +221,6 @@ static void tcxo_clk_disable(struct clk *clk)
 static struct clk_ops clk_ops_tcxo = {
 	.enable = tcxo_clk_enable,
 	.disable = tcxo_clk_disable,
-	.is_local = pcom_is_local,
 };
 
 static struct fixed_clk tcxo_clk = {
@@ -251,7 +245,6 @@ static void lpxo_clk_disable(struct clk *clk)
 static struct clk_ops clk_ops_lpxo = {
 	.enable = lpxo_clk_enable,
 	.disable = lpxo_clk_disable,
-	.is_local = pcom_is_local,
 };
 
 static struct fixed_clk lpxo_clk = {
@@ -2645,7 +2638,6 @@ static unsigned long measure_clk_get_rate(struct clk *clk)
 static struct clk_ops clk_ops_measure = {
 	.set_parent = measure_clk_set_parent,
 	.get_rate = measure_clk_get_rate,
-	.is_local = local_clk_is_local,
 };
 
 static struct clk measure_clk = {
@@ -3008,7 +3000,6 @@ static struct clk_ops clk_ops_rcg_7x30 = {
 	.round_rate = rcg_clk_round_rate,
 	.reset = msm7x30_clk_reset,
 	.set_flags = soc_clk_set_flags,
-	.is_local = local_clk_is_local,
 	.get_parent = rcg_clk_get_parent,
 };
 
@@ -3018,7 +3009,6 @@ static struct clk_ops clk_ops_branch = {
 	.is_enabled = branch_clk_is_enabled,
 	.reset = soc_branch_clk_reset,
 	.set_flags = soc_clk_set_flags,
-	.is_local = local_clk_is_local,
 	.get_parent = branch_clk_get_parent,
 	.set_parent = branch_clk_set_parent,
 };
