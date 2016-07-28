@@ -143,6 +143,12 @@ struct regulator *__must_check devm_regulator_get(struct device *dev,
 					     const char *id);
 struct regulator *__must_check regulator_get_exclusive(struct device *dev,
 						       const char *id);
+struct regulator *__must_check devm_regulator_get_exclusive(struct device *dev,
+							const char *id);
+struct regulator *__must_check regulator_get_optional(struct device *dev,
+						      const char *id);
+struct regulator *__must_check devm_regulator_get_optional(struct device *dev,
+							   const char *id);
 void regulator_put(struct regulator *regulator);
 void devm_regulator_put(struct regulator *regulator);
 
@@ -219,6 +225,25 @@ static inline struct regulator *__must_check regulator_get(struct device *dev,
 
 static inline struct regulator *__must_check
 devm_regulator_get(struct device *dev, const char *id)
+{
+	return NULL;
+}
+
+static inline struct regulator *__must_check
+regulator_get_exclusive(struct device *dev, const char *id)
+{
+	return NULL;
+}
+
+static inline struct regulator *__must_check
+regulator_get_optional(struct device *dev, const char *id)
+{
+	return NULL;
+}
+
+
+static inline struct regulator *__must_check
+devm_regulator_get_optional(struct device *dev, const char *id)
 {
 	return NULL;
 }
@@ -380,8 +405,11 @@ static inline int regulator_count_voltages(struct regulator *regulator)
 static inline int regulator_set_voltage_tol(struct regulator *regulator,
 					    int new_uV, int tol_uV)
 {
-	return regulator_set_voltage(regulator,
-				     new_uV - tol_uV, new_uV + tol_uV);
+	if (regulator_set_voltage(regulator, new_uV, new_uV + tol_uV) == 0)
+		return 0;
+	else
+		return regulator_set_voltage(regulator,
+					     new_uV - tol_uV, new_uV + tol_uV);
 }
 
 static inline int regulator_is_supported_voltage_tol(struct regulator *regulator,
