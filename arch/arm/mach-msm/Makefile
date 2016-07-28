@@ -97,12 +97,13 @@ obj-$(CONFIG_ARCH_MSM7X30) += devices-msm7x30.o memory_topology.o devices_htc.o 
 obj-$(CONFIG_ARCH_MSM7X30) += clock-local.o clock-7x30.o acpuclock-7x30.o htc_awb_cal.o
 
 # MSM7x30 boards
-obj-$(CONFIG_ARCH_MSM7X30) += htc_wifi_nvs.o htc_lpm.o
+obj-$(CONFIG_ARCH_MSM7X30) += htc_lpm.o
 obj-$(CONFIG_MACH_SPADE) += board-spade.o
 obj-$(CONFIG_MACH_SPADE) += board-spade-microp.o board-spade-rfkill.o
 obj-$(CONFIG_MACH_SPADE) += board-spade-keypad.o board-spade-audio.o
 obj-$(CONFIG_MACH_SPADE) += board-spade-mmc.o board-spade-wifi.o
 obj-$(CONFIG_MACH_SPADE) += htc_bdaddress.o
+obj-$(CONFIG_MACH_SAGA) += htc_wifi_nvs.o
 obj-$(CONFIG_MACH_SAGA) += board-saga.o
 obj-$(CONFIG_MACH_SAGA) += board-saga-keypad.o
 obj-$(CONFIG_MACH_SAGA) += board-saga-mmc.o board-saga-wifi.o board-saga-rfkill.o

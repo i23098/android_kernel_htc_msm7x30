@@ -28,8 +28,6 @@ int spade_wifi_set_carddetect(int on);
 
 #define WLAN_SKB_BUF_NUM	16
 
-/*#define HW_OOB 1*/
-
 static struct sk_buff *wlan_static_skb[WLAN_SKB_BUF_NUM];
 
 typedef struct wifi_mem_prealloc_struct {
@@ -90,109 +88,20 @@ static struct wifi_platform_data spade_wifi_control = {
 };
 
 static struct platform_device spade_wifi_device = {
-				.name           = "bcm4329_wlan",
-				.id             = 1,
-				.num_resources  = ARRAY_SIZE(spade_wifi_resources),
-				.resource       = spade_wifi_resources,
-				.dev            = {
-				.platform_data = &spade_wifi_control,
-				},
+	.name           = "bcm4329_wlan",
+	.id             = 1,
+	.num_resources  = ARRAY_SIZE(spade_wifi_resources),
+	.resource       = spade_wifi_resources,
+	.dev            = {
+		.platform_data = &spade_wifi_control,
+	},
 };
-
-unsigned char *get_wifi_nvs_ram(void);
-
-static unsigned spade_wifi_update_nvs(char *str)
-{
-#define NVS_LEN_OFFSET		0x0C
-#define NVS_DATA_OFFSET		0x40
-	unsigned char *ptr;
-	unsigned len;
-
-	if (!str)
-		return -EINVAL;
-	ptr = get_wifi_nvs_ram();
-	/* Size in format LE assumed */
-	memcpy(&len, ptr + NVS_LEN_OFFSET, sizeof(len));
-
-	/* the last bye in NVRAM is 0, trim it */
-	if (ptr[NVS_DATA_OFFSET + len - 1] == 0)
-		len -= 1;
-
-	if (ptr[NVS_DATA_OFFSET + len - 1] != '\n') {
-		len += 1;
-		ptr[NVS_DATA_OFFSET + len - 1] = '\n';
-	}
-
-	strcpy(ptr + NVS_DATA_OFFSET + len, str);
-	len += strlen(str);
-	memcpy(ptr + NVS_LEN_OFFSET, &len, sizeof(len));
-	return 0;
-}
-
-#ifdef HW_OOB
-static unsigned strip_nvs_param(char *param)
-{
-	unsigned char *nvs_data;
-
-	unsigned param_len;
-	int start_idx, end_idx;
-
-	unsigned char *ptr;
-	unsigned len;
-
-	if (!param)
-		return -EINVAL;
-	ptr = get_wifi_nvs_ram();
-	/* Size in format LE assumed */
-	memcpy(&len, ptr + NVS_LEN_OFFSET, sizeof(len));
-
-	/* the last bye in NVRAM is 0, trim it */
-	if (ptr[NVS_DATA_OFFSET + len - 1] == 0)
-		len -= 1;
-
-	nvs_data = ptr + NVS_DATA_OFFSET;
-
-	param_len = strlen(param);
-
-	/* search param */
-	for (start_idx = 0; start_idx < len - param_len; start_idx++) {
-		if (memcmp(&nvs_data[start_idx], param, param_len) == 0)
-			break;
-	}
-
-	end_idx = 0;
-	if (start_idx < len - param_len) {
-		/* search end-of-line */
-		for (end_idx = start_idx + param_len; end_idx < len; end_idx++) {
-			if (nvs_data[end_idx] == '\n' || nvs_data[end_idx] == 0)
-				break;
-		}
-	}
-
-	if (start_idx < end_idx) {
-		/* move the remain data forward */
-		for (; end_idx + 1 < len; start_idx++, end_idx++)
-			nvs_data[start_idx] = nvs_data[end_idx+1];
-
-		len = len - (end_idx - start_idx + 1);
-		memcpy(ptr + NVS_LEN_OFFSET, &len, sizeof(len));
-	}
-	return 0;
-}
-#endif
 
 int __init spade_wifi_init(void)
 {
 	int ret;
 
 	printk(KERN_INFO "%s: start\n", __func__);
-#ifdef HW_OOB
-	strip_nvs_param("sd_oobonly");
-#else
-	spade_wifi_update_nvs("sd_oobonly=1\n");
-#endif
-	spade_wifi_update_nvs("btc_params80=0\n");
-	spade_wifi_update_nvs("btc_params6=30\n");
 	spade_init_wifi_mem();
 	ret = platform_device_register(&spade_wifi_device);
 	return ret;
