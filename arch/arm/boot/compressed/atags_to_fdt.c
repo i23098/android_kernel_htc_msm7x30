@@ -190,8 +190,40 @@ int atags_to_fdt(void *atag_list, void *fdt, int total_space)
 			setprop_values(fdt, "/chosen", "linux,bt_mac",
 				(unsigned char *)(&atag->u), (atag->hdr.size-2)*sizeof(__u32));
 		} else if (atag->hdr.tag == ATAG_MSM_WIFI) {
+			#define NVS_MAX_SIZE	0x800U
+			#define NVS_LEN_OFFSET	0x0C
+			#define NVS_DATA_OFFSET	0x40
+			char append[] = "\nsd_oobonly=1\nbtc_params80=0\nbtc_params6=30\n";
+			__u32 len = 0;
+			__u32 full_len = (atag->hdr.size-2)*sizeof(__u32);
 			setprop_values(fdt, "/chosen", "linux,wifi",
-				(unsigned char *)(&atag->u), (atag->hdr.size-2)*sizeof(__u32));
+				(unsigned char *)(&atag->u), full_len);
+			// check that we have enought space for get len
+			if (full_len > NVS_LEN_OFFSET)
+				memcpy(&len, (unsigned char *)(&atag->u) + NVS_LEN_OFFSET, sizeof(len));
+			// len is less than full block size
+			if (len > (NVS_MAX_SIZE - NVS_DATA_OFFSET))
+				len = (NVS_MAX_SIZE - NVS_DATA_OFFSET);
+			// len is less than atag block size
+			if (len > full_len)
+				len = full_len;
+			// we have enought space for add additional params
+			if ((len + strlen(append) + 1) <= full_len) {
+				// block is finished by zero
+				if (((unsigned char *)(&atag->u))[NVS_DATA_OFFSET + len] == 0)
+					len --;
+				//copy additional params
+				memcpy(
+					(unsigned char *)(&atag->u) + NVS_DATA_OFFSET + len,
+					append,
+					strlen(append) + 1
+				);
+				len += strlen(append);
+				len ++;
+			}
+			// finaly save new wifi calibration
+			setprop_values(fdt, "/chosen", "linux,wifi-calibration",
+				(unsigned char *)(&atag->u) + NVS_DATA_OFFSET, len);
 		} else if (atag->hdr.tag == ATAG_MSM_AWB_CAL) {
 			setprop_values(fdt, "/chosen", "linux,awb_cal",
 				(unsigned char *)(&atag->u), (atag->hdr.size-2)*sizeof(__u32));
