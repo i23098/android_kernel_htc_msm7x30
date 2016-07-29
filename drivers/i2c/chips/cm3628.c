@@ -1875,6 +1875,7 @@ fail_free_intr_pin:
 	return ret;
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static void cm3628_early_suspend(struct early_suspend *h)
 {
 	struct cm3628_info *lpi = lp_info;
@@ -1895,6 +1896,7 @@ static void cm3628_late_resume(struct early_suspend *h)
 	if (!lpi->als_enable)
 		lightsensor_enable(lpi);
 }
+#endif
 
 static int cm3628_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
@@ -2101,11 +2103,13 @@ static int cm3628_probe(struct i2c_client *client,
 	if (ret)
 		goto err_create_ps_device;
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	lpi->early_suspend.level =
 			EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
 	lpi->early_suspend.suspend = cm3628_early_suspend;
 	lpi->early_suspend.resume = cm3628_late_resume;
 	register_early_suspend(&lpi->early_suspend);
+#endif
 
 	D("[PS][CM3628] %s: Probe success!\n", __func__);
 

@@ -22,6 +22,7 @@
 #include <linux/debugfs.h>
 #include <linux/gpio.h>
 #include <linux/mfd/pmic8058.h>
+#include <linux/export.h>
 
 #include <asm/gpio.h>
 #include <asm/io.h>

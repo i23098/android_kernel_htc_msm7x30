@@ -35,6 +35,7 @@
 #include <mach/gpio.h>
 #include "mt9v113.h"
 #include <asm/mach-types.h>
+#include <linux/module.h>
 
 /* mt9v113 Registers and their values */
 /* Sensor Core Registers */

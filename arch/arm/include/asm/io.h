@@ -122,7 +122,7 @@ static inline void __iomem *__typesafe_io(unsigned long addr)
 #define __io(a)		__typesafe_io((a) & IO_SPACE_LIMIT)
 #endif
 
-#ifdef CONFIG_MACH_SPADE
+#if defined(CONFIG_MACH_SPADE) || defined(CONFIG_MACH_SAGA)
 #define IO_SPACE_LIMIT 0xffffffff
 #endif
 

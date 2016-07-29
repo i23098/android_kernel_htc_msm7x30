@@ -63,6 +63,7 @@
 #include <linux/android_pmem.h>
 #include <linux/input/msm_ts.h>
 #include <mach/pmic.h>
+#include <linux/rtc-msm.h>
 
 #include <mach/rpc_pmapp.h>
 #include <mach/qdsp5v2/msm_lpa.h>
@@ -84,7 +85,6 @@
 #include <mach/htc_headset_pmic.h>
 #include <linux/cm3628.h>
 #include "devices.h"
-#include "timer.h"
 #ifdef CONFIG_USB_G_ANDROID
 #include <mach/htc_usb.h>
 #include <linux/usb/android_composite.h>

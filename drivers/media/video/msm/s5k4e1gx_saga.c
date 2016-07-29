@@ -36,6 +36,7 @@
 #include <linux/slab.h>
 #include <mach/vreg.h>
 #include <asm/mach-types.h>
+#include <linux/module.h>
 
 #define S5K4E1GX_REG_MODEL_ID			0x0000
 #define S5K4E1GX_MODEL_ID			    0x4E10

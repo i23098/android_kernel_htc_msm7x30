@@ -17,10 +17,11 @@
 #include <linux/miscdevice.h>
 #include <asm/uaccess.h>
 #include <linux/input.h>
-#include <linux/bma150.h>
+#include <linux/bma150_spi.h>
 #include <asm/gpio.h>
 #include <linux/delay.h>
-#include<linux/earlysuspend.h>
+#include <linux/earlysuspend.h>
+#include <linux/module.h>
 
 /*#define EARLY_SUSPEND_BMA 1*/
 
