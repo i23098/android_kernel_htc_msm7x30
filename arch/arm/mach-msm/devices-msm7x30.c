@@ -535,6 +535,12 @@ struct platform_device msm_device_hsusb_peripheral = {
 	},
 };
 
+static int phy_init_seq[] = { 0x06, 0x36, 0x0C, 0x31, 0x31, 0x32, 0x1, 0x0D, 0x1, 0x10, -1 };
+static struct msm_hsusb_gadget_platform_data msm_gadget_pdata = {
+	.phy_init_seq		= phy_init_seq,
+	.is_phy_status_timer_on = 1,
+};
+
 struct platform_device msm_device_gadget_peripheral = {
 	.name		= "msm_hsusb",
 	.id		= -1,
@@ -543,6 +549,7 @@ struct platform_device msm_device_gadget_peripheral = {
 	.dev		= {
 		.dma_mask 		= &dma_mask,
 		.coherent_dma_mask	= 0xffffffffULL,
+		.platform_data = &msm_gadget_pdata,
 	},
 };
 
