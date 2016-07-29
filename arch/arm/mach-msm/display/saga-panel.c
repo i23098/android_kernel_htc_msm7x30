@@ -144,23 +144,23 @@ static int panel_init_power(void)
   int rc;
 
   vreg_ldo19 = vreg_get(NULL, "wlan2");
-  
+
   if (IS_ERR(vreg_ldo19)) {
     pr_err("%s: wlan2 vreg get failed (%ld)\n",
            __func__, PTR_ERR(vreg_ldo19));
     return -1;
   }
-  
+
   /* lcd panel power */
   /* 2.85V -- LDO20 */
   vreg_ldo20 = vreg_get(NULL, "gp13");
-  
+
   if (IS_ERR(vreg_ldo20)) {
     pr_err("%s: gp13 vreg get failed (%ld)\n",
            __func__, PTR_ERR(vreg_ldo20));
     return -1;
   }
-  
+
   rc = vreg_set_level(vreg_ldo19, 1800);
   if (rc) {
     pr_err("%s: vreg LDO19 set level failed (%d)\n",
@@ -313,9 +313,11 @@ struct msm_list_device saga_fb_devices[] = {
 
 int device_fb_detect_panel(const char *name)
 {
-  if ( (!strcmp(name, "lcdc_s6d16a0x21_wvga") && is_sony_panel()) ||
-	 (!strcmp(name, "mddi_renesas_R61408_wvga") && is_hitachi_panel()) )
-      return 0;
+	if ((!strcmp(name, "lcdc_s6d16a0x21_wvga") && is_sony_panel()) ||
+		(!strcmp(name, "mddi_renesas_R61408_wvga") && is_hitachi_panel())) {
+		return 0;
+	}
+	return -1;
 }
 
 int __init saga_init_panel(void)
@@ -332,13 +334,13 @@ int __init saga_init_panel(void)
     {
       //    msm_fb_register_device("lcdc", &lcdc_pdata);
       ret = platform_device_register(&lcdc_sonywvga_panel_device);
-      printk(KERN_ERR "%s is sony panel: %d\n", __func__, panel_type);
+      printk(KERN_ERR "%s is sony panel: %d\n", __func__, board_get_panel_type());
     }
   else
     {
       //      msm_fb_register_device("mddi", &mddi_pdata);
       //      ret = platform_device_register(&mddi_renesas_device);
-      printk(KERN_ERR "%s: Panel not yet supported (%d)\n", __func__, panel_type);
+      printk(KERN_ERR "%s: Panel not yet supported (%d)\n", __func__, board_get_panel_type());
     }
   return ret;
 }

@@ -69,9 +69,9 @@ static struct wake_lock panel_idle_lock;
 inline int is_sony_spi(void)
 {
 	if(board_get_panel_type() == PANEL_ID_SAG_SONY )
-		return ( (panel_type & BL_MASK) == BL_SPI ? 1 : 0 );
+		return ( (board_get_panel_type() & BL_MASK) == BL_SPI ? 1 : 0 );
 	else
-		return ( panel_type & SONY_PWM_SPI ? 1 : 0 );
+		return ( board_get_panel_type() & SONY_PWM_SPI ? 1 : 0 );
 }
 
 inline int is_sony_with_gamma(void)
@@ -79,15 +79,15 @@ inline int is_sony_with_gamma(void)
 	if(board_get_panel_type() == PANEL_ID_SAG_SONY)
 		return 1;
 	else
-		return (panel_type & SONY_GAMMA ? 1 : 0);
+		return (board_get_panel_type() & SONY_GAMMA ? 1 : 0);
 }
 
 inline int is_sony_RGB666(void)
 {
 	if(board_get_panel_type() == PANEL_ID_SAG_SONY)
-		return ((panel_type & DEPTH_MASK) == DEPTH_RGB666 ? 1 : 0);
+		return ((board_get_panel_type() & DEPTH_MASK) == DEPTH_RGB666 ? 1 : 0);
 	else
-		return (panel_type & SONY_RGB666 ? 1 : 0);
+		return (board_get_panel_type() & SONY_RGB666 ? 1 : 0);
 }
 
 static const char *PanelVendor = "sony";
