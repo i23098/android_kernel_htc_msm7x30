@@ -258,7 +258,7 @@ void msm_release_voc_thread(void)
 }
 EXPORT_SYMBOL(msm_release_voc_thread);
 
-int msm_snddev_get_enc_freq(session_id)
+int msm_snddev_get_enc_freq(int session_id)
 {
 	return routing_info.enc_freq[session_id].freq;
 }
@@ -894,7 +894,7 @@ sent_dec:
 					evt_payload->freq_info.acdb_dev_id
 						= dev_info->acdb_id;
 				}
-			} else if (evt_id == AUDDEV_EVT_VOICE_STATE_CHG) 
+			} else if (evt_id == AUDDEV_EVT_VOICE_STATE_CHG)
                                 evt_payload->voice_state =
                                         routing_info.call_state;
 			else {

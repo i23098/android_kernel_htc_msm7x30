@@ -48,6 +48,8 @@ extern char * strstr(const char * s1, const char *s2);
 #endif
 
 #ifdef CONFIG_KERNEL_XZ
+#define memmove memmove
+#define memcpy memcpy
 #include "../../../../lib/decompress_unxz.c"
 #endif
 
@@ -55,7 +57,7 @@ extern char * strstr(const char * s1, const char *s2);
 #include "../../../../lib/decompress_unlz4.c"
 #endif
 
-void do_decompress(u8 *input, int len, u8 *output, void (*error)(char *x))
+int do_decompress(u8 *input, int len, u8 *output, void (*error)(char *x))
 {
-	decompress(input, len, NULL, NULL, output, NULL, error);
+	return decompress(input, len, NULL, NULL, output, NULL, error);
 }
