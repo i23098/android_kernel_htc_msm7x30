@@ -29,7 +29,7 @@ static const struct file_operations atags_file_ops = {
 	.read = atags_read,
 };
 
-#define BOOT_PARAMS_SIZE (1 << 14)
+#define BOOT_PARAMS_SIZE (1 << 16)
 static char __initdata atags_copy[BOOT_PARAMS_SIZE];
 
 void __init save_atags(const struct tag *tags)
