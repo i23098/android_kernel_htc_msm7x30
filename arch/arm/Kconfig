@@ -1911,6 +1911,12 @@ config ZBOOT_ROM_MMCIF
 	  which in turn loads the rest the kernel image to RAM using the
 	  MMCIF hardware block.
 
+config ARM_INSERT_DTB
+	bool "Use insert device tree blob to kernel (EXPERIMENTAL)"
+	default y
+	help
+	    Insert device tree blob into kernel code
+
 config ARM_APPENDED_DTB
 	bool "Use appended device tree blob to zImage (EXPERIMENTAL)"
 	depends on OF && !ZBOOT_ROM && EXPERIMENTAL

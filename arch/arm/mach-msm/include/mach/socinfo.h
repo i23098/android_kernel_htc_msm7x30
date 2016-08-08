@@ -16,6 +16,11 @@
 
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/errno.h>
+#ifdef CONFIG_OF
+#include <linux/of_fdt.h>
+#include <linux/of.h>
+#endif
 
 #include <asm/cputype.h>
 #include <asm/mach-types.h>

@@ -17,13 +17,18 @@ obj-y		:= elf.o entry-armv.o entry-common.o irq.o \
 		   process.o ptrace.o return_address.o setup.o signal.o \
 		   sys_arm.o stacktrace.o time.o traps.o
 
+# generate dtb include
+# scripts/dtc/dtc -I dts -O dtb -o arch/arm/boot/dts/saga.dtb arch/arm/boot/dts/saga.dts
+# xxd -i arch/arm/boot/dts/saga.dtb > arch/arm/kernel/dtb_include.c
+obj-$(CONFIG_ARM_INSERT_DTB) += dtb_include.o
+
 obj-$(CONFIG_DEPRECATED_PARAM_STRUCT) += compat.o
 
 obj-$(CONFIG_LEDS)		+= leds.o
 obj-$(CONFIG_OC_ETM)		+= etm.o
 
 obj-$(CONFIG_ISA_DMA_API)	+= dma.o
-obj-$(CONFIG_ARCH_ACORN)	+= ecard.o 
+obj-$(CONFIG_ARCH_ACORN)	+= ecard.o
 obj-$(CONFIG_FIQ)		+= fiq.o fiqasm.o
 obj-$(CONFIG_MODULES)		+= armksyms.o module.o
 obj-$(CONFIG_ARTHUR)		+= arthur.o

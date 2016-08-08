@@ -5594,6 +5594,11 @@ static void __init saga_init_early(void)
 	saga_allocate_memory_regions();
 }
 
+static const char * const qcom_dt_match[] __initconst = {
+	"qcom,msm8255",
+	NULL
+};
+
 static void __init saga_fixup(struct machine_desc *desc, struct tag *tags,
 		char **cmdline, struct meminfo *mi)
 {
@@ -5615,5 +5620,6 @@ MACHINE_START(SAGA, "saga")
 	.init_machine = saga_init,
 	.timer = &msm_timer,
 	.init_early = saga_init_early,
+	.dt_compat = qcom_dt_match,
 MACHINE_END
 

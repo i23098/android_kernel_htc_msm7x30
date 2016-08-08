@@ -77,6 +77,10 @@ static int __init fpe_setup(char *line)
 __setup("fpe=", fpe_setup);
 #endif
 
+#ifdef CONFIG_ARM_INSERT_DTB
+extern unsigned char arch_arm_boot_dts_saga_dtb[];
+#endif
+
 extern void paging_init(struct machine_desc *desc);
 extern void sanity_check_meminfo(void);
 extern void reboot_setup(char *str);
@@ -931,6 +935,9 @@ static struct machine_desc * __init setup_machine_tags(unsigned int nr)
 	/* parse_early_param needs a boot_command_line */
 	strlcpy(boot_command_line, from, COMMAND_LINE_SIZE);
 
+#ifdef CONFIG_ARM_INSERT_DTB
+	setup_safe_machine_fdt(arch_arm_boot_dts_saga_dtb);
+#endif
 	return mdesc;
 }
 
