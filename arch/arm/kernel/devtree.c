@@ -189,7 +189,6 @@ void __init setup_safe_machine_fdt(char *dt_phys)
 			early_print("%08x\t%s\n", mdesc->nr, mdesc->name);
 		return;
 	}
-	return;
 
 	model = of_get_flat_dt_prop(dt_root, "model", NULL);
 	if (!model)
@@ -198,6 +197,7 @@ void __init setup_safe_machine_fdt(char *dt_phys)
 		model = "<unknown>";
 	pr_info("Safe machine: %s, model: %s\n", mdesc_best->name, model);
 
+	return;
 	/* Retrieve various information from the /chosen node */
 	of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
 	/* Initialize {size,address}-cells info */
