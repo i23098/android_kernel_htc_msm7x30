@@ -116,5 +116,5 @@ char *board_serialno(void);
 unsigned long get_kernel_flag(void);
 unsigned int get_radio_flag(void);
 char *get_model_id(void);
-unsigned get_engineerid(void);
+unsigned board_get_engineerid(void);
 #endif

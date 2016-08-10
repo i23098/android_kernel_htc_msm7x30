@@ -151,6 +151,26 @@ struct tag_als_kadc {
 	__u32 kadc;
 };
 
+/*
+ * configuration tags specific to msm
+ * (0x4d534D == MSM)
+ */
+#define ATAG_BLUETOOTH 0x43294329
+#define ATAG_MSM_WIFI	0x57494649 /* MSM WiFi */
+#define ATAG_MSM_AWB_CAL	0x59504550 /* MSM CAMERA AWB Calibration */
+#define ATAG_MFG_GPIO_TABLE 0x59504551
+#define ATAG_MSM_PARTITION 0x4d534D70 /* MSMp */
+#define ATAG_MEMSIZE 0x5441001e
+#define ATAG_ENGINEERID 0x4d534D75
+#define ATAG_SMI 0x4d534D71
+/* Proximity sensor calibration values */
+#define ATAG_PS         0x5441001c
+/* G-Sensor calibration value */
+#define ATAG_GS         0x5441001d
+#define ATAG_HERO_PANEL_TYPE 0x4d534D74
+#define ATAG_SKUID 0x4d534D73
+#define ATAG_HWID 0x4d534D72
+
 struct tag {
 	struct tag_header hdr;
 	union {
@@ -195,12 +215,16 @@ struct tagtable {
 
 #define __tag __used __attribute__((__section__(".taglist.init")))
 #define __tagtable(tag, fn) \
-static struct tagtable __tagtable_##fn __tag = { tag, fn }
+static const struct tagtable __tagtable_##fn __tag = { tag, fn }
 
 /*
  * Memory map description
  */
-#define NR_BANKS 8
+#ifdef CONFIG_ARCH_EP93XX
+# define NR_BANKS 16
+#else
+# define NR_BANKS 8
+#endif
 
 struct membank {
 	phys_addr_t start;
