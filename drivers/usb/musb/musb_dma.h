@@ -62,10 +62,10 @@ struct musb_hw_ep;
 
 #define	DMA_ADDR_INVALID	(~(dma_addr_t)0)
 
-#ifndef CONFIG_MUSB_PIO_ONLY
-#define	is_dma_capable()	(1)
-#else
+#ifdef CONFIG_MUSB_PIO_ONLY
 #define	is_dma_capable()	(0)
+#else
+#define	is_dma_capable()	(1)
 #endif
 
 #ifdef CONFIG_USB_TI_CPPI_DMA
@@ -159,8 +159,6 @@ dma_channel_status(struct dma_channel *c)
  * Controllers manage dma channels.
  */
 struct dma_controller {
-	int			(*start)(struct dma_controller *);
-	int			(*stop)(struct dma_controller *);
 	struct dma_channel	*(*channel_alloc)(struct dma_controller *,
 					struct musb_hw_ep *, u8 is_tx);
 	void			(*channel_release)(struct dma_channel *);
