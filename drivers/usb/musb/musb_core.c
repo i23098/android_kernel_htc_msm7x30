@@ -1783,7 +1783,7 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 {
 	int			status;
 	struct musb		*musb;
-	struct musb_hdrc_platform_data *plat = dev->platform_data;
+	struct musb_hdrc_platform_data *plat = dev_get_platdata(dev);
 
 	/* The driver might handle more features than the board; OK.
 	 * Fail when the board needs a feature that's not enabled.
@@ -1842,10 +1842,6 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 
 	if (use_dma && dev->dma_mask)
 		musb->dma_controller = dma_controller_create(musb, musb->mregs);
-
-	/* ideally this would be abstracted in platform setup */
-	if (!musb->dma_controller)
-		dev->dma_mask = NULL;
 
 	/* be sure interrupts are disabled before connecting ISR */
 	musb_platform_disable(musb);
@@ -1993,9 +1989,6 @@ static int musb_remove(struct platform_device *pdev)
 
 	musb_free(musb);
 	device_init_wakeup(dev, 0);
-#ifndef CONFIG_MUSB_PIO_ONLY
-	dma_set_mask(dev, *dev->parent->dma_mask);
-#endif
 	return 0;
 }
 

@@ -142,8 +142,9 @@ static int nop_set_host(struct usb_otg *otg, struct usb_bus *host)
 static int usb_phy_gen_xceiv_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct usb_phy_gen_xceiv_platform_data *pdata = pdev->dev.platform_data;
-	struct usb_phy_gen_xceiv	*nop;
+	struct nop_usb_xceiv_platform_data *pdata =
+			dev_get_platdata(&pdev->dev);
+	struct nop_usb_xceiv	*nop;
 	enum usb_phy_type	type = USB_PHY_TYPE_USB2;
 	int err;
 	u32 clk_rate = 0;
