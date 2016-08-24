@@ -38,7 +38,7 @@ typedef __u16 __bitwise __hc16;
 #endif
 
 /* statistics can be kept for tuning/monitoring */
-#ifdef DEBUG
+#if defined(DEBUG) || defined(CONFIG_DYNAMIC_DEBUG)
 #define EHCI_STATS
 #endif
 
@@ -228,7 +228,7 @@ struct ehci_hcd {			/* one per controller */
 #endif
 
 	/* debug files */
-#ifdef DEBUG
+#if defined(DEBUG) || defined(CONFIG_DYNAMIC_DEBUG)
 	struct dentry		*debug_dir;
 #endif
 
@@ -801,15 +801,10 @@ static inline void ehci_sync_mem(void)
 #define ehci_warn(ehci, fmt, args...) \
 	dev_warn(ehci_to_hcd(ehci)->self.controller , fmt , ## args)
 
-#ifdef VERBOSE_DEBUG
-#	define ehci_vdbg ehci_dbg
-#else
-	static inline void ehci_vdbg(struct ehci_hcd *ehci, ...) {}
-#endif
 
-#ifndef DEBUG
+#if !defined(DEBUG) && !defined(CONFIG_DYNAMIC_DEBUG)
 #define STUB_DEBUG_FILES
-#endif	/* DEBUG */
+#endif	/* !DEBUG && !CONFIG_DYNAMIC_DEBUG */
 
 /*-------------------------------------------------------------------------*/
 

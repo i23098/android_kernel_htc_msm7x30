@@ -211,8 +211,6 @@ static void ehci_adjust_port_wakeup_flags(struct ehci_hcd *ehci,
 			else
 				t2 |= PORT_WKOC_E | PORT_WKCONN_E;
 		}
-		ehci_vdbg(ehci, "port %d, %08x -> %08x\n",
-				port + 1, t1, t2);
 		ehci_writel(ehci, t2, reg);
 	}
 
@@ -302,8 +300,6 @@ static int ehci_bus_suspend (struct usb_hcd *hcd)
 		}
 
 		if (t1 != t2) {
-			ehci_vdbg (ehci, "port %d, %08x -> %08x\n",
-				port + 1, t1, t2);
 			ehci_writel(ehci, t2, reg);
 			changed = 1;
 		}
@@ -483,7 +479,6 @@ static int ehci_bus_resume (struct usb_hcd *hcd)
 		if (test_bit(i, &resume_needed)) {
 			temp &= ~(PORT_RWC_BITS | PORT_SUSPEND | PORT_RESUME);
 			ehci_writel(ehci, temp, &ehci->regs->port_status [i]);
-			ehci_vdbg (ehci, "resumed port %d\n", i + 1);
 		}
 	}
 
@@ -712,6 +707,8 @@ ehci_hub_descriptor (
 }
 
 /*-------------------------------------------------------------------------*/
+#ifdef CONFIG_USB_HCD_TEST_MODE
+
 #define EHSET_TEST_SINGLE_STEP_SET_FEATURE 0x06
 
 static void usb_ehset_completion(struct urb *urb)
@@ -847,6 +844,7 @@ cleanup:
 	kfree(buf);
 	return retval;
 }
+#endif /* CONFIG_USB_HCD_TEST_MODE */
 /*-------------------------------------------------------------------------*/
 
 static int ehci_hub_control (
@@ -1201,7 +1199,6 @@ static int ehci_hub_control (
 					wIndex + 1);
 				temp |= PORT_OWNER;
 			} else {
-				ehci_vdbg (ehci, "port %d reset\n", wIndex + 1);
 				temp |= PORT_RESET;
 				temp &= ~PORT_PE;
 
@@ -1222,13 +1219,16 @@ static int ehci_hub_control (
 		 * about the EHCI-specific stuff.
 		 */
 		case USB_PORT_FEAT_TEST:
+#ifdef CONFIG_USB_HCD_TEST_MODE
 			if (selector == EHSET_TEST_SINGLE_STEP_SET_FEATURE) {
 				spin_unlock_irqrestore(&ehci->lock, flags);
 				retval = ehset_single_step_set_feature(hcd,
 									wIndex);
 				spin_lock_irqsave(&ehci->lock, flags);
 				break;
-			} else if (!selector || selector > 5)
+			}
+#endif
+			if (!selector || selector > 5)
 				goto error;
 			spin_unlock_irqrestore(&ehci->lock, flags);
 			ehci_quiesce(ehci);

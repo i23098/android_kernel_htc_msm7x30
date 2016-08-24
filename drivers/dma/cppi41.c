@@ -9,6 +9,7 @@
 #include <linux/dmapool.h>
 #include <linux/interrupt.h>
 #include <linux/of_address.h>
+#include <linux/pm_runtime.h>
 #include "dmaengine.h"
 
 #define DESC_TYPE	27
@@ -241,7 +242,7 @@ static struct cppi41_channel *desc_to_chan(struct cppi41_dd *cdd, u32 desc)
 	}
 
 	desc_num = (desc - cdd->descs_phys) / sizeof(struct cppi41_desc);
-	BUG_ON(desc_num > ALLOC_DECS_NUM);
+	BUG_ON(desc_num >= ALLOC_DECS_NUM);
 	c = cdd->chan_busy[desc_num];
 	cdd->chan_busy[desc_num] = NULL;
 	return c;
@@ -579,7 +580,7 @@ static int cppi41_tear_down_chan(struct cppi41_channel *c)
 				WARN_ON(!c->is_tx && !(pd0 & TD_DESC_IS_RX));
 				WARN_ON((pd0 & 0x1f) != c->port_num);
 			} else {
-				__WARN();
+				WARN_ON_ONCE(1);
 			}
 			c->td_seen = 1;
 		}
@@ -960,6 +961,11 @@ static int cppi41_dma_probe(struct platform_device *pdev)
 		goto err_remap;
 	}
 
+	pm_runtime_enable(&pdev->dev);
+	ret = pm_runtime_get_sync(&pdev->dev);
+	if (ret)
+		goto err_get_sync;
+
 	cdd->queues_rx = glue_info->queues_rx;
 	cdd->queues_tx = glue_info->queues_tx;
 	cdd->td_queue = glue_info->td_queue;
@@ -1005,6 +1011,9 @@ err_irq:
 err_chans:
 	deinit_cpii41(pdev, cdd);
 err_init_cppi:
+	pm_runtime_put(&pdev->dev);
+err_get_sync:
+	pm_runtime_disable(&pdev->dev);
 	iounmap(cdd->usbss_mem);
 	iounmap(cdd->ctrl_mem);
 	iounmap(cdd->sched_mem);
@@ -1029,6 +1038,8 @@ static int cppi41_dma_remove(struct platform_device *pdev)
 	iounmap(cdd->ctrl_mem);
 	iounmap(cdd->sched_mem);
 	iounmap(cdd->qmgr_mem);
+	pm_runtime_put(&pdev->dev);
+	pm_runtime_disable(&pdev->dev);
 	kfree(cdd);
 	return 0;
 }

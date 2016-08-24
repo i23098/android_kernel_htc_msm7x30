@@ -466,17 +466,13 @@ static int rh_call_control (struct usb_hcd *hcd, struct urb *urb)
 	struct usb_ctrlrequest *cmd;
  	u16		typeReq, wValue, wIndex, wLength;
 	u8		*ubuf = urb->transfer_buffer;
-	/*
-	 * tbuf should be as big as the BOS descriptor and
-	 * the USB hub descriptor.
-	 */
-	u8		tbuf[USB_DT_BOS_SIZE + USB_DT_USB_SS_CAP_SIZE]
-		__attribute__((aligned(4)));
-	const u8	*bufp = tbuf;
 	unsigned	len = 0;
 	int		status;
 	u8		patch_wakeup = 0;
 	u8		patch_protocol = 0;
+	u16		tbuf_size;
+	u8		*tbuf = NULL;
+	const u8	*bufp;
 
 	might_sleep();
 
@@ -495,6 +491,18 @@ static int rh_call_control (struct usb_hcd *hcd, struct urb *urb)
 
 	if (wLength > urb->transfer_buffer_length)
 		goto error;
+
+	/*
+	 * tbuf should be at least as big as the
+	 * USB hub descriptor.
+	 */
+	tbuf_size =  max_t(u16, sizeof(struct usb_hub_descriptor), wLength);
+	tbuf = kzalloc(tbuf_size, GFP_KERNEL);
+	if (!tbuf)
+		return -ENOMEM;
+
+	bufp = tbuf;
+
 
 	urb->actual_length = 0;
 	switch (typeReq) {
@@ -693,6 +701,8 @@ error:
 				bDeviceProtocol = USB_HUB_PR_HS_SINGLE_TT;
 	}
 
+	kfree(tbuf);
+
 	/* any errors get returned through the urb completion */
 	spin_lock_irq(&hcd_root_hub_lock);
 	usb_hcd_unlink_urb_from_ep(hcd, urb);
@@ -839,9 +849,8 @@ static int usb_rh_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 /*
  * Show & store the current value of authorized_default
  */
-static ssize_t usb_host_authorized_default_show(struct device *dev,
-						struct device_attribute *attr,
-						char *buf)
+static ssize_t authorized_default_show(struct device *dev,
+				       struct device_attribute *attr, char *buf)
 {
 	struct usb_device *rh_usb_dev = to_usb_device(dev);
 	struct usb_bus *usb_bus = rh_usb_dev->bus;
@@ -853,9 +862,9 @@ static ssize_t usb_host_authorized_default_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%u\n", usb_hcd->authorized_default);
 }
 
-static ssize_t usb_host_authorized_default_store(struct device *dev,
-						 struct device_attribute *attr,
-						 const char *buf, size_t size)
+static ssize_t authorized_default_store(struct device *dev,
+					struct device_attribute *attr,
+					const char *buf, size_t size)
 {
 	ssize_t result;
 	unsigned val;
@@ -875,11 +884,7 @@ static ssize_t usb_host_authorized_default_store(struct device *dev,
 		result = -EINVAL;
 	return result;
 }
-
-static DEVICE_ATTR(authorized_default, 0644,
-	    usb_host_authorized_default_show,
-	    usb_host_authorized_default_store);
-
+static DEVICE_ATTR_RW(authorized_default);
 
 /* Group all the USB bus attributes */
 static struct attribute *usb_bus_attrs[] = {

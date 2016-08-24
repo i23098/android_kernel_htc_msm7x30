@@ -168,13 +168,13 @@ static void ehci_clear_tt_buffer(struct ehci_hcd *ehci, struct ehci_qh *qh,
 	 * Note: this routine is never called for Isochronous transfers.
 	 */
 	if (urb->dev->tt && !usb_pipeint(urb->pipe) && !qh->clearing_tt) {
-#ifdef DEBUG
+#if defined(DEBUG) || defined(CONFIG_DYNAMIC_DEBUG)
 		struct usb_device *tt = urb->dev->tt->hub;
 		dev_dbg(&tt->dev,
 			"clear tt buffer port %d, a%d ep%d t%08x\n",
 			urb->dev->ttport, urb->dev->devnum,
 			usb_pipeendpoint(urb->pipe), token);
-#endif /* DEBUG */
+#endif /* DEBUG || CONFIG_DYNAMIC_DEBUG */
 		if (!ehci_is_TDI(ehci)
 				|| urb->dev->tt->hub !=
 				   ehci_to_hcd(ehci)->self.root_hub) {
@@ -240,13 +240,6 @@ static int qtd_copy_status (
 		} else {	/* unknown */
 			status = -EPROTO;
 		}
-
-		ehci_vdbg (ehci,
-			"dev%d ep%d%s qtd token %08x --> status %d\n",
-			usb_pipedevice (urb->pipe),
-			usb_pipeendpoint (urb->pipe),
-			usb_pipein (urb->pipe) ? "in" : "out",
-			token, status);
 	}
 
 	return status;
@@ -1139,6 +1132,7 @@ submit_async (
 }
 
 /*-------------------------------------------------------------------------*/
+#ifdef CONFIG_USB_HCD_TEST_MODE
 /*
  * This function creates the qtds and submits them for the
  * SINGLE_STEP_SET_FEATURE Test.
@@ -1238,6 +1232,7 @@ cleanup:
 	qtd_list_free(ehci, urb, head);
 	return -1;
 }
+#endif /* CONFIG_USB_HCD_TEST_MODE */
 
 /*-------------------------------------------------------------------------*/
 
