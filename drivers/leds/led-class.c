@@ -19,13 +19,9 @@
 #include <linux/err.h>
 #include <linux/ctype.h>
 #include <linux/leds.h>
-#include <linux/slab.h>
 #include "leds.h"
 
-#define LED_BUFF_SIZE 50
-
 static struct class *leds_class;
-static struct workqueue_struct *leds_workqueue;
 
 void led_brightness_switch(const char * const led_name,  enum led_brightness brightness)
 {
@@ -57,7 +53,7 @@ static ssize_t led_brightness_show(struct device *dev,
 	/* no lock needed for this */
 	led_update_brightness(led_cdev);
 
-	return snprintf(buf, LED_BUFF_SIZE, "%u\n", led_cdev->brightness);
+	return sprintf(buf, "%u\n", led_cdev->brightness);
 }
 
 static ssize_t led_brightness_store(struct device *dev,
@@ -86,7 +82,7 @@ static ssize_t led_offset_show(struct device *dev,
 	/* no lock needed for this */
 	led_update_brightness(led_cdev);
 
-	return snprintf(buf, LED_BUFF_SIZE, "%u\n", led_cdev->offset);
+	return sprintf(buf, "%u\n", led_cdev->offset);
 }
 
 static ssize_t led_offset_store(struct device *dev,
@@ -135,7 +131,7 @@ static ssize_t led_max_brightness_show(struct device *dev,
 {
 	struct led_classdev *led_cdev = dev_get_drvdata(dev);
 
-	return snprintf(buf, LED_BUFF_SIZE, "%u\n", led_cdev->max_brightness);
+	return sprintf(buf, "%u\n", led_cdev->max_brightness);
 }
 
 static struct device_attribute led_class_attrs[] = {
@@ -333,17 +329,12 @@ static int __init leds_init(void)
 		return PTR_ERR(leds_class);
 	leds_class->pm = &leds_class_dev_pm_ops;
 	leds_class->dev_attrs = led_class_attrs;
-
-	/* create an ordered workqueue to process every call to sysfs */
-	leds_workqueue = alloc_ordered_workqueue("leds_wq", 0);
-
 	return 0;
 }
 
 static void __exit leds_exit(void)
 {
 	class_destroy(leds_class);
-	destroy_workqueue(leds_workqueue);
 }
 
 subsys_initcall(leds_init);
