@@ -384,10 +384,6 @@ int snd_soc_dapm_del_routes(struct snd_soc_dapm_context *dapm,
 			    const struct snd_soc_dapm_route *route, int num);
 int snd_soc_dapm_weak_routes(struct snd_soc_dapm_context *dapm,
 			     const struct snd_soc_dapm_route *route, int num);
-int snd_soc_dapm_query_path(struct snd_soc_dapm_context *dapm,
-	const char *source_name, const char *sink_name, int stream);
-const char *snd_soc_dapm_get_aif(struct snd_soc_dapm_context *dapm,
-		const char *stream_name, enum snd_soc_dapm_type type);
 
 /* dapm events */
 void snd_soc_dapm_stream_event(struct snd_soc_pcm_runtime *rtd, int stream,
@@ -419,14 +415,6 @@ int snd_soc_dapm_force_enable_pin(struct snd_soc_dapm_context *dapm,
 int snd_soc_dapm_ignore_suspend(struct snd_soc_dapm_context *dapm,
 				const char *pin);
 void snd_soc_dapm_auto_nc_codec_pins(struct snd_soc_codec *codec);
-
-/* dapm path query */
-int snd_soc_dapm_get_connected_widgets_type(struct snd_soc_dai *dai, 
-		struct snd_soc_dapm_context *dapm,
-		const char *stream_name, struct snd_soc_dapm_widget_list **list,
-		int stream, enum snd_soc_dapm_type type);
-int snd_soc_dapm_get_connected_widgets_name(struct snd_soc_dapm_context *dapm,
-		const char *name, struct snd_soc_dapm_widget_list **list, int stream);
 
 /* Mostly internal - should not normally be used */
 void dapm_mark_dirty(struct snd_soc_dapm_widget *w, const char *reason);
@@ -504,7 +492,6 @@ struct snd_soc_dapm_path {
 	u32 walked:1;	/* path has been walked */
 	u32 walking:1;  /* path is in the process of being walked */
 	u32 weak:1;	/* path ignored for power management */
-	u32 length:6;	/* path length - used by route mapper */
 
 	int (*connected)(struct snd_soc_dapm_widget *source,
 			 struct snd_soc_dapm_widget *sink);
@@ -532,8 +519,6 @@ struct snd_soc_dapm_widget {
 	int reg;				/* negative reg = no direct dapm */
 	unsigned char shift;			/* bits to shift */
 	unsigned int value;				/* widget current value */
-	unsigned int path_idx;
-	unsigned int hops;
 	unsigned int mask;			/* non-shifted mask */
 	unsigned int on_val;			/* on state value */
 	unsigned int off_val;			/* off state value */
@@ -600,10 +585,7 @@ struct snd_soc_dapm_context {
 
 	/* used during DAPM updates */
 	enum snd_soc_bias_level target_bias_level;
-	int dev_power;
 	struct list_head list;
-
-	int num_valid_paths;
 
 	int (*stream_event)(struct snd_soc_dapm_context *dapm, int event);
 

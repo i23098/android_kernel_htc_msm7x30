@@ -159,7 +159,7 @@
 	.info   = snd_soc_info_volsw_s8, .get = snd_soc_get_volsw_s8, \
 	.put    = snd_soc_put_volsw_s8, \
 	.private_value = (unsigned long)&(struct soc_mixer_control) \
-		{.reg = xreg, .rshift = 8, .min = xmin, .max = xmax, \
+		{.reg = xreg, .min = xmin, .max = xmax, \
 		 .platform_max = xmax} }
 #define SOC_ENUM_DOUBLE(xreg, xshift_l, xshift_r, xmax, xtexts) \
 {	.reg = xreg, .shift_l = xshift_l, .shift_r = xshift_r, \
@@ -283,25 +283,6 @@
 #define SOC_VALUE_ENUM_SINGLE_DECL(name, xreg, xshift, xmask, xtexts, xvalues) \
 	SOC_VALUE_ENUM_DOUBLE_DECL(name, xreg, xshift, xshift, xmask, xtexts, xvalues)
 
-
-/* DAI Link Host Mode Support */
-#define SND_SOC_DAI_LINK_NO_HOST		0x1
-#define SND_SOC_DAI_LINK_OPT_HOST		0x2
-
-/*
- * Component probe and remove ordering levels for components with runtime
- * dependencies.
- */
-#define SND_SOC_COMP_ORDER_FIRST		-2
-#define SND_SOC_COMP_ORDER_EARLY		-1
-#define SND_SOC_COMP_ORDER_NORMAL		0
-#define SND_SOC_COMP_ORDER_LATE		1
-#define SND_SOC_COMP_ORDER_LAST		2
-
-/* DAI Link Host Mode Support */
-#define SND_SOC_DAI_LINK_NO_HOST		0x1
-#define SND_SOC_DAI_LINK_OPT_HOST		0x2
-
 /*
  * Component probe and remove ordering levels for components with runtime
  * dependencies.
@@ -350,7 +331,6 @@ struct snd_soc_jack;
 struct snd_soc_jack_zone;
 struct snd_soc_jack_pin;
 struct snd_soc_cache_ops;
-struct snd_soc_dsp_link;
 #include <sound/soc-dapm.h>
 #include <sound/soc-dpcm.h>
 
@@ -861,11 +841,9 @@ struct snd_soc_platform {
 	unsigned int suspended:1; /* platform is suspended */
 	unsigned int probed:1;
 
-	struct snd_card *snd_card;
 	struct snd_soc_card *card;
 	struct list_head list;
 	struct list_head card_list;
-	int num_dai;
 
 	struct snd_soc_dapm_context dapm;
 
@@ -929,8 +907,6 @@ struct snd_soc_dai_link {
 
 	unsigned int dai_fmt;           /* format to set on init */
 
-	struct snd_soc_dsp_link *dsp_link;
-
 	enum snd_soc_dpcm_trigger trigger[2]; /* trigger type for DPCM */
 
 	/* Keep DAI active over suspend */
@@ -950,13 +926,6 @@ struct snd_soc_dai_link {
 
 	/* codec/machine specific init - e.g. add machine controls */
 	int (*init)(struct snd_soc_pcm_runtime *rtd);
-
-
-	/* This DAI link has no codec side driver*/
-	unsigned int no_codec:1;
-
-	/* This DAI can support no host IO (no pcm data is copied to from host) */
-	unsigned int no_host_mode:2;
 
 	/* optional hw_params re-writing for BE and FE sync */
 	int (*be_hw_params_fixup)(struct snd_soc_pcm_runtime *rtd,
