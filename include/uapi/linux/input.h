@@ -859,8 +859,11 @@ struct input_keymap_entry {
 #define ABS_HI_HAT		0x49
 #define ABS_FRET_BOARD		0x4a	/* Guitar fret board, vertical pos */
 #define ABS_WHAMMY_BAR		0x4b	/* Guitar whammy bar (or vibrato) */
-
+#if !defined(CONFIG_MACH_SPADE) && !defined(CONFIG_MACH_SAGA)
 #define ABS_MAX			0x4f
+#else
+#define ABS_MAX			0x3f
+#endif
 #define ABS_CNT			(ABS_MAX+1)
 
 /*
