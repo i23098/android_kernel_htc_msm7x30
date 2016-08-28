@@ -458,6 +458,7 @@ struct hid_device {							/* device report descriptor */
 	enum hid_type type;						/* device type (mouse, kbd, ...) */
 	unsigned country;						/* HID country */
 	struct hid_report_enum report_enum[HID_REPORT_TYPES];
+	struct work_struct led_work;					/* delayed LED worker */
 
 	struct semaphore driver_lock;					/* protects the current driver, except during input */
 	struct semaphore driver_input_lock;				/* protects the current driver */
@@ -992,7 +993,6 @@ int hid_report_raw_event(struct hid_device *hid, int type, u8 *data, int size,
 u32 usbhid_lookup_quirk(const u16 idVendor, const u16 idProduct);
 int usbhid_quirks_init(char **quirks_param);
 void usbhid_quirks_exit(void);
-void usbhid_set_leds(struct hid_device *hid);
 
 #ifdef CONFIG_HID_PID
 int hid_pidff_init(struct hid_device *hid);
