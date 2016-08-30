@@ -326,7 +326,7 @@ include $(srctree)/scripts/Kbuild.include
 
 AS		= $(CROSS_COMPILE)as
 LD		= $(CROSS_COMPILE)ld
-REAL_CC		= $(CROSS_COMPILE)gcc
+CC		= $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
@@ -339,10 +339,6 @@ INSTALLKERNEL  := installkernel
 DEPMOD		= /sbin/depmod
 PERL		= perl
 CHECK		= sparse
-
-# Use the wrapper for the compiler.  This wrapper scans for new
-# warnings and causes the build to stop upon encountering them.
-CC		= $(srctree)/scripts/gcc-wrapper.py $(REAL_CC)
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
@@ -369,7 +365,6 @@ LINUXINCLUDE    := \
 		-Iarch/$(hdr-arch)/include/generated \
 		$(if $(KBUILD_SRC), -I$(srctree)/include) \
 		-Iinclude \
-		-include include/generated/autoconf.h \
 		$(USERINCLUDE)
 
 KBUILD_CPPFLAGS := -D__KERNEL__
@@ -577,23 +572,8 @@ all: vmlinux
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
-endif
-ifdef CONFIG_CC_OPTIMIZE_ALITTLE
-KBUILD_CFLAGS	+= -O1
-endif
-ifdef CONFIG_CC_OPTIMIZE_DEFAULT
+else
 KBUILD_CFLAGS	+= -O2
-endif
-ifdef CONFIG_CC_OPTIMIZE_ALOT
-KBUILD_CFLAGS	+= -O3
-endif
-
-ifdef CONFIG_CC_GRAPHITE_OPTIMIZATION
-KBUILD_CFLAGS	+= -floop-interchange -floop-strip-mine -floop-block
-endif
-
-ifdef CONFIG_CC_LINK_TIME_OPTIMIZATION
-KBUILD_CFLAGS	+= -flto -fno-toplevel-reorder
 endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile

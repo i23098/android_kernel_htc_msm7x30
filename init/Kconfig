@@ -1265,10 +1265,6 @@ source "usr/Kconfig"
 
 endif
 
-choice
-    prompt "Optimization level"
-    default CC_OPTIMIZE_DEFAULT
-
 config CC_OPTIMIZE_FOR_SIZE
 	bool "Optimize for size"
 	help
@@ -1276,39 +1272,6 @@ config CC_OPTIMIZE_FOR_SIZE
 	  resulting in a smaller kernel.
 
 	  If unsure, say N.
-
-config CC_OPTIMIZE_ALITTLE
-	bool "Optimize a little"
-	help
-	  Enabling this option will pass "-O1" instead of "-O2" to gcc
-	  resulting in a slightly smaller kernel.
-
-config CC_OPTIMIZE_DEFAULT
-	bool "Default optimization"
-	help
-	  Enabling this option will pass "-O2" to gcc.
-
-	  If unsure, choose this.
-
-config CC_OPTIMIZE_ALOT
-	bool "Optimize a lot"
-	help
-	  Enabling this option will pass "-O3" instead of "-O2" to gcc
-	  resulting in a slightly larger kernel.
-
-endchoice
-
-config CC_GRAPHITE_OPTIMIZATION
-	bool "Enable graphite optimizations"
-	help
-	  Enabling this option will turn on -floop-interchange,
-	  -floop-strip-mine and -floop-block for KBUILD_CFLAGS.
-
-config CC_LINK_TIME_OPTIMIZATION
-	bool "Enable link-time optimization"
-	help
-	  Enabling this option will turn on -flto and
-	  -fno-toplevel-reorder for KBUILD_CFLAGS.
 
 config SYSCTL
 	bool

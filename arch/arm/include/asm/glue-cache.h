@@ -130,7 +130,7 @@
 #endif
 
 #ifndef __ASSEMBLER__
-/*
+#if !defined(CONFIG_MACH_SPADE) && !defined(CONFIG_MACH_SAGA)
 extern inline void nop_flush_icache_all(void) { }
 extern inline void nop_flush_kern_cache_all(void) { }
 extern inline void nop_flush_kern_cache_louis(void) { }
@@ -147,7 +147,7 @@ extern inline void nop_dma_flush_range(const void *a, const void *b) { }
 
 extern inline void nop_dma_map_area(const void *s, size_t l, int f) { }
 extern inline void nop_dma_unmap_area(const void *s, size_t l, int f) { }
-*/
+#endif
 #endif
 
 #ifndef MULTI_CACHE
