@@ -32,7 +32,7 @@
 
 #include <mach/msm_iomap.h>
 
-#include <mach/board.h>
+#include <mach/board_htc.h>
 
 #include <linux/seq_file.h>
 #include <linux/proc_fs.h>

@@ -29,7 +29,6 @@
 #include <linux/alarmtimer.h>
 #include <linux/usb/android_composite.h>
 #include <mach/board_htc.h>
-#include <mach/board.h>
 #define pr_tps_fmt(fmt) "[BATT][tps65200] " fmt
 #define pr_tps_err_fmt(fmt) "[BATT][tps65200] err:" fmt
 #define pr_tps_info(fmt, ...) \

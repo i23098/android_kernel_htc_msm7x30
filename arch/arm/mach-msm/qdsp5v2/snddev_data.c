@@ -63,7 +63,6 @@
 #include <mach/qdsp5v2/audio_dev_ctl.h>
 #include <mach/qdsp5v2/snddev_mi2s.h>
 #include <mach/qdsp5v2/mi2s.h>
-#include <mach/board.h>
 #include <asm/mach-types.h>
 #include <asm/uaccess.h>
 #include <mach/qdsp5v2/audio_acdb_def.h>

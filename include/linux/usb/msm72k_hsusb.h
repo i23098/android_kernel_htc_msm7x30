@@ -16,7 +16,6 @@
 #include <linux/types.h>
 #include <linux/usb/otg.h>
 #include <linux/wakelock.h>
-#include <mach/board.h>
 #include <linux/usb.h>
 #include <linux/usb/gadget.h>
 

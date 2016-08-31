@@ -27,7 +27,7 @@
 #include <linux/io.h>
 #include <linux/sort.h>
 #include <linux/platform_device.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <mach/msm_iomap.h>
 #include <asm/mach-types.h>
 

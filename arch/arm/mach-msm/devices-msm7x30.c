@@ -27,11 +27,13 @@
 #include <mach/msm_iomap.h>
 #include <mach/msm_smsm.h>
 #include <mach/dma.h>
-#include <mach/board_htc.h>
 #include <asm/clkdev.h>
 
 #include "devices.h"
 #include "footswitch.h"
+#include "smd_private.h"
+#include "common.h"
+#include <mach/board_htc.h>
 
 #include <asm/mach/flash.h>
 

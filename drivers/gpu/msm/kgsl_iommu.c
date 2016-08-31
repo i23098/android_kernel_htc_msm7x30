@@ -20,7 +20,6 @@
 #include <linux/msm_kgsl.h>
 #include <mach/socinfo.h>
 #include <mach/msm_iomap.h>
-#include <mach/board.h>
 #include <stddef.h>
 
 #include "kgsl.h"

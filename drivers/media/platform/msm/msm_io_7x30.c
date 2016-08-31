@@ -60,7 +60,6 @@
 #include <linux/io.h>
 #include <linux/pm_qos.h>
 #include <mach/gpio.h>
-#include <mach/board.h>
 #include <mach/camera-7x30.h>
 #include <mach/vreg.h>
 #include <mach/clk.h>

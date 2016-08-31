@@ -25,7 +25,7 @@
 #include <linux/clk.h>
 #include <mach/hardware.h>
 #include <mach/iommu_domains.h>
-#include <mach/iommu.h>
+#include "../../../drivers/iommu/msm_iommu.h"
 #include <linux/iommu.h>
 #include <linux/io.h>
 #include <linux/debugfs.h>

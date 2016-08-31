@@ -17,7 +17,6 @@
 #include <linux/types.h>
 #include <linux/list.h>
 #include <asm/setup.h>
-#include <mach/board.h>
 #include <mach/msm_camera.h>
 #include <asm/setup.h>
 #include <linux/input.h>

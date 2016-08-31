@@ -21,7 +21,7 @@
 #include <linux/pm_qos.h>
 #include "linux/types.h"
 
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <media/msm_camera.h>
 #include <mach/msm_subsystem_map.h>
 

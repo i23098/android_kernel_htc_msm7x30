@@ -16,8 +16,6 @@
 #include <linux/slab.h>
 #include <linux/memory_alloc.h>
 #include <linux/module.h>
-#include <mach/iommu.h>
-#include <mach/iommu_domains.h>
 #include <mach/msm_subsystem_map.h>
 
 struct msm_buffer_node {

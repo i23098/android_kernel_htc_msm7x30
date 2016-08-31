@@ -19,6 +19,7 @@
 
 #include <linux/types.h>
 #include <linux/leds-pmic8058.h>
+#include <linux/spinlock.h>
 
 struct msm_camera_io_ext {
 	uint32_t mdcphy;
