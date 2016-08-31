@@ -327,29 +327,15 @@ static struct msm_iommu_dev vcodec_b_iommu = {
 static struct msm_iommu_dev gfx3d_iommu = {
 	.name = "gfx3d",
 	.ncb = 3,
-	.ttbr_split = 0,
-};
-
-static struct msm_iommu_dev gfx3d1_iommu = {
-	.name = "gfx3d1",
-	.ncb = 3,
-	.ttbr_split = 0,
 };
 
 static struct msm_iommu_dev gfx2d0_iommu = {
 	.name = "gfx2d0",
 	.ncb = 2,
-	.ttbr_split = 0,
 };
 
 static struct msm_iommu_dev gfx2d1_iommu = {
 	.name = "gfx2d1",
-	.ncb = 2,
-	.ttbr_split = 0,
-};
-
-static struct msm_iommu_dev vcap_iommu = {
-	.name = "vcap",
 	.ncb = 2,
 };
 
@@ -637,7 +623,6 @@ static struct platform_device msm_device_mdp_vg1_ctx = {
 	.id = 4,
 	.dev = {
 		.parent = &msm_device_iommu_mdp0.dev,
-		.platform_data = &mdp_port0_cb0_ctx,
 	},
 };
 
@@ -646,7 +631,6 @@ static struct platform_device msm_device_mdp_rgb1_ctx = {
 	.id = 5,
 	.dev = {
 		.parent = &msm_device_iommu_mdp0.dev,
-		.platform_data = &mdp_port0_cb1_ctx,
 	},
 };
 
@@ -655,7 +639,6 @@ static struct platform_device msm_device_mdp_vg2_ctx = {
 	.id = 6,
 	.dev = {
 		.parent = &msm_device_iommu_mdp1.dev,
-		.platform_data = &mdp_port1_cb0_ctx,
 	},
 };
 
@@ -664,7 +647,6 @@ static struct platform_device msm_device_mdp_rgb2_ctx = {
 	.id = 7,
 	.dev = {
 		.parent = &msm_device_iommu_mdp1.dev,
-		.platform_data = &mdp_port1_cb1_ctx,
 	},
 };
 

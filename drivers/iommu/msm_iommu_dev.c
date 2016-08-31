@@ -245,9 +245,9 @@ static int msm_iommu_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, drvdata);
 
 	if (iommu_clk)
-		clk_disable_unprepare(iommu_clk);
+		clk_disable(iommu_clk);
 
-	clk_disable_unprepare(iommu_pclk);
+	clk_disable(iommu_pclk);
 
 	return 0;
 fail_io:
@@ -256,7 +256,7 @@ fail_mem:
 	release_mem_region(r->start, len);
 fail_clk:
 	if (iommu_clk) {
-		clk_disable_unprepare(iommu_clk);
+		clk_disable(iommu_clk);
 		clk_put(iommu_clk);
 	}
 fail_pclk:
@@ -349,8 +349,8 @@ static int msm_iommu_ctx_probe(struct platform_device *pdev)
 	}
 
 	if (drvdata->clk)
-		clk_disable_unprepare(drvdata->clk);
-	clk_disable_unprepare(drvdata->pclk);
+		clk_disable(drvdata->clk);
+	clk_disable(drvdata->pclk);
 
 	dev_info(&pdev->dev, "context %s using bank %d\n", c->name, c->num);
 	return 0;
