@@ -15,7 +15,7 @@
 #ifndef __ARCH_ARM_MACH_MSM_BOARD_SPADE_H
 #define __ARCH_ARM_MACH_MSM_BOARD_SPADE_H
 
-#include <mach/board.h>
+#include <mach/board_htc.h>
 
 #define SPADE_PROJECT_NAME	"ace"
 

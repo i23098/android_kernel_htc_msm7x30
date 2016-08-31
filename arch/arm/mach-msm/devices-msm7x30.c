@@ -27,7 +27,7 @@
 #include <mach/msm_iomap.h>
 #include <mach/msm_smsm.h>
 #include <mach/dma.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <asm/clkdev.h>
 
 #include "devices.h"
@@ -320,6 +320,8 @@ struct platform_device msm_device_i2c = {
 	.resource	= resources_i2c,
 };
 
+#define MSM_SPI_PHYS		0xA8000000
+#define MSM_SPI_SIZE		SZ_4K
 static struct resource qsd_spi_resources[] = {
 	{
 		.name   = "spi_irq_in",
@@ -890,6 +892,9 @@ int __init msm_add_sdcc(unsigned int controller, struct msm_mmc_platform_data *p
 	return platform_device_register(pdev);
 }
 
+#define MSM_PMDH_PHYS		0xAD600000
+#define MSM_PMDH_SIZE		SZ_4K
+
 static struct resource resources_mddi0[] = {
 	{
 		.start	= MSM_PMDH_PHYS,
@@ -902,6 +907,9 @@ static struct resource resources_mddi0[] = {
 		.flags	= IORESOURCE_IRQ,
 	},
 };
+
+#define MSM_EMDH_PHYS		0xAD700000
+#define MSM_EMDH_SIZE		SZ_4K
 
 static struct resource resources_mddi1[] = {
 	{

@@ -51,7 +51,7 @@
 #include <linux/rtc-msm.h>
 
 #include <mach/mpp.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <mach/camera-7x30.h>
 #include <mach/msm_mem.h>
 #include <mach/msm_iomap.h>

@@ -27,7 +27,7 @@
 
 #include <asm/atomic.h>
 #include <asm/ioctls.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <mach/msm_adsp.h>
 
 #include <mach/qdsp5v2/qdsp5audppcmdi.h>

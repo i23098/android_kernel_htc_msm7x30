@@ -26,7 +26,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <linux/leds.h>
 #include <linux/uaccess.h>
 #include <linux/fs.h>

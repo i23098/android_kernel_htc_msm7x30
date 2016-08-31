@@ -12,7 +12,7 @@
  */
 #ifndef _VIDEO_720P_RESOURCE_TRACKER_H_
 #define _VIDEO_720P_RESOURCE_TRACKER_H_
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <linux/msm_ion.h>
 #include "vcd_res_tracker_api.h"
 

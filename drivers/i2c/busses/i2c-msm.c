@@ -27,7 +27,7 @@
 #include <linux/module.h>
 #include <linux/delay.h>
 #include <linux/io.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <linux/mutex.h>
 #include <linux/timer.h>
 #include <linux/remote_spinlock.h>

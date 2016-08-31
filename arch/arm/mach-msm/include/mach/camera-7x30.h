@@ -12,7 +12,7 @@
 #include <linux/pm_qos.h>
 #include "linux/types.h"
 
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #ifdef CONFIG_MSM_CAMERA_LEGACY
 #include <media/msm_camera.h>
 #else

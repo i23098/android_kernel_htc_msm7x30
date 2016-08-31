@@ -100,4 +100,10 @@
 #define MSM_HSUSB_PHYS        0xA3600000
 #define MSM_HSUSB_SIZE        SZ_1K
 
+#define MSM_TMR_PHYS		MSM7X30_CSR_PHYS
+#define MSM_TMR_SIZE		SZ_4K
+
+#define MSM_MDP_PHYS		0xA3F00000
+#define MSM_MDP_SIZE		0x000F0000
+
 #endif

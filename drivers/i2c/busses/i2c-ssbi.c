@@ -21,7 +21,7 @@
 #include <linux/io.h>
 #include <linux/i2c.h>
 #include <linux/remote_spinlock.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <linux/slab.h>
 
 /* SSBI 2.0 controller registers */

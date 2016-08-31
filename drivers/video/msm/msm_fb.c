@@ -29,7 +29,7 @@
 #include <linux/ioport.h>
 #include <linux/device.h>
 #include <linux/dma-mapping.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <linux/uaccess.h>
 #include <linux/platform_data/video-msm_fb.h>
 #include <mach/iommu_domains.h>

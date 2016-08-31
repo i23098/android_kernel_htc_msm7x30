@@ -28,7 +28,7 @@
 #include <linux/mutex.h>
 #include <linux/timer.h>
 #include <linux/slab.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <mach/msm_gpiomux.h>
 #include <linux/slab.h>
 #include <linux/pm_runtime.h>

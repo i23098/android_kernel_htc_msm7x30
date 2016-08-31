@@ -21,7 +21,7 @@
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/syscalls.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 
 #define KEYRESET_DELAY 3*HZ
 

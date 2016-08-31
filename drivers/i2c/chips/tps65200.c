@@ -60,8 +60,6 @@ static struct tps65200_chg_int_data *chg_int_data;
 static LIST_HEAD(tps65200_chg_int_list);
 static DEFINE_MUTEX(notify_lock);
 
-static const unsigned short normal_i2c[] = { I2C_CLIENT_END };
-
 static int tps65200_initial = -1;
 static int tps65200_low_chg;
 static int tps65200_vdpm_chg = 0;

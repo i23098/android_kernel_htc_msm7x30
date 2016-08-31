@@ -24,7 +24,7 @@
 
 #include <mach/hardware.h>
 #include <linux/io.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 
 #include <asm/system.h>
 #include <asm/mach-types.h>

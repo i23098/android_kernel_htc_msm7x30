@@ -13,7 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#include <mach/board.h>
+#include <mach/board_htc.h>
 #include <asm/setup.h>
 #include <asm/system_info.h>
 #include <linux/mtd/nand.h>

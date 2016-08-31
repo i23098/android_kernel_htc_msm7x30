@@ -18,7 +18,7 @@
 #include <linux/module.h>
 #include <linux/sysfs.h>
 
-#include <mach/board.h>
+#include <mach/board_htc.h>
 
 static struct kobject *htc_lpm_kobj;
 
