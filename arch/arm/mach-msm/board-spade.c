@@ -51,7 +51,6 @@
 #include <linux/rtc-msm.h>
 
 #include <mach/mpp.h>
-#include <mach/board_htc.h>
 #include <mach/camera-7x30.h>
 #include <mach/msm_mem.h>
 #include <mach/msm_iomap.h>
@@ -109,7 +108,6 @@
 #include "smd_private.h"
 #include "board-spade.h"
 #include "board-msm7x30-regulator.h"
-#include <mach/board_htc.h>
 #ifdef CONFIG_PERFLOCK
 #include <mach/perflock.h>
 #endif

@@ -274,6 +274,9 @@ int atags_to_fdt(void *atag_list, void *fdt, int total_space)
 			ps_settings[1] = cpu_to_fdt32(atag->u.serialnr.high);
 			setprop_values(fdt, "/chosen", "linux,ps_calibration",
 					ps_settings, sizeof(ps_settings));
+		} else if (atag->hdr.tag == ATAG_PS_TYPE) {
+			setprop_cell(fdt, "/chosen", "linux,ps_type",
+					atag->u.revision.rev);
 		}
 	}
 

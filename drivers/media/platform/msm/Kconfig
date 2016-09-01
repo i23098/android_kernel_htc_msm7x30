@@ -12,10 +12,7 @@ config MSM_CAMERA_V4L2
 choice
 	 prompt "Qualcomm MSM camera and video capture support"
 	 depends on MSM_CAMERA
-	 default MSM_CAMERA_LEGACY
-
-	 config MSM_CAMERA_LEGACY
-		  bool "msm camera legacy"
+	 default MSM_CAMERA_7X30
 
 	 config MSM_CAMERA_7X30
 	    bool "msm camera 7x30"
@@ -24,12 +21,6 @@ choice
 	    bool "msm camera 8x60"
 
 endchoice
-
-config 720P_CAMERA
-	bool "Qualcomm MSM camera with 720P video support"
-	depends on MSM_CAMERA_LEGACY
-	help
-	  720P video support
 
 config CAMERA_MULTISHOT
 	bool "Qualcomm MSM Multishot support"

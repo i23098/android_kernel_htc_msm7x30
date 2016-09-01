@@ -15,7 +15,7 @@
 #ifndef __ARCH_ARM_MACH_MSM_BOARD_SAGA_H
 #define __ARCH_ARM_MACH_MSM_BOARD_SAGA_H
 
-#include <mach/board.h>
+#include <mach/board_htc.h>
 
 /* Macros assume PMIC GPIOs start at 0 */
 #define PM8058_GPIO_PM_TO_SYS(pm_gpio)     (pm_gpio + NR_GPIO_IRQS)

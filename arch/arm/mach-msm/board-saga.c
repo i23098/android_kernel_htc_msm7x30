@@ -106,7 +106,6 @@
 #include "board-saga.h"
 #include <linux/tpa2051d3.h>
 #include "board-msm7x30-regulator.h"
-#include <mach/board_htc.h>
 #include <linux/ti_wilink_st.h>
 #include <mach/cable_detect.h>
 #ifdef CONFIG_BT

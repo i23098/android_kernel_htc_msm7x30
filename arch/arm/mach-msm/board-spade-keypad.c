@@ -22,7 +22,6 @@
 #include <asm/mach-types.h>
 #include <linux/gpio.h>
 #include <mach/gpio.h>
-#include <mach/board_htc.h>
 
 #include "board-spade.h"
 #include "proc_comm.h"
