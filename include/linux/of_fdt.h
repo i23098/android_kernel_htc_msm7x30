@@ -130,8 +130,7 @@ extern void early_init_dt_setup_msm_wifi_data(char * data, size_t len);
  * physical addresses.
  */
 #ifdef CONFIG_BLK_DEV_INITRD
-extern void early_init_dt_setup_initrd_arch(unsigned long start,
-					    unsigned long end);
+extern void early_init_dt_setup_initrd_arch(u64 start, u64 end);
 #endif
 
 /* Early flat tree scan hooks */
