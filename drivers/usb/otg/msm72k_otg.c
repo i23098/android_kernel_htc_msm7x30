@@ -647,9 +647,9 @@ static void ac_detect_expired(unsigned long _data)
 
 static void msm_otg_notify_charger_attached(struct usb_phy *phy, int connect_type)
 {
-	struct msm_otg *motg = container_of(phy, struct msm_otg, phy);
+	struct msm_otg *motg = the_msm_otg;
 
-	if (!motg || (motg != the_msm_otg))
+	if (!motg)
 		return;
 
 	pr_info("chg_type: %s %s => %s\n",
