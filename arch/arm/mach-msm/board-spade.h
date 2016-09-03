@@ -203,7 +203,6 @@ extern struct platform_device msm_device_mddi0;
 /* PMIC */
 #define PMIC_GPIO_INT_XC             (27)
 #define PMIC_GPIO_INT                (179)
-#define SPADE_GPIO_PS_HOLD           (29)
 
 /* PMIC GPIO definition */
 #define PMGPIO(x) (x-1)

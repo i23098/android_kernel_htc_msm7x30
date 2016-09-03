@@ -1457,3 +1457,10 @@ struct platform_device *msm_footswitch_devices[] = {
 };
 
 unsigned msm_num_footswitch_devices = ARRAY_SIZE(msm_footswitch_devices);
+
+/* PMIC */
+#define GPIO_PS_HOLD	(29)
+void msm7x30_reset(void)
+{
+	gpio_set_value(GPIO_PS_HOLD, 0);
+}

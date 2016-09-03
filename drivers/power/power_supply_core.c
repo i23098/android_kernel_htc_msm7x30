@@ -126,10 +126,8 @@ static void power_supply_changed_work(struct work_struct *work)
 	 * as a result of this event, so poll again and hold the
 	 * wakeup_source until all events are processed.
 	 */
-	if (!psy->changed) {
-		wake_unlock(&psy->work_wake_lock);
+	if (!psy->changed)
 		pm_relax(psy->dev);
-	}
 	spin_unlock_irqrestore(&psy->changed_lock, flags);
 }
 
@@ -141,7 +139,6 @@ void power_supply_changed(struct power_supply *psy)
 
 	spin_lock_irqsave(&psy->changed_lock, flags);
 	psy->changed = true;
-	wake_lock(&psy->work_wake_lock);
 	pm_stay_awake(psy->dev);
 	spin_unlock_irqrestore(&psy->changed_lock, flags);
 	schedule_work(&psy->changed_work);
@@ -574,7 +571,6 @@ int power_supply_register(struct device *parent, struct power_supply *psy)
 		goto device_add_failed;
 
 	spin_lock_init(&psy->changed_lock);
-	wake_lock_init(&psy->work_wake_lock, WAKE_LOCK_SUSPEND, "power-supply");
 	rc = psy_register_thermal(psy);
 	if (rc)
 		goto register_thermal_failed;
@@ -596,7 +592,6 @@ create_triggers_failed:
 register_cooler_failed:
 	psy_unregister_thermal(psy);
 register_thermal_failed:
-	wake_lock_destroy(&psy->work_wake_lock);
 wakeup_init_failed:
 	device_del(dev);
 kobject_set_name_failed:
@@ -613,7 +608,6 @@ void power_supply_unregister(struct power_supply *psy)
 	cancel_work_sync(&psy->changed_work);
 	sysfs_remove_link(&psy->dev->kobj, "powers");
 	power_supply_remove_triggers(psy);
-	wake_lock_destroy(&psy->work_wake_lock);
 	psy_unregister_cooler(psy);
 	psy_unregister_thermal(psy);
 	device_init_wakeup(psy->dev, false);

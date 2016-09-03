@@ -2606,11 +2606,6 @@ static struct perflock_platform_data spade_perflock_data = {
 };
 #endif
 
-static void spade_reset(void)
-{
-	gpio_set_value(SPADE_GPIO_PS_HOLD, 0);
-}
-
 void spade_add_usb_devices(void)
 {
 	printk(KERN_INFO "%s rev: %d\n", __func__, system_rev);
@@ -2747,7 +2742,7 @@ static void __init spade_init(void)
 	soc_version = socinfo_get_version();
 
 	/* Must set msm_hw_reset_hook before first proc comm */
-	msm_hw_reset_hook = spade_reset;
+	msm_hw_reset_hook = msm7x30_reset;
 
 	msm_clock_init(&msm7x30_clock_init_data);
 	msm_spm_init(&msm_spm_data, 1);

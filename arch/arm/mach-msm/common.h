@@ -31,6 +31,7 @@ struct msm_mmc_platform_data;
 extern void msm_add_devices(void);
 extern void msm_init_irq(void);
 extern void msm_init_gpio(void);
+extern void msm7x30_reset(void);
 #if !defined(CONFIG_MACH_SPADE) && !defined(CONFIG_MACH_SAGA)
 extern int msm_add_sdcc(unsigned int controller,
 			struct msm_mmc_platform_data *plat,

@@ -88,8 +88,6 @@
 
 #define SAGA_GPIO_UP_INT_N          (142)
 
-#define SAGA_GPIO_PS_HOLD			(29)
-
 #define SAGA_MDDI_RSTz				(162)
 #define SAGA_LCD_ID0				(124)
 #define SAGA_LCD_RSTz_ID1			(126)
