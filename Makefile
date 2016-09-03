@@ -2,7 +2,7 @@ VERSION = 3
 PATCHLEVEL = 12
 SUBLEVEL = 0
 EXTRAVERSION = -rc1
-NAME = One Giant Leap for Frogkind
+NAME = Suicidal Squirrel
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
