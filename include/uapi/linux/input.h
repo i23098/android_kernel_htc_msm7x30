@@ -152,12 +152,15 @@ struct input_keymap_entry {
 #define EVIOCGEFFECTS		_IOR('E', 0x84, int)			/* Report number of effects playable at the same time */
 
 #define EVIOCGRAB		_IOW('E', 0x90, int)			/* Grab/Release device */
+#if !defined(CONFIG_MACH_SPADE) && !defined(CONFIG_MACH_SAGA)
 #define EVIOCREVOKE		_IOW('E', 0x91, int)			/* Revoke device access */
-
-#define EVIOCSCLOCKID		_IOW('E', 0xa0, int)			/* Set clockid to be used for timestamps */
-
+#else
 #define EVIOCGSUSPENDBLOCK	_IOR('E', 0x91, int)			/* get suspend block enable */
 #define EVIOCSSUSPENDBLOCK	_IOW('E', 0x91, int)			/* set suspend block enable */
+#define EVIOCREVOKE		_IOW('E', 0x92, int)			/* Revoke device access */
+#endif
+
+#define EVIOCSCLOCKID		_IOW('E', 0xa0, int)			/* Set clockid to be used for timestamps */
 
 /*
  * Device properties and quirks
