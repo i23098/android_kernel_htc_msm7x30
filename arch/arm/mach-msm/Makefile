@@ -23,11 +23,10 @@ obj-$(CONFIG_SMP) += headsmp.o platsmp.o
 obj-$(CONFIG_MACH_TROUT) += board-trout.o board-trout-gpio.o board-trout-mmc.o devices-msm7x00.o
 obj-$(CONFIG_MACH_TROUT) += board-trout.o board-trout-gpio.o board-trout-mmc.o board-trout-panel.o devices-msm7x00.o
 obj-$(CONFIG_MACH_HALIBUT) += board-halibut.o devices-msm7x00.o
-obj-$(CONFIG_ARCH_MSM7X30) += gpiomux-7x30.o
+obj-$(CONFIG_ARCH_MSM7X30) += gpiomux-7x30.o devices-msm7x30.o
 obj-$(CONFIG_ARCH_QSD8X50) += board-qsd8x50.o devices-qsd8x50.o
 obj-$(CONFIG_ARCH_MSM8X60) += board-dt-8660.o
 obj-$(CONFIG_ARCH_MSM8960) += board-dt-8960.o
-
 obj-$(CONFIG_MSM_GPIOMUX) += gpiomux.o
 obj-$(CONFIG_ARCH_QSD8X50) += gpiomux-8x50.o
 
@@ -63,12 +62,8 @@ $(obj)/smd_rpc_sym.c: $(src)/smd_rpc_sym $(src)/mkrpcsym.pl
 
 obj-$(CONFIG_MSM_FIQ_SUPPORT) += fiq_glue.o
 obj-$(CONFIG_MSM_SMD) += remote_spinlock.o socinfo.o
-ifndef CONFIG_ARCH_MSM8960
-ifndef CONFIG_ARCH_MSM8X60
-	obj-$(CONFIG_MSM_SMD) += pmic.o
-	obj-$(CONFIG_MSM_ONCRPCROUTER) += rpc_hsusb.o rpc_fsusb.o
-endif
-endif
+obj-$(CONFIG_MSM_SMD) += pmic.o
+obj-$(CONFIG_MSM_ONCRPCROUTER) += rpc_hsusb.o rpc_fsusb.o
 
 obj-$(CONFIG_ARCH_MSM7X30_SMD) += 7x30-smd/
 obj-$(CONFIG_ARCH_MSM7X30_SMD) += smd.o
@@ -92,7 +87,7 @@ obj-$(CONFIG_SURF_FFA_GPIO_KEYPAD) += keypad-surf-ffa.o
 
 obj-$(CONFIG_HTC_BATTCHG) += htc_battery.o
 
-obj-$(CONFIG_ARCH_MSM7X30) += devices-msm7x30.o memory_topology.o devices_htc.o emmc_partitions.o msm_vibrator.o
+obj-$(CONFIG_ARCH_MSM7X30) += memory_topology.o devices_htc.o emmc_partitions.o msm_vibrator.o
 obj-$(CONFIG_ARCH_MSM7X30) += clock-local.o clock-7x30.o acpuclock-7x30.o htc_awb_cal.o
 
 # MSM7x30 boards
