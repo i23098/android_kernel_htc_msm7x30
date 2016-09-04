@@ -1,16 +1,17 @@
 /* drivers/misc/lowmemorykiller.c
  *
  * The lowmemorykiller driver lets user-space specify a set of memory thresholds
- * where processes with a range of oom_adj values will get killed. Specify the
- * minimum oom_adj values in /sys/module/lowmemorykiller/parameters/adj and the
- * number of free pages in /sys/module/lowmemorykiller/parameters/minfree. Both
- * files take a comma separated list of numbers in ascending order.
+ * where processes with a range of oom_score_adj values will get killed. Specify
+ * the minimum oom_score_adj values in
+ * /sys/module/lowmemorykiller/parameters/adj and the number of free pages in
+ * /sys/module/lowmemorykiller/parameters/minfree. Both files take a comma
+ * separated list of numbers in ascending order.
  *
  * For example, write "0,8" to /sys/module/lowmemorykiller/parameters/adj and
  * "1024,4096" to /sys/module/lowmemorykiller/parameters/minfree to kill
- * processes with a oom_adj value of 8 or higher when the free memory drops
- * below 4096 pages and kill processes with a oom_adj value of 0 or higher
- * when the free memory drops below 1024 pages.
+ * processes with a oom_score_adj value of 8 or higher when the free memory
+ * drops below 4096 pages and kill processes with a oom_score_adj value of 0 or
+ * higher when the free memory drops below 1024 pages.
  *
  * The driver considers memory used for caches to be free, but if a large
  * percentage of the cached memory is locked this can be very inaccurate
@@ -38,13 +39,10 @@
 #include <linux/sched.h>
 #include <linux/swap.h>
 #include <linux/rcupdate.h>
-#include <linux/profile.h>
 #include <linux/notifier.h>
-#include <linux/swap.h>
-#include <linux/mutex.h>
-#include <linux/delay.h>
-#include <linux/fs.h>
-#include <linux/vmpressure.h>
+
+#define CREATE_TRACE_POINTS
+#include "trace/lowmemorykiller.h"
 
 static uint32_t lowmem_debug_level = 1;
 static short lowmem_adj[6] = {
@@ -54,7 +52,7 @@ static short lowmem_adj[6] = {
 	12,
 };
 static int lowmem_adj_size = 4;
-static size_t lowmem_minfree[6] = {
+static int lowmem_minfree[6] = {
 	3 * 512,	/* 6MB */
 	2 * 1024,	/* 8MB */
 	4 * 1024,	/* 16MB */
@@ -70,69 +68,6 @@ static unsigned long lowmem_deathpending_timeout;
 			pr_info(x);			\
 	} while (0)
 
-static atomic_t shift_adj = ATOMIC_INIT(0);
-static short adj_max_shift = 353;
-
-/* User knob to enable/disable adaptive lmk feature */
-static int enable_adaptive_lmk;
-module_param_named(enable_adaptive_lmk, enable_adaptive_lmk, int,
-	S_IRUGO | S_IWUSR);
-
-/*
- * This parameter controls the behaviour of LMK when vmpressure is in
- * the range of 90-94. Adaptive lmk triggers based on number of file
- * pages wrt vmpressure_file_min, when vmpressure is in the range of
- * 90-94. Usually this is a pseudo minfree value, higher than the
- * highest configured value in minfree array.
- */
-static int vmpressure_file_min;
-module_param_named(vmpressure_file_min, vmpressure_file_min, int,
-	S_IRUGO | S_IWUSR);
-
-enum {
-	VMPRESSURE_NO_ADJUST = 0,
-	VMPRESSURE_ADJUST_ENCROACH,
-	VMPRESSURE_ADJUST_NORMAL,
-};
-
-int adjust_minadj(short *min_score_adj)
-{
-	int ret = VMPRESSURE_NO_ADJUST;
-
-	if (!enable_adaptive_lmk)
-		return 0;
-
-	if (atomic_read(&shift_adj) &&
-		(*min_score_adj > adj_max_shift)) {
-		if (*min_score_adj == OOM_SCORE_ADJ_MAX + 1)
-			ret = VMPRESSURE_ADJUST_ENCROACH;
-		else
-			ret = VMPRESSURE_ADJUST_NORMAL;
-		*min_score_adj = adj_max_shift;
-	}
-	atomic_set(&shift_adj, 0);
-
-	return ret;
-}
-
-static int test_task_flag(struct task_struct *p, int flag)
-{
-	struct task_struct *t;
-
-	for_each_thread(p, t) {
-		task_lock(t);
-		if (test_tsk_thread_flag(t, flag)) {
-			task_unlock(t);
-			return 1;
-		}
-		task_unlock(t);
-	}
-
-	return 0;
-}
-
-static DEFINE_MUTEX(scan_mutex);
-
 static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 {
 	struct task_struct *tsk;
@@ -140,30 +75,15 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	int rem = 0;
 	int tasksize;
 	int i;
-	int ret = 0;
 	short min_score_adj = OOM_SCORE_ADJ_MAX + 1;
 	int minfree = 0;
 	int selected_tasksize = 0;
 	short selected_oom_score_adj;
 	int array_size = ARRAY_SIZE(lowmem_adj);
-	int other_free;
-	int other_file;
-	unsigned long nr_to_scan = sc->nr_to_scan;
-
-	if (nr_to_scan > 0) {
-		if (mutex_lock_interruptible(&scan_mutex) < 0)
-			return 0;
-	}
-
-	other_free = global_page_state(NR_FREE_PAGES) - totalreserve_pages;
-
-	if (global_page_state(NR_SHMEM) + total_swapcache_pages() <
-		global_page_state(NR_FILE_PAGES))
-		other_file = global_page_state(NR_FILE_PAGES) -
+	int other_free = global_page_state(NR_FREE_PAGES) - totalreserve_pages;
+	int other_file = global_page_state(NR_FILE_PAGES) -
 						global_page_state(NR_SHMEM) -
 						total_swapcache_pages();
-	else
-		other_file = 0;
 
 	if (lowmem_adj_size < array_size)
 		array_size = lowmem_adj_size;
@@ -176,24 +96,17 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 			break;
 		}
 	}
-	if (nr_to_scan > 0) {
-		ret = adjust_minadj(&min_score_adj);
+	if (sc->nr_to_scan > 0)
 		lowmem_print(3, "lowmem_shrink %lu, %x, ofree %d %d, ma %hd\n",
-				nr_to_scan, sc->gfp_mask, other_free,
+				sc->nr_to_scan, sc->gfp_mask, other_free,
 				other_file, min_score_adj);
-	}
-
 	rem = global_page_state(NR_ACTIVE_ANON) +
 		global_page_state(NR_ACTIVE_FILE) +
 		global_page_state(NR_INACTIVE_ANON) +
 		global_page_state(NR_INACTIVE_FILE);
-	if (nr_to_scan <= 0 || min_score_adj == OOM_SCORE_ADJ_MAX + 1) {
+	if (sc->nr_to_scan <= 0 || min_score_adj == OOM_SCORE_ADJ_MAX + 1) {
 		lowmem_print(5, "lowmem_shrink %lu, %x, return %d\n",
-			     nr_to_scan, sc->gfp_mask, rem);
-
-		if (nr_to_scan > 0)
-			mutex_unlock(&scan_mutex);
-
+			     sc->nr_to_scan, sc->gfp_mask, rem);
 		return rem;
 	}
 	selected_oom_score_adj = min_score_adj;
@@ -205,16 +118,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 
 		if (tsk->flags & PF_KTHREAD)
 			continue;
-
-		if (time_before_eq(jiffies, lowmem_deathpending_timeout)) {
-			if (test_task_flag(tsk, TIF_MEMDIE)) {
-				rcu_read_unlock();
-				/* give the system time to free up the memory */
-				msleep_interruptible(20);
-				mutex_unlock(&scan_mutex);
-				return 0;
-			}
-		}
 
 		p = find_lock_task_mm(tsk);
 		if (!p)
@@ -245,24 +148,33 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		selected = p;
 		selected_tasksize = tasksize;
 		selected_oom_score_adj = oom_score_adj;
-		lowmem_print(2, "select %d (%s), adj %hd, size %d, to kill\n",
-			     p->pid, p->comm, oom_score_adj, tasksize);
+		lowmem_print(2, "select '%s' (%d), adj %hd, size %d, to kill\n",
+			     p->comm, p->pid, oom_score_adj, tasksize);
 	}
 	if (selected) {
-		lowmem_print(1, "send sigkill to %d (%s), adj %hd, size %d\n",
-			     selected->pid, selected->comm,
-			     selected_oom_score_adj, selected_tasksize);
+		long cache_size = other_file * (long)(PAGE_SIZE / 1024);
+		long cache_limit = minfree * (long)(PAGE_SIZE / 1024);
+		long free = other_free * (long)(PAGE_SIZE / 1024);
+		trace_lowmemory_kill(selected, cache_size, cache_limit, free);
+		lowmem_print(1, "Killing '%s' (%d), adj %hd,\n" \
+				"   to free %ldkB on behalf of '%s' (%d) because\n" \
+				"   cache %ldkB is below limit %ldkB for oom_score_adj %hd\n" \
+				"   Free memory is %ldkB above reserved\n",
+			     selected->comm, selected->pid,
+			     selected_oom_score_adj,
+			     selected_tasksize * (long)(PAGE_SIZE / 1024),
+			     current->comm, current->pid,
+			     cache_size, cache_limit,
+			     min_score_adj,
+			     free);
 		lowmem_deathpending_timeout = jiffies + HZ;
-		send_sig(SIGKILL, selected, 0);
 		set_tsk_thread_flag(selected, TIF_MEMDIE);
+		send_sig(SIGKILL, selected, 0);
 		rem -= selected_tasksize;
-		/* give the system time to free up the memory */
-		msleep_interruptible(20);
 	}
 	lowmem_print(4, "lowmem_shrink %lu, %x, return %d\n",
-		     nr_to_scan, sc->gfp_mask, rem);
+		     sc->nr_to_scan, sc->gfp_mask, rem);
 	rcu_read_unlock();
-	mutex_unlock(&scan_mutex);
 	return rem;
 }
 
@@ -283,19 +195,19 @@ static void __exit lowmem_exit(void)
 }
 
 #ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
-static int lowmem_oom_adj_to_oom_score_adj(int oom_adj)
+static short lowmem_oom_adj_to_oom_score_adj(short oom_adj)
 {
-	if (oom_adj == OOM_SCORE_ADJ_MAX)
+	if (oom_adj == OOM_ADJUST_MAX)
 		return OOM_SCORE_ADJ_MAX;
 	else
-		return (oom_adj * OOM_SCORE_ADJ_MAX) / (OOM_SCORE_ADJ_MAX + 1);
+		return (oom_adj * OOM_SCORE_ADJ_MAX) / -OOM_DISABLE;
 }
 
 static void lowmem_autodetect_oom_adj_values(void)
 {
 	int i;
-	int oom_adj;
-	int oom_score_adj;
+	short oom_adj;
+	short oom_score_adj;
 	int array_size = ARRAY_SIZE(lowmem_adj);
 
 	if (lowmem_adj_size < array_size)
@@ -305,11 +217,11 @@ static void lowmem_autodetect_oom_adj_values(void)
 		return;
 
 	oom_adj = lowmem_adj[array_size - 1];
-	if (oom_adj > OOM_SCORE_ADJ_MAX)
+	if (oom_adj > OOM_ADJUST_MAX)
 		return;
 
 	oom_score_adj = lowmem_oom_adj_to_oom_score_adj(oom_adj);
-	if (oom_score_adj <= OOM_SCORE_ADJ_MAX)
+	if (oom_score_adj <= OOM_ADJUST_MAX)
 		return;
 
 	lowmem_print(1, "lowmem_shrink: convert oom_adj to oom_score_adj:\n");
@@ -353,7 +265,7 @@ static struct kernel_param_ops lowmem_adj_array_ops = {
 static const struct kparam_array __param_arr_adj = {
 	.max = ARRAY_SIZE(lowmem_adj),
 	.num = &lowmem_adj_size,
-	.ops = &param_ops_int,
+	.ops = &param_ops_short,
 	.elemsize = sizeof(lowmem_adj[0]),
 	.elem = lowmem_adj,
 };
@@ -364,8 +276,8 @@ module_param_named(cost, lowmem_shrinker.seeks, int, S_IRUGO | S_IWUSR);
 __module_param_call(MODULE_PARAM_PREFIX, adj,
 		    &lowmem_adj_array_ops,
 		    .arr = &__param_arr_adj,
-		    false, S_IRUGO | S_IWUSR);
-__MODULE_PARM_TYPE(adj, "array of int");
+		    S_IRUGO | S_IWUSR, -1);
+__MODULE_PARM_TYPE(adj, "array of short");
 #else
 module_param_array_named(adj, lowmem_adj, short, &lowmem_adj_size,
 			 S_IRUGO | S_IWUSR);

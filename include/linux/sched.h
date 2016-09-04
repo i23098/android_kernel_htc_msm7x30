@@ -769,7 +769,6 @@ enum cpu_idle_type {
 #define SD_ASYM_PACKING		0x0800  /* Place busy groups earlier in the domain */
 #define SD_PREFER_SIBLING	0x1000	/* Prefer to place tasks in a sibling domain */
 #define SD_OVERLAP		0x2000	/* sched_domains of this level overlap */
-#define SD_SHARE_POWERLINE	0x4000	/* Domain members share power domain */
 
 extern int __weak arch_sd_sibiling_asym_packing(void);
 
@@ -2006,7 +2005,6 @@ extern int __kill_pgrp_info(int sig, struct siginfo *info, struct pid *pgrp);
 extern int kill_pid_info(int sig, struct siginfo *info, struct pid *pid);
 extern int kill_pid_info_as_cred(int, struct siginfo *, struct pid *,
 				const struct cred *, u32);
-
 extern int kill_pgrp(struct pid *pid, int sig, int priv);
 extern int kill_pid(struct pid *pid, int sig, int priv);
 extern int kill_proc_info(int, struct siginfo *, pid_t);
@@ -2158,16 +2156,6 @@ extern bool current_is_single_threaded(void);
 
 #define while_each_thread(g, t) \
 	while ((t = next_thread(t)) != g)
-
-#define __for_each_thread(signal, t)	\
-	list_for_each_entry_rcu(t, &(signal)->thread_head, thread_node)
-
-#define for_each_thread(p, t)		\
-	__for_each_thread((p)->signal, t)
-
-/* Careful: this is a double loop, 'break' won't work as expected. */
-#define for_each_process_thread(p, t)	\
-	for_each_process(p) for_each_thread(p, t)
 
 static inline int get_nr_threads(struct task_struct *tsk)
 {
