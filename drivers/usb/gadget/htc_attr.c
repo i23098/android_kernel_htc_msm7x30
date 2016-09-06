@@ -231,6 +231,9 @@ static unsigned int htc_usb_get_func_combine_value(void)
 	}
 	return val;
 }
+
+int android_switch_function(unsigned func);
+
 static DEFINE_MUTEX(function_bind_sem);
 int htc_usb_enable_function(char *name, int ebl)
 {

@@ -271,7 +271,6 @@ static int __ref multi_bind(struct usb_composite_dev *cdev)
 {
 	struct usb_gadget *gadget = cdev->gadget;
 	int gcnum;
-	struct f_serial_opts *opts;
 	int status;
 
 	if (!can_support_ecm(cdev->gadget)) {
