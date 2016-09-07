@@ -270,7 +270,6 @@ static __ref int cdc_config_register(struct usb_composite_dev *cdev)
 static int __ref multi_bind(struct usb_composite_dev *cdev)
 {
 	struct usb_gadget *gadget = cdev->gadget;
-	int gcnum;
 	int status;
 
 	if (!can_support_ecm(cdev->gadget)) {
@@ -300,15 +299,6 @@ static int __ref multi_bind(struct usb_composite_dev *cdev)
 			status = PTR_ERR(retp);
 			goto fail1;
 		}
-	}
-
-	/* set bcdDevice */
-	gcnum = usb_gadget_controller_number(gadget);
-	if (gcnum >= 0) {
-		device_desc.bcdDevice = cpu_to_le16(0x0300 | gcnum);
-	} else {
-		WARNING(cdev, "controller '%s' not recognized\n", gadget->name);
-		device_desc.bcdDevice = cpu_to_le16(0x0300 | 0x0099);
 	}
 
 	/* allocate string IDs */

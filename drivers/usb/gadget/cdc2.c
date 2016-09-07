@@ -155,7 +155,6 @@ static struct usb_configuration cdc_config_driver = {
 
 static int __init cdc_bind(struct usb_composite_dev *cdev)
 {
-	int			gcnum;
 	struct usb_gadget	*gadget = cdev->gadget;
 	struct f_ecm_opts	*ecm_opts;
 	int			status;
@@ -182,21 +181,6 @@ static int __init cdc_bind(struct usb_composite_dev *cdev)
 	if (IS_ERR(fi_serial)) {
 		status = PTR_ERR(fi_serial);
 		goto fail;
-	}
-
-	gcnum = usb_gadget_controller_number(gadget);
-	if (gcnum >= 0)
-		device_desc.bcdDevice = cpu_to_le16(0x0300 | gcnum);
-	else {
-		/* We assume that can_support_ecm() tells the truth;
-		 * but if the controller isn't recognized at all then
-		 * that assumption is a bit more likely to be wrong.
-		 */
-		WARNING(cdev, "controller '%s' not recognized; trying %s\n",
-				gadget->name,
-				cdc_config_driver.label);
-		device_desc.bcdDevice =
-			cpu_to_le16(0x0300 | 0x0099);
 	}
 
 	/* Allocate string descriptor numbers ... note that string

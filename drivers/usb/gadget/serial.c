@@ -176,8 +176,6 @@ out:
 
 static int __init gs_bind(struct usb_composite_dev *cdev)
 {
-	int			gcnum;
-	struct usb_gadget	*gadget = cdev->gadget;
 	int			status;
 
 	/* Allocate string descriptor numbers ... note that string
@@ -191,24 +189,6 @@ static int __init gs_bind(struct usb_composite_dev *cdev)
 	device_desc.iProduct = strings_dev[USB_GADGET_PRODUCT_IDX].id;
 	status = strings_dev[STRING_DESCRIPTION_IDX].id;
 	serial_config_driver.iConfiguration = status;
-
-	/* set up other descriptors */
-	gcnum = usb_gadget_controller_number(gadget);
-	if (gcnum >= 0)
-		device_desc.bcdDevice = cpu_to_le16(GS_VERSION_NUM | gcnum);
-	else {
-		/* this is so simple (for now, no altsettings) that it
-		 * SHOULD NOT have problems with bulk-capable hardware.
-		 * so warn about unrcognized controllers -- don't panic.
-		 *
-		 * things like configuration and altsetting numbering
-		 * can need hardware-specific attention though.
-		 */
-		pr_warning("gs_bind: controller '%s' not recognized\n",
-			gadget->name);
-		device_desc.bcdDevice =
-			cpu_to_le16(GS_VERSION_NUM | 0x0099);
-	}
 
 	if (gadget_is_otg(cdev->gadget)) {
 		serial_config_driver.descriptors = otg_desc;

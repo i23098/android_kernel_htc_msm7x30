@@ -56,8 +56,6 @@
 #define gadget_is_s3c_hsotg(g)		(!strcmp("s3c-hsotg", (g)->name))
 #define gadget_is_s3c_hsudc(g)		(!strcmp("s3c-hsudc", (g)->name))
 
-int usb_gadget_controller_number(struct usb_gadget *gadget);
-
 /**
  * gadget_supports_altsettings - return true if altsettings work
  * @gadget: the gadget in question
