@@ -55,7 +55,6 @@
 #include <linux/rtc.h>
 
 #include "msm_sdcc.h"
-#include "msm_sdcc_dml.h"
 
 #define DRIVER_NAME "msm-sdcc"
 
@@ -159,12 +158,9 @@ static inline unsigned short msmsdcc_get_nr_sg(struct msmsdcc_host *host)
 {
 	unsigned short ret = NR_SG;
 
-	if (host->is_sps_mode) {
-		ret = SPS_MAX_DESCS;
-	} else { /* DMA or PIO mode */
-		if (NR_SG > MAX_NR_SG_DMA_PIO)
-			ret = MAX_NR_SG_DMA_PIO;
-	}
+	/* DMA or PIO mode */
+	if (NR_SG > MAX_NR_SG_DMA_PIO)
+		ret = MAX_NR_SG_DMA_PIO;
 
 	return ret;
 }
@@ -185,60 +181,6 @@ static void msmsdcc_pm_qos_update_latency(struct msmsdcc_host *host, int vote)
 	else
 		pm_qos_update_request(&host->pm_qos_req_dma,
 					PM_QOS_DEFAULT_VALUE);
-}
-
-static inline int msmsdcc_sps_init_ep_conn(struct msmsdcc_host *host,
-				struct msmsdcc_sps_ep_conn_data *ep,
-				bool is_producer) { return 0; }
-static inline void msmsdcc_sps_exit_ep_conn(struct msmsdcc_host *host,
-				struct msmsdcc_sps_ep_conn_data *ep) { }
-static inline int msmsdcc_sps_reset_ep(struct msmsdcc_host *host,
-				struct msmsdcc_sps_ep_conn_data *ep)
-{
-	return 0;
-}
-static inline int msmsdcc_sps_restore_ep(struct msmsdcc_host *host,
-				struct msmsdcc_sps_ep_conn_data *ep)
-{
-	return 0;
-}
-static inline int msmsdcc_sps_init(struct msmsdcc_host *host) { return 0; }
-static inline void msmsdcc_sps_exit(struct msmsdcc_host *host) {}
-
-/**
- * Apply soft reset to all SDCC BAM pipes
- *
- * This function applies soft reset to SDCC BAM pipe.
- *
- * This function should be called to recover from error
- * conditions encountered during CMD/DATA tranfsers with card.
- *
- * @host - Pointer to driver's host structure
- *
- */
-static void msmsdcc_sps_pipes_reset_and_restore(struct msmsdcc_host *host)
-{
-	int rc;
-
-	/* Reset all SDCC BAM pipes */
-	rc = msmsdcc_sps_reset_ep(host, &host->sps.prod);
-	if (rc)
-		pr_err("%s:msmsdcc_sps_reset_ep(prod) error=%d\n",
-				mmc_hostname(host->mmc), rc);
-	rc = msmsdcc_sps_reset_ep(host, &host->sps.cons);
-	if (rc)
-		pr_err("%s:msmsdcc_sps_reset_ep(cons) error=%d\n",
-				mmc_hostname(host->mmc), rc);
-
-	/* Restore all BAM pipes connections */
-	rc = msmsdcc_sps_restore_ep(host, &host->sps.prod);
-	if (rc)
-		pr_err("%s:msmsdcc_sps_restore_ep(prod) error=%d\n",
-				mmc_hostname(host->mmc), rc);
-	rc = msmsdcc_sps_restore_ep(host, &host->sps.cons);
-	if (rc)
-		pr_err("%s:msmsdcc_sps_restore_ep(cons) error=%d\n",
-				mmc_hostname(host->mmc), rc);
 }
 
 static void msmsdcc_hard_reset(struct msmsdcc_host *host)
@@ -511,10 +453,6 @@ out:
 	return;
 }
 
-static inline void msmsdcc_sps_complete_cb(struct sps_event_notify *notify) { }
-static inline void msmsdcc_sps_complete_tlet(unsigned long data) { }
-static inline void msmsdcc_sps_exit_curr_xfer(struct msmsdcc_host *host) { }
-
 static int msmsdcc_enable_cdr_cm_sdc4_dll(struct msmsdcc_host *host);
 
 static void
@@ -655,9 +593,6 @@ unmap:
 	return err;
 }
 
-static int msmsdcc_sps_start_xfer(struct msmsdcc_host *host,
-				struct mmc_data *data) { return 0; }
-
 static void
 msmsdcc_start_command_deferred(struct msmsdcc_host *host,
 				struct mmc_command *cmd, u32 *c)
@@ -747,27 +682,6 @@ msmsdcc_start_data(struct msmsdcc_host *host, struct mmc_data *data,
 	if (!msmsdcc_check_dma_op_req(data)) {
 		if (host->is_dma_mode && !msmsdcc_config_dma(host, data)) {
 			datactrl |= MCI_DPSM_DMAENABLE;
-		} else if (host->is_sps_mode) {
-			if (!msmsdcc_is_dml_busy(host)) {
-				if (!msmsdcc_sps_start_xfer(host, data)) {
-					/* Now kick start DML transfer */
-					mb();
-					msmsdcc_dml_start_xfer(host, data);
-					datactrl |= MCI_DPSM_DMAENABLE;
-					host->sps.busy = 1;
-				}
-			} else {
-				/*
-				 * Can't proceed with new transfer as
-				 * previous trasnfer is already in progress.
-				 * There is no point of going into PIO mode
-				 * as well. Is this a time to do kernel panic?
-				 */
-				pr_err("%s: %s: DML HW is busy!!!"
-					" Can't perform new SPS transfers"
-					" now\n", mmc_hostname(host->mmc),
-					__func__);
-			}
 		}
 	}
 
@@ -1229,11 +1143,7 @@ static int msmsdcc_do_cmdirq(struct msmsdcc_host *host, uint32_t status)
 				mmc_hostname(host->mmc));
 			msm_dmov_stop_cmd(host->dma.channel,
 					  &host->dma.hdr, 0);
-		} else if (host->curr.data && host->sps.sg &&
-			host->is_sps_mode){
-			/* Stop current SPS transfer */
-			msmsdcc_sps_exit_curr_xfer(host);
-		}
+		} 
 		else if (host->curr.data) { /* Non DMA */
 			msmsdcc_reset_and_restore(host);
 			msmsdcc_stop_data(host);
@@ -1380,10 +1290,7 @@ msmsdcc_irq(int irq, void *dev_id)
 				if (host->dma.sg && host->is_dma_mode)
 					msm_dmov_stop_cmd(host->dma.channel,
 							  &host->dma.hdr, 0);
-				else if (host->sps.sg && host->is_sps_mode) {
-					/* Stop current SPS transfer */
-					msmsdcc_sps_exit_curr_xfer(host);
-				} else {
+				else {
 					msmsdcc_reset_and_restore(host);
 					if (host->curr.data)
 						msmsdcc_stop_data(host);
@@ -1420,7 +1327,7 @@ msmsdcc_irq(int irq, void *dev_id)
 				 * If DMA is still in progress, we complete
 				 * via the completion handler
 				 */
-				if (!host->dma.busy && !host->sps.busy) {
+				if (!host->dma.busy) {
 					/*
 					 * There appears to be an issue in the
 					 * controller where if you request a
@@ -1498,12 +1405,6 @@ msmsdcc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	 * Get the SDIO AL client out of LPM.
 	 */
 	WARN(host->dummy_52_sent, "Dummy CMD52 in progress\n");
-
-	/* check if sps pipe reset is pending? */
-	if (host->is_sps_mode && host->sps.pipe_reset_pending) {
-		msmsdcc_sps_pipes_reset_and_restore(host);
-		host->sps.pipe_reset_pending = false;
-	}
 
 	spin_lock_irqsave(&host->lock, flags);
 
@@ -3050,10 +2951,6 @@ static void msmsdcc_dump_sdcc_state(struct msmsdcc_host *host)
 			pr_err("%s: ADM mode: busy=%d, chnl=%d, crci=%d\n",
 				mmc_hostname(host->mmc), host->dma.busy,
 				host->dma.channel, host->dma.crci);
-		else if (host->is_sps_mode)
-			pr_err("%s: SPS mode: busy=%d\n",
-				mmc_hostname(host->mmc), host->sps.busy);
-
 		pr_err("%s: xfer_size=%d, data_xfered=%d, xfer_remain=%d\n",
 			mmc_hostname(host->mmc), host->curr.xfer_size,
 			host->curr.data_xfered, host->curr.xfer_remain);
@@ -3096,9 +2993,6 @@ static void msmsdcc_req_tout_timer_hdlr(unsigned long data)
 			if (host->dma.sg && host->is_dma_mode) {
 				msm_dmov_stop_cmd(host->dma.channel,
 						&host->dma.hdr, 0);
-			} else if (host->sps.sg && host->is_sps_mode) {
-				/* Stop current SPS transfer */
-				msmsdcc_sps_exit_curr_xfer(host);
 			} else {
 				msmsdcc_reset_and_restore(host);
 				msmsdcc_stop_data(host);
@@ -3140,10 +3034,7 @@ msmsdcc_probe(struct platform_device *pdev)
 	struct mmc_host *mmc;
 	unsigned long flags;
 	struct resource *core_irqres = NULL;
-	struct resource *bam_irqres = NULL;
 	struct resource *core_memres = NULL;
-	struct resource *dml_memres = NULL;
-	struct resource *bam_memres = NULL;
 	struct resource *dmares = NULL;
 	struct resource *dma_crci_res = NULL;
 	int ret = 0;
@@ -3166,22 +3057,11 @@ msmsdcc_probe(struct platform_device *pdev)
 
 	for (i = 0; i < pdev->num_resources; i++) {
 		if (pdev->resource[i].flags & IORESOURCE_MEM) {
-			if (!strcmp(pdev->resource[i].name,
-					"sdcc_dml_addr"))
-				dml_memres = &pdev->resource[i];
-			else if (!strcmp(pdev->resource[i].name,
-					"sdcc_bam_addr"))
-				bam_memres = &pdev->resource[i];
-			else
-				core_memres = &pdev->resource[i];
+			core_memres = &pdev->resource[i];
 
 		}
 		if (pdev->resource[i].flags & IORESOURCE_IRQ) {
-			if (!strcmp(pdev->resource[i].name,
-					"sdcc_bam_irq"))
-				bam_irqres = &pdev->resource[i];
-			else
-				core_irqres = &pdev->resource[i];
+			core_irqres = &pdev->resource[i];
 		}
 		if (pdev->resource[i].flags & IORESOURCE_DMA) {
 			if (!strncmp(pdev->resource[i].name,
@@ -3201,17 +3081,6 @@ msmsdcc_probe(struct platform_device *pdev)
 	}
 
 	/*
-	 * Both BAM and DML memory resource should be preset.
-	 * BAM IRQ resource should also be present.
-	 */
-	if ((bam_memres && !dml_memres) ||
-		(!bam_memres && dml_memres) ||
-		((bam_memres && dml_memres) && !bam_irqres)) {
-		pr_err("%s: Invalid sdcc BAM/DML resource\n", __func__);
-		return -ENXIO;
-	}
-
-	/*
 	 * Setup our host structure
 	 */
 
@@ -3227,9 +3096,7 @@ msmsdcc_probe(struct platform_device *pdev)
 	host->mmc = mmc;
 	host->curr.cmd = NULL;
 
-	if (bam_memres && dml_memres && bam_irqres)
-		host->is_sps_mode = 1;
-	else if (dmares)
+	if (dmares)
 		host->is_dma_mode = 1;
 
 	host->base = ioremap(core_memres->start,
@@ -3240,10 +3107,7 @@ msmsdcc_probe(struct platform_device *pdev)
 	}
 
 	host->core_irqres = core_irqres;
-	host->bam_irqres = bam_irqres;
 	host->core_memres = core_memres;
-	host->dml_memres = dml_memres;
-	host->bam_memres = bam_memres;
 	host->dmares = dmares;
 	host->dma_crci_res = dma_crci_res;
 	spin_lock_init(&host->lock);
@@ -3260,8 +3124,6 @@ msmsdcc_probe(struct platform_device *pdev)
 	tasklet_init(&host->dma_tlet, msmsdcc_dma_complete_tlet,
 			(unsigned long)host);
 
-	tasklet_init(&host->sps.tlet, msmsdcc_sps_complete_tlet,
-			(unsigned long)host);
 	if (host->is_dma_mode) {
 		/* Setup DMA */
 		ret = msmsdcc_init_dma(host);
@@ -3329,18 +3191,6 @@ msmsdcc_probe(struct platform_device *pdev)
 		goto clk_disable;
 	}
 
-
-	/* Clocks has to be running before accessing SPS/DML HW blocks */
-	if (host->is_sps_mode) {
-		/* Initialize SPS */
-		ret = msmsdcc_sps_init(host);
-		if (ret)
-			goto vreg_deinit;
-		/* Initialize DML */
-		ret = msmsdcc_dml_init(host);
-		if (ret)
-			goto sps_exit;
-	}
 	mmc_dev(mmc)->dma_mask = &dma_mask;
 
 	/*
@@ -3390,7 +3240,7 @@ msmsdcc_probe(struct platform_device *pdev)
 	ret = request_irq(core_irqres->start, msmsdcc_irq, IRQF_SHARED,
 			  mmc_hostname(mmc), host);
 	if (ret)
-		goto dml_exit;
+		goto vreg_deinit;
 
 	ret = request_irq(core_irqres->start, msmsdcc_pio_irq, IRQF_SHARED,
 			  DRIVER_NAME " (pio)", host);
@@ -3533,9 +3383,6 @@ msmsdcc_probe(struct platform_device *pdev)
 		pr_info("%s: DM cmd busaddr 0x%.8x, cmdptr busaddr 0x%.8x\n",
 			mmc_hostname(mmc), host->dma.cmd_busaddr,
 			host->dma.cmdptr_busaddr);
-	} else if (host->is_sps_mode) {
-		pr_info("%s: SPS-BAM data transfer mode available\n",
-			mmc_hostname(mmc));
 	} else
 		pr_info("%s: PIO transfer enabled\n", mmc_hostname(mmc));
 
@@ -3563,12 +3410,6 @@ msmsdcc_probe(struct platform_device *pdev)
 	free_irq(core_irqres->start, host);
  irq_free:
 	free_irq(core_irqres->start, host);
- dml_exit:
-	if (host->is_sps_mode)
-		msmsdcc_dml_exit(host);
- sps_exit:
-	if (host->is_sps_mode)
-		msmsdcc_sps_exit(host);
  vreg_deinit:
 	msmsdcc_vreg_init(host, false);
  clk_disable:
@@ -3618,7 +3459,6 @@ static int msmsdcc_remove(struct platform_device *pdev)
 
 	del_timer_sync(&host->req_tout_timer);
 	tasklet_kill(&host->dma_tlet);
-	tasklet_kill(&host->sps.tlet);
 	mmc_remove_host(mmc);
 
 	if (plat->status_irq)
@@ -3648,11 +3488,6 @@ static int msmsdcc_remove(struct platform_device *pdev)
 			dma_free_coherent(NULL,
 					sizeof(struct msmsdcc_nc_dmadata),
 					host->dma.nc, host->dma.nc_busaddr);
-	}
-
-	if (host->is_sps_mode) {
-		msmsdcc_dml_exit(host);
-		msmsdcc_sps_exit(host);
 	}
 
 	iounmap(host->base);

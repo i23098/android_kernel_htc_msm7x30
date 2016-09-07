@@ -26,7 +26,6 @@
 #include <linux/dma-mapping.h>
 #include <linux/wakelock.h>
 #include <linux/pm_qos.h>
-#include <mach/sps.h>
 
 #include <asm/sizes.h>
 #include <linux/platform_data/mmc-msm_sdcc.h>
@@ -298,39 +297,12 @@ struct msmsdcc_curr_req {
 	int			user_pages;
 };
 
-struct msmsdcc_sps_ep_conn_data {
-	struct sps_pipe			*pipe_handle;
-	struct sps_connect		config;
-	struct sps_register_event	event;
-};
-
-struct msmsdcc_sps_data {
-	struct msmsdcc_sps_ep_conn_data	prod;
-	struct msmsdcc_sps_ep_conn_data	cons;
-	struct sps_event_notify		notify;
-	enum dma_data_direction		dir;
-	struct scatterlist		*sg;
-	int				num_ents;
-	u32				bam_handle;
-	unsigned int			src_pipe_index;
-	unsigned int			dest_pipe_index;
-	unsigned int			busy;
-	unsigned int			xfer_req_cnt;
-	bool				pipe_reset_pending;
-	struct tasklet_struct		tlet;
-};
-
 struct msmsdcc_host {
 	struct resource		*core_irqres;
-	struct resource		*bam_irqres;
 	struct resource		*core_memres;
-	struct resource		*bam_memres;
-	struct resource		*dml_memres;
 	struct resource		*dmares;
 	struct resource		*dma_crci_res;
 	void __iomem		*base;
-	void __iomem		*dml_base;
-	void __iomem		*bam_base;
 
 	int			pdev_id;
 
@@ -355,9 +327,7 @@ struct msmsdcc_host {
 	unsigned int		oldstat;
 
 	struct msmsdcc_dma_data	dma;
-	struct msmsdcc_sps_data sps;
 	bool			is_dma_mode;
-	bool			is_sps_mode;
 	struct msmsdcc_pio_data	pio;
 
 	struct tasklet_struct 	dma_tlet;
