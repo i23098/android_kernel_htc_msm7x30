@@ -298,8 +298,8 @@ struct msmsdcc_curr_req {
 };
 
 struct msmsdcc_host {
-	struct resource		*core_irqres;
-	struct resource		*core_memres;
+	struct resource		*cmd_irqres;
+	struct resource		*memres;
 	struct resource		*dmares;
 	struct resource		*dma_crci_res;
 	void __iomem		*base;
@@ -327,7 +327,6 @@ struct msmsdcc_host {
 	unsigned int		oldstat;
 
 	struct msmsdcc_dma_data	dma;
-	bool			is_dma_mode;
 	struct msmsdcc_pio_data	pio;
 
 	struct tasklet_struct 	dma_tlet;
