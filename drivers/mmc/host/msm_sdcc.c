@@ -2155,48 +2155,12 @@ static int msmsdcc_disable(struct mmc_host *mmc)
 
 	rc = pm_runtime_put_sync(mmc->parent);
 
-	if (rc < 0)
+	// EAGAIN - still in use
+	if (rc < 0 && rc != -EAGAIN)
 		pr_info("%s: %s: failed with error %d", mmc_hostname(mmc),
 				__func__, rc);
 
 	return rc;
-}
-#else
-static int msmsdcc_enable(struct mmc_host *mmc)
-{
-	struct msmsdcc_host *host = mmc_priv(mmc);
-	unsigned long flags;
-
-	msmsdcc_pm_qos_update_latency(host, 1);
-
-	spin_lock_irqsave(&host->lock, flags);
-	if (!host->clks_on) {
-		msmsdcc_setup_clocks(host, true);
-		host->clks_on = 1;
-	}
-	spin_unlock_irqrestore(&host->lock, flags);
-
-	return 0;
-}
-
-static int msmsdcc_disable(struct mmc_host *mmc, int lazy)
-{
-	struct msmsdcc_host *host = mmc_priv(mmc);
-	unsigned long flags;
-
-	msmsdcc_pm_qos_update_latency(host, 0);
-
-	if (mmc->card && mmc_card_sdio(mmc->card))
-		return 0;
-
-	spin_lock_irqsave(&host->lock, flags);
-	if (host->clks_on) {
-		msmsdcc_setup_clocks(host, false);
-		host->clks_on = 0;
-	}
-	spin_unlock_irqrestore(&host->lock, flags);
-
-	return 0;
 }
 #endif
 
@@ -2705,8 +2669,10 @@ exit:
 }
 
 static const struct mmc_host_ops msmsdcc_ops = {
+#ifdef CONFIG_PM_RUNTIME
 	.enable		= msmsdcc_enable,
 	.disable	= msmsdcc_disable,
+#endif
 	.request	= msmsdcc_request,
 	.set_ios	= msmsdcc_set_ios,
 	.get_ro		= msmsdcc_get_ro,
@@ -2724,8 +2690,10 @@ static int msmsdcc_sdc_get_status(struct mmc_host *mmc)
 }
 
 static const struct mmc_host_ops msmsdcc_ops_sd = {
+#ifdef CONFIG_PM_RUNTIME
 	.enable		= msmsdcc_enable,
 	.disable	= msmsdcc_disable,
+#endif
 	.request	= msmsdcc_request,
 	.set_ios	= msmsdcc_set_ios,
 	.get_ro		= msmsdcc_get_ro,

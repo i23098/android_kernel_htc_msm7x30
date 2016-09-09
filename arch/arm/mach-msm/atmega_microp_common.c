@@ -393,7 +393,7 @@ static ssize_t microp_version_show(struct device *dev,
 	return sprintf(buf, "%04X\n", cdata->version);
 }
 
-static DEVICE_ATTR(version, 0644, microp_version_show, NULL);
+static DEVICE_ATTR(version, S_IRUGO, microp_version_show, NULL);
 
 static ssize_t microp_reset_store(struct device *dev,
 				   struct device_attribute *attr,
@@ -416,7 +416,7 @@ static ssize_t microp_reset_store(struct device *dev,
 	return count;
 }
 
-static DEVICE_ATTR(reset, 0644, NULL, microp_reset_store);
+static DEVICE_ATTR(reset, S_IWUSR, NULL, microp_reset_store);
 
 static ssize_t microp_gpio_show(struct device *dev,
 				  struct device_attribute *attr, char *buf)

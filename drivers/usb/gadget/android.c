@@ -43,7 +43,6 @@
  * the runtime footprint, and giving us at least some parts of what
  * a "gcc --combine ... part1.c part2.c part3.c ... " build would.
  */
-#include "gadget_chips.c"
 #include "usbstring.c"
 #include "config.c"
 #include "epautoconf.c"
@@ -79,8 +78,6 @@ MODULE_AUTHOR("Mike Lockwood");
 MODULE_DESCRIPTION("Android Composite USB Driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("1.0");
-
-static const char longname[] = "Gadget Android";
 
 /* Default vendor and product IDs, overridden by userspace */
 #define VENDOR_ID		0x18D1
@@ -1037,7 +1034,7 @@ static ssize_t audio_source_pcm_show(struct device *dev,
 	return sprintf(buf, "%d %d\n", config->card, config->device);
 }
 
-static DEVICE_ATTR(pcm, S_IRUGO | S_IWUSR, audio_source_pcm_show, NULL);
+static DEVICE_ATTR(pcm, S_IRUGO, audio_source_pcm_show, NULL);
 
 static struct device_attribute *audio_source_function_attributes[] = {
 	&dev_attr_pcm,
@@ -1410,7 +1407,7 @@ static int android_bind(struct usb_composite_dev *cdev)
 	struct android_dev *dev = _android_dev;
 	struct android_usb_platform_data *pdata = _android_dev->pdata;
 	struct usb_gadget	*gadget = cdev->gadget;
-	int			gcnum, id, ret;
+	int			id, ret;
 
 	usb_gadget_disconnect(gadget);
 

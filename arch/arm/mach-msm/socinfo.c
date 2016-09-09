@@ -473,32 +473,32 @@ socinfo_show_platform_subtype(struct device *dev,
 }
 
 static struct device_attribute socinfo_v1_files[] = {
-	__ATTR(id, 0444, socinfo_show_id, NULL),
-	__ATTR(version, 0444, socinfo_show_version, NULL),
-	__ATTR(build_id, 0444, socinfo_show_build_id, NULL),
+	__ATTR(id, S_IRUGO, socinfo_show_id, NULL),
+	__ATTR(version, S_IRUGO, socinfo_show_version, NULL),
+	__ATTR(build_id, S_IRUGO, socinfo_show_build_id, NULL),
 };
 
 static struct device_attribute socinfo_v2_files[] = {
-	__ATTR(raw_id, 0444, socinfo_show_raw_id, NULL),
-	__ATTR(raw_version, 0444, socinfo_show_raw_version, NULL),
+	__ATTR(raw_id, S_IRUGO, socinfo_show_raw_id, NULL),
+	__ATTR(raw_version, S_IRUGO, socinfo_show_raw_version, NULL),
 };
 
 static struct device_attribute socinfo_v3_files[] = {
-	__ATTR(hw_platform, 0444, socinfo_show_platform_type, NULL),
+	__ATTR(hw_platform, S_IRUGO, socinfo_show_platform_type, NULL),
 };
 
 static struct device_attribute socinfo_v4_files[] = {
-	__ATTR(platform_version, 0444,
+	__ATTR(platform_version, S_IRUGO,
 			socinfo_show_platform_version, NULL),
 };
 
 static struct device_attribute socinfo_v5_files[] = {
-	__ATTR(accessory_chip, 0444,
+	__ATTR(accessory_chip, S_IRUGO,
 			socinfo_show_accessory_chip, NULL),
 };
 
 static struct device_attribute socinfo_v6_files[] = {
-	__ATTR(platform_subtype, 0444,
+	__ATTR(platform_subtype, S_IRUGO,
 			socinfo_show_platform_subtype, NULL),
 };
 

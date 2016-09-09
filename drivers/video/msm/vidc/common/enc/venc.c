@@ -641,7 +641,7 @@ static int vid_enc_vcd_init(void)
 	struct vcd_init_config vcd_init_config;
 	u32 i;
 
-	INFO("\n msm_vidc_enc: Inside %s()", __func__);
+	INFO("msm_vidc_enc: Inside %s()\n", __func__);
 	vid_enc_device_p->num_clients = 0;
 
 	for (i = 0; i < VIDC_MAX_NUM_CLIENTS; i++) {
@@ -683,7 +683,7 @@ static int __init vid_enc_init(void)
 	int rc = 0;
 	struct device *class_devp;
 
-	INFO("\n msm_vidc_enc: Inside %s()", __func__);
+	INFO("msm_vidc_enc: Inside %s()", __func__);
 	vid_enc_device_p = kzalloc(sizeof(struct vid_enc_dev),
 					 GFP_KERNEL);
 	if (!vid_enc_device_p) {

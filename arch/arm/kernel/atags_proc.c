@@ -41,14 +41,14 @@ static int __init init_atags_procfs(void)
 	size_t size;
 
 	if (tag->hdr.tag != ATAG_CORE) {
-		printk(KERN_INFO "No ATAGs?");
+		pr_info("No ATAGs?\n");
 		return -EINVAL;
 	}
 
 	for (; tag->hdr.size; tag = tag_next(tag)) {
 		size = (char*)tag_next(tag) - (char*)atags_copy;
 		if (size > sizeof(atags_copy)) {
-			pr_info("Atags bigger than buffer!");
+			pr_info("Atags bigger than buffer!\n");
 			return -EINVAL;
 		}
 	}

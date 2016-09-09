@@ -446,7 +446,7 @@ static ssize_t pmic_adc_debug_show(struct device *dev,
 
 
 static struct device_attribute dev_attr_pmic_headset_adc =\
-	__ATTR(pmic_adc_debug, 0644, pmic_adc_debug_show, NULL);
+	__ATTR(pmic_adc_debug, S_IRUGO, pmic_adc_debug_show, NULL);
 
 int register_attributes(void)
 {
