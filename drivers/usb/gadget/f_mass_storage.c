@@ -228,7 +228,7 @@
 
 static const char fsg_string_interface[] = "Mass Storage";
 
-#include "storage_common.c"
+#include "storage_common.h"
 
 /* Static strings, in UTF-8 (for simplicity we use only ASCII characters) */
 static struct usb_string		fsg_strings[] = {

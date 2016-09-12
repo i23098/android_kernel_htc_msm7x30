@@ -844,21 +844,6 @@ struct mass_storage_function_config {
 	struct fsg_common *common;
 };
 
-#ifdef CONFIG_USB_GADGET_DEBUG_FILES
-
-static unsigned int _fsg_num_buffers = CONFIG_USB_GADGET_STORAGE_NUM_BUFFERS;
-
-#else
-
-/*
- * Number of buffers we will use.
- * 2 is usually enough for good buffering pipeline
- */
-#define _fsg_num_buffers        CONFIG_USB_GADGET_STORAGE_NUM_BUFFERS
-
-#endif /* CONFIG_USB_DEBUG */
-
-
 static int mass_storage_function_init(struct android_usb_function *f,
 					struct usb_composite_dev *cdev)
 {
@@ -876,7 +861,7 @@ static int mass_storage_function_init(struct android_usb_function *f,
 
 	if (dev->pdata->nluns) {
 		config->fsg.nluns = dev->pdata->nluns;
-		config->fsg.fsg_num_buffers = _fsg_num_buffers;
+		config->fsg.fsg_num_buffers = CONFIG_USB_GADGET_STORAGE_NUM_BUFFERS;
 		if (config->fsg.nluns > FSG_MAX_LUNS)
 			config->fsg.nluns = FSG_MAX_LUNS;
 		for (i = 0; i < config->fsg.nluns; i++) {
