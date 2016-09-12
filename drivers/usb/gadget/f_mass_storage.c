@@ -278,6 +278,7 @@ struct fsg_common {
 	struct fsg_buffhd	*next_buffhd_to_fill;
 	struct fsg_buffhd	*next_buffhd_to_drain;
 	struct fsg_buffhd	*buffhds;
+	unsigned int		fsg_num_buffers;
 
 	int			cmnd_size;
 	u8			cmnd[MAX_COMMAND_SIZE];
@@ -342,6 +343,7 @@ struct fsg_config {
 	const char *product_name;		/* 16 characters or less */
 
 	char			can_stall;
+	unsigned int		fsg_num_buffers;
 };
 
 struct fsg_dev {
@@ -2653,7 +2655,7 @@ static inline void fsg_common_put(struct fsg_common *common)
 }
 
 /* check if fsg_num_buffers is within a valid range */
-static inline int fsg_num_buffers_validate()
+static inline int fsg_num_buffers_validate(unsigned int fsg_num_buffers)
 {
 	if (_fsg_num_buffers >= 2 && _fsg_num_buffers <= 4)
 		return 0;
@@ -2673,7 +2675,7 @@ static struct fsg_common *fsg_common_init(struct fsg_common *common,
 	int nluns, i, rc;
 	char *pathbuf;
 
-	rc = fsg_num_buffers_validate();
+	rc = fsg_num_buffers_validate(cfg->fsg_num_buffers);
 	if (rc != 0)
 		return ERR_PTR(rc);
 
@@ -2695,6 +2697,7 @@ static struct fsg_common *fsg_common_init(struct fsg_common *common,
 		common->free_storage_on_release = 0;
 	}
 
+	common->fsg_num_buffers = cfg->fsg_num_buffers;
 	common->buffhds = kcalloc(_fsg_num_buffers,
 				  sizeof *(common->buffhds), GFP_KERNEL);
 	if (!common->buffhds) {
@@ -3096,7 +3099,8 @@ struct fsg_module_parameters {
 
 static void
 fsg_config_from_params(struct fsg_config *cfg,
-		       const struct fsg_module_parameters *params)
+		       const struct fsg_module_parameters *params,
+		       unsigned int fsg_num_buffers)
 {
 	struct fsg_lun_config *lun;
 	unsigned i;
@@ -3124,19 +3128,22 @@ fsg_config_from_params(struct fsg_config *cfg,
 
 	/* Finalise */
 	cfg->can_stall = params->stall;
+	cfg->fsg_num_buffers = fsg_num_buffers;
 }
 
 static inline struct fsg_common *
 fsg_common_from_params(struct fsg_common *common,
 		       struct usb_composite_dev *cdev,
-		       const struct fsg_module_parameters *params)
+		       const struct fsg_module_parameters *params,
+		       unsigned int fsg_num_buffers)
 	__attribute__((unused));
 static inline struct fsg_common *
 fsg_common_from_params(struct fsg_common *common,
 		       struct usb_composite_dev *cdev,
-		       const struct fsg_module_parameters *params)
+		       const struct fsg_module_parameters *params,
+		       unsigned int fsg_num_buffers)
 {
 	struct fsg_config cfg;
-	fsg_config_from_params(&cfg, params);
+	fsg_config_from_params(&cfg, params, fsg_num_buffers);
 	return fsg_common_init(common, cdev, &cfg);
 }
