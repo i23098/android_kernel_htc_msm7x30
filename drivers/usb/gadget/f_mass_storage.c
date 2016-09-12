@@ -2256,7 +2256,7 @@ reset:
 	if (common->fsg) {
 		fsg = common->fsg;
 
-		for (i = 0; i < _fsg_num_buffers; ++i) {
+		for (i = 0; i < common->fsg_num_buffers; ++i) {
 			struct fsg_buffhd *bh = &common->buffhds[i];
 
 			if (bh->inreq) {
@@ -2315,7 +2315,7 @@ reset:
 	clear_bit(IGNORE_BULK_OUT, &fsg->atomic_bitflags);
 
 	/* Allocate the requests */
-	for (i = 0; i < _fsg_num_buffers; ++i) {
+	for (i = 0; i < common->fsg_num_buffers; ++i) {
 		struct fsg_buffhd	*bh = &common->buffhds[i];
 
 		rc = alloc_request(common, fsg->bulk_in, &bh->inreq);
@@ -2384,7 +2384,7 @@ static void handle_exception(struct fsg_common *common)
 
 	/* Cancel all the pending transfers */
 	if (likely(common->fsg)) {
-		for (i = 0; i < _fsg_num_buffers; ++i) {
+		for (i = 0; i < common->fsg_num_buffers; ++i) {
 			bh = &common->buffhds[i];
 			if (bh->inreq_busy)
 				usb_ep_dequeue(common->fsg->bulk_in, bh->inreq);
@@ -2396,7 +2396,7 @@ static void handle_exception(struct fsg_common *common)
 		/* Wait until everything is idle */
 		for (;;) {
 			int num_active = 0;
-			for (i = 0; i < _fsg_num_buffers; ++i) {
+			for (i = 0; i < common->fsg_num_buffers; ++i) {
 				bh = &common->buffhds[i];
 				num_active += bh->inreq_busy + bh->outreq_busy;
 			}
@@ -2419,7 +2419,7 @@ static void handle_exception(struct fsg_common *common)
 	 */
 	spin_lock_irq(&common->lock);
 
-	for (i = 0; i < _fsg_num_buffers; ++i) {
+	for (i = 0; i < common->fsg_num_buffers; ++i) {
 		bh = &common->buffhds[i];
 		bh->state = BUF_STATE_EMPTY;
 	}
@@ -2657,10 +2657,10 @@ static inline void fsg_common_put(struct fsg_common *common)
 /* check if fsg_num_buffers is within a valid range */
 static inline int fsg_num_buffers_validate(unsigned int fsg_num_buffers)
 {
-	if (_fsg_num_buffers >= 2 && _fsg_num_buffers <= 4)
+	if (fsg_num_buffers >= 2 && fsg_num_buffers <= 4)
 		return 0;
 	pr_err("fsg_num_buffers %u is out of range (%d to %d)\n",
-	       _fsg_num_buffers, 2, 4);
+	       fsg_num_buffers, 2, 4);
 	return -EINVAL;
 }
 
@@ -2698,7 +2698,7 @@ static struct fsg_common *fsg_common_init(struct fsg_common *common,
 	}
 
 	common->fsg_num_buffers = cfg->fsg_num_buffers;
-	common->buffhds = kcalloc(_fsg_num_buffers,
+	common->buffhds = kcalloc(common->fsg_num_buffers,
 				  sizeof *(common->buffhds), GFP_KERNEL);
 	if (!common->buffhds) {
 		if (common->free_storage_on_release)
@@ -2785,7 +2785,7 @@ static struct fsg_common *fsg_common_init(struct fsg_common *common,
 
 	/* Data buffers cyclic list */
 	bh = common->buffhds;
-	i = _fsg_num_buffers;
+	i = common->fsg_num_buffers;
 	goto buffhds_first_it;
 	do {
 		bh->next = bh + 1;
@@ -2905,7 +2905,7 @@ static void fsg_common_release(struct kref *ref)
 
 	{
 		struct fsg_buffhd *bh = common->buffhds;
-		unsigned i = _fsg_num_buffers;
+		unsigned i = common->fsg_num_buffers;
 		do {
 			kfree(bh->buf);
 		} while (++bh, --i);
