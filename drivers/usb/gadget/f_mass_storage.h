@@ -102,6 +102,27 @@ struct fsg_common *fsg_common_init(struct fsg_common *common,
 				   struct usb_composite_dev *cdev,
 				   struct fsg_config *cfg);
 
+void fsg_common_set_sysfs(struct fsg_common *common, bool sysfs);
+
+int fsg_common_set_num_buffers(struct fsg_common *common, unsigned int n);
+
+int fsg_common_set_cdev(struct fsg_common *common,
+			struct usb_composite_dev *cdev, bool can_stall);
+
+void fsg_common_remove_lun(struct fsg_lun *lun, bool sysfs);
+
+void fsg_common_remove_luns(struct fsg_common *common);
+
+void fsg_common_free_luns(struct fsg_common *common);
+
+int fsg_common_set_nluns(struct fsg_common *common, int nluns);
+
+int fsg_common_create_lun(struct fsg_common *common, struct fsg_lun_config *cfg,
+			  unsigned int id, const char *name,
+			  const char **name_pfx);
+
+int fsg_common_create_luns(struct fsg_common *common, struct fsg_config *cfg);
+
 void fsg_config_from_params(struct fsg_config *cfg,
 			    const struct fsg_module_parameters *params,
 			    unsigned int fsg_num_buffers);

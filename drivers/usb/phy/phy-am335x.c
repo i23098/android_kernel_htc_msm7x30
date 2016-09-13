@@ -53,7 +53,7 @@ static int am335x_phy_probe(struct platform_device *pdev)
 	}
 
 	ret = usb_phy_gen_create_phy(dev, &am_phy->usb_phy_gen,
-			USB_PHY_TYPE_USB2, 0, false, false);
+			USB_PHY_TYPE_USB2, 0, false);
 	if (ret)
 		return ret;
 
@@ -125,7 +125,7 @@ static struct platform_driver am335x_phy_driver = {
 		.name   = "am335x-phy-driver",
 		.owner  = THIS_MODULE,
 		.pm = DEV_PM_OPS,
-		.of_match_table = of_match_ptr(am335x_phy_ids),
+		.of_match_table = am335x_phy_ids,
 	},
 };
 
