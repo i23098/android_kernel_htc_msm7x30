@@ -51,6 +51,7 @@
 
 #include "f_diag.c"
 #include "f_audio_source.c"
+#define USB_FMS_INCLUDED
 #include "f_mass_storage.c"
 #include "u_serial.c"
 #include "u_smd.c"
