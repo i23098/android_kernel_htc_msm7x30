@@ -892,8 +892,8 @@ static int mass_storage_function_init(struct android_usb_function *f,
 
 	for (i = 0; i < config->fsg.nluns; i++) {
 		err = sysfs_create_link(&f->dev->kobj,
-					&common->luns[i].dev.kobj,
-					common->luns[i].dev.kobj.name);
+					&common->luns[i]->dev.kobj,
+					common->luns[i]->dev.kobj.name);
 		if (err) {
 			fsg_common_release(&common->ref);
 			kfree(config);
