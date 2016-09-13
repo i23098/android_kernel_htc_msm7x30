@@ -916,7 +916,35 @@ static int mass_storage_function_bind_config(struct android_usb_function *f,
 						struct usb_configuration *c)
 {
 	struct mass_storage_function_config *config = f->config;
-	return fsg_bind_config(c->cdev, c, config->common);
+	struct fsg_dev *fsg;
+	int rc;
+
+	fsg = kzalloc(sizeof *fsg, GFP_KERNEL);
+	if (unlikely(!fsg))
+		return -ENOMEM;
+
+	fsg->function.name        = FSG_DRIVER_DESC;
+	fsg->function.bind        = fsg_bind;
+	fsg->function.unbind      = fsg_unbind;
+	fsg->function.setup       = fsg_setup;
+	fsg->function.set_alt     = fsg_set_alt;
+	fsg->function.disable     = fsg_disable;
+
+	fsg->common               = config->common;
+	/*
+	 * Our caller holds a reference to common structure so we
+	 * don't have to be worry about it being freed until we return
+	 * from this function.  So instead of incrementing counter now
+	 * and decrement in error recovery we increment it only when
+	 * call to usb_add_function() was successful.
+	 */
+
+	rc = usb_add_function(c, &fsg->function);
+	if (unlikely(rc))
+		kfree(fsg);
+	else
+		fsg_common_get(fsg->common);
+	return rc;
 }
 
 static ssize_t mass_storage_inquiry_show(struct device *dev,
