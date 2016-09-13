@@ -425,7 +425,7 @@ ssize_t fsg_store_file(struct fsg_lun *curlun, struct rw_semaphore *filesem,
 	int		rc = 0;
 
 
-	printk(KERN_INFO "[USB] store_file: \"%s\" to %s\n", buf, dev->kobj.name);
+	printk(KERN_INFO "[USB] store_file: \"%s\"\n", buf);
 #ifndef CONFIG_USB_ANDROID_MASS_STORAGE
 	/* disabled in android because we need to allow closing the backing file
 	 * if the media was removed
