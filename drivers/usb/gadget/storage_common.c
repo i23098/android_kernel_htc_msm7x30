@@ -31,11 +31,6 @@
 
 #include "storage_common.h"
 
-static inline struct fsg_lun *fsg_lun_from_dev(struct device *dev)
-{
-	return container_of(dev, struct fsg_lun, dev);
-}
-
 /* There is only one interface. */
 
 struct usb_interface_descriptor fsg_intf_desc = {
@@ -324,31 +319,23 @@ EXPORT_SYMBOL(store_cdrom_address);
 /*-------------------------------------------------------------------------*/
 
 
-ssize_t fsg_show_ro(struct device *dev, struct device_attribute *attr,
-		    char *buf)
+ssize_t fsg_show_ro(struct fsg_lun *curlun, char *buf)
 {
-	struct fsg_lun	*curlun = fsg_lun_from_dev(dev);
-
 	return sprintf(buf, "%d\n", fsg_lun_is_open(curlun)
 				  ? curlun->ro
 				  : curlun->initially_ro);
 }
 EXPORT_SYMBOL(fsg_show_ro);
 
-ssize_t fsg_show_nofua(struct device *dev, struct device_attribute *attr,
-		       char *buf)
+ssize_t fsg_show_nofua(struct fsg_lun *curlun, char *buf)
 {
-	struct fsg_lun	*curlun = fsg_lun_from_dev(dev);
-
 	return sprintf(buf, "%u\n", curlun->nofua);
 }
 EXPORT_SYMBOL(fsg_show_nofua);
 
-ssize_t fsg_show_file(struct device *dev, struct device_attribute *attr,
+ssize_t fsg_show_file(struct fsg_lun *curlun, struct rw_semaphore *filesem,
 		      char *buf)
 {
-	struct fsg_lun	*curlun = fsg_lun_from_dev(dev);
-	struct rw_semaphore	*filesem = dev_get_drvdata(dev);
 	char		*p;
 	ssize_t		rc;
 
@@ -372,13 +359,22 @@ ssize_t fsg_show_file(struct device *dev, struct device_attribute *attr,
 }
 EXPORT_SYMBOL(fsg_show_file);
 
+ssize_t fsg_show_cdrom(struct fsg_lun *curlun, char *buf)
+{
+	return sprintf(buf, "%u\n", curlun->cdrom);
+}
+EXPORT_SYMBOL(fsg_show_cdrom);
 
-ssize_t fsg_store_ro(struct device *dev, struct device_attribute *attr,
+ssize_t fsg_show_removable(struct fsg_lun *curlun, char *buf)
+{
+	return sprintf(buf, "%u\n", curlun->removable);
+}
+EXPORT_SYMBOL(fsg_show_removable);
+
+ssize_t fsg_store_ro(struct fsg_lun *curlun, struct rw_semaphore *filesem,
 		     const char *buf, size_t count)
 {
 	ssize_t		rc;
-	struct fsg_lun	*curlun = fsg_lun_from_dev(dev);
-	struct rw_semaphore	*filesem = dev_get_drvdata(dev);
 	unsigned	ro;
 
 	rc = kstrtouint(buf, 2, &ro);
@@ -404,10 +400,8 @@ ssize_t fsg_store_ro(struct device *dev, struct device_attribute *attr,
 }
 EXPORT_SYMBOL(fsg_store_ro);
 
-ssize_t fsg_store_nofua(struct device *dev, struct device_attribute *attr,
-			const char *buf, size_t count)
+ssize_t fsg_store_nofua(struct fsg_lun *curlun, const char *buf, size_t count)
 {
-	struct fsg_lun	*curlun = fsg_lun_from_dev(dev);
 	unsigned	nofua;
 	int		ret;
 
@@ -425,11 +419,9 @@ ssize_t fsg_store_nofua(struct device *dev, struct device_attribute *attr,
 }
 EXPORT_SYMBOL(fsg_store_nofua);
 
-ssize_t fsg_store_file(struct device *dev, struct device_attribute *attr,
+ssize_t fsg_store_file(struct fsg_lun *curlun, struct rw_semaphore *filesem,
 		       const char *buf, size_t count)
 {
-	struct fsg_lun	*curlun = fsg_lun_from_dev(dev);
-	struct rw_semaphore	*filesem = dev_get_drvdata(dev);
 	int		rc = 0;
 
 
@@ -464,5 +456,36 @@ ssize_t fsg_store_file(struct device *dev, struct device_attribute *attr,
 	return (rc < 0 ? rc : count);
 }
 EXPORT_SYMBOL(fsg_store_file);
+
+ssize_t fsg_store_cdrom(struct fsg_lun *curlun, const char *buf, size_t count)
+{
+	unsigned	cdrom;
+	int		ret;
+
+	ret = kstrtouint(buf, 2, &cdrom);
+	if (ret)
+		return ret;
+
+	curlun->cdrom = cdrom;
+
+	return count;
+}
+EXPORT_SYMBOL(fsg_store_cdrom);
+
+ssize_t fsg_store_removable(struct fsg_lun *curlun, const char *buf,
+			    size_t count)
+{
+	unsigned	removable;
+	int		ret;
+
+	ret = kstrtouint(buf, 2, &removable);
+	if (ret)
+		return ret;
+
+	curlun->removable = removable;
+
+	return count;
+}
+EXPORT_SYMBOL(fsg_store_removable);
 
 MODULE_LICENSE("GPL");
