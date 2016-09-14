@@ -3257,45 +3257,7 @@ static void fsg_unbind(struct usb_configuration *c, struct usb_function *f)
 #endif
 }
 
-#ifdef USB_FMS_INCLUDED
-
-static int fsg_bind_config(struct usb_composite_dev *cdev,
-			   struct usb_configuration *c,
-			   struct fsg_common *common)
-{
-	struct fsg_dev *fsg;
-	int rc;
-
-	fsg = kzalloc(sizeof *fsg, GFP_KERNEL);
-	if (unlikely(!fsg))
-		return -ENOMEM;
-
-	fsg->function.name        = FSG_DRIVER_DESC;
-	fsg->function.bind        = fsg_bind;
-	fsg->function.unbind      = fsg_unbind;
-	fsg->function.setup       = fsg_setup;
-	fsg->function.set_alt     = fsg_set_alt;
-	fsg->function.disable     = fsg_disable;
-
-	fsg->common               = common;
-	/*
-	 * Our caller holds a reference to common structure so we
-	 * don't have to be worry about it being freed until we return
-	 * from this function.  So instead of incrementing counter now
-	 * and decrement in error recovery we increment it only when
-	 * call to usb_add_function() was successful.
-	 */
-
-	rc = usb_add_function(c, &fsg->function);
-	if (unlikely(rc))
-		kfree(fsg);
-	else
-		fsg_common_get(fsg->common);
-	return rc;
-}
-
-#else
-
+#ifndef USB_FMS_INCLUDED
 static inline struct fsg_lun_opts *to_fsg_lun_opts(struct config_item *item)
 {
 	return container_of(to_config_group(item), struct fsg_lun_opts, group);
