@@ -840,6 +840,62 @@ static struct android_usb_function rndis_function = {
 };
 #endif
 
+struct fsg_common *fsg_common_init(struct fsg_common *common,
+				   struct usb_composite_dev *cdev,
+				   struct fsg_config *cfg)
+{
+	int rc;
+
+	if (!!common)
+		memset(common, 0, sizeof(*common));
+	common = fsg_common_setup(common);
+	if (IS_ERR(common))
+		return common;
+	fsg_common_set_sysfs(common, true);
+	common->state = FSG_STATE_IDLE;
+
+	rc = fsg_common_set_num_buffers(common, cfg->fsg_num_buffers);
+	if (rc) {
+		if (common->free_storage_on_release)
+			kfree(common);
+		return ERR_PTR(rc);
+	}
+	common->ops = cfg->ops;
+	common->private_data = cfg->private_data;
+
+	rc = fsg_common_set_cdev(common, cdev, cfg->can_stall);
+	if (rc)
+		goto error_release;
+
+	rc = fsg_common_set_nluns(common, cfg->nluns);
+	if (rc)
+		goto error_release;
+
+	rc = fsg_common_create_luns(common, cfg);
+	if (rc)
+		goto error_release;
+
+
+	fsg_common_set_inquiry_string(common, cfg->vendor_name,
+				      cfg->product_name);
+
+	/* Information */
+	pr_info(FSG_DRIVER_DESC ", version: " FSG_DRIVER_VERSION "\n");
+
+	rc = fsg_common_run_thread(common);
+	if (rc)
+		goto error_release;
+
+	return common;
+
+error_release:
+	common->state = FSG_STATE_TERMINATED;	/* The thread is dead */
+	/* Call fsg_common_release() directly, ref might be not initialised. */
+	fsg_common_release(&common->ref);
+	return ERR_PTR(rc);
+}
+EXPORT_SYMBOL_GPL(fsg_common_init);
+
 struct mass_storage_function_config {
 	struct fsg_config fsg;
 	struct fsg_common *common;
@@ -913,10 +969,7 @@ static void mass_storage_function_cleanup(struct android_usb_function *f)
 	f->config = NULL;
 }
 
-static int mass_storage_function_bind_config(struct android_usb_function *f,
-						struct usb_configuration *c)
-{
-	struct mass_storage_function_config *config = f->config;
+static int fsg_bind_config(struct usb_configuration *c, struct fsg_common *common) {
 	struct fsg_dev *fsg;
 	int rc;
 
@@ -931,7 +984,7 @@ static int mass_storage_function_bind_config(struct android_usb_function *f,
 	fsg->function.set_alt     = fsg_set_alt;
 	fsg->function.disable     = fsg_disable;
 
-	fsg->common               = config->common;
+	fsg->common               = common;
 	/*
 	 * Our caller holds a reference to common structure so we
 	 * don't have to be worry about it being freed until we return
@@ -946,6 +999,13 @@ static int mass_storage_function_bind_config(struct android_usb_function *f,
 	else
 		fsg_common_get(fsg->common);
 	return rc;
+}
+
+static int mass_storage_function_bind_config(struct android_usb_function *f,
+						struct usb_configuration *c)
+{
+	struct mass_storage_function_config *config = f->config;
+	return fsg_bind_config(c, config->common);
 }
 
 static ssize_t mass_storage_inquiry_show(struct device *dev,
