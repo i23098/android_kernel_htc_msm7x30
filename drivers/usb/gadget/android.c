@@ -969,6 +969,15 @@ static void mass_storage_function_cleanup(struct android_usb_function *f)
 	f->config = NULL;
 }
 
+static void fsg_unbind_android(struct usb_configuration *c, struct usb_function *f) {
+	struct fsg_dev		*fsg = fsg_from_func(f);
+	struct fsg_common	*common = fsg->common;
+
+	fsg_unbind(c, f);
+	fsg_common_put(common);
+	kfree(fsg);
+}
+
 static int fsg_bind_config(struct usb_configuration *c, struct fsg_common *common) {
 	struct fsg_dev *fsg;
 	int rc;
@@ -979,7 +988,7 @@ static int fsg_bind_config(struct usb_configuration *c, struct fsg_common *commo
 
 	fsg->function.name        = FSG_DRIVER_DESC;
 	fsg->function.bind        = fsg_bind;
-	fsg->function.unbind      = fsg_unbind;
+	fsg->function.unbind      = fsg_unbind_android;
 	fsg->function.setup       = fsg_setup;
 	fsg->function.set_alt     = fsg_set_alt;
 	fsg->function.disable     = fsg_disable;

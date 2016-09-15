@@ -3185,16 +3185,9 @@ static void fsg_unbind(struct usb_configuration *c, struct usb_function *f)
 		wait_event(common->fsg_wait, common->fsg != fsg);
 	}
 
-#ifdef USB_FMS_INCLUDED
-	fsg_common_put(common);
-#endif
 	usb_free_all_descriptors(&fsg->function);
-#ifdef USB_FMS_INCLUDED
-	kfree(fsg);
-#endif
 }
 
-#ifndef USB_FMS_INCLUDED
 static inline struct fsg_lun_opts *to_fsg_lun_opts(struct config_item *item)
 {
 	return container_of(to_config_group(item), struct fsg_lun_opts, group);
@@ -3637,7 +3630,6 @@ DECLARE_USB_FUNCTION_INIT(mass_storage, fsg_alloc_inst, fsg_alloc);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Michal Nazarewicz");
 
-#endif
 /************************* Module parameters *************************/
 
 

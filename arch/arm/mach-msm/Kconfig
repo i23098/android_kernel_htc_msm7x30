@@ -92,9 +92,6 @@ config MSM_REMOTE_SPINLOCK_DEKKERS
 config MSM_REMOTE_SPINLOCK_SWP
 	bool
 
-config MSM_REMOTE_SPINLOCK_LDREX
-	bool
-
 config MSM_REMOTE_SPINLOCK_SFPB
 	bool
 
@@ -495,14 +492,6 @@ config MSM_SERIAL_DEBUGGER
 	  kernel is unresponsive due to being stuck with interrupts
 	  disabled.  Depends on the kernel debugger core in drivers/misc.
 
-config MSM_SERIAL_DEBUGGER_CONSOLE
-	depends on MSM_SERIAL_DEBUGGER
-	default n
-	bool "Console on FIQ Serial Debugger port"
-	help
-	  Enables a console so that printk messages are displayed on
-	  the debugger serial port as the occur.
-
 config MSM_PROC_COMM
 	default y
 	bool "Proc-Comm RPC Interface"
@@ -757,14 +746,6 @@ config MSM_ADSP
 	default y
 	help
 	  Provides access to registers needed by the userspace aDSP library.
-
-config ADSP_RPC_VER
-	hex
-	default 0x30002 if !ARCH_MSM7X00A
-	default 0x30001 if ARCH_MSM7X00A
-	depends on MSM_ADSP
-	help
-	 Select proper ADSP RPC version
 
 choice
 	prompt "ADSP RPC version"
