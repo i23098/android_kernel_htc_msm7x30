@@ -200,13 +200,13 @@ static void mdp4_mddi_do_blt(struct msm_fb_data_type *mfd, int enable)
 	if (enable && pipe->ov_blt_addr == 0) {
 		vctrl->blt_change++;
 		if (vctrl->dma_koff != vctrl->dma_done) {
-			INIT_COMPLETION(vctrl->dma_comp);
+			reinit_completion(&vctrl->dma_comp);
 			need_wait = 1;
 		}
 	} else if (enable == 0 && pipe->ov_blt_addr) {
 		vctrl->blt_change++;
 		if (vctrl->ov_koff != vctrl->dma_done) {
-			INIT_COMPLETION(vctrl->dma_comp);
+			reinit_completion(&vctrl->dma_comp);
 			need_wait = 1;
 		}
 	}
@@ -356,17 +356,17 @@ int mdp4_mddi_pipe_commit(int cndx, int wait)
 	if (pipe->ov_blt_addr) {
 		/* Blt */
 		if (vctrl->blt_wait) {
-			INIT_COMPLETION(vctrl->dma_comp);
+			reinit_completion(&vctrl->dma_comp);
 			need_dma_wait = 1;
 		}
 		if (vctrl->ov_koff != vctrl->ov_done) {
-			INIT_COMPLETION(vctrl->ov_comp);
+			reinit_completion(&vctrl->ov_comp);
 			need_ov_wait = 1;
 		}
 	} else {
 		/* direct out */
 		if (vctrl->dma_koff != vctrl->dma_done) {
-			INIT_COMPLETION(vctrl->dma_comp);
+			reinit_completion(&vctrl->dma_comp);
 			pr_debug("%s: wait, ok=%d od=%d dk=%d dd=%d cpu=%d\n",
 			 __func__, vctrl->ov_koff, vctrl->ov_done,
 			vctrl->dma_koff, vctrl->dma_done, smp_processor_id());
@@ -428,12 +428,12 @@ int mdp4_mddi_pipe_commit(int cndx, int wait)
 		mdp4_mddi_blt_ov_update(pipe);
 		pipe->ov_cnt++;
 		vctrl->ov_koff++;
-		INIT_COMPLETION(vctrl->ov_comp);
+		reinit_completion(&vctrl->ov_comp);
 		vsync_irq_enable(INTR_OVERLAY0_DONE, MDP_OVERLAY0_TERM);
 		mdp_pipe_kickoff_simplified(MDP_OVERLAY0_TERM);
 		mdp4_stat.kickoff_ov0++;
 	} else {
-		INIT_COMPLETION(vctrl->dma_comp);
+		reinit_completion(&vctrl->dma_comp);
 		if (mddi_use_dmap()) {
 			vsync_irq_enable(INTR_DMA_P_DONE, MDP_DMAP_TERM);
 			mdp4_stat.kickoff_dmap++;

@@ -269,7 +269,7 @@ int mdp4_dsi_video_pipe_commit(int cndx, int wait)
 	if (pipe->ov_blt_addr) {
 		mdp4_dsi_video_blt_ov_update(pipe);
 		pipe->ov_cnt++;
-		INIT_COMPLETION(vctrl->ov_comp);
+		reinit_completion(&vctrl->ov_comp);
 		vsync_irq_enable(INTR_OVERLAY0_DONE, MDP_OVERLAY0_TERM);
 		mb();
 		vctrl->ov_koff++;
@@ -394,7 +394,7 @@ static void mdp4_dsi_video_wait4dmap_done(int cndx)
 	vctrl = &vsync_ctrl_db[cndx];
 
 	spin_lock_irqsave(&vctrl->spin_lock, flags);
-	INIT_COMPLETION(vctrl->dmap_comp);
+	reinit_completion(&vctrl->dmap_comp);
 	vsync_irq_enable(INTR_DMA_P_DONE, MDP_DMAP_TERM);
 	spin_unlock_irqrestore(&vctrl->spin_lock, flags);
 	mdp4_dsi_video_wait4dmap(cndx);

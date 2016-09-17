@@ -223,8 +223,8 @@ int mdp4_lcdc_pipe_commit(int cndx, int wait)
 	if (vctrl->blt_change) {
 		pipe = vctrl->base_pipe;
 		spin_lock_irqsave(&vctrl->spin_lock, flags);
-		INIT_COMPLETION(vctrl->dmap_comp);
-		INIT_COMPLETION(vctrl->ov_comp);
+		reinit_completion(&vctrl->dmap_comp);
+		reinit_completion(&vctrl->ov_comp);
 		vsync_irq_enable(INTR_DMA_P_DONE, MDP_DMAP_TERM);
 		spin_unlock_irqrestore(&vctrl->spin_lock, flags);
 		mdp4_lcdc_wait4dmap(0);
@@ -281,7 +281,7 @@ int mdp4_lcdc_pipe_commit(int cndx, int wait)
 	if (pipe->ov_blt_addr) {
 		mdp4_lcdc_blt_ov_update(pipe);
 		pipe->ov_cnt++;
-		INIT_COMPLETION(vctrl->ov_comp);
+		reinit_completion(&vctrl->ov_comp);
 		vsync_irq_enable(INTR_OVERLAY0_DONE, MDP_OVERLAY0_TERM);
 		mb();
 		vctrl->ov_koff++;

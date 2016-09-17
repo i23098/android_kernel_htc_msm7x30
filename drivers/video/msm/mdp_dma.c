@@ -310,7 +310,7 @@ void	mdp3_dsi_cmd_dma_busy_wait(struct msm_fb_data_type *mfd)
 
 	if (mfd->dma->busy == TRUE) {
 		if (busy_wait_cnt == 0)
-			INIT_COMPLETION(mfd->dma->comp);
+			reinit_completion(&mfd->dma->comp);
 		busy_wait_cnt++;
 		need_wait++;
 	}
@@ -492,7 +492,7 @@ void mdp_dma2_update(struct msm_fb_data_type *mfd)
 		spin_lock_irqsave(&mdp_spin_lock, flag);
 		mdp_enable_irq(MDP_DMA2_TERM);
 		mfd->dma->busy = TRUE;
-		INIT_COMPLETION(mfd->dma->comp);
+		reinit_completion(&mfd->dma->comp);
 
 		spin_unlock_irqrestore(&mdp_spin_lock, flag);
 		/* schedule DMA to start */
@@ -521,7 +521,7 @@ void mdp_dma_vsync_ctrl(int enable)
 
 	spin_lock_irqsave(&mdp_spin_lock, flag);
 	if (!enable)
-		INIT_COMPLETION(vsync_cntrl.vsync_wait);
+		reinit_completion(&vsync_cntrl.vsync_wait);
 
 	vsync_cntrl.vsync_irq_enabled = enable;
 	if (!enable)

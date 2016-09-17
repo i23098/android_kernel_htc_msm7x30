@@ -959,7 +959,7 @@ static int mdp_histogram_enable(struct mdp_hist_mgmt *mgmt)
 	mutex_lock(&mgmt->mdp_hist_mutex);
 
 	/*Then initialize histogram*/
-	INIT_COMPLETION(mgmt->mdp_hist_comp);
+	reinit_completion(&mgmt->mdp_hist_comp);
 
 	spin_lock_irqsave(&mdp_spin_lock, flag);
 	MDP_OUTP(base + 0x0018, INTR_HIST_DONE | INTR_HIST_RESET_SEQ_DONE);
@@ -1414,7 +1414,7 @@ static int mdp_do_histogram(struct fb_info *info,
 		ret = -EPERM;
 		goto error_lock;
 	}
-	INIT_COMPLETION(mgmt->mdp_hist_comp);
+	reinit_completion(&mgmt->mdp_hist_comp);
 	mgmt->hist = hist;
 	mutex_unlock(&mgmt->mdp_hist_mutex);
 
@@ -1462,7 +1462,7 @@ ssize_t mdp_dma_show_event(struct device *dev,
 		atomic_read(&vsync_cntrl.vsync_resume) == 0)
 		return 0;
 
-	INIT_COMPLETION(vsync_cntrl.vsync_wait);
+	reinit_completion(&vsync_cntrl.vsync_wait);
 
 	wait_for_completion(&vsync_cntrl.vsync_wait);
 	ret = snprintf(buf, PAGE_SIZE, "VSYNC=%llu",
@@ -1693,7 +1693,7 @@ void mdp_pipe_kickoff(uint32 term, struct msm_fb_data_type *mfd)
 		mdp_pipe_ctrl(MDP_PPP_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 
 		mdp_enable_irq(term);
-		INIT_COMPLETION(mdp_ppp_comp);
+		reinit_completion(&mdp_ppp_comp);
 		spin_lock_irqsave(&mdp_spin_lock, flag);
 		mdp_ppp_waiting = TRUE;
 		spin_unlock_irqrestore(&mdp_spin_lock, flag);
