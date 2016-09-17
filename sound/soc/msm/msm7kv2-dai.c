@@ -73,7 +73,6 @@ static struct snd_soc_dai_driver msm_pcm_cpu_dais[] = {
 };
 
 static struct snd_soc_codec_driver soc_codec_dev_msm = {
-	.compress_type = SND_SOC_FLAT_COMPRESSION,
 };
 
 static int asoc_msm_codec_probe(struct platform_device *pdev)
