@@ -53,12 +53,6 @@ config TOUCHSCREEN_SAGA_SWEEP2WAKE
 	help
 	  Enable this to compile a different atmel driver to enable s2w on saga
 
-config TOUCHSCREEN_NTRIG
-	tristate "N-trig spi touchscreen"
-	depends on SPI_TOUCHSCREEN_NTRIG
-	help
-	  This is support for N-trig over spi based touchscreens
-
 config TOUCHSCREEN_88PM860X
 	tristate "Marvell 88PM860x touchscreen"
 	depends on MFD_88PM860X
