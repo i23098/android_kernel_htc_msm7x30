@@ -1713,7 +1713,7 @@ static struct sock *qtaguid_find_sk(const struct sk_buff *skb,
 		MT_DEBUG("qtaguid[%d]: %p->sk_proto=%u->sk_state=%d\n",
 			 par->hooknum, sk, sk->sk_protocol, sk->sk_state);
 		if (sk->sk_state  == TCP_TIME_WAIT) {
-			xt_socket_put_sk(sk);
+			sock_gen_put(sk);
 			sk = NULL;
 		}
 	}
@@ -1873,7 +1873,7 @@ static bool qtaguid_mt(const struct sk_buff *skb, struct xt_action_param *par)
 
 put_sock_ret_res:
 	if (got_sock)
-		xt_socket_put_sk(sk);
+		sock_gen_put(sk);
 ret_res:
 	MT_DEBUG("qtaguid[%d]: left %d\n", par->hooknum, res);
 	return res;
