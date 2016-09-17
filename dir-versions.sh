@@ -10,3 +10,4 @@ git checkout HEAD -- lib/lzo/lzo1x_decompress_safe.c
 # include/linux/pwm.h drivers/misc/pmic8058-pwm.c to official way
 # arch/arm/mm/mmu.c:create_mapping - memmory mapping
 # arch/arm/include/asm/memory.h - need drop hack
+# drivers/gpu/ion/ion_carveout_heap.c - ion_*_region -> *_region
