@@ -181,10 +181,6 @@ struct clocksource {
 	struct arch_clocksource_data archdata;
 #endif
 
-#ifdef CONFIG_ARCH_CLOCKSOURCE_DATA
-	struct arch_clocksource_data archdata;
-#endif
-
 	const char *name;
 	struct list_head list;
 	int rating;
