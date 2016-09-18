@@ -51,7 +51,7 @@ struct cpufreq_suspend_t {
 	int device_suspended;
 };
 
-static DEFINE_PER_CPU(struct cpufreq_suspend_t, cpufreq_suspend);
+static DEFINE_PER_CPU(struct cpufreq_suspend_t, cpufreq_suspend_per_cpu);
 
 static int override_cpu;
 
@@ -151,9 +151,9 @@ static int msm_cpufreq_target(struct cpufreq_policy *policy,
 		return -ENOMEM;
 #endif
 
-	mutex_lock(&per_cpu(cpufreq_suspend, policy->cpu).suspend_mutex);
+	mutex_lock(&per_cpu(cpufreq_suspend_per_cpu, policy->cpu).suspend_mutex);
 
-	if (per_cpu(cpufreq_suspend, policy->cpu).device_suspended) {
+	if (per_cpu(cpufreq_suspend_per_cpu, policy->cpu).device_suspended) {
 		pr_debug("cpufreq: cpu%d scheduling frequency change "
 				"in suspend.\n", policy->cpu);
 		ret = -EFAULT;
@@ -204,7 +204,7 @@ done:
 #ifdef CONFIG_SMP
 	free_cpumask_var(mask);
 #endif
-	mutex_unlock(&per_cpu(cpufreq_suspend, policy->cpu).suspend_mutex);
+	mutex_unlock(&per_cpu(cpufreq_suspend_per_cpu, policy->cpu).suspend_mutex);
 	return ret;
 }
 
@@ -347,7 +347,7 @@ static int msm_cpufreq_suspend(struct cpufreq_policy *policy)
 	int cpu;
 
 	for_each_possible_cpu(cpu) {
-		per_cpu(cpufreq_suspend, cpu).device_suspended = 1;
+		per_cpu(cpufreq_suspend_per_cpu, cpu).device_suspended = 1;
 	}
 
 	return 0;
@@ -358,7 +358,7 @@ static int msm_cpufreq_resume(struct cpufreq_policy *policy)
 	int cpu;
 
 	for_each_possible_cpu(cpu) {
-		per_cpu(cpufreq_suspend, cpu).device_suspended = 0;
+		per_cpu(cpufreq_suspend_per_cpu, cpu).device_suspended = 0;
 	}
 
 	return 0;
@@ -411,8 +411,8 @@ static int __init msm_cpufreq_register(void)
 		pr_err("Failed to create sysfs mfreq\n");
 
 	for_each_possible_cpu(cpu) {
-		mutex_init(&(per_cpu(cpufreq_suspend, cpu).suspend_mutex));
-		per_cpu(cpufreq_suspend, cpu).device_suspended = 0;
+		mutex_init(&(per_cpu(cpufreq_suspend_per_cpu, cpu).suspend_mutex));
+		per_cpu(cpufreq_suspend_per_cpu, cpu).device_suspended = 0;
 	}
 
 #ifdef CONFIG_SMP
