@@ -3482,11 +3482,7 @@ static int msmsdcc_suspend(struct device *dev)
 		 */
 
 		/*Disable suspend function for wifi slot*/
-		if (!is_wifi_slot(host->plat))
-			rc = mmc_suspend_host(mmc);
-
-
-		if (!rc) {
+		if (!is_wifi_slot(host->plat)) {
 			/*
 			 * If MMC core level suspend is not supported, turn
 			 * off clocks to allow deep sleep (TCXO shutdown).
@@ -3504,6 +3500,9 @@ static int msmsdcc_suspend(struct device *dev)
 				}
 			}
 		} else {
+			/* 
+			 * failed suspend or wifi slot
+			 */
 			spin_lock_irqsave(&host->lock, flags);
 			mmc->pm_flags &= ~MMC_PM_WAKE_SDIO_IRQ;
 			spin_unlock_irqrestore(&host->lock, flags);
@@ -3539,10 +3538,6 @@ static int msmsdcc_resume(struct device *dev)
 		}
 
 		spin_unlock_irqrestore(&host->lock, flags);
-
-		/*Disable resume function for wifi slot */
-		if (!is_wifi_slot(host->plat) && mmc->card && !host->eject)
-			mmc_resume_host(mmc);
 
 		/*
 		 * FIXME: Clearing of flags must be handled in clients
