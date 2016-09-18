@@ -1419,7 +1419,7 @@ static int pmem_allocator_system(const int id,
 	if (!pmem[id].cached)
 		list->vaddr = ioremap(__pa(buf), aligned_len);
 	else
-		list->vaddr = ioremap_cached(__pa(buf), aligned_len);
+		list->vaddr = ioremap_cache(__pa(buf), aligned_len);
 
 	INIT_LIST_HEAD(&list->allocs);
 	list_add(&list->allocs, &pmem[id].allocator.system_mem.alist);
@@ -2627,7 +2627,7 @@ static void ioremap_pmem(int id)
 		flush_cache_vmap(addr, addr + pmem[id].size);
 	} else {
 		if (pmem[id].cached)
-			pmem[id].vbase = ioremap_cached(pmem[id].base,
+			pmem[id].vbase = ioremap_cache(pmem[id].base,
 						pmem[id].size);
 	#ifdef ioremap_ext_buffered
 		else if (pmem[id].buffered)
