@@ -117,7 +117,9 @@ void __init msm_map_qsd8x50_io(void)
 static struct map_desc msm7x30_io_desc[] __initdata = {
 	MSM_DEVICE(VIC),
 	MSM_CHIP_DEVICE(CSR, MSM7X30),
-	MSM_DEVICE(TMR),
+#if !defined(CONFIG_MACH_SPADE) && !defined(CONFIG_MACH_SAGA)
+	MSM_DEVICE(DMOV),
+#endif
 	MSM_CHIP_DEVICE(GPIO1, MSM7X30),
 	MSM_CHIP_DEVICE(GPIO2, MSM7X30),
 	MSM_DEVICE(CLK_CTL),
@@ -148,11 +150,11 @@ void __iomem *__msm_ioremap_caller(phys_addr_t phys_addr, size_t size,
 				   unsigned int mtype, void *caller)
 {
 	if (mtype == MT_DEVICE) {
-		/* The peripherals in the 88000000 - F0000000 range
+		/* The peripherals in the 88000000 - D0000000 range
 		 * are only accessible by type MT_DEVICE_NONSHARED.
 		 * Adjust mtype as necessary to make this "just work."
 		 */
-		if ((phys_addr >= 0x88000000) && (phys_addr < 0xF0000000))
+		if ((phys_addr >= 0x88000000) && (phys_addr < 0xD0000000))
 			mtype = MT_DEVICE_NONSHARED;
 	}
 

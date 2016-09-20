@@ -8,5 +8,4 @@ git checkout HEAD -- lib/lzo/lzo1x_decompress_safe.c
 # use code from 78be3176c4335b8ff3d9625ed3fc571e7d2ba8f4 for reboot chip msm7x30_reset
 # rewrite arch/arm/mach-msm/clock-7x30.c:msm_clocks_7x30 to official way
 # include/linux/pwm.h drivers/misc/pmic8058-pwm.c to official way
-# arch/arm/mm/mmu.c:create_mapping - memmory mapping
 # drivers/gpu/ion/ion_carveout_heap.c - ion_*_region -> *_region

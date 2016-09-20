@@ -790,7 +790,7 @@ static void __init create_36bit_mapping(struct map_desc *md,
  * offsets, and we take full advantage of sections and
  * supersections.
  */
-void __init create_mapping(struct map_desc *md)
+static void __init create_mapping(struct map_desc *md)
 {
 	unsigned long addr, length, end;
 	phys_addr_t phys;
@@ -871,9 +871,7 @@ void __init iotable_init(struct map_desc *io_desc, int nr)
 		vm->flags = VM_IOREMAP | VM_ARM_STATIC_MAPPING;
 		vm->flags |= VM_ARM_MTYPE(md->type);
 		vm->caller = iotable_init;
-#if !defined(CONFIG_MACH_SPADE) && !defined(CONFIG_MACH_SAGA)
 		add_static_vm_early(svm++);
-#endif
 	}
 }
 
