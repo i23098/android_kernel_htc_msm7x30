@@ -1,5 +1,6 @@
 /*
- * drivers/gpu/ion/ion.c
+
+ * drivers/staging/android/ion/ion.c
  *
  * Copyright (C) 2011 Google, Inc.
  * Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
@@ -15,7 +16,6 @@
  *
  */
 
-#include <linux/module.h>
 #include <linux/device.h>
 #include <linux/file.h>
 #include <linux/fs.h>
@@ -24,6 +24,7 @@
 #include <linux/list.h>
 #include <linux/memblock.h>
 #include <linux/miscdevice.h>
+#include <linux/export.h>
 #include <linux/mm.h>
 #include <linux/mm_types.h>
 #include <linux/rbtree.h>

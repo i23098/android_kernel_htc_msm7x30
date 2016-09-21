@@ -1,5 +1,5 @@
 /*
- * drivers/gpu/ion/ion_carveout_heap.c
+ * drivers/staging/android/ion/ion_carveout_heap.c
  *
  * Copyright (C) 2011 Google, Inc.
  * Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
@@ -19,10 +19,10 @@
 #include <linux/err.h>
 #include <linux/genalloc.h>
 #include <linux/io.h>
-#include <linux/ion.h>
 #include <linux/mm.h>
 #include <linux/scatterlist.h>
 #include <linux/slab.h>
+#include <linux/ion.h>
 #include <linux/iommu.h>
 #include <linux/seq_file.h>
 #include "ion_priv.h"

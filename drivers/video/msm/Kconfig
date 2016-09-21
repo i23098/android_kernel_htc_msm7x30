@@ -1,18 +1,6 @@
 
 source "drivers/video/msm/vidc/Kconfig"
 
-config FB_MSM
-	tristate "MSM Framebuffer support"
-	depends on FB && ARCH_MSM
-	select FB_BACKLIGHT if FB_MSM_BACKLIGHT
-	select NEW_LEDS
-	select LEDS_CLASS
-	select FB_CFB_FILLRECT
-	select FB_CFB_COPYAREA
-	select FB_CFB_IMAGEBLIT
-	---help---
-	  Support for MSM Framebuffer.
-
 if FB_MSM
 
 config FB_MSM_BACKLIGHT
