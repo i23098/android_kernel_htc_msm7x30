@@ -484,7 +484,6 @@ M:	Hannes Reinecke <hare@suse.de>
 L:	linux-scsi@vger.kernel.org
 S:	Maintained
 F:	drivers/scsi/aic7xxx/
-F:	drivers/scsi/aic7xxx_old/
 
 AIMSLAB FM RADIO RECEIVER DRIVER
 M:	Hans Verkuil <hverkuil@xs4all.nl>
@@ -538,6 +537,13 @@ F:	drivers/tty/serial/altera_uart.c
 F:	drivers/tty/serial/altera_jtaguart.c
 F:	include/linux/altera_uart.h
 F:	include/linux/altera_jtaguart.h
+
+AMD CRYPTOGRAPHIC COPROCESSOR (CCP) DRIVER
+M:	Tom Lendacky <thomas.lendacky@amd.com>
+L:	linux-crypto@vger.kernel.org
+S:	Supported
+F:	drivers/crypto/ccp/
+F:	include/linux/ccp.h
 
 AMD FAM15H PROCESSOR POWER MONITORING DRIVER
 M:	Andreas Herrmann <herrmann.der.user@googlemail.com>
@@ -1598,11 +1604,10 @@ S:      Supported
 F:      drivers/scsi/esas2r
 
 AUDIT SUBSYSTEM
-M:	Al Viro <viro@zeniv.linux.org.uk>
 M:	Eric Paris <eparis@redhat.com>
 L:	linux-audit@redhat.com (subscribers-only)
 W:	http://people.redhat.com/sgrubb/audit/
-T:	git git://git.kernel.org/pub/scm/linux/kernel/git/viro/audit-current.git
+T:	git git://git.infradead.org/users/eparis/audit.git
 S:	Maintained
 F:	include/linux/audit.h
 F:	include/uapi/linux/audit.h
@@ -3635,6 +3640,7 @@ W:	http://en.wikipedia.org/wiki/F2FS
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/jaegeuk/f2fs.git
 S:	Maintained
 F:	Documentation/filesystems/f2fs.txt
+F:	Documentation/ABI/testing/sysfs-fs-f2fs
 F:	fs/f2fs/
 F:	include/linux/f2fs_fs.h
 
@@ -4916,7 +4922,7 @@ F:	include/linux/sunrpc/
 F:	include/uapi/linux/sunrpc/
 
 KERNEL VIRTUAL MACHINE (KVM)
-M:	Gleb Natapov <gleb@redhat.com>
+M:	Gleb Natapov <gleb@kernel.org>
 M:	Paolo Bonzini <pbonzini@redhat.com>
 L:	kvm@vger.kernel.org
 W:	http://www.linux-kvm.org
@@ -6712,7 +6718,7 @@ F:	include/linux/timer*
 F:	kernel/*timer*
 
 POWER SUPPLY CLASS/SUBSYSTEM and DRIVERS
-M:	Anton Vorontsov <anton@enomsg.org>
+M:	Dmitry Eremin-Solenikov <dbaryshkov@gmail.com>
 M:	David Woodhouse <dwmw2@infradead.org>
 T:	git git://git.infradead.org/battery-2.6.git
 S:	Maintained
@@ -6931,8 +6937,7 @@ S:	Maintained
 F:	drivers/scsi/qla1280.[ch]
 
 QLOGIC QLA2XXX FC-SCSI DRIVER
-M:	Andrew Vasquez <andrew.vasquez@qlogic.com>
-M:	linux-driver@qlogic.com
+M:	qla2xxx-upstream@qlogic.com
 L:	linux-scsi@vger.kernel.org
 S:	Supported
 F:	Documentation/scsi/LICENSE.qla2xxx
@@ -7492,8 +7497,9 @@ F:	include/scsi/srp.h
 SCSI SG DRIVER
 M:	Doug Gilbert <dgilbert@interlog.com>
 L:	linux-scsi@vger.kernel.org
-W:	http://www.torque.net/sg
+W:	http://sg.danny.cz/sg
 S:	Maintained
+F:	Documentation/scsi/scsi-generic.txt
 F:	drivers/scsi/sg.c
 F:	include/scsi/sg.h
 
@@ -8746,14 +8752,10 @@ S:	Odd fixes
 F:	drivers/media/usb/tm6000/
 
 TPM DEVICE DRIVER
-M:	Leonidas Da Silva Barbosa <leosilva@linux.vnet.ibm.com>
-M:	Ashley Lai <ashley@ashleylai.com>
 M:	Peter Huewe <peterhuewe@gmx.de>
-M:	Rajiv Andrade <mail@srajiv.net>
-W:	http://tpmdd.sourceforge.net
+M:	Ashley Lai <ashley@ashleylai.com>
 M:	Marcel Selhorst <tpmdd@selhorst.net>
-M:	Sirrix AG <tpmdd@sirrix.com>
-W:	http://www.sirrix.com
+W:	http://tpmdd.sourceforge.net
 L:	tpmdd-devel@lists.sourceforge.net (moderated for non-subscribers)
 S:	Maintained
 F:	drivers/char/tpm/
@@ -9564,6 +9566,7 @@ M:	Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
 M:	Boris Ostrovsky <boris.ostrovsky@oracle.com>
 M:	David Vrabel <david.vrabel@citrix.com>
 L:	xen-devel@lists.xenproject.org (moderated for non-subscribers)
+T:	git git://git.kernel.org/pub/scm/linux/kernel/git/xen/tip.git
 S:	Supported
 F:	arch/x86/xen/
 F:	drivers/*/xen-*front.c
