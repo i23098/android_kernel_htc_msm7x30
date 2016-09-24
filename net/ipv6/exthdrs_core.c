@@ -197,7 +197,7 @@ int ipv6_find_hdr(const struct sk_buff *skb, unsigned int *offset,
 		unsigned int hdrlen;
 
 		if ((!ipv6_ext_hdr(nexthdr)) || nexthdr == NEXTHDR_NONE) {
-			if (target < 0 || found)
+			if (target < 0)
 				break;
 			return -ENOENT;
 		}
