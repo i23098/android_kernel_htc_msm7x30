@@ -53,7 +53,6 @@ struct rtable {
 	__u8			rt_uses_gateway;
 
 	int			rt_iif;
-	uid_t			rt_uid;
 
 	/* Info on neighbour */
 	__be32			rt_gateway;
@@ -138,7 +137,8 @@ static inline struct rtable *ip_route_output_ports(struct net *net, struct flowi
 	flowi4_init_output(fl4, oif, sk ? sk->sk_mark : 0, tos,
 			   RT_SCOPE_UNIVERSE, proto,
 			   sk ? inet_sk_flowi_flags(sk) : 0,
-			   daddr, saddr, dport, sport, sk ? sock_i_uid(sk) : 0);
+			   daddr, saddr, dport, sport,
+			   sk ? sock_i_uid(sk) : GLOBAL_ROOT_UID);
 	if (sk)
 		security_sk_classify_flow(sk, flowi4_to_flowi(fl4));
 	return ip_route_output_flow(net, fl4, sk);
