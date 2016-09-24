@@ -20,6 +20,7 @@
 
 #include <linux/types.h>
 #include <linux/usb/otg.h>
+#include <linux/clk.h>
 #include <linux/wakelock.h>
 #include <mach/board.h>
 #include <linux/pm_qos.h>
@@ -174,6 +175,8 @@ struct msm_otg_platform_data {
 	void (*usb_uart_switch)(int uart);
 	int (*rpc_connect)(int connect);
 	int (*phy_reset)(void);
+	int (*link_clk_reset)(struct clk *link_clk, bool assert);
+	int (*phy_clk_reset)(struct clk *phy_clk);
 };
 
 /**
