@@ -120,61 +120,6 @@ static int32_t spi_write_table(CODEC_SPI_CMD *cmds, int num)
 	return status;
 }
 
-static int32_t spi_write_table_parsepage(CODEC_SPI_CMD *cmds, int num)
-{
-	int i;
-	int bulk_counter;
-	int status = 0;
-	struct spi_message	m;
-	struct spi_transfer	tx_addr;
-	unsigned char page_select = (unsigned char)0;
-	unsigned int reg_long1, reg_long2;
-
-	if (codec_dev == NULL) {
-		status = -ESHUTDOWN;
-		return status;
-	}
-
-	i = 0;
-
-	while (i < num) {
-		if (cmds[i].reg == page_select) {
-			/* select page */
-			codec_spi_write(cmds[i].reg, cmds[i].data);
-			i++;
-		} else {
-			spi_message_init(&m);
-			memset(bulk_tx, 0, MINIDSP_COL_MAX * 2 * \
-				sizeof(uint8_t));
-			memset(&tx_addr, 0, sizeof(struct spi_transfer));
-
-			bulk_counter = 0;
-			bulk_tx[bulk_counter] = cmds[i].reg << 1;
-			bulk_tx[bulk_counter + 1] = cmds[i].data;
-			bulk_counter += 2;
-
-			do {
-				reg_long1 = (unsigned int)cmds[i].reg;
-				reg_long2 = (unsigned int)cmds[i+1].reg;
-				if (reg_long2 == (reg_long1+1)) {
-					bulk_tx[bulk_counter] = cmds[i+1].data;
-					bulk_counter++;
-				}
-				i++;
-			} while (reg_long2 == (reg_long1+1));
-
-			tx_addr.tx_buf = bulk_tx;
-			tx_addr.len = (bulk_counter);
-			tx_addr.cs_change = 1;
-			tx_addr.bits_per_word = 8;
-			spi_message_add_tail(&tx_addr, &m);
-			status = spi_sync(codec_dev, &m);
-		}
-	}
-
-	return status;
-}
-
 static int aic3254_config(CODEC_SPI_CMD *cmds, int size)
 {
 	int i, retry, ret;
@@ -206,7 +151,6 @@ static int aic3254_config(CODEC_SPI_CMD *cmds, int size)
 				, __func__);
 	}
 	/* large dsp image use bulk mode to transfer */
-	/* avoid to bulk transfer on spi use ext_gpio_cs project */
 	if (size < 1000) {
 		for (i = 0; i < size; i++) {
 			switch (cmds[i].act) {
@@ -238,10 +182,7 @@ static int aic3254_config(CODEC_SPI_CMD *cmds, int size)
 		}
 	} else {
 		/* use bulk to transfer large data */
-		if (codec_dev->ext_gpio_cs != 0)
-			spi_write_table_parsepage(cmds, size);
-		else
-			spi_write_table(cmds, size);
+		spi_write_table(cmds, size);
 	}
 	if (ctl_ops->spibus_enable)
 		ctl_ops->spibus_enable(0);
