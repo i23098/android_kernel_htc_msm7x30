@@ -91,13 +91,7 @@ extern int dhd_change_mtu(dhd_pub_t *dhd, int new_mtu, int ifidx);
 bool ap_cfg_running = FALSE;
 bool ap_fw_loaded = FALSE;
 
-
-#ifdef DHD_DEBUG
-const char dhd_version[] = "Dongle Host Driver, version " EPI_VERSION_STR "\nCompiled on "
-	__DATE__ " at " __TIME__;
-#else
 const char dhd_version[] = "Dongle Host Driver, version " EPI_VERSION_STR;
-#endif
 
 void dhd_set_timer(void *bus, uint wdtick);
 
