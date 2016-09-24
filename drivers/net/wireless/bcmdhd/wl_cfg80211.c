@@ -3655,6 +3655,11 @@ wl_cfg80211_send_at_common_channel(struct wl_priv *wl,
 		return false; /* NO ACK */
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+static s32
+wl_cfg80211_mgmt_tx(struct wiphy *wiphy, bcm_struct_cfgdev *cfgdev,
+	struct cfg80211_mgmt_tx_params *params, u64 *cookie)
+#else
 static s32
 wl_cfg80211_mgmt_tx(struct wiphy *wiphy, bcm_struct_cfgdev *cfgdev,
 	struct ieee80211_channel *channel, bool offchan,
@@ -3671,12 +3676,18 @@ wl_cfg80211_mgmt_tx(struct wiphy *wiphy, bcm_struct_cfgdev *cfgdev,
 	bool dont_wait_for_ack,
 #endif
 	u64 *cookie)
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0) */
 {
 	wl_action_frame_t *action_frame;
 	wl_af_params_t *af_params;
 	wifi_p2p_ie_t *p2p_ie;
 	wpa_ie_fixed_t *wps_ie;
 	scb_val_t scb_val;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+	struct ieee80211_channel *channel = params->chan;
+	const u8 *buf = params->buf;
+	size_t len = params->len;
+#endif
 	wifi_wfd_ie_t *wfd_ie;
 	const struct ieee80211_mgmt *mgmt;
 	struct wl_priv *wl = wiphy_priv(wiphy);
@@ -4893,7 +4904,11 @@ static s32 wl_setup_wiphy(struct wireless_dev *wdev, struct device *sdiofunc_dev
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 10) */
 #endif
 	WL_DBG(("Registering custom regulatory)\n"));
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+	wdev->wiphy->regulatory_flags |= REGULATORY_CUSTOM_REG;
+#else
 	wdev->wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
+#endif
 	wiphy_apply_custom_regulatory(wdev->wiphy, &brcm_regdom);
 	/* Now we can register wiphy with cfg80211 module */
 	err = wiphy_register(wdev->wiphy);
@@ -7522,10 +7537,19 @@ static int wl_construct_reginfo(struct wl_priv *wl, s32 bw_cap)
   				err = wldev_iovar_getint(dev, "per_chan_info", &channel);
 				if (!err) {
 					if (channel & WL_CHAN_RADAR) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0))
 						band_chan_arr[index].flags |= IEEE80211_CHAN_RADAR | IEEE80211_CHAN_NO_IBSS;
+#else
+						band_chan_arr[index].flags |= IEEE80211_CHAN_RADAR;
+#endif
 					}
 					if (channel & WL_CHAN_PASSIVE) {
-						band_chan_arr[index].flags |= IEEE80211_CHAN_PASSIVE_SCAN | IEEE80211_CHAN_NO_IBSS;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0))
+						band_chan_arr[index].flags |= IEEE80211_CHAN_NO_IBSS;
+						band_chan_arr[index].flags |= IEEE80211_CHAN_PASSIVE_SCAN;
+#else
+						band_chan_arr[index].flags |= IEEE80211_CHAN_NO_IR;
+#endif
 					}
 		  		}
 			}
