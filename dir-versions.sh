@@ -12,3 +12,5 @@ git checkout HEAD -- lib/lzo/lzo1x_decompress_safe.c
 # drivers/usb/gadget/udc-core.c - use only new style codes
 # drivers/usb/gadget/android.c rewrite all this code to something useful
 # net/ipv6/exthdrs_core.c - fix code
+# need to rewrite use Device Drivers -> USB Support -> USB Gadget Support -> USB Gadget Driver -> Function Filesystem
+# https://groups.google.com/forum/#!topic/android-kernel/EDPxbSze-6Q

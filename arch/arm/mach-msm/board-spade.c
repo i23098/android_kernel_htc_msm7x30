@@ -2609,19 +2609,25 @@ static struct perflock_platform_data spade_perflock_data = {
 void spade_add_usb_devices(void)
 {
 	printk(KERN_INFO "%s rev: %d\n", __func__, system_rev);
+#ifdef CONFIG_USB_G_ANDROID
 	android_usb_pdata.products[0].product_id =
 			android_usb_pdata.product_id;
+#endif
 #if defined(CONFIG_USB_OTG)
 	msm_device_otg.dev.platform_data = &msm_otg_pdata;
 	platform_device_register(&msm_device_otg);
 #endif
 	platform_device_register(&msm_device_gadget_peripheral);
+#ifdef CONFIG_USB_G_ANDROID
 	platform_device_register(&android_usb_device);
+#endif
 }
 
 static int __init board_serialno_setup(char *serialno)
 {
+#ifdef CONFIG_USB_G_ANDROID
 	android_usb_pdata.serial_number = serialno;
+#endif
 	return 1;
 }
 __setup("androidboot.serialno=", board_serialno_setup);
