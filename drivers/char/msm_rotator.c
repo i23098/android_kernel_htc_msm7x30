@@ -173,7 +173,6 @@ struct msm_rotator_commit_info {
 	struct ion_handle *srcp1_ihdl;
 	struct ion_handle *dstp0_ihdl;
 	struct ion_handle *dstp1_ihdl;
-	int ps0_need;
 	int session_index;
 	struct sync_fence *acq_fen;
 	int fast_yuv_en;
@@ -1684,24 +1683,22 @@ static int msm_rotator_rgb_types(struct msm_rotator_img_info *info,
 
 static int get_img(struct msmfb_data *fbd, int domain,
 	unsigned long *start, unsigned long *len, struct file **p_file,
-	int *p_need, struct ion_handle **p_ihdl, unsigned int secure)
+	struct ion_handle **p_ihdl, unsigned int secure)
 {
 	int ret = 0;
 #ifdef CONFIG_FB
 	struct file *file = NULL;
-	int put_needed, fb_num;
+	int fb_num;
 #endif
 #ifdef CONFIG_ANDROID_PMEM
 	unsigned long vstart;
 #endif
 
-	*p_need = 0;
-
 #ifdef CONFIG_FB
 	if (fbd->flags & MDP_MEMORY_ID_TYPE_FB) {
-		file = fget_light(fbd->memory_id, &put_needed);
+		file = fget(fbd->memory_id);
 		if (file == NULL) {
-			pr_err("fget_light returned NULL\n");
+			pr_err("fget returned NULL\n");
 			return -EINVAL;
 		}
 
@@ -1713,14 +1710,13 @@ static int get_img(struct msmfb_data *fbd, int domain,
 				ret = -1;
 			} else {
 				*p_file = file;
-				*p_need = put_needed;
 			}
 		} else {
 			pr_err("invalid FB_MAJOR failed\n");
 			ret = -1;
 		}
 		if (ret)
-			fput_light(file, put_needed);
+			fput(file);
 		return ret;
 	}
 #endif
@@ -1776,7 +1772,6 @@ static int msm_rotator_rotate_prepare(
 	struct file *srcp1_file = NULL, *dstp1_file = NULL;
 	struct ion_handle *srcp0_ihdl = NULL, *dstp0_ihdl = NULL;
 	struct ion_handle *srcp1_ihdl = NULL, *dstp1_ihdl = NULL;
-	int ps0_need, p_need;
 	unsigned int in_chroma_paddr = 0, out_chroma_paddr = 0;
 	unsigned int in_chroma2_paddr = 0, out_chroma2_paddr = 0;
 	struct msm_rotator_img_info *img_info;
@@ -1829,7 +1824,7 @@ static int msm_rotator_rotate_prepare(
 	}
 
 	rc = get_img(&info.src, ROTATOR_SRC_DOMAIN, (unsigned long *)&in_paddr,
-			(unsigned long *)&src_len, &srcp0_file, &ps0_need,
+			(unsigned long *)&src_len, &srcp0_file,
 			&srcp0_ihdl, 0);
 	if (rc) {
 		pr_err("%s: in get_img() failed id=0x%08x\n",
@@ -1838,7 +1833,7 @@ static int msm_rotator_rotate_prepare(
 	}
 
 	rc = get_img(&info.dst, ROTATOR_DST_DOMAIN, (unsigned long *)&out_paddr,
-			(unsigned long *)&dst_len, &dstp0_file, &p_need,
+			(unsigned long *)&dst_len, &dstp0_file,
 			&dstp0_ihdl, img_info->secure);
 	if (rc) {
 		pr_err("%s: out get_img() failed id=0x%08x\n",
@@ -1869,7 +1864,7 @@ static int msm_rotator_rotate_prepare(
 
 		rc = get_img(&info.src_chroma, ROTATOR_SRC_DOMAIN,
 				(unsigned long *)&in_chroma_paddr,
-				(unsigned long *)&src_len, &srcp1_file, &p_need,
+				(unsigned long *)&src_len, &srcp1_file,
 				&srcp1_ihdl, 0);
 		if (rc) {
 			pr_err("%s: in chroma get_img() failed id=0x%08x\n",
@@ -1879,7 +1874,7 @@ static int msm_rotator_rotate_prepare(
 
 		rc = get_img(&info.dst_chroma, ROTATOR_DST_DOMAIN,
 				(unsigned long *)&out_chroma_paddr,
-				(unsigned long *)&dst_len, &dstp1_file, &p_need,
+				(unsigned long *)&dst_len, &dstp1_file,
 				&dstp1_ihdl, img_info->secure);
 		if (rc) {
 			pr_err("%s: out chroma get_img() failed id=0x%08x\n",
@@ -1955,7 +1950,6 @@ static int msm_rotator_rotate_prepare(
 	commit_info->dstp0_ihdl = dstp0_ihdl;
 	commit_info->dstp1_file = dstp1_file;
 	commit_info->dstp1_ihdl = dstp1_ihdl;
-	commit_info->ps0_need = ps0_need;
 	commit_info->session_index = s;
 	commit_info->acq_fen = msm_rotator_dev->sync_info[s].acq_fen;
 	commit_info->fast_yuv_en = mrd->rot_session[s]->fast_yuv_enable;
@@ -1972,7 +1966,7 @@ rotate_prepare_error:
 
 	/* only source may use frame buffer */
 	if (info.src.flags & MDP_MEMORY_ID_TYPE_FB)
-		fput_light(srcp0_file, ps0_need);
+		fput(srcp0_file);
 	else
 		put_img(srcp0_file, srcp0_ihdl, ROTATOR_SRC_DOMAIN, 0);
 	dev_dbg(msm_rotator_dev->device, "%s() returning rc = %d\n",
@@ -1992,7 +1986,7 @@ static int msm_rotator_do_rotate_sub(
 	struct file *srcp1_file, *dstp1_file;
 	struct ion_handle *srcp0_ihdl, *dstp0_ihdl;
 	struct ion_handle *srcp1_ihdl, *dstp1_ihdl;
-	int s, ps0_need;
+	int s;
 	unsigned int in_chroma_paddr, out_chroma_paddr;
 	unsigned int in_chroma2_paddr, out_chroma2_paddr;
 	struct msm_rotator_img_info *img_info;
@@ -2016,7 +2010,6 @@ static int msm_rotator_do_rotate_sub(
 	dstp0_ihdl = commit_info->dstp0_ihdl;
 	dstp1_file = commit_info->dstp1_file;
 	dstp1_ihdl = commit_info->dstp1_ihdl;
-	ps0_need = commit_info->ps0_need;
 	s = commit_info->session_index;
 
 	msm_rotator_wait_for_fence(commit_info->acq_fen);
@@ -2159,7 +2152,7 @@ do_rotate_exit:
 
 	/* only source may use frame buffer */
 	if (info.src.flags & MDP_MEMORY_ID_TYPE_FB)
-		fput_light(srcp0_file, ps0_need);
+		fput(srcp0_file);
 	else
 		put_img(srcp0_file, srcp0_ihdl, ROTATOR_SRC_DOMAIN, 0);
 	msm_rotator_signal_timeline_done(s);
