@@ -263,7 +263,7 @@ config VDD_SYSFS_INTERFACE
 	  Creates a sysfs interface for VDD entries
 
 menu "ARM CPU frequency scaling drivers"
-depends on ARM
+depends on ARM || ARM64
 source "drivers/cpufreq/Kconfig.arm"
 endmenu
 

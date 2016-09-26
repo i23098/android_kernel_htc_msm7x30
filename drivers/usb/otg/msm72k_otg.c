@@ -2768,7 +2768,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	motg->ac_detect_timer.function = ac_detect_expired;
 	init_timer(&motg->ac_detect_timer);
 
-	motg->wq = alloc_workqueue("k_otg", WQ_NON_REENTRANT, 0);
+	motg->wq = alloc_workqueue("k_otg", 0, 0);
 	if (!motg->wq) {
 		ret = -ENOMEM;
 		goto free_wlock;
