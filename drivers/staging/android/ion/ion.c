@@ -18,9 +18,10 @@
 
 #include <linux/device.h>
 #include <linux/file.h>
+#include <linux/freezer.h>
 #include <linux/fs.h>
 #include <linux/anon_inodes.h>
-#include <linux/ion.h>
+#include <linux/kthread.h>
 #include <linux/list.h>
 #include <linux/memblock.h>
 #include <linux/miscdevice.h>
@@ -28,12 +29,15 @@
 #include <linux/mm.h>
 #include <linux/mm_types.h>
 #include <linux/rbtree.h>
-#include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
+#include <linux/vmalloc.h>
 #include <linux/debugfs.h>
 #include <linux/dma-buf.h>
+#include <linux/sched.h>
+
+#include <linux/ion.h>
 #include <linux/msm_ion.h>
 
 #include <mach/iommu_domains.h>
@@ -975,6 +979,7 @@ struct ion_client *ion_client_create(struct ion_device *dev,
 
 	return client;
 }
+EXPORT_SYMBOL(ion_client_create);
 
 void ion_client_destroy(struct ion_client *client)
 {
@@ -1843,6 +1848,7 @@ void __init ion_reserve(struct ion_platform_data *data)
 	for (i = 0; i < data->nr; i++) {
 		if (data->heaps[i].size == 0)
 			continue;
+
 		ret = memblock_reserve(data->heaps[i].base,
 				       data->heaps[i].size);
 		if (ret)
