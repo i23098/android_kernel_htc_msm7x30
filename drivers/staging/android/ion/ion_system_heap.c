@@ -70,7 +70,7 @@ err0:
 	return -ENOMEM;
 }
 
-void ion_system_heap_free(struct ion_buffer *buffer)
+static void ion_system_heap_free(struct ion_buffer *buffer)
 {
 	int i;
 	struct scatterlist *sg;
@@ -372,8 +372,8 @@ static int ion_system_contig_heap_phys(struct ion_heap *heap,
 	return 0;
 }
 
-struct sg_table *ion_system_contig_heap_map_dma(struct ion_heap *heap,
-						   struct ion_buffer *buffer)
+static struct sg_table *ion_system_contig_heap_map_dma(struct ion_heap *heap,
+						struct ion_buffer *buffer)
 {
 	struct sg_table *table;
 	int ret;
