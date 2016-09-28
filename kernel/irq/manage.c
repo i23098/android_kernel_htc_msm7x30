@@ -1114,10 +1114,9 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 		if (new->flags & IRQF_ONESHOT)
 			desc->istate |= IRQS_ONESHOT;
 
-		if (irq_settings_can_autoenable(desc)) {
+		if (irq_settings_can_autoenable(desc))
 			irq_startup(desc, true);
-			check_irq_resend(desc, irq);
-		} else
+		else
 			/* Undo nested disables: */
 			desc->depth = 1;
 
@@ -1262,15 +1261,8 @@ static struct irqaction *__free_irq(unsigned int irq, void *dev_id)
 	*action_ptr = action->next;
 
 	/* If this was the last handler, shut down the IRQ line: */
-	if (!desc->action) {
+	if (!desc->action)
 		irq_shutdown(desc);
-
-		/* Explicitly mask the interrupt */
-		if (desc->irq_data.chip->irq_mask)
-			desc->irq_data.chip->irq_mask(&desc->irq_data);
-		else if (desc->irq_data.chip->irq_mask_ack)
-			desc->irq_data.chip->irq_mask_ack(&desc->irq_data);
-	}
 
 #ifdef CONFIG_SMP
 	/* make sure affinity_hint is cleaned up */
@@ -1687,7 +1679,7 @@ int request_percpu_irq(unsigned int irq, irq_handler_t handler,
 		return -ENOMEM;
 
 	action->handler = handler;
-	action->flags = IRQF_PERCPU;
+	action->flags = IRQF_PERCPU | IRQF_NO_SUSPEND;
 	action->name = devname;
 	action->percpu_dev_id = dev_id;
 
