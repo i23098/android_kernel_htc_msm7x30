@@ -18,6 +18,12 @@
 
 #include <linux/ion.h>
 
+/*
+ * @ION_HEAP_TYPE_IOMMU: IOMMU memory
+ * @ION_HEAP_TYPE_CP:   memory allocated from a prereserved
+ *                             carveout heap, allocations are physically
+ *                             contiguous. Used for content protection.
+ */
 enum msm_ion_heap_types {
 	ION_HEAP_TYPE_MSM_START = ION_HEAP_TYPE_CUSTOM + 1,
 	ION_HEAP_TYPE_IOMMU = ION_HEAP_TYPE_MSM_START,
