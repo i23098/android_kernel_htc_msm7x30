@@ -57,8 +57,8 @@ struct ion_device {
 	struct rb_root buffers;
 	struct mutex lock;
 	struct rb_root heaps;
-	long (*custom_ioctl) (struct ion_client *client, unsigned int cmd,
-			      unsigned long arg);
+	long (*custom_ioctl)(struct ion_client *client, unsigned int cmd,
+			     unsigned long arg);
 	struct rb_root clients;
 	struct dentry *debug_root;
 };
@@ -1091,7 +1091,7 @@ static void ion_unmap_dma_buf(struct dma_buf_attachment *attachment,
 {
 }
 
-static void ion_vma_open(struct vm_area_struct *vma)
+static void ion_vm_open(struct vm_area_struct *vma)
 {
 	struct ion_buffer *buffer = vma->vm_private_data;
 
@@ -1102,7 +1102,7 @@ static void ion_vma_open(struct vm_area_struct *vma)
 	mutex_unlock(&buffer->lock);
 }
 
-static void ion_vma_close(struct vm_area_struct *vma)
+static void ion_vm_close(struct vm_area_struct *vma)
 {
 	struct ion_buffer *buffer = vma->vm_private_data;
 
@@ -1116,9 +1116,9 @@ static void ion_vma_close(struct vm_area_struct *vma)
 		buffer->heap->ops->unmap_user(buffer->heap, buffer);
 }
 
-static struct vm_operations_struct ion_vm_ops = {
-	.open = ion_vma_open,
-	.close = ion_vma_close,
+static struct vm_operations_struct ion_vma_ops = {
+	.open = ion_vm_open,
+	.close = ion_vm_close,
 };
 
 static int ion_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
@@ -1144,7 +1144,7 @@ static int ion_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 		buffer->umap_cnt++;
 		mutex_unlock(&buffer->lock);
 
-		vma->vm_ops = &ion_vm_ops;
+		vma->vm_ops = &ion_vma_ops;
 		/*
 		 * move the buffer into the vm_private_data so we can access it
 		 * from vma_open/close
@@ -1807,8 +1807,6 @@ static const struct file_operations debug_leak_fops = {
 	.llseek = seq_lseek,
 	.release = single_release,
 };
-
-
 
 struct ion_device *ion_device_create(long (*custom_ioctl)
 				     (struct ion_client *client,
