@@ -717,6 +717,14 @@ config MSM_DALRPC
 	help
 	  Supports RPC calls to DAL devices on remote processor cores.
 
+config CPU_FREQ_MSM
+	bool
+	depends on CPU_FREQ && ARCH_MSM
+	default n
+	help
+	  This enables the CPUFreq driver for Qualcomm CPUs.
+	  If in doubt, say Y.
+
 if CPU_FREQ_MSM
 
 config MSM_CPU_FREQ_SET_MIN_MAX

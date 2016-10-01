@@ -14,3 +14,4 @@ git checkout HEAD -- lib/lzo/lzo1x_decompress_safe.c
 # net/ipv6/exthdrs_core.c - fix code
 # need to rewrite use Device Drivers -> USB Support -> USB Gadget Support -> USB Gadget Driver -> Function Filesystem
 # https://groups.google.com/forum/#!topic/android-kernel/EDPxbSze-6Q
+# unable back FREQ_MSM 77b0999d490765a88edbdb1bba3fc3147bb9e782
