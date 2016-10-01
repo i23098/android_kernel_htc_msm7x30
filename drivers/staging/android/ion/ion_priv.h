@@ -24,6 +24,10 @@
 #include <linux/mm_types.h>
 #include <linux/mutex.h>
 #include <linux/rbtree.h>
+#include <linux/sched.h>
+#include <linux/shrinker.h>
+#include <linux/types.h>
+
 #include <linux/ion.h>
 #include <linux/iommu.h>
 #include <linux/seq_file.h>

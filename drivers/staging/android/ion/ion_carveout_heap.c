@@ -15,18 +15,19 @@
  *
  */
 #include <linux/spinlock.h>
-
+#include <linux/dma-mapping.h>
 #include <linux/err.h>
 #include <linux/genalloc.h>
 #include <linux/io.h>
 #include <linux/mm.h>
 #include <linux/scatterlist.h>
 #include <linux/slab.h>
+#include <linux/vmalloc.h>
 #include <linux/ion.h>
-#include <linux/iommu.h>
-#include <linux/seq_file.h>
 #include "ion_priv.h"
 
+#include <linux/iommu.h>
+#include <linux/seq_file.h>
 #include <mach/iommu_domains.h>
 #include <asm/mach/map.h>
 #include <asm/cacheflush.h>
@@ -54,17 +55,8 @@ ion_phys_addr_t ion_carveout_allocate(struct ion_heap *heap,
 	unsigned long offset = gen_pool_alloc_aligned(carveout_heap->pool,
 							size, ilog2(align));
 
-	if (!offset) {
-		if ((carveout_heap->total_size -
-		      carveout_heap->allocated_bytes) >= size)
-			pr_debug("%s: heap %s has enough memory (%lx) but"
-				" the allocation of size %lx still failed."
-				" Memory is probably fragmented.",
-				__func__, heap->name,
-				carveout_heap->total_size -
-				carveout_heap->allocated_bytes, size);
+	if (!offset)
 		return ION_CARVEOUT_ALLOCATE_FAIL;
-	}
 
 	carveout_heap->allocated_bytes += size;
 	return offset;

@@ -15,16 +15,20 @@
  *
  */
 
+#include <asm/page.h>
+#include <linux/dma-mapping.h>
 #include <linux/err.h>
-#include <linux/ion.h>
+#include <linux/highmem.h>
 #include <linux/mm.h>
 #include <linux/scatterlist.h>
+#include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
+#include <linux/ion.h>
+#include "ion_priv.h"
 #include <linux/iommu.h>
 #include <linux/seq_file.h>
 #include <mach/iommu_domains.h>
-#include "ion_priv.h"
 #include <mach/msm_mem.h>
 #include <asm/cacheflush.h>
 #include <linux/msm_ion.h>
@@ -84,14 +88,14 @@ static void ion_system_heap_free(struct ion_buffer *buffer)
 	atomic_sub(buffer->size, &system_heap_allocated);
 }
 
-struct sg_table *ion_system_heap_map_dma(struct ion_heap *heap,
-					 struct ion_buffer *buffer)
+static struct sg_table *ion_system_heap_map_dma(struct ion_heap *heap,
+						struct ion_buffer *buffer)
 {
 	return buffer->priv_virt;
 }
 
-void ion_system_heap_unmap_dma(struct ion_heap *heap,
-			       struct ion_buffer *buffer)
+static void ion_system_heap_unmap_dma(struct ion_heap *heap,
+				      struct ion_buffer *buffer)
 {
 	return;
 }

@@ -35,11 +35,10 @@
 #include <linux/vmalloc.h>
 #include <linux/debugfs.h>
 #include <linux/dma-buf.h>
-#include <linux/sched.h>
+#include <linux/idr.h>
 
 #include <linux/ion.h>
 #include <linux/msm_ion.h>
-
 #include <mach/iommu_domains.h>
 #include "ion_priv.h"
 #define DEBUG
@@ -914,6 +913,7 @@ struct ion_client *ion_client_create(struct ion_device *dev,
 	struct rb_node **p;
 	struct rb_node *parent = NULL;
 	struct ion_client *entry;
+	char debug_name[64];
 	pid_t pid;
 	unsigned int name_len;
 
@@ -974,8 +974,8 @@ struct ion_client *ion_client_create(struct ion_device *dev,
 	rb_link_node(&client->node, parent, p);
 	rb_insert_color(&client->node, &dev->clients);
 
-
-	client->debug_root = debugfs_create_file(name, 0664,
+	snprintf(debug_name, 64, "%u", client->pid);
+	client->debug_root = debugfs_create_file(debug_name, 0664,
 						 dev->debug_root, client,
 						 &debug_client_fops);
 	mutex_unlock(&dev->lock);
@@ -1071,6 +1071,10 @@ struct sg_table *ion_sg_table(struct ion_client *client,
 }
 EXPORT_SYMBOL(ion_sg_table);
 
+static void ion_buffer_sync_for_device(struct ion_buffer *buffer,
+				       struct device *dev,
+				       enum dma_data_direction direction);
+
 static struct sg_table *ion_map_dma_buf(struct dma_buf_attachment *attachment,
 					enum dma_data_direction direction)
 {
@@ -1119,7 +1123,7 @@ static struct vm_operations_struct ion_vm_ops = {
 static int ion_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 {
 	struct ion_buffer *buffer = dmabuf->priv;
-	int ret;
+	int ret = 0;
 
 	if (!buffer->heap->ops->map_user) {
 		pr_err("%s: this heap does not define a method for mapping "
@@ -1214,34 +1218,8 @@ static struct dma_buf_ops dma_buf_ops = {
 	.kunmap = ion_dma_buf_kunmap,
 };
 
-static int ion_share_set_flags(struct ion_client *client,
-				struct ion_handle *handle,
-				unsigned long flags)
-{
-	struct ion_buffer *buffer;
-	bool valid_handle;
-	unsigned long ion_flags = 0;
-	if (flags & O_DSYNC)
-		ion_flags = ION_SET_UNCACHED(ion_flags);
-	else
-		ion_flags = ION_SET_CACHED(ion_flags);
-
-
-	mutex_lock(&client->lock);
-	valid_handle = ion_handle_validate(client, handle);
-	mutex_unlock(&client->lock);
-	if (!valid_handle) {
-		WARN(1, "%s: invalid handle passed to set_flags.\n", __func__);
-		return -EINVAL;
-	}
-
-	buffer = handle->buffer;
-
-	return 0;
-}
-
-
-int ion_share_dma_buf(struct ion_client *client, struct ion_handle *handle)
+int ion_share_dma_buf(struct ion_client *client,
+						struct ion_handle *handle)
 {
 	struct ion_buffer *buffer;
 	struct dma_buf *dmabuf;
@@ -1270,6 +1248,32 @@ int ion_share_dma_buf(struct ion_client *client, struct ion_handle *handle)
 	return fd;
 }
 EXPORT_SYMBOL(ion_share_dma_buf);
+
+static int ion_share_set_flags(struct ion_client *client,
+				struct ion_handle *handle,
+				unsigned long flags)
+{
+	struct ion_buffer *buffer;
+	bool valid_handle;
+	unsigned long ion_flags = 0;
+	if (flags & O_DSYNC)
+		ion_flags = ION_SET_UNCACHED(ion_flags);
+	else
+		ion_flags = ION_SET_CACHED(ion_flags);
+
+
+	mutex_lock(&client->lock);
+	valid_handle = ion_handle_validate(client, handle);
+	mutex_unlock(&client->lock);
+	if (!valid_handle) {
+		WARN(1, "%s: invalid handle passed to set_flags.\n", __func__);
+		return -EINVAL;
+	}
+
+	buffer = handle->buffer;
+
+	return 0;
+}
 
 struct ion_handle *ion_import_dma_buf(struct ion_client *client, int fd)
 {

@@ -16,6 +16,13 @@
  */
 
 #include <linux/err.h>
+#include <linux/freezer.h>
+#include <linux/kthread.h>
+#include <linux/mm.h>
+#include <linux/rtmutex.h>
+#include <linux/sched.h>
+#include <linux/scatterlist.h>
+#include <linux/vmalloc.h>
 #include <linux/ion.h>
 #include "ion_priv.h"
 #include <linux/msm_ion.h>
@@ -40,11 +47,9 @@ struct ion_heap *ion_heap_create(struct ion_platform_heap *heap_data)
 	case ION_HEAP_TYPE_CP:
 		heap = ion_cp_heap_create(heap_data);
 		break;
-#ifdef CONFIG_CMA
 	case ION_HEAP_TYPE_DMA:
 		heap = ion_cma_heap_create(heap_data);
 		break;
-#endif
 	default:
 		pr_err("%s: Invalid heap type %d\n", __func__,
 		       heap_data->type);
@@ -52,7 +57,7 @@ struct ion_heap *ion_heap_create(struct ion_platform_heap *heap_data)
 	}
 
 	if (IS_ERR_OR_NULL(heap)) {
-		pr_err("%s: error creating heap %s type %d base %lu size %u\n",
+		pr_err("%s: error creating heap %s type %d base %lu size %zu\n",
 		       __func__, heap_data->name, heap_data->type,
 		       heap_data->base, heap_data->size);
 		return ERR_PTR(-EINVAL);
