@@ -61,6 +61,8 @@ struct ion_device {
 			     unsigned long arg);
 	struct rb_root clients;
 	struct dentry *debug_root;
+	struct dentry *heaps_debug_root;
+	struct dentry *clients_debug_root;
 };
 
 /**
@@ -977,8 +979,15 @@ struct ion_client *ion_client_create(struct ion_device *dev,
 
 	snprintf(debug_name, 64, "%u", client->pid);
 	client->debug_root = debugfs_create_file(debug_name, 0664,
-						 dev->debug_root, client,
-						 &debug_client_fops);
+						dev->clients_debug_root,
+						client, &debug_client_fops);
+	if (!client->debug_root) {
+		char buf[256], *path;
+		path = dentry_path(dev->clients_debug_root, buf, 256);
+		pr_err("Failed to create client debugfs at %s/%s\n",
+			path, debug_name);
+	}
+
 	mutex_unlock(&dev->lock);
 
 	return client;
@@ -1658,6 +1667,7 @@ static const struct file_operations debug_heap_fops = {
 
 void ion_device_add_heap(struct ion_device *dev, struct ion_heap *heap)
 {
+	struct dentry *debug_file;
 	struct rb_node **p = &dev->heaps.rb_node;
 	struct rb_node *parent = NULL;
 	struct ion_heap *entry;
@@ -1686,8 +1696,17 @@ void ion_device_add_heap(struct ion_device *dev, struct ion_heap *heap)
 
 	rb_link_node(&heap->node, parent, p);
 	rb_insert_color(&heap->node, &dev->heaps);
-	debugfs_create_file(heap->name, 0664, dev->debug_root, heap,
-			    &debug_heap_fops);
+	debug_file = debugfs_create_file(heap->name, 0664,
+					dev->heaps_debug_root, heap,
+					&debug_heap_fops);
+
+	if (!debug_file) {
+		char buf[256], *path;
+		path = dentry_path(dev->heaps_debug_root, buf, 256);
+		pr_err("Failed to create heap debugfs at %s/%s\n",
+			path, heap->name);
+	}
+
 end:
 	mutex_unlock(&dev->lock);
 }
@@ -1831,8 +1850,21 @@ struct ion_device *ion_device_create(long (*custom_ioctl)
 	}
 
 	idev->debug_root = debugfs_create_dir("ion", NULL);
-	if (IS_ERR_OR_NULL(idev->debug_root))
-		pr_err("ion: failed to create debug files.\n");
+	if (!idev->debug_root) {
+		pr_err("ion: failed to create debugfs root directory.\n");
+		goto debugfs_done;
+	}
+	idev->heaps_debug_root = debugfs_create_dir("heaps", idev->debug_root);
+	if (!idev->heaps_debug_root) {
+		pr_err("ion: failed to create debugfs heaps directory.\n");
+		goto debugfs_done;
+	}
+	idev->clients_debug_root = debugfs_create_dir("clients",
+						idev->debug_root);
+	if (!idev->clients_debug_root)
+		pr_err("ion: failed to create debugfs clients directory.\n");
+
+debugfs_done:
 
 	idev->custom_ioctl = custom_ioctl;
 	idev->buffers = RB_ROOT;
@@ -1847,6 +1879,7 @@ struct ion_device *ion_device_create(long (*custom_ioctl)
 void ion_device_destroy(struct ion_device *dev)
 {
 	misc_deregister(&dev->dev);
+	debugfs_remove_recursive(dev->debug_root);
 	/* XXX need to free the heaps and clients ? */
 	kfree(dev);
 }

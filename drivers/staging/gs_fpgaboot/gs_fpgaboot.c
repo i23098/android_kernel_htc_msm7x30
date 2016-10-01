@@ -188,7 +188,7 @@ static int gs_read_image(struct fpgaimage *fimage)
 	default:
 		pr_err("unsupported fpga image format\n");
 		return -1;
-	};
+	}
 
 	gs_print_header(fimage);
 
@@ -302,10 +302,7 @@ static int init_driver(void)
 {
 	firmware_pdev = platform_device_register_simple("fpgaboot", -1,
 							 NULL, 0);
-	if (IS_ERR(firmware_pdev))
-		return PTR_ERR(firmware_pdev);
-
-	return 0;
+	return PTR_ERR_OR_ZERO(firmware_pdev);
 }
 
 static void finish_driver(void)
