@@ -2383,7 +2383,7 @@ wl_cfg80211_connect(struct wiphy *wiphy, struct net_device *dev,
 	/* Clean BSSID */
 	bzero(&bssid, sizeof(bssid));
 	wl_update_prof(wl, dev, NULL, (void *)&bssid, WL_PROF_BSSID);
-	wl_update_prof(wl, dev, NULL, sme->bssid, WL_PROF_PENDING_BSSID);
+	wl_update_prof(wl, dev, NULL, (void *)sme->bssid, WL_PROF_PENDING_BSSID);
 
 	if (IS_P2P_SSID(sme->ssid) && (dev != wl_to_prmry_ndev(wl))) {
 		/* we only allow to connect using virtual interface in case of P2P */
@@ -5781,6 +5781,9 @@ static s32
 wl_ibss_join_done(struct wl_priv *wl, struct net_device *ndev,
 	const wl_event_msg_t *e, void *data, bool completed)
 {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+	struct ieee80211_channel *chan;
+#endif
 	s32 err = 0;
 
 	WL_TRACE(("Enter\n"));
@@ -5791,13 +5794,19 @@ wl_ibss_join_done(struct wl_priv *wl, struct net_device *ndev,
 	if (wl_get_drv_status(wl, CONNECTING, ndev)) {
 		wl_clr_drv_status(wl, CONNECTING, ndev);
 		if (completed) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+			chan = ieee80211_get_channel(wl_to_wiphy(wl), wl->channel);
+#endif
 			err = wl_inform_ibss(wl, (u8 *)&e->addr);
 			if (err) {
 				WL_ERR(("wl_inform_ibss() failed: %d\n", err));
 			}
 			wl_set_drv_status(wl, CONNECTED, ndev);
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+			cfg80211_ibss_joined(ndev, (u8 *)&e->addr, chan, GFP_KERNEL);
+#else
 			cfg80211_ibss_joined(ndev, (u8 *)&e->addr, GFP_KERNEL);
+#endif
 			WL_DBG(("cfg80211_ibss_joined() called with valid BSSID\n"));
 		}
 	}
