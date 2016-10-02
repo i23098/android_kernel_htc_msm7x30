@@ -16,3 +16,4 @@ git checkout HEAD -- lib/lzo/lzo1x_decompress_safe.c
 # https://groups.google.com/forum/#!topic/android-kernel/EDPxbSze-6Q
 # unable back FREQ_MSM 77b0999d490765a88edbdb1bba3fc3147bb9e782
 # revert: temporary revert binder issue with __get_user_bad
+# clean up include/linux/usb/phy.h
