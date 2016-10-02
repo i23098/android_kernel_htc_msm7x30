@@ -939,28 +939,19 @@ struct ion_client *ion_client_create(struct ion_device *dev,
 	task_unlock(current->group_leader);
 
 	client = kzalloc(sizeof(struct ion_client), GFP_KERNEL);
-	if (!client) {
-		if (task)
-			put_task_struct(current->group_leader);
-		return ERR_PTR(-ENOMEM);
-	}
+	if (!client)
+		goto err_put_task_struct;
 
 	client->dev = dev;
 	client->handles = RB_ROOT;
 	mutex_init(&client->lock);
 
-	client->name = kzalloc(name_len+1, GFP_KERNEL);
-	if (!client->name) {
-		put_task_struct(current->group_leader);
-		kfree(client);
-		return ERR_PTR(-ENOMEM);
-	} else {
-		strlcpy(client->name, name, name_len+1);
-	}
-
-	client->heap_mask = heap_mask;
 	client->task = task;
 	client->pid = pid;
+	client->name = kstrdup(name, GFP_KERNEL);
+	client->heap_mask = heap_mask;
+	if (!client->name)
+		goto err_free_client;
 
 	mutex_lock(&dev->lock);
 	p = &dev->clients.rb_node;
@@ -989,6 +980,13 @@ struct ion_client *ion_client_create(struct ion_device *dev,
 	mutex_unlock(&dev->lock);
 
 	return client;
+
+err_free_client:
+	kfree(client);
+err_put_task_struct:
+	if (task)
+		put_task_struct(current->group_leader);
+	return ERR_PTR(-ENOMEM);
 }
 EXPORT_SYMBOL(ion_client_create);
 
