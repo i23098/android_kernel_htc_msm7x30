@@ -156,6 +156,36 @@ void ion_system_heap_unmap_iommu(struct ion_iommu_map *data)
 	return;
 }
 
+#if 0
+static int ion_system_heap_shrink(struct ion_heap *heap, gfp_t gfp_mask,
+					int nr_to_scan)
+{
+	struct ion_system_heap *sys_heap;
+	int nr_total = 0;
+	int i;
+
+	sys_heap = container_of(heap, struct ion_system_heap, heap);
+
+	for (i = 0; i < num_orders; i++) {
+		struct ion_page_pool *pool = sys_heap->pools[i];
+		nr_total += ion_page_pool_shrink(pool, gfp_mask, nr_to_scan);
+	}
+
+	return nr_total;
+}
+
+static struct ion_heap_ops system_heap_ops = {
+	.allocate = ion_system_heap_allocate,
+	.free = ion_system_heap_free,
+	.map_dma = ion_system_heap_map_dma,
+	.unmap_dma = ion_system_heap_unmap_dma,
+	.map_kernel = ion_heap_map_kernel,
+	.unmap_kernel = ion_heap_unmap_kernel,
+	.map_user = ion_heap_map_user,
+	.shrink = ion_system_heap_shrink,
+};
+#endif
+
 int ion_system_heap_map_user(struct ion_heap *heap, struct ion_buffer *buffer,
 			     struct vm_area_struct *vma)
 {

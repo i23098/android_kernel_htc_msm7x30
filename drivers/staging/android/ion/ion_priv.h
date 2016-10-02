@@ -143,6 +143,7 @@ struct ion_heap_ops {
 	void (*unmap_kernel)(struct ion_heap *heap, struct ion_buffer *buffer);
 	int (*map_user)(struct ion_heap *mapper, struct ion_buffer *buffer,
 			struct vm_area_struct *vma);
+	int (*shrink)(struct ion_heap *heap, gfp_t gfp_mask, int nr_to_scan);
 	void (*unmap_user) (struct ion_heap *mapper, struct ion_buffer *buffer);
 	int (*cache_op)(struct ion_heap *heap, struct ion_buffer *buffer,
 			void *vaddr, unsigned int offset,
@@ -172,6 +173,14 @@ struct ion_heap_ops {
  *			MUST be unique
  * @name:		used for debugging
  * @priv:		private heap data
+ * @shrinker:		a shrinker for the heap
+ * @free_list:		free list head if deferred free is used
+ * @free_list_size	size of the deferred free list in bytes
+ * @lock:		protects the free list
+ * @waitqueue:		queue to wait on from deferred free thread
+ * @task:		task struct of deferred free thread
+ * @debug_show:		called when heap debug file is read to add any
+ *			heap specific debug info to output
  *
  * Represents a pool of memory from which buffers can be made.  In some
  * systems the only heap is regular system memory allocated via vmalloc.
@@ -233,6 +242,65 @@ void ion_device_destroy(struct ion_device *dev);
 void ion_device_add_heap(struct ion_device *dev, struct ion_heap *heap);
 
 /**
+ * some helpers for common operations on buffers using the sg_table
+ * and vaddr fields
+ */
+void *ion_heap_map_kernel(struct ion_heap *, struct ion_buffer *);
+void ion_heap_unmap_kernel(struct ion_heap *, struct ion_buffer *);
+int ion_heap_map_user(struct ion_heap *, struct ion_buffer *,
+			struct vm_area_struct *);
+int ion_heap_buffer_zero(struct ion_buffer *buffer);
+int ion_heap_pages_zero(struct page *page, size_t size, pgprot_t pgprot);
+
+/**
+ * ion_heap_init_shrinker
+ * @heap:		the heap
+ *
+ * If a heap sets the ION_HEAP_FLAG_DEFER_FREE flag or defines the shrink op
+ * this function will be called to setup a shrinker to shrink the freelists
+ * and call the heap's shrink op.
+ */
+void ion_heap_init_shrinker(struct ion_heap *heap);
+
+/**
+ * ion_heap_init_deferred_free -- initialize deferred free functionality
+ * @heap:		the heap
+ *
+ * If a heap sets the ION_HEAP_FLAG_DEFER_FREE flag this function will
+ * be called to setup deferred frees. Calls to free the buffer will
+ * return immediately and the actual free will occur some time later
+ */
+int ion_heap_init_deferred_free(struct ion_heap *heap);
+
+/**
+ * ion_heap_freelist_add - add a buffer to the deferred free list
+ * @heap:		the heap
+ * @buffer:		the buffer
+ *
+ * Adds an item to the deferred freelist.
+ */
+void ion_heap_freelist_add(struct ion_heap *heap, struct ion_buffer *buffer);
+
+/**
+ * ion_heap_freelist_drain - drain the deferred free list
+ * @heap:		the heap
+ * @size:		ammount of memory to drain in bytes
+ *
+ * Drains the indicated amount of memory from the deferred freelist immediately.
+ * Returns the total amount freed.  The total freed may be higher depending
+ * on the size of the items in the list, or lower if there is insufficient
+ * total memory on the freelist.
+ */
+size_t ion_heap_freelist_drain(struct ion_heap *heap, size_t size);
+
+/**
+ * ion_heap_freelist_size - returns the size of the freelist in bytes
+ * @heap:		the heap
+ */
+size_t ion_heap_freelist_size(struct ion_heap *heap);
+
+
+/**
  * functions for creating and destroying the built in ion heaps.
  * architectures can add their own custom architecture specific
  * heaps as appropriate.
@@ -290,6 +358,16 @@ struct ion_heap *msm_get_contiguous_heap(void);
  * @phys_base - physical base of the heap
  * @virt_base - virtual base of the heap
  * @flags - flags for the heap
+ * struct ion_page_pool - pagepool struct
+ * @high_count:		number of highmem items in the pool
+ * @low_count:		number of lowmem items in the pool
+ * @high_items:		list of highmem items
+ * @low_items:		list of lowmem items
+ * @mutex:		lock protecting this struct and especially the count
+ *			item list
+ * @gfp_mask:		gfp_mask to use from alloc
+ * @order:		order of pages in the pool
+ * @list:		plist node for list of pools
  *
  * Map fmem allocated memory into the kernel address space. This
  * is designed to be used by other heaps that need fmem behavior.
