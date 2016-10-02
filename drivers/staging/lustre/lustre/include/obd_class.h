@@ -1631,7 +1631,7 @@ static inline int obd_health_check(const struct lu_env *env,
 {
 	/* returns: 0 on healthy
 	 *	 >0 on unhealthy + reason code/flag
-	 *	    however the only suppored reason == 1 right now
+	 *	    however the only supported reason == 1 right now
 	 *	    We'll need to define some better reasons
 	 *	    or flags in the future.
 	 *	 <0 on error
@@ -2001,11 +2001,11 @@ static inline int md_getxattr(struct obd_export *exp,
 
 static inline int md_set_open_replay_data(struct obd_export *exp,
 					  struct obd_client_handle *och,
-					  struct ptlrpc_request *open_req)
+					  struct lookup_intent *it)
 {
 	EXP_CHECK_MD_OP(exp, set_open_replay_data);
 	EXP_MD_COUNTER_INCREMENT(exp, set_open_replay_data);
-	return MDP(exp->exp_obd, set_open_replay_data)(exp, och, open_req);
+	return MDP(exp->exp_obd, set_open_replay_data)(exp, och, it);
 }
 
 static inline int md_clear_open_replay_data(struct obd_export *exp,

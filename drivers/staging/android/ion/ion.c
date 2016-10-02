@@ -1159,8 +1159,8 @@ static int ion_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 	int ret = 0;
 
 	if (!buffer->heap->ops->map_user) {
-		pr_err("%s: this heap does not define a method for mapping "
-		       "to userspace\n", __func__);
+		pr_err("%s: this heap does not define a method for mapping to userspace\n",
+			__func__);
 		return -EINVAL;
 	}
 

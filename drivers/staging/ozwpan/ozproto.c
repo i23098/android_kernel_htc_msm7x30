@@ -38,9 +38,13 @@ struct oz_binding {
 };
 
 /*
+ * External variable
+ */
+
+DEFINE_SPINLOCK(g_polling_lock);
+/*
  * Static external variables.
  */
-static DEFINE_SPINLOCK(g_polling_lock);
 static LIST_HEAD(g_pd_list);
 static LIST_HEAD(g_binding);
 static DEFINE_SPINLOCK(g_binding_lock);
@@ -668,7 +672,7 @@ void oz_binding_add(const char *net_dev)
 	if (!binding)
 		return;
 
-	binding->ptype.type = __constant_htons(OZ_ETHERTYPE);
+	binding->ptype.type = htons(OZ_ETHERTYPE);
 	binding->ptype.func = oz_pkt_recv;
 	if (net_dev && *net_dev) {
 		memcpy(binding->name, net_dev, OZ_MAX_BINDING_LEN);
@@ -794,12 +798,3 @@ int oz_get_pd_list(struct oz_mac_addr *addr, int max_count)
 	return count;
 }
 
-void oz_polling_lock_bh(void)
-{
-	spin_lock_bh(&g_polling_lock);
-}
-
-void oz_polling_unlock_bh(void)
-{
-	spin_unlock_bh(&g_polling_lock);
-}

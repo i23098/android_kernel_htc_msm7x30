@@ -23,6 +23,7 @@
 #include <drm/drmP.h>
 #include <drm/drm_fb_helper.h>
 #include <drm/drm_crtc_helper.h>
+#include <drm/drm_panel.h>
 #include <linux/videodev2.h>
 #include <video/of_display_timing.h>
 
@@ -40,6 +41,7 @@ struct imx_parallel_display {
 	u32 interface_pix_fmt;
 	int mode_valid;
 	struct drm_display_mode mode;
+	struct drm_panel *panel;
 };
 
 static enum drm_connector_status imx_pd_connector_detect(
@@ -54,6 +56,13 @@ static int imx_pd_connector_get_modes(struct drm_connector *connector)
 	struct device_node *np = imxpd->dev->of_node;
 	int num_modes = 0;
 
+	if (imxpd->panel && imxpd->panel->funcs &&
+	    imxpd->panel->funcs->get_modes) {
+		num_modes = imxpd->panel->funcs->get_modes(imxpd->panel);
+		if (num_modes > 0)
+			return num_modes;
+	}
+
 	if (imxpd->edid) {
 		drm_mode_connector_update_edid_property(connector, imxpd->edid);
 		num_modes = drm_add_edid_modes(connector, imxpd->edid);
@@ -61,6 +70,8 @@ static int imx_pd_connector_get_modes(struct drm_connector *connector)
 
 	if (imxpd->mode_valid) {
 		struct drm_display_mode *mode = drm_mode_create(connector->dev);
+		if (!mode)
+			return -EINVAL;
 		drm_mode_copy(mode, &imxpd->mode);
 		mode->type |= DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED,
 		drm_mode_probed_add(connector, mode);
@@ -69,6 +80,8 @@ static int imx_pd_connector_get_modes(struct drm_connector *connector)
 
 	if (np) {
 		struct drm_display_mode *mode = drm_mode_create(connector->dev);
+		if (!mode)
+			return -EINVAL;
 		of_get_drm_display_mode(np, &imxpd->mode, OF_USE_NATIVE_MODE);
 		drm_mode_copy(mode, &imxpd->mode);
 		mode->type |= DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED,
@@ -89,6 +102,12 @@ static struct drm_encoder *imx_pd_connector_best_encoder(
 
 static void imx_pd_encoder_dpms(struct drm_encoder *encoder, int mode)
 {
+	struct imx_parallel_display *imxpd = enc_to_imxpd(encoder);
+
+	if (mode != DRM_MODE_DPMS_ON)
+		drm_panel_disable(imxpd->panel);
+	else
+		drm_panel_enable(imxpd->panel);
 }
 
 static bool imx_pd_encoder_mode_fixup(struct drm_encoder *encoder,
@@ -164,6 +183,9 @@ static int imx_pd_register(struct drm_device *drm,
 	drm_connector_init(drm, &imxpd->connector, &imx_pd_connector_funcs,
 			   DRM_MODE_CONNECTOR_VGA);
 
+	if (imxpd->panel)
+		drm_panel_attach(imxpd->panel, &imxpd->connector);
+
 	drm_mode_connector_attach_encoder(&imxpd->connector, &imxpd->encoder);
 
 	imxpd->connector.encoder = &imxpd->encoder;
@@ -175,6 +197,7 @@ static int imx_pd_bind(struct device *dev, struct device *master, void *data)
 {
 	struct drm_device *drm = data;
 	struct device_node *np = dev->of_node;
+	struct device_node *panel_node;
 	const u8 *edidp;
 	struct imx_parallel_display *imxpd;
 	int ret;
@@ -197,6 +220,10 @@ static int imx_pd_bind(struct device *dev, struct device *master, void *data)
 		else if (!strcmp(fmt, "bgr666"))
 			imxpd->interface_pix_fmt = V4L2_PIX_FMT_BGR666;
 	}
+
+	panel_node = of_parse_phandle(np, "fsl,panel", 0);
+	if (panel_node)
+		imxpd->panel = of_drm_find_panel(panel_node);
 
 	imxpd->dev = dev;
 

@@ -1020,7 +1020,7 @@ out:
 
 /**
  * This function is used to make the extent prepared for transfer.
- * A race with flusing page - ll_writepage() has to be handled cautiously.
+ * A race with flushing page - ll_writepage() has to be handled cautiously.
  */
 static int osc_extent_make_ready(const struct lu_env *env,
 				 struct osc_extent *ext)
@@ -2394,6 +2394,12 @@ int osc_flush_async_page(const struct lu_env *env, struct cl_io *io,
 		 * really sending the RPC. */
 	case OES_TRUNC:
 		/* race with truncate, page will be redirtied */
+	case OES_ACTIVE:
+		/* The extent is active so we need to abort and let the caller
+		 * re-dirty the page. If we continued on here, and we were the
+		 * one making the extent active, we could deadlock waiting for
+		 * the page writeback to clear but it won't because the extent
+		 * is active and won't be written out. */
 		GOTO(out, rc = -EAGAIN);
 	default:
 		break;

@@ -205,7 +205,7 @@ out:
 	return rc;
 }
 
-int ll_md_real_close(struct inode *inode, int flags)
+int ll_md_real_close(struct inode *inode, fmode_t fmode)
 {
 	struct ll_inode_info *lli = ll_i2info(inode);
 	struct obd_client_handle **och_p;
@@ -213,30 +213,33 @@ int ll_md_real_close(struct inode *inode, int flags)
 	__u64 *och_usecount;
 	int rc = 0;
 
-	if (flags & FMODE_WRITE) {
+	if (fmode & FMODE_WRITE) {
 		och_p = &lli->lli_mds_write_och;
 		och_usecount = &lli->lli_open_fd_write_count;
-	} else if (flags & FMODE_EXEC) {
+	} else if (fmode & FMODE_EXEC) {
 		och_p = &lli->lli_mds_exec_och;
 		och_usecount = &lli->lli_open_fd_exec_count;
 	} else {
-		LASSERT(flags & FMODE_READ);
+		LASSERT(fmode & FMODE_READ);
 		och_p = &lli->lli_mds_read_och;
 		och_usecount = &lli->lli_open_fd_read_count;
 	}
 
 	mutex_lock(&lli->lli_och_mutex);
-	if (*och_usecount) { /* There are still users of this handle, so
-				skip freeing it. */
+	if (*och_usecount > 0) {
+		/* There are still users of this handle, so skip
+		 * freeing it. */
 		mutex_unlock(&lli->lli_och_mutex);
 		return 0;
 	}
+
 	och=*och_p;
 	*och_p = NULL;
 	mutex_unlock(&lli->lli_och_mutex);
 
-	if (och) { /* There might be a race and somebody have freed this och
-		      already */
+	if (och != NULL) {
+		/* There might be a race and this handle may already
+		   be closed. */
 		rc = ll_close_inode_openhandle(ll_i2sbi(inode)->ll_md_exp,
 					       inode, och, NULL);
 	}
@@ -443,8 +446,7 @@ static int ll_intent_file_open(struct file *file, void *lmm,
 				 itp, NULL);
 
 out:
-	ptlrpc_req_finished(itp->d.lustre.it_data);
-	it_clear_disposition(itp, DISP_ENQ_COMPLETE);
+	ptlrpc_req_finished(req);
 	ll_intent_drop_lock(itp);
 
 	return rc;
@@ -477,7 +479,7 @@ static int ll_och_fill(struct obd_export *md_exp, struct lookup_intent *it,
 	och->och_magic = OBD_CLIENT_HANDLE_MAGIC;
 	och->och_flags = it->it_flags;
 
-	return md_set_open_replay_data(md_exp, och, req);
+	return md_set_open_replay_data(md_exp, och, it);
 }
 
 int ll_local_open(struct file *file, struct lookup_intent *it,
@@ -812,10 +814,7 @@ struct obd_client_handle *ll_lease_open(struct inode *inode, struct file *file,
 	 * doesn't deal with openhandle, so normal openhandle will be leaked. */
 				LDLM_FL_NO_LRU | LDLM_FL_EXCL);
 	ll_finish_md_op_data(op_data);
-	if (req != NULL) {
-		ptlrpc_req_finished(req);
-		it_clear_disposition(&it, DISP_ENQ_COMPLETE);
-	}
+	ptlrpc_req_finished(req);
 	if (rc < 0)
 		GOTO(out_release_it, rc);
 
@@ -1032,6 +1031,33 @@ int ll_glimpse_ioctl(struct ll_sb_info *sbi, struct lov_stripe_md *lsm,
 	return rc;
 }
 
+static bool file_is_noatime(const struct file *file)
+{
+	const struct vfsmount *mnt = file->f_path.mnt;
+	const struct inode *inode = file->f_path.dentry->d_inode;
+
+	/* Adapted from file_accessed() and touch_atime().*/
+	if (file->f_flags & O_NOATIME)
+		return true;
+
+	if (inode->i_flags & S_NOATIME)
+		return true;
+
+	if (IS_NOATIME(inode))
+		return true;
+
+	if (mnt->mnt_flags & (MNT_NOATIME | MNT_READONLY))
+		return true;
+
+	if ((mnt->mnt_flags & MNT_NODIRATIME) && S_ISDIR(inode->i_mode))
+		return true;
+
+	if ((inode->i_sb->s_flags & MS_NODIRATIME) && S_ISDIR(inode->i_mode))
+		return true;
+
+	return false;
+}
+
 void ll_io_init(struct cl_io *io, const struct file *file, int write)
 {
 	struct inode *inode = file->f_dentry->d_inode;
@@ -1051,6 +1077,8 @@ void ll_io_init(struct cl_io *io, const struct file *file, int write)
 	} else if (file->f_flags & O_APPEND) {
 		io->ci_lockreq = CILR_MANDATORY;
 	}
+
+	io->ci_noatime = file_is_noatime(file);
 }
 
 static ssize_t
@@ -1096,7 +1124,7 @@ restart:
 			vio->u.splice.cui_flags = args->u.splice.via_flags;
 			break;
 		default:
-			CERROR("Unknow IO type - %u\n", vio->cui_io_subtype);
+			CERROR("Unknown IO type - %u\n", vio->cui_io_subtype);
 			LBUG();
 		}
 		result = cl_io_loop(env, io);
@@ -2002,7 +2030,7 @@ static int ll_swap_layouts(struct file *file1, struct file *file2,
 		llss->ia2.ia_valid = ATTR_MTIME | ATTR_ATIME;
 	}
 
-	/* ultimate check, before swaping the layouts we check if
+	/* ultimate check, before swapping the layouts we check if
 	 * dataversion has changed (if requested) */
 	if (llss->check_dv1) {
 		rc = ll_data_version(llss->inode1, &dv, 0);
@@ -2667,7 +2695,7 @@ int ll_file_flock(struct file *file, int cmd, struct file_lock *file_lock)
 		LASSERT((cmd == F_SETLKW) || (cmd == F_SETLK));
 		/* flocks are whole-file locks */
 		flock.l_flock.end = OFFSET_MAX;
-		/* For flocks owner is determined by the local file desctiptor*/
+		/* For flocks owner is determined by the local file descriptor*/
 		flock.l_flock.owner = (unsigned long)file_lock->fl_file;
 	} else if (file_lock->fl_flags & FL_POSIX) {
 		flock.l_flock.owner = (unsigned long)file_lock->fl_owner;
@@ -2888,7 +2916,7 @@ int __ll_inode_revalidate_it(struct dentry *dentry, struct lookup_intent *it,
 			oit.it_op = IT_LOOKUP;
 
 		/* Call getattr by fid, so do not provide name at all. */
-		op_data = ll_prep_md_op_data(NULL, dentry->d_parent->d_inode,
+		op_data = ll_prep_md_op_data(NULL, dentry->d_inode,
 					     dentry->d_inode, NULL, 0, 0,
 					     LUSTRE_OPC_ANY, NULL);
 		if (IS_ERR(op_data))
@@ -3172,7 +3200,7 @@ struct inode_operations ll_file_inode_operations = {
 	.get_acl	= ll_get_acl,
 };
 
-/* dynamic ioctl number support routins */
+/* dynamic ioctl number support routines */
 static struct llioc_ctl_data {
 	struct rw_semaphore	ioc_sem;
 	struct list_head	      ioc_head;
@@ -3296,7 +3324,7 @@ int ll_layout_conf(struct inode *inode, const struct cl_object_conf *conf)
 		if (result == 0) {
 			/* it can only be allowed to match after layout is
 			 * applied to inode otherwise false layout would be
-			 * seen. Applying layout shoud happen before dropping
+			 * seen. Applying layout should happen before dropping
 			 * the intent lock. */
 			ldlm_lock_allow_match(lock);
 		}

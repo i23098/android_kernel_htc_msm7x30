@@ -87,13 +87,16 @@ static ssize_t store_sockfd(struct device *dev, struct device_attribute *attr,
 	int sockfd = 0;
 	struct socket *socket;
 	ssize_t err = -EINVAL;
+	int rv;
 
 	if (!sdev) {
 		dev_err(dev, "sdev is null\n");
 		return -ENODEV;
 	}
 
-	sscanf(buf, "%d", &sockfd);
+	rv = sscanf(buf, "%d", &sockfd);
+	if (rv != 1)
+		return -EINVAL;
 
 	if (sockfd != -1) {
 		dev_info(dev, "stub up\n");
@@ -334,8 +337,9 @@ static int stub_probe(struct usb_device *udev)
 {
 	struct stub_device *sdev = NULL;
 	const char *udev_busid = dev_name(&udev->dev);
-	int err = 0, config;
+	int err = 0;
 	struct bus_id_priv *busid_priv;
+	int rc;
 
 	dev_dbg(&udev->dev, "Enter\n");
 
@@ -380,17 +384,22 @@ static int stub_probe(struct usb_device *udev)
 
 	busid_priv->shutdown_busid = 0;
 
-	config = usb_choose_configuration(udev);
-	if (config >= 0) {
-		err = usb_set_configuration(udev, config);
-		if (err && err != -ENODEV)
-			dev_err(&udev->dev, "can't set config #%d, error %d\n",
-				config, err);
-	}
-
 	/* set private data to usb_device */
 	dev_set_drvdata(&udev->dev, sdev);
 	busid_priv->sdev = sdev;
+	busid_priv->udev = udev;
+
+	/*
+	 * Claim this hub port.
+	 * It doesn't matter what value we pass as owner
+	 * (struct dev_state) as long as it is unique.
+	 */
+	rc = usb_hub_claim_port(udev->parent, udev->portnum,
+			(struct usb_dev_state *) udev);
+	if (rc) {
+		dev_dbg(&udev->dev, "unable to claim port\n");
+		return rc;
+	}
 
 	err = stub_add_files(&udev->dev);
 	if (err) {
@@ -428,6 +437,7 @@ static void stub_disconnect(struct usb_device *udev)
 	struct stub_device *sdev;
 	const char *udev_busid = dev_name(&udev->dev);
 	struct bus_id_priv *busid_priv;
+	int rc;
 
 	dev_dbg(&udev->dev, "Enter\n");
 
@@ -451,6 +461,14 @@ static void stub_disconnect(struct usb_device *udev)
 	 * NOTE: rx/tx threads are invoked for each usb_device.
 	 */
 	stub_remove_files(&udev->dev);
+
+	/* release port */
+	rc = usb_hub_release_port(udev->parent, udev->portnum,
+				  (struct usb_dev_state *) udev);
+	if (rc) {
+		dev_dbg(&udev->dev, "unable to release port\n");
+		return;
+	}
 
 	/* If usb reset is called from event handler */
 	if (busid_priv->sdev->ud.eh == current)

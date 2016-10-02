@@ -350,7 +350,7 @@ struct som_attrs {
 	/** Bitfield for supported data in this structure. For future use. */
 	__u32	som_compat;
 
-	/** Incompat feature list. The supported feature mask is availabe in
+	/** Incompat feature list. The supported feature mask is available in
 	 * SOM_INCOMPAT_SUPP */
 	__u32	som_incompat;
 
@@ -933,7 +933,7 @@ enum lu_dirent_attrs {
 	LUDA_TYPE		= 0x0002,
 	LUDA_64BITHASH		= 0x0004,
 
-	/* The following attrs are used for MDT interanl only,
+	/* The following attrs are used for MDT internal only,
 	 * not visible to client */
 
 	/* Verify the dirent consistency */
@@ -1305,6 +1305,7 @@ extern void lustre_swab_ptlrpc_body(struct ptlrpc_body *pb);
 #define OBD_CONNECT_SHORTIO     0x2000000000000ULL/* short io */
 #define OBD_CONNECT_PINGLESS	0x4000000000000ULL/* pings not required */
 #define OBD_CONNECT_FLOCK_DEAD	0x8000000000000ULL/* flock deadlock detection */
+#define OBD_CONNECT_DISP_STRIPE 0x10000000000000ULL/*create stripe disposition*/
 
 /* XXX README XXX:
  * Please DO NOT add flag values here before first ensuring that this same
@@ -1344,7 +1345,9 @@ extern void lustre_swab_ptlrpc_body(struct ptlrpc_body *pb);
 				OBD_CONNECT_LIGHTWEIGHT | OBD_CONNECT_UMASK | \
 				OBD_CONNECT_LVB_TYPE | OBD_CONNECT_LAYOUTLOCK |\
 				OBD_CONNECT_PINGLESS | OBD_CONNECT_MAX_EASIZE |\
-				OBD_CONNECT_FLOCK_DEAD)
+				OBD_CONNECT_FLOCK_DEAD | \
+				OBD_CONNECT_DISP_STRIPE)
+
 #define OST_CONNECT_SUPPORTED  (OBD_CONNECT_SRVLOCK | OBD_CONNECT_GRANT | \
 				OBD_CONNECT_REQPORTAL | OBD_CONNECT_VERSION | \
 				OBD_CONNECT_TRUNCLOCK | OBD_CONNECT_INDEX | \
@@ -2109,19 +2112,32 @@ extern void lustre_swab_generic_32s (__u32 *val);
 #define DISP_LOOKUP_POS      0x00000008
 #define DISP_OPEN_CREATE     0x00000010
 #define DISP_OPEN_OPEN       0x00000020
-#define DISP_ENQ_COMPLETE    0x00400000
+#define DISP_ENQ_COMPLETE    0x00400000		/* obsolete and unused */
 #define DISP_ENQ_OPEN_REF    0x00800000
 #define DISP_ENQ_CREATE_REF  0x01000000
 #define DISP_OPEN_LOCK       0x02000000
 #define DISP_OPEN_LEASE      0x04000000
+#define DISP_OPEN_STRIPE     0x08000000
 
 /* INODE LOCK PARTS */
-#define MDS_INODELOCK_LOOKUP 0x000001       /* dentry, mode, owner, group */
-#define MDS_INODELOCK_UPDATE 0x000002       /* size, links, timestamps */
-#define MDS_INODELOCK_OPEN   0x000004       /* For opened files */
-#define MDS_INODELOCK_LAYOUT 0x000008       /* for layout */
-#define MDS_INODELOCK_PERM   0x000010       /* for permission */
-#define MDS_INODELOCK_XATTR  0x000020       /* extended attributes */
+#define MDS_INODELOCK_LOOKUP 0x000001	/* For namespace, dentry etc, and also
+					 * was used to protect permission (mode,
+					 * owner, group etc) before 2.4. */
+#define MDS_INODELOCK_UPDATE 0x000002	/* size, links, timestamps */
+#define MDS_INODELOCK_OPEN   0x000004	/* For opened files */
+#define MDS_INODELOCK_LAYOUT 0x000008	/* for layout */
+
+/* The PERM bit is added int 2.4, and it is used to protect permission(mode,
+ * owner, group, acl etc), so to separate the permission from LOOKUP lock.
+ * Because for remote directories(in DNE), these locks will be granted by
+ * different MDTs(different ldlm namespace).
+ *
+ * For local directory, MDT will always grant UPDATE_LOCK|PERM_LOCK together.
+ * For Remote directory, the master MDT, where the remote directory is, will
+ * grant UPDATE_LOCK|PERM_LOCK, and the remote MDT, where the name entry is,
+ * will grant LOOKUP_LOCK. */
+#define MDS_INODELOCK_PERM   0x000010
+#define MDS_INODELOCK_XATTR  0x000020	/* extended attributes */
 
 #define MDS_INODELOCK_MAXSHIFT 5
 /* This FULL lock is useful to take on unlink sort of operations */
@@ -2570,7 +2586,7 @@ struct mdt_rec_setxattr {
  * Do NOT change the size of various members, otherwise the value
  * will be broken in lustre_swab_mdt_rec_reint().
  *
- * If you add new members in other mdt_reint_xxx structres and need to use the
+ * If you add new members in other mdt_reint_xxx structures and need to use the
  * rr_padding_x fields, then update lustre_swab_mdt_rec_reint() also.
  */
 struct mdt_rec_reint {
