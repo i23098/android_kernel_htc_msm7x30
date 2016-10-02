@@ -595,8 +595,8 @@ static void gs_rx_push(unsigned long _port)
 
 	}
 
-	/* Push from tty to ldisc; this is immediate with low_latency, and
-	 * may trigger callbacks to this driver ... so drop the spinlock.
+	/* Push from tty to ldisc; without low_latency set this is handled by
+	 * a workqueue, so we won't get callbacks and can hold port_lock
 	 */
 	if (tty && do_push) {
 		spin_unlock_irq(&port->port_lock);
