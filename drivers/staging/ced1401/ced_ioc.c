@@ -736,10 +736,10 @@ error:
 ** unset it. Unsetting will fail if the area is booked, and a transfer to that
 ** area is in progress. Otherwise, we will release the area and re-assign it.
 ****************************************************************************/
-int SetTransfer(DEVICE_EXTENSION *pdx, TRANSFERDESC __user *pTD)
+int SetTransfer(DEVICE_EXTENSION *pdx, struct transfer_area_desc __user *pTD)
 {
 	int iReturn;
-	TRANSFERDESC td;
+	struct transfer_area_desc td;
 
 	if (copy_from_user(&td, pTD, sizeof(td)))
 		return -EFAULT;
@@ -779,10 +779,10 @@ int UnsetTransfer(DEVICE_EXTENSION *pdx, int nArea)
 ** pretend that whatever the user asked for was achieved, so we return 1 if
 ** try to create one, and 0 if they ask to remove (assuming all else was OK).
 ****************************************************************************/
-int SetEvent(DEVICE_EXTENSION *pdx, TRANSFEREVENT __user *pTE)
+int SetEvent(DEVICE_EXTENSION *pdx, struct transfer_event __user *pTE)
 {
 	int iReturn = U14ERR_NOERROR;
-	TRANSFEREVENT te;
+	struct transfer_event te;
 
 	/*  get a local copy of the data */
 	if (copy_from_user(&te, pTE, sizeof(te)))
@@ -1318,11 +1318,11 @@ int DbgStopLoop(DEVICE_EXTENSION *pdx)
 ** booked and a transfer to that area is in progress. Otherwise, we will
 ** release the area and re-assign it.
 ****************************************************************************/
-int SetCircular(DEVICE_EXTENSION *pdx, TRANSFERDESC __user *pTD)
+int SetCircular(DEVICE_EXTENSION *pdx, struct transfer_area_desc __user *pTD)
 {
 	int iReturn;
 	bool bToHost;
-	TRANSFERDESC td;
+	struct transfer_area_desc td;
 
 	if (copy_from_user(&td, pTD, sizeof(td)))
 		return -EFAULT;

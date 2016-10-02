@@ -56,13 +56,12 @@ PERIODIC_WORK *visor_periodic_work_create(ulong jiffy_interval,
 					  void *workfuncarg,
 					  const char *devnam)
 {
-	PERIODIC_WORK *periodic_work = kmalloc(sizeof(PERIODIC_WORK),
-					       GFP_KERNEL|__GFP_NORETRY);
+	PERIODIC_WORK *periodic_work = kzalloc(sizeof(PERIODIC_WORK),
+					       GFP_KERNEL | __GFP_NORETRY);
 	if (periodic_work == NULL) {
 		ERRDRV("periodic_work allocation failed ");
 		return NULL;
 	}
-	memset(periodic_work, '\0', sizeof(PERIODIC_WORK));
 	rwlock_init(&periodic_work->lock);
 	periodic_work->jiffy_interval = jiffy_interval;
 	periodic_work->workqueue = workqueue;
@@ -97,15 +96,17 @@ BOOL visor_periodic_work_nextperiod(PERIODIC_WORK *periodic_work)
 	if (periodic_work->want_to_stop) {
 		periodic_work->is_scheduled = FALSE;
 		periodic_work->want_to_stop = FALSE;
-		RETBOOL(TRUE);  /* yes, TRUE; see visor_periodic_work_stop() */
+		rc = TRUE;  /* yes, TRUE; see visor_periodic_work_stop() */
+		goto Away;
 	} else if (queue_delayed_work(periodic_work->workqueue,
 				      &periodic_work->work,
 				      periodic_work->jiffy_interval) < 0) {
 		ERRDEV(periodic_work->devnam, "queue_delayed_work failed!");
 		periodic_work->is_scheduled = FALSE;
-		RETBOOL(FALSE);
+		rc = FALSE;
+		goto Away;
 	}
-	RETBOOL(TRUE);
+	rc = TRUE;
 Away:
 	write_unlock(&periodic_work->lock);
 	return rc;
@@ -123,12 +124,15 @@ BOOL visor_periodic_work_start(PERIODIC_WORK *periodic_work)
 	BOOL rc = FALSE;
 
 	write_lock(&periodic_work->lock);
-	if (periodic_work->is_scheduled)
-		RETBOOL(FALSE);
+	if (periodic_work->is_scheduled) {
+		rc = FALSE;
+		goto Away;
+	}
 	if (periodic_work->want_to_stop) {
 		ERRDEV(periodic_work->devnam,
 		       "dev_start_periodic_work failed!");
-		RETBOOL(FALSE);
+		rc = FALSE;
+		goto Away;
 	}
 	INIT_DELAYED_WORK(&periodic_work->work, &periodic_work_func);
 	if (queue_delayed_work(periodic_work->workqueue,
@@ -136,10 +140,11 @@ BOOL visor_periodic_work_start(PERIODIC_WORK *periodic_work)
 			       periodic_work->jiffy_interval) < 0) {
 		ERRDEV(periodic_work->devnam,
 		       "%s queue_delayed_work failed!", __func__);
-		RETBOOL(FALSE);
+		rc = FALSE;
+		goto Away;
 	}
 	periodic_work->is_scheduled = TRUE;
-	RETBOOL(TRUE);
+	rc = TRUE;
 Away:
 	write_unlock(&periodic_work->lock);
 	return rc;

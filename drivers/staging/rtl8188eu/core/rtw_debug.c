@@ -783,7 +783,7 @@ int proc_set_rx_stbc(struct file *file, const char __user *buffer,
 	if (buffer && !copy_from_user(tmp, buffer, sizeof(tmp))) {
 		if (pregpriv) {
 			pregpriv->rx_stbc = mode;
-			printk("rx_stbc=%d\n", mode);
+			netdev_info(dev, "rx_stbc=%d\n", mode);
 		}
 	}
 	return count;
@@ -820,7 +820,7 @@ int proc_set_rssi_disp(struct file *file, const char __user *buffer,
 
 		if (enable) {
 			DBG_88E("Turn On Rx RSSI Display Function\n");
-			padapter->bRxRSSIDisplay = enable ;
+			padapter->bRxRSSIDisplay = enable;
 		} else {
 			DBG_88E("Turn Off Rx RSSI Display Function\n");
 			padapter->bRxRSSIDisplay = 0;

@@ -173,7 +173,8 @@ struct virtpci_busdev {
 /* Local functions                                   */
 /*****************************************************/
 
-static inline int WAIT_FOR_IO_CHANNEL(ULTRA_IO_CHANNEL_PROTOCOL *chanptr)
+static inline
+int WAIT_FOR_IO_CHANNEL(ULTRA_IO_CHANNEL_PROTOCOL __iomem  *chanptr)
 {
 	int count = 120;
 	while (count > 0) {
@@ -253,18 +254,17 @@ static int add_vbus(struct add_vbus_guestpart *addparams)
 {
 	int ret;
 	struct device *vbus;
-	vbus = kmalloc(sizeof(struct device), GFP_ATOMIC);
+	vbus = kzalloc(sizeof(struct device), GFP_ATOMIC);
 
 	POSTCODE_LINUX_2(VPCI_CREATE_ENTRY_PC, POSTCODE_SEVERITY_INFO);
 	if (!vbus)
 		return 0;
 
-	memset(vbus, 0, sizeof(struct device));
 	dev_set_name(vbus, "vbus%d", addparams->busNo);
 	vbus->release = virtpci_bus_release;
 	vbus->parent = &virtpci_rootbus_device;	/* root bus is parent */
 	vbus->bus = &virtpci_bus_type;	/* bus type */
-	vbus->platform_data = addparams->chanptr;
+	vbus->platform_data = (__force void *)addparams->chanptr;
 
 	/* register a virt bus device -
 	 * this bus shows up under /sys/devices with .name value
@@ -289,10 +289,16 @@ static int add_vbus(struct add_vbus_guestpart *addparams)
 /* for CHANSOCK wwwnn/max are AUTO-GENERATED; for normal channels,
  * wwnn/max are in the channel header.
  */
-#define GET_SCSIADAPINFO_FROM_CHANPTR(chanptr) { \
-	scsi.wwnn = ((ULTRA_IO_CHANNEL_PROTOCOL *) chanptr)->vhba.wwnn; \
-	scsi.max = ((ULTRA_IO_CHANNEL_PROTOCOL *) chanptr)->vhba.max; \
-}
+#define GET_SCSIADAPINFO_FROM_CHANPTR(chanptr) {			\
+	memcpy_fromio(&scsi.wwnn,					\
+		      &((ULTRA_IO_CHANNEL_PROTOCOL __iomem *)		\
+			chanptr)->vhba.wwnn,				\
+		      sizeof(struct vhba_wwnn));			\
+	memcpy_fromio(&scsi.max,					\
+		      &((ULTRA_IO_CHANNEL_PROTOCOL __iomem *)		\
+			chanptr)->vhba.max,				\
+		      sizeof(struct vhba_config_max));			\
+	}
 
 /* find bus device with the busid that matches - match_busid matches bus_id */
 #define GET_BUS_DEV(busno) { \
@@ -317,7 +323,7 @@ static int add_vhba(struct add_virt_guestpart *addparams)
 
 	POSTCODE_LINUX_2(VPCI_CREATE_ENTRY_PC, POSTCODE_SEVERITY_INFO);
 	if (!WAIT_FOR_IO_CHANNEL
-	    ((ULTRA_IO_CHANNEL_PROTOCOL *) addparams->chanptr)) {
+	    ((ULTRA_IO_CHANNEL_PROTOCOL __iomem *) addparams->chanptr)) {
 		LOGERR("Timed out.  Channel not ready\n");
 		POSTCODE_LINUX_2(VPCI_CREATE_FAILURE_PC, POSTCODE_SEVERITY_ERR);
 		return 0;
@@ -345,11 +351,20 @@ static int add_vhba(struct add_virt_guestpart *addparams)
 /* for CHANSOCK macaddr is AUTO-GENERATED; for normal channels,
  * macaddr is in the channel header.
  */
-#define GET_NETADAPINFO_FROM_CHANPTR(chanptr) { \
-	memcpy(net.mac_addr, ((ULTRA_IO_CHANNEL_PROTOCOL *) chanptr)->vnic.macaddr, MAX_MACADDR_LEN); \
-	net.num_rcv_bufs = ((ULTRA_IO_CHANNEL_PROTOCOL *) chanptr)->vnic.num_rcv_bufs; \
-	net.mtu = ((ULTRA_IO_CHANNEL_PROTOCOL *) chanptr)->vnic.mtu; \
-	net.zoneGuid = ((ULTRA_IO_CHANNEL_PROTOCOL *) chanptr)->vnic.zoneGuid; \
+#define GET_NETADAPINFO_FROM_CHANPTR(chanptr) {				\
+		memcpy_fromio(net.mac_addr,				\
+		       ((ULTRA_IO_CHANNEL_PROTOCOL __iomem *)		\
+			chanptr)->vnic.macaddr,				\
+		       MAX_MACADDR_LEN);				\
+		net.num_rcv_bufs =					\
+			readl(&((ULTRA_IO_CHANNEL_PROTOCOL __iomem *)	\
+				chanptr)->vnic.num_rcv_bufs);		\
+		net.mtu = readl(&((ULTRA_IO_CHANNEL_PROTOCOL __iomem *) \
+				  chanptr)->vnic.mtu);			\
+		memcpy_fromio(&net.zoneGuid, \
+			      &((ULTRA_IO_CHANNEL_PROTOCOL __iomem *)	\
+				chanptr)->vnic.zoneGuid,		\
+			      sizeof(GUID));				\
 }
 
 /* adds a vnic
@@ -365,7 +380,7 @@ add_vnic(struct add_virt_guestpart *addparams)
 
 	POSTCODE_LINUX_2(VPCI_CREATE_ENTRY_PC, POSTCODE_SEVERITY_INFO);
 	if (!WAIT_FOR_IO_CHANNEL
-	    ((ULTRA_IO_CHANNEL_PROTOCOL *) addparams->chanptr)) {
+	    ((ULTRA_IO_CHANNEL_PROTOCOL __iomem *) addparams->chanptr)) {
 		LOGERR("Timed out, channel not ready\n");
 		POSTCODE_LINUX_2(VPCI_CREATE_FAILURE_PC, POSTCODE_SEVERITY_ERR);
 		return 0;
@@ -675,7 +690,7 @@ static int match_busid(struct device *dev, void *data)
 /*  Bus functions                                    */
 /*****************************************************/
 
-const struct pci_device_id *
+static const struct pci_device_id *
 virtpci_match_device(const struct pci_device_id *ids,
 		     const struct virtpci_dev *dev)
 {
@@ -892,7 +907,7 @@ static int virtpci_device_add(struct device *parentbus, int devtype,
 	struct virtpci_dev *tmpvpcidev = NULL, *prev;
 	unsigned long flags;
 	int ret;
-	ULTRA_IO_CHANNEL_PROTOCOL *pIoChan = NULL;
+	ULTRA_IO_CHANNEL_PROTOCOL __iomem *pIoChan = NULL;
 	struct device *pDev;
 
 	LOGINF("virtpci_device_add parentbus:%p chanptr:%p\n", parentbus,
@@ -909,14 +924,12 @@ static int virtpci_device_add(struct device *parentbus, int devtype,
 	}
 
 	/* add a Virtual Device */
-	virtpcidev = kmalloc(sizeof(struct virtpci_dev), GFP_ATOMIC);
+	virtpcidev = kzalloc(sizeof(struct virtpci_dev), GFP_ATOMIC);
 	if (virtpcidev == NULL) {
 		LOGERR("can't add device - malloc FALLED\n");
 		POSTCODE_LINUX_2(MALLOC_FAILURE_PC, POSTCODE_SEVERITY_ERR);
 		return 0;
 	}
-
-	memset(virtpcidev, 0, sizeof(struct virtpci_dev));
 
 	/* initialize stuff unique to virtpci_dev struct */
 	virtpcidev->devtype = devtype;
@@ -935,7 +948,8 @@ static int virtpci_device_add(struct device *parentbus, int devtype,
 	virtpcidev->queueinfo.send_int_if_needed = NULL;
 
 	/* Set up safe queue... */
-	pIoChan = (ULTRA_IO_CHANNEL_PROTOCOL *) virtpcidev->queueinfo.chan;
+	pIoChan = (ULTRA_IO_CHANNEL_PROTOCOL __iomem *)
+		virtpcidev->queueinfo.chan;
 
 	virtpcidev->intr = addparams->intr;
 
@@ -999,7 +1013,7 @@ static int virtpci_device_add(struct device *parentbus, int devtype,
 	pDev = &virtpcidev->generic_dev;
 	ULTRA_CHANNEL_CLIENT_TRANSITION(addparams->chanptr,
 					BUS_ID(pDev),
-					CliStateOS, CHANNELCLI_ATTACHED, NULL);
+					CHANNELCLI_ATTACHED, NULL);
 
 	/* don't register until device has been added to
 	* list. Otherwise, a device_unregister from this function can
@@ -1022,7 +1036,6 @@ static int virtpci_device_add(struct device *parentbus, int devtype,
 		pDev = &virtpcidev->generic_dev;
 		ULTRA_CHANNEL_CLIENT_TRANSITION(addparams->chanptr,
 						BUS_ID(pDev),
-						CliStateOS,
 						CHANNELCLI_DETACHED, NULL);
 		/* remove virtpcidev, the one we just added, from the list */
 		write_lock_irqsave(&VpcidevListLock, flags);
@@ -1491,7 +1504,7 @@ static ssize_t virt_proc_write(struct file *file, const char __user *buffer,
 	char buf[16];
 	int type, i, action = 0xffff;
 	unsigned int busno, deviceno;
-	void *chanptr;
+	void __iomem *chanptr;
 	struct add_vbus_guestpart busaddparams;
 	struct add_virt_guestpart addparams;
 	struct del_vbus_guestpart busdelparams;

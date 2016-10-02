@@ -100,11 +100,11 @@
 #include "slic.h"
 
 static uint slic_first_init = 1;
-static char *slic_banner = "Alacritech SLIC Technology(tm) Server "\
+static char *slic_banner = "Alacritech SLIC Technology(tm) Server "
 		"and Storage Accelerator (Non-Accelerated)";
 
 static char *slic_proc_version = "2.0.351  2006/07/14 12:26:00";
-static char *slic_product_name = "SLIC Technology(tm) Server "\
+static char *slic_product_name = "SLIC Technology(tm) Server "
 		"and Storage Accelerator (Non-Accelerated)";
 static char *slic_vendor = "Alacritech, Inc.";
 
@@ -143,18 +143,6 @@ static const struct pci_device_id slic_pci_tbl[] = {
 };
 
 MODULE_DEVICE_TABLE(pci, slic_pci_tbl);
-
-#define SLIC_GET_SLIC_HANDLE(_adapter, _pslic_handle)                   \
-{                                                                       \
-	spin_lock_irqsave(&_adapter->handle_lock.lock,                  \
-			_adapter->handle_lock.flags);                   \
-	_pslic_handle  =  _adapter->pfree_slic_handles;                 \
-	if (_pslic_handle) {                                            \
-		_adapter->pfree_slic_handles = _pslic_handle->next;     \
-	}                                                               \
-	spin_unlock_irqrestore(&_adapter->handle_lock.lock,             \
-			_adapter->handle_lock.flags);                   \
-}
 
 static inline void slic_reg32_write(void __iomem *reg, u32 value, bool flush)
 {
@@ -1431,7 +1419,13 @@ static void slic_cmdq_addcmdpage(struct adapter *adapter, u32 *page)
 	while ((cmdcnt < SLIC_CMDQ_CMDSINPAGE) &&
 	       (adapter->slic_handle_ix < 256)) {
 		/* Allocate and initialize a SLIC_HANDLE for this command */
-		SLIC_GET_SLIC_HANDLE(adapter, pslic_handle);
+		spin_lock_irqsave(&adapter->handle_lock.lock,
+				adapter->handle_lock.flags);
+		pslic_handle  =  adapter->pfree_slic_handles;
+		if (pslic_handle)
+			adapter->pfree_slic_handles = pslic_handle->next;
+		spin_unlock_irqrestore(&adapter->handle_lock.lock,
+				adapter->handle_lock.flags);
 		pslic_handle->type = SLIC_HANDLE_CMD;
 		pslic_handle->address = (void *) cmd;
 		pslic_handle->offset = (ushort) adapter->slic_handle_ix++;
@@ -3682,7 +3676,7 @@ static int slic_entry_probe(struct pci_dev *pcidev,
 	err = slic_card_locate(adapter);
 	if (err) {
 		dev_err(&pcidev->dev, "cannot locate card\n");
-		goto err_out_free_mmio_region;
+		goto err_out_unmap;
 	}
 
 	card = adapter->card;
@@ -3722,8 +3716,6 @@ static int slic_entry_probe(struct pci_dev *pcidev,
 
 err_out_unmap:
 	iounmap(memmapped_ioaddr);
-err_out_free_mmio_region:
-	release_mem_region(mmio_start, mmio_len);
 err_out_free_netdev:
 	free_netdev(netdev);
 err_out_exit_slic_probe:

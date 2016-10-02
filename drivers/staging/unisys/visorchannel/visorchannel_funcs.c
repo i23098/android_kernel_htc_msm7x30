@@ -57,8 +57,11 @@ visorchannel_create_guts(HOSTADDRESS physaddr, ulong channelBytes,
 	void *rc = NULL;
 
 	p = kmalloc(sizeof(VISORCHANNEL), GFP_KERNEL|__GFP_NORETRY);
-	if (p == NULL)
-		FAIL("allocation failed", 0);
+	if (p == NULL) {
+		ERRDRV("allocation failed: (status=0)\n");
+		rc = NULL;
+		goto Away;
+	}
 	p->memregion = NULL;
 	p->needs_lock = needs_lock;
 	spin_lock_init(&p->insert_lock);
@@ -73,24 +76,32 @@ visorchannel_create_guts(HOSTADDRESS physaddr, ulong channelBytes,
 		    visor_memregion_create_overlapped(parent->memregion,
 						      off,
 						      sizeof(CHANNEL_HEADER));
-	if (p->memregion == NULL)
-		FAIL("visor_memregion_create failed", 0);
+	if (p->memregion == NULL) {
+		ERRDRV("visor_memregion_create failed failed: (status=0)\n");
+		rc = NULL;
+		goto Away;
+	}
 	if (visor_memregion_read(p->memregion, 0, &p->chan_hdr,
-				 sizeof(CHANNEL_HEADER)) < 0)
-		FAIL("visor_memregion_read failed", 0);
+				 sizeof(CHANNEL_HEADER)) < 0) {
+		ERRDRV("visor_memregion_read failed: (status=0)\n");
+		rc = NULL;
+		goto Away;
+	}
 	if (channelBytes == 0)
 		/* we had better be a CLIENT of this channel */
 		channelBytes = (ulong) p->chan_hdr.Size;
 	if (STRUCTSEQUAL(guid, Guid0))
 		/* we had better be a CLIENT of this channel */
 		guid = p->chan_hdr.Type;
-	if (visor_memregion_resize(p->memregion, channelBytes) < 0)
-		FAIL("visor_memregion_resize failed", 0);
+	if (visor_memregion_resize(p->memregion, channelBytes) < 0) {
+		ERRDRV("visor_memregion_resize failed: (status=0)\n");
+		rc = NULL;
+		goto Away;
+	}
 	p->size = channelBytes;
 	p->guid = guid;
 
-	RETPTR(p);
-
+	rc = p;
 Away:
 
 	if (rc == NULL) {
@@ -207,24 +218,6 @@ visorchannel_get_memregion(VISORCHANNEL *channel)
 }
 EXPORT_SYMBOL_GPL(visorchannel_get_memregion);
 
-pSIGNAL_QUEUE_HEADER
-visorchannel_get_safe_queue(VISORCHANNEL *pchannel, U32 queue)
-{
-	switch (queue) {
-	case 0:
-		return &pchannel->safe_uis_queue.req_queue;
-	case 1:
-		return &pchannel->safe_uis_queue.rsp_queue;
-	case 2:
-		return &pchannel->safe_uis_queue.event_queue;
-	case 3:
-		return &pchannel->safe_uis_queue.ack_queue;
-	default:
-		ERRDRV("Invalid queue value %d\n", queue);
-		return NULL;
-	}
-}				/* end visorchannel_get_safe_queue */
-
 int
 visorchannel_read(VISORCHANNEL *channel, ulong offset,
 		  void *local, ulong nbytes)
@@ -257,7 +250,7 @@ visorchannel_clear(VISORCHANNEL *channel, ulong offset, U8 ch, ulong nbytes)
 
 	if (buf == NULL) {
 		ERRDRV("%s failed memory allocation", __func__);
-		RETINT(-1);
+		goto Away;
 	}
 	memset(buf, ch, bufsize);
 	while (nbytes > 0) {
@@ -267,12 +260,14 @@ visorchannel_clear(VISORCHANNEL *channel, ulong offset, U8 ch, ulong nbytes)
 			thisbytes = nbytes;
 		x = visor_memregion_write(channel->memregion, offset + written,
 					  buf, thisbytes);
-		if (x < 0)
-			RETINT(x);
+		if (x < 0) {
+			rc = x;
+			goto Away;
+		}
 		written += thisbytes;
 		nbytes -= thisbytes;
 	}
-	RETINT(0);
+	rc = 0;
 
 Away:
 	if (buf != NULL) {
@@ -319,8 +314,10 @@ sig_read_header(VISORCHANNEL *channel, U32 queue,
 {
 	BOOL rc = FALSE;
 
-	if (channel->chan_hdr.oChannelSpace < sizeof(CHANNEL_HEADER))
-		FAIL("oChannelSpace too small", FALSE);
+	if (channel->chan_hdr.oChannelSpace < sizeof(CHANNEL_HEADER)) {
+		ERRDRV("oChannelSpace too small: (status=%d)\n", rc);
+		goto Away;
+	}
 
 	/* Read the appropriate SIGNAL_QUEUE_HEADER into local memory. */
 
@@ -329,9 +326,10 @@ sig_read_header(VISORCHANNEL *channel, U32 queue,
 				 sig_hdr, sizeof(SIGNAL_QUEUE_HEADER)) < 0) {
 		ERRDRV("queue=%d SIG_QUEUE_OFFSET=%d",
 		       queue, (int)SIG_QUEUE_OFFSET(&channel->chan_hdr, queue));
-		FAIL("visor_memregion_read of signal queue failed", FALSE);
+		ERRDRV("visor_memregion_read of signal queue failed: (status=%d)\n", rc);
+		goto Away;
 	}
-	RETBOOL(TRUE);
+	rc = TRUE;
 Away:
 	return rc;
 }
@@ -346,16 +344,18 @@ sig_do_data(VISORCHANNEL *channel, U32 queue,
 	if (is_write) {
 		if (visor_memregion_write(channel->memregion,
 					  signal_data_offset,
-					  data, sig_hdr->SignalSize) < 0)
-			FAIL("visor_memregion_write of signal data failed",
-			     FALSE);
+					  data, sig_hdr->SignalSize) < 0) {
+			ERRDRV("visor_memregion_write of signal data failed: (status=%d)\n", rc);
+			goto Away;
+		}
 	} else {
 		if (visor_memregion_read(channel->memregion, signal_data_offset,
-					 data, sig_hdr->SignalSize) < 0)
-			FAIL("visor_memregion_read of signal data failed",
-			     FALSE);
+					 data, sig_hdr->SignalSize) < 0) {
+			ERRDRV("visor_memregion_read of signal data failed: (status=%d)\n", rc);
+			goto Away;
+		}
 	}
-	RETBOOL(TRUE);
+	rc = TRUE;
 Away:
 	return rc;
 }
@@ -405,27 +405,35 @@ visorchannel_signalremove(VISORCHANNEL *channel, U32 queue, void *msg)
 	if (channel->needs_lock)
 		spin_lock(&channel->remove_lock);
 
-	if (!sig_read_header(channel, queue, &sig_hdr))
-		RETBOOL(FALSE);
-	if (sig_hdr.Head == sig_hdr.Tail)
-		RETBOOL(FALSE);	/* no signals to remove */
+	if (!sig_read_header(channel, queue, &sig_hdr)) {
+		rc = FALSE;
+		goto Away;
+	}
+	if (sig_hdr.Head == sig_hdr.Tail) {
+		rc = FALSE;	/* no signals to remove */
+		goto Away;
+	}
 	sig_hdr.Tail = (sig_hdr.Tail + 1) % sig_hdr.MaxSignalSlots;
-	if (!sig_read_data(channel, queue, &sig_hdr, sig_hdr.Tail, msg))
-		FAIL("sig_read_data failed", FALSE);
+	if (!sig_read_data(channel, queue, &sig_hdr, sig_hdr.Tail, msg)) {
+		ERRDRV("sig_read_data failed: (status=%d)\n", rc);
+		goto Away;
+	}
 	sig_hdr.NumSignalsReceived++;
 
 	/* For each data field in SIGNAL_QUEUE_HEADER that was modified,
 	 * update host memory.
 	 */
 	MEMORYBARRIER;
-	if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, Tail))
-		FAIL("visor_memregion_write of Tail failed", FALSE);
-	if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, NumSignalsReceived))
-		FAIL("visor_memregion_write of NumSignalsReceived failed",
-		     FALSE);
-
-	RETBOOL(TRUE);
-
+	if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, Tail)) {
+		ERRDRV("visor_memregion_write of Tail failed: (status=%d)\n",
+		       rc);
+		goto Away;
+	}
+	if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, NumSignalsReceived)) {
+		ERRDRV("visor_memregion_write of NumSignalsReceived failed: (status=%d)\n", rc);
+		goto Away;
+	}
+	rc = TRUE;
 Away:
 	if (channel->needs_lock)
 		spin_unlock(&channel->remove_lock);
@@ -433,60 +441,6 @@ Away:
 	return rc;
 }
 EXPORT_SYMBOL_GPL(visorchannel_signalremove);
-
-BOOL
-visorchannel_safesignalremove(VISORCHANNEL *channel, U32 queue, void *msg)
-{
-	BOOL rc = FALSE;
-	SIGNAL_QUEUE_HEADER *psafe_sqh, unsafe_sqh;
-	int stat;
-
-	if (channel->needs_lock)
-		spin_lock(&channel->remove_lock);
-
-	if (!sig_read_header(channel, queue, &unsafe_sqh))
-		RETBOOL(FALSE);
-
-	psafe_sqh = visorchannel_get_safe_queue(channel, queue);
-	if (psafe_sqh == NULL) {
-		ERRDRV("safesignalremove: get_safe_queue failed\n");
-		RETBOOL(FALSE);
-	}
-
-	stat =
-	    safe_sig_queue_validate(psafe_sqh, &unsafe_sqh, &unsafe_sqh.Head,
-				    &unsafe_sqh.Tail);
-	if (stat == 0) {
-		ERRDRV("safe_signal_remove: safe_sig_queue_validate failed, queue = %d",
-		     queue);
-		RETBOOL(FALSE);
-	}
-
-	if (unsafe_sqh.Head == unsafe_sqh.Tail)
-		RETBOOL(FALSE);	/* no signals to remove */
-	unsafe_sqh.Tail = (unsafe_sqh.Tail + 1) % psafe_sqh->MaxSignalSlots;
-	if (!sig_read_data(channel, queue, psafe_sqh, unsafe_sqh.Tail, msg))
-		FAIL("sig_read_data failed", FALSE);
-	unsafe_sqh.NumSignalsReceived++;
-
-	/* For each data field in SIGNAL_QUEUE_HEADER that was modified,
-	 * update host memory.
-	 */
-	MEMORYBARRIER;
-	if (!SIG_WRITE_FIELD(channel, queue, &unsafe_sqh, Tail))
-		FAIL("visor_memregion_write of Tail failed", FALSE);
-	if (!SIG_WRITE_FIELD(channel, queue, &unsafe_sqh, NumSignalsReceived))
-		FAIL("visor_memregion_write of NumSignalsReceived failed",
-		     FALSE);
-
-	RETBOOL(TRUE);
-
-Away:
-	if (channel->needs_lock)
-		spin_unlock(&channel->remove_lock);
-
-	return rc;
-}				/* end visorchannel_safesignalremove */
 
 BOOL
 visorchannel_signalinsert(VISORCHANNEL *channel, U32 queue, void *msg)
@@ -497,37 +451,42 @@ visorchannel_signalinsert(VISORCHANNEL *channel, U32 queue, void *msg)
 	if (channel->needs_lock)
 		spin_lock(&channel->insert_lock);
 
-	if (!sig_read_header(channel, queue, &sig_hdr))
-		RETBOOL(FALSE);
+	if (!sig_read_header(channel, queue, &sig_hdr)) {
+		rc = FALSE;
+		goto Away;
+	}
 
 	sig_hdr.Head = ((sig_hdr.Head + 1) % sig_hdr.MaxSignalSlots);
 	if (sig_hdr.Head == sig_hdr.Tail) {
-#if 0
-		ERRDRV("visorchannel queue #%d overflow (max slots=%d)",
-		       queue, sig_hdr.MaxSignalSlots);
-#endif
 		sig_hdr.NumOverflows++;
-		if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, NumOverflows))
-			FAIL("visor_memregion_write of NumOverflows failed",
-			     FALSE);
-		RETBOOL(FALSE);
+		if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, NumOverflows)) {
+			ERRDRV("visor_memregion_write of NumOverflows failed: (status=%d)\n", rc);
+			goto Away;
+		}
+		rc = FALSE;
+		goto Away;
 	}
 
-	if (!sig_write_data(channel, queue, &sig_hdr, sig_hdr.Head, msg))
-		FAIL("sig_write_data failed", FALSE);
+	if (!sig_write_data(channel, queue, &sig_hdr, sig_hdr.Head, msg)) {
+		ERRDRV("sig_write_data failed: (status=%d)\n", rc);
+		goto Away;
+	}
 	sig_hdr.NumSignalsSent++;
 
 	/* For each data field in SIGNAL_QUEUE_HEADER that was modified,
 	 * update host memory.
 	 */
 	MEMORYBARRIER;
-	if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, Head))
-		FAIL("visor_memregion_write of Head failed", FALSE);
-	if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, NumSignalsSent))
-		FAIL("visor_memregion_write of NumSignalsSent failed", FALSE);
-
-	RETBOOL(TRUE);
-
+	if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, Head)) {
+		ERRDRV("visor_memregion_write of Head failed: (status=%d)\n",
+		       rc);
+		goto Away;
+	}
+	if (!SIG_WRITE_FIELD(channel, queue, &sig_hdr, NumSignalsSent)) {
+		ERRDRV("visor_memregion_write of NumSignalsSent failed: (status=%d)\n", rc);
+		goto Away;
+	}
+	rc = TRUE;
 Away:
 	if (channel->needs_lock)
 		spin_unlock(&channel->insert_lock);
@@ -565,70 +524,6 @@ visorchannel_signalqueue_max_slots(VISORCHANNEL *channel, U32 queue)
 	return (int) sig_hdr.MaxSignals;
 }
 EXPORT_SYMBOL_GPL(visorchannel_signalqueue_max_slots);
-
-BOOL
-visorchannel_safesignalinsert(VISORCHANNEL *channel, U32 queue, void *msg)
-{
-	BOOL rc = FALSE;
-	SIGNAL_QUEUE_HEADER *psafe_sqh, unsafe_sqh;
-	int stat;
-
-	if (channel->needs_lock)
-		spin_lock(&channel->insert_lock);
-
-	if (!sig_read_header(channel, queue, &unsafe_sqh))
-		RETBOOL(FALSE);
-
-	psafe_sqh = visorchannel_get_safe_queue(channel, queue);
-	if (psafe_sqh == NULL) {
-		ERRDRV("safesignalinsert: get_safe_queue failed\n");
-		RETBOOL(FALSE);
-	}
-
-	unsafe_sqh.Head = ((unsafe_sqh.Head + 1) % psafe_sqh->MaxSignalSlots);
-
-	stat =
-	    safe_sig_queue_validate(psafe_sqh, &unsafe_sqh, &unsafe_sqh.Head,
-				    &unsafe_sqh.Tail);
-	if (stat == 0) {
-		ERRDRV("safe_signal_insert: safe_sig_queue_validate failed, queue = %d",
-		     queue);
-		RETBOOL(FALSE);
-	}
-
-	if (unsafe_sqh.Head == unsafe_sqh.Tail) {
-#if 0
-		ERRDRV("visorchannel queue #%d overflow (max slots=%d)",
-		       queue, psafe_sqh->MaxSignalSlots);
-#endif
-		unsafe_sqh.NumOverflows++;
-		if (!SIG_WRITE_FIELD(channel, queue, &unsafe_sqh, NumOverflows))
-			FAIL("visor_memregion_write of NumOverflows failed",
-			     FALSE);
-		RETBOOL(FALSE);
-	}
-
-	if (!sig_write_data(channel, queue, psafe_sqh, unsafe_sqh.Head, msg))
-		FAIL("sig_write_data failed", FALSE);
-	unsafe_sqh.NumSignalsSent++;
-
-	/* For each data field in SIGNAL_QUEUE_HEADER that was modified,
-	 * update host memory.
-	 */
-	MEMORYBARRIER;
-	if (!SIG_WRITE_FIELD(channel, queue, &unsafe_sqh, Head))
-		FAIL("visor_memregion_write of Head failed", FALSE);
-	if (!SIG_WRITE_FIELD(channel, queue, &unsafe_sqh, NumSignalsSent))
-		FAIL("visor_memregion_write of NumSignalsSent failed", FALSE);
-
-	RETBOOL(TRUE);
-
-Away:
-	if (channel->needs_lock)
-		spin_unlock(&channel->insert_lock);
-
-	return rc;
-}				/* end visorchannel_safesignalinsert */
 
 static void
 sigqueue_debug(SIGNAL_QUEUE_HEADER *q, int which, struct seq_file *seq)
@@ -739,9 +634,9 @@ void
 visorchannel_dump_section(VISORCHANNEL *chan, char *s,
 			  int off, int len, struct seq_file *seq)
 {
-	char *buf = NULL, *fmtbuf = NULL;
+	char *buf, *tbuf, *fmtbuf;
 	int fmtbufsize = 0;
-	int i = 0;
+	int i;
 	int errcode = 0;
 
 	fmtbufsize = 100 * COVQ(len, 16);
@@ -757,9 +652,14 @@ visorchannel_dump_section(VISORCHANNEL *chan, char *s,
 		goto Away;
 	}
 	seq_printf(seq, "channel %s:\n", s);
-	visor_hexDumpToBuffer(fmtbuf, fmtbufsize, "  ", buf, len, 16);
-	for (i = 0; fmtbuf[i] != '\0'; i++)
-		seq_printf(seq, "%c", fmtbuf[i]);
+	tbuf = buf;
+	while (len > 0) {
+		i = (len < 16) ? len : 16;
+		hex_dump_to_buffer(tbuf, i, 16, 1, fmtbuf, fmtbufsize, TRUE);
+		seq_printf(seq, "%s\n", fmtbuf);
+		tbuf += 16;
+		len -= 16;
+	}
 
 Away:
 	if (buf != NULL) {

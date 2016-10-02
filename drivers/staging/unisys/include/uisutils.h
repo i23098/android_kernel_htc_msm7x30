@@ -79,10 +79,10 @@ int ReqHandlerDel(GUID switchTypeGuid);
 #define uislib_ioremap_cache(addr, size) \
 	dbg_ioremap_cache(addr, size, __FILE__, __LINE__)
 
-static inline void *
+static inline void __iomem *
 dbg_ioremap_cache(U64 addr, unsigned long size, char *file, int line)
 {
-	void *new;
+	void __iomem *new;
 	new = ioremap_cache(addr, size);
 	return new;
 }
@@ -100,7 +100,7 @@ dbg_ioremap(U64 addr, unsigned long size, char *file, int line)
 #define uislib_iounmap(addr) dbg_iounmap(addr, __FILE__, __LINE__)
 
 static inline void
-dbg_iounmap(void *addr, char *file, int line)
+dbg_iounmap(void __iomem *addr, char *file, int line)
 {
 	iounmap(addr);
 }
@@ -189,20 +189,13 @@ struct chaninfo {
 	schedule_timeout((x)*HZ); \
 }
 
-#define ALLOC_CMDRSP(cmdrsp) { \
-	cmdrsp = kmalloc(SIZEOF_CMDRSP, GFP_ATOMIC); \
-	if (cmdrsp != NULL) { \
-		memset(cmdrsp, 0, SIZEOF_CMDRSP); \
-	} \
-}
-
 /* This is a hack until we fix IOVM to initialize the channel header
  * correctly at DEVICE_CREATE time, INSTEAD OF waiting until
  * DEVICE_CONFIGURE time.
  */
 #define WAIT_FOR_VALID_GUID(guid) \
 	do {						   \
-		while (memcmp(&guid, &Guid0, sizeof(Guid0)) == 0) {	\
+		while (MEMCMP_IO(&guid, &Guid0, sizeof(Guid0)) == 0) {	\
 			LOGERR("Waiting for non-0 GUID (why???)...\n"); \
 			UIS_THREAD_WAIT_SEC(5);				\
 		}							\
@@ -340,12 +333,6 @@ static inline unsigned int Issue_VMCALL_FATAL_BYE_BYE(void)
 }
 
 #define UIS_DAEMONIZE(nam)
-void *uislib_malloc(size_t siz, gfp_t gfp, U8 contiguous, char *fn, int ln);
-#define UISMALLOC(siz, gfp) uislib_malloc(siz, gfp, 1, __FILE__, __LINE__)
-#define UISVMALLOC(siz) uislib_malloc(siz, 0, 0, __FILE__, __LINE__)
-void uislib_free(void *p, size_t siz, U8 contiguous, char *fn, int ln);
-#define UISFREE(p, siz) uislib_free(p, siz, 1, __FILE__, __LINE__)
-#define UISVFREE(p, siz) uislib_free(p, siz, 0, __FILE__, __LINE__)
 void *uislib_cache_alloc(struct kmem_cache *cur_pool, char *fn, int ln);
 #define UISCACHEALLOC(cur_pool) uislib_cache_alloc(cur_pool, __FILE__, __LINE__)
 void uislib_cache_free(struct kmem_cache *cur_pool, void *p, char *fn, int ln);

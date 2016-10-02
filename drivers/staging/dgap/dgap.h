@@ -46,34 +46,6 @@ typedef unsigned char		uchar;
 # define TTY_FLIPBUF_SIZE 512
 #endif
 
-/* Sparse stuff */
-# ifndef __user
-#  define __user
-#  define __kernel
-#  define __safe
-#  define __force
-#  define __chk_user_ptr(x) (void)0
-# endif
-
-
-#  define PARM_STR(VAR, INIT, PERM, DESC) \
-		static char *VAR = INIT; \
-		char *dgap_##VAR; \
-		module_param(VAR, charp, PERM); \
-		MODULE_PARM_DESC(VAR, DESC);
-
-#  define PARM_INT(VAR, INIT, PERM, DESC) \
-		static int VAR = INIT; \
-		int dgap_##VAR; \
-		module_param(VAR, int, PERM); \
-		MODULE_PARM_DESC(VAR, DESC);
-
-#  define PARM_ULONG(VAR, INIT, PERM, DESC) \
-		static ulong VAR = INIT; \
-		ulong dgap_##VAR; \
-		module_param(VAR, long, PERM); \
-		MODULE_PARM_DESC(VAR, DESC);
-
 /*************************************************************************
  *
  * Driver defines
@@ -81,27 +53,11 @@ typedef unsigned char		uchar;
  *************************************************************************/
 
 /*
- * Driver identification, error and debugging statments
- *
- * In theory, you can change all occurrences of "digi" in the next
- * three lines, and the driver printk's will all automagically change.
- *
- * APR((fmt, args, ...));	Always prints message
- * DPR((fmt, args, ...));	Only prints if DGAP_TRACER is defined at
- *				  compile time and dgap_debug!=0
+ * Driver identification
  */
 #define	DG_NAME		"dgap-1.3-16"
 #define	DG_PART		"40002347_C"
-
-#define	PROCSTR		"dgap"			/* /proc entries	 */
-#define	DEVSTR		"/dev/dg/dgap"		/* /dev entries		 */
-#define	DRVSTR		"dgap"			/* Driver name string
-						 * displayed by APR	 */
-#define	APR(args)	do { PRINTF_TO_KMEM(args); printk(DRVSTR": "); printk args; \
-			   } while (0)
-#define	RAPR(args)	do { PRINTF_TO_KMEM(args); printk args; } while (0)
-
-#define TRC_TO_CONSOLE 1
+#define	DRVSTR		"dgap"
 
 /*
  * defines from dgap_pci.h
@@ -237,15 +193,6 @@ typedef unsigned char		uchar;
 #define SNIFF_MASK	(SNIFF_MAX - 1)	/* Sniff wrap mask */
 
 #define VPDSIZE (512)
-
-/*
- * Lock function/defines.
- * Makes spotting lock/unlock locations easier.
- */
-# define DGAP_SPINLOCK_INIT(x)		spin_lock_init(&(x))
-# define DGAP_LOCK(x,y)			spin_lock_irqsave(&(x), y)
-# define DGAP_UNLOCK(x,y)		spin_unlock_irqrestore(&(x), y)
-# define DGAP_TRYLOCK(x,y)		spin_trylock(&(x))
 
 /************************************************************************
  *      FEP memory offsets
@@ -525,8 +472,6 @@ typedef unsigned char		uchar;
  */
 enum {
 	DRIVER_INITIALIZED = 0,
-	DRIVER_NEED_CONFIG_LOAD,
-	DRIVER_REQUESTED_CONFIG,
 	DRIVER_READY
 };
 
@@ -535,25 +480,6 @@ enum {
  */
 enum {
 	BOARD_FAILED = 0,
-	CONFIG_NOT_FOUND,
-	BOARD_FOUND,
-	NEED_RESET,
-	FINISHED_RESET,
-	NEED_CONFIG,
-	FINISHED_CONFIG,
-	NEED_DEVICE_CREATION,
-	REQUESTED_DEVICE_CREATION,
-	FINISHED_DEVICE_CREATION,
-	NEED_BIOS_LOAD,
-	REQUESTED_BIOS,
-	WAIT_BIOS_LOAD,
-	FINISHED_BIOS_LOAD,
-	NEED_FEP_LOAD,
-	REQUESTED_FEP,
-	WAIT_FEP_LOAD,
-	FINISHED_FEP_LOAD,
-	NEED_PROC_CREATION,
-	FINISHED_PROC_CREATION,
 	BOARD_READY
 };
 
@@ -755,11 +681,6 @@ struct un_t {
 /************************************************************************
  ***	Definitions for Digi ditty(1) command.
  ************************************************************************/
-
-
-/*
- * Copyright (c) 1988-96 Digi International Inc., All Rights Reserved.
- */
 
 /************************************************************************
  * This module provides application access to special Digi
@@ -1305,7 +1226,7 @@ struct cnode {
 	union {
 		struct {
 			char  type;	/* Board Type 		*/
-			short port;	/* I/O Address		*/
+			long  port;	/* I/O Address		*/
 			char  *portstr; /* I/O Address in string */
 			long  addr;	/* Memory Address	*/
 			char  *addrstr; /* Memory Address in string */
@@ -1313,9 +1234,9 @@ struct cnode {
 			char  *pcibusstr; /* PCI BUS in string */
 			long  pcislot;	/* PCI SLOT		*/
 			char  *pcislotstr; /* PCI SLOT in string */
-			char  nport;	/* Number of Ports	*/
+			long  nport;	/* Number of Ports	*/
 			char  *id;	/* tty id		*/
-			int   start;	/* start of tty counting */
+			long  start;	/* start of tty counting */
 			char  *method;  /* Install method       */
 			char  v_type;
 			char  v_port;
@@ -1340,18 +1261,18 @@ struct cnode {
 		struct {
 			char  *cable;
 			char  v_cable;
-			char  speed;
+			long  speed;
 			char  v_speed;
 		} line;
 
 		struct {
 			char  type;
 			char  *connect;
-			char  speed;
-			char  nport;
+			long  speed;
+			long  nport;
 			char  *id;
 			char  *idstr;
-			int   start;
+			long  start;
 			char  v_type;
 			char  v_connect;
 			char  v_speed;
@@ -1362,10 +1283,10 @@ struct cnode {
 
 		struct {
 			char type;
-			char nport;
+			long nport;
 			char *id;
 			char *idstr;
-			int  start;
+			long start;
 			char v_type;
 			char v_nport;
 			char v_id;
@@ -1378,23 +1299,23 @@ struct cnode {
 
 		char *printname;
 
-		int  majornumber;
+		long majornumber;
 
-		int  altpin;
+		long altpin;
 
-		int  ttysize;
+		long ttysize;
 
-		int  chsize;
+		long chsize;
 
-		int  bssize;
+		long bssize;
 
-		int  unsize;
+		long unsize;
 
-		int  f2size;
+		long f2size;
 
-		int  vpixsize;
+		long vpixsize;
 
-		int  useintr;
+		long useintr;
 	} u;
 };
 

@@ -42,7 +42,6 @@ static unsigned int max_bh = 0;
 /* global driver variables */
 extern ci_t *c4_list;
 extern int  drvr_state;
-extern int  cxt1e1_log_level;
 
 extern int  cxt1e1_max_mru;
 extern int  cxt1e1_max_mtu;
@@ -1045,17 +1044,19 @@ musycc_bh_rx_eom(mpi_t *pi, int gchan)
 #endif                              /*** CONFIG_SBE_WAN256T3_NCOMM ***/
 
 	    {
-		if ((m2 = OS_mem_token_alloc(cxt1e1_max_mru))) {
-		    /* substitute the mbuf+cluster */
-		    md->mem_token = m2;
-		    md->data = cpu_to_le32(OS_vtophys(OS_mem_token_data(m2)));
+		m2 = OS_mem_token_alloc(cxt1e1_max_mru);
+		if (m2) {
+			/* substitute the mbuf+cluster */
+			md->mem_token = m2;
+			md->data = cpu_to_le32(OS_vtophys(
+				OS_mem_token_data(m2)));
 
-		    /* pass the received mbuf upward */
-		    sd_recv_consume(m, status & LENGTH_MASK, ch->user);
-		    ch->s.rx_packets++;
-		    ch->s.rx_bytes += status & LENGTH_MASK;
+			/* pass the received mbuf upward */
+			sd_recv_consume(m, status & LENGTH_MASK, ch->user);
+			ch->s.rx_packets++;
+			ch->s.rx_bytes += status & LENGTH_MASK;
 		} else
-		    ch->s.rx_dropped++;
+			ch->s.rx_dropped++;
 	    }
 	} else if (error == ERR_FCS)
 	    ch->s.rx_crc_errors++;
@@ -1548,7 +1549,7 @@ musycc_chan_down(ci_t *dummy, int channum)
 
     ch = sd_find_chan(dummy, channum);
     if (!ch)
-	return EINVAL;
+	return -EINVAL;
     pi = ch->up;
     gchan = ch->gchan;
 

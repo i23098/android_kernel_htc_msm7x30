@@ -393,13 +393,13 @@ u8 rtw_setstandby_cmd(struct adapter *padapter, uint action)
 	u8 ret = _SUCCESS;
 
 
-	ph2c = (struct cmd_obj *)rtw_zmalloc(sizeof(struct cmd_obj));
+	ph2c = kzalloc(sizeof(struct cmd_obj), GFP_KERNEL);
 	if (ph2c == NULL) {
 		ret = _FAIL;
 		goto exit;
 	}
 
-	psetusbsuspend = (struct usb_suspend_parm *)rtw_zmalloc(sizeof(struct usb_suspend_parm));
+	psetusbsuspend = kzalloc(sizeof(struct usb_suspend_parm), GFP_KERNEL);
 	if (psetusbsuspend == NULL) {
 		kfree(ph2c);
 		ret = _FAIL;
@@ -1974,12 +1974,16 @@ static void c2h_wk_callback(struct work_struct *work)
 	evtpriv->c2h_wk_alive = true;
 
 	while (!rtw_cbuf_empty(evtpriv->c2h_queue)) {
-		if ((c2h_evt = (struct c2h_evt_hdr *)rtw_cbuf_pop(evtpriv->c2h_queue)) != NULL) {
+		c2h_evt = (struct c2h_evt_hdr *)
+			rtw_cbuf_pop(evtpriv->c2h_queue);
+		if (c2h_evt != NULL)
 			/* This C2H event is read, clear it */
 			c2h_evt_clear(adapter);
-		} else if ((c2h_evt = (struct c2h_evt_hdr *)rtw_malloc(16)) != NULL) {
+		else {
+			c2h_evt = (struct c2h_evt_hdr *)rtw_malloc(16);
 			/* This C2H event is not read, read & clear now */
-			if (c2h_evt_read(adapter, (u8 *)c2h_evt) != _SUCCESS)
+			if (c2h_evt != NULL &&
+			    c2h_evt_read(adapter, (u8 *)c2h_evt) != _SUCCESS)
 				continue;
 		}
 

@@ -136,41 +136,48 @@ MYPROCTYPE *visor_proc_CreateType(struct proc_dir_entry *procDirRoot,
 	MYPROCTYPE *rc = NULL, *type = NULL;
 	struct proc_dir_entry *parent = NULL;
 
-	if (procDirRoot == NULL)
-		FAIL("procDirRoot cannot be NULL!", 0);
-	if (name == NULL || name[0] == NULL)
-		FAIL("name must contain at least 1 node name!", 0);
-	type = kmalloc(sizeof(MYPROCTYPE), GFP_KERNEL|__GFP_NORETRY);
-	if (type == NULL)
-		FAIL("out of memory", 0);
-	memset(type, 0, sizeof(MYPROCTYPE));
+	if (procDirRoot == NULL) {
+		ERRDRV("procDirRoot cannot be NULL!\n");
+		goto Away;
+	}
+	if (name == NULL || name[0] == NULL) {
+		ERRDRV("name must contain at least 1 node name!\n");
+		goto Away;
+	}
+	type = kzalloc(sizeof(MYPROCTYPE), GFP_KERNEL | __GFP_NORETRY);
+	if (type == NULL) {
+		ERRDRV("out of memory\n");
+		goto Away;
+	}
 	type->name = name;
 	type->propertyNames = propertyNames;
 	type->nProperties = 0;
 	type->nNames = 0;
 	type->show_property = show_property;
 	type->procDirRoot = procDirRoot;
-	if (type->propertyNames != 0)
+	if (type->propertyNames != NULL)
 		while (type->propertyNames[type->nProperties] != NULL)
 			type->nProperties++;
 	while (type->name[type->nNames] != NULL)
 		type->nNames++;
-	type->procDirs = kmalloc((type->nNames+1)*
+	type->procDirs = kzalloc((type->nNames + 1) *
 				 sizeof(struct proc_dir_entry *),
-				 GFP_KERNEL|__GFP_NORETRY);
-	if (type->procDirs == NULL)
-		FAIL("out of memory", 0);
-	memset(type->procDirs, 0, (type->nNames + 1) *
-	       sizeof(struct proc_dir_entry *));
+				 GFP_KERNEL | __GFP_NORETRY);
+	if (type->procDirs == NULL) {
+		ERRDRV("out of memory\n");
+		goto Away;
+	}
 	parent = procDirRoot;
 	for (i = 0; i < type->nNames; i++) {
 		type->procDirs[i] = createProcDir(type->name[i], parent);
-		if (type->procDirs[i] == NULL)
-			RETPTR(NULL);
+		if (type->procDirs[i] == NULL) {
+			rc = NULL;
+			goto Away;
+		}
 		parent = type->procDirs[i];
 	}
 	type->procDir = type->procDirs[type->nNames-1];
-	RETPTR(type);
+	rc = type;
 Away:
 	if (rc == NULL) {
 		if (type != NULL) {
@@ -216,12 +223,15 @@ MYPROCOBJECT *visor_proc_CreateObject(MYPROCTYPE *type,
 	MYPROCOBJECT *obj = NULL, *rc = NULL;
 	int i = 0;
 
-	if (type == NULL)
-		FAIL("type cannot be NULL", 0);
-	obj = kmalloc(sizeof(MYPROCOBJECT), GFP_KERNEL | __GFP_NORETRY);
-	if (obj == NULL)
-		FAIL("out of memory", 0);
-	memset(obj, 0, sizeof(MYPROCOBJECT));
+	if (type == NULL) {
+		ERRDRV("type cannot be NULL\n");
+		goto Away;
+	}
+	obj = kzalloc(sizeof(MYPROCOBJECT), GFP_KERNEL | __GFP_NORETRY);
+	if (obj == NULL) {
+		ERRDRV("out of memory\n");
+		goto Away;
+	}
 	obj->type = type;
 	obj->context = context;
 	if (name == NULL) {
@@ -232,27 +242,29 @@ MYPROCOBJECT *visor_proc_CreateObject(MYPROCTYPE *type,
 		obj->name = kmalloc(obj->namesize, GFP_KERNEL | __GFP_NORETRY);
 		if (obj->name == NULL) {
 			obj->namesize = 0;
-			FAIL("out of memory", 0);
+			ERRDRV("out of memory\n");
+			goto Away;
 		}
 		strcpy(obj->name, name);
 		obj->procDir = createProcDir(obj->name, type->procDir);
-		if (obj->procDir == NULL)
-			RETPTR(NULL);
+		if (obj->procDir == NULL) {
+			goto Away;
+		}
 	}
 	obj->procDirPropertyContexts =
-		kmalloc((type->nProperties+1)*sizeof(PROCDIRENTRYCONTEXT),
-			GFP_KERNEL|__GFP_NORETRY);
-	if (obj->procDirPropertyContexts == NULL)
-		FAIL("out of memory", 0);
-	memset(obj->procDirPropertyContexts, 0,
-	       (type->nProperties+1)*sizeof(PROCDIRENTRYCONTEXT));
+		kzalloc((type->nProperties + 1) * sizeof(PROCDIRENTRYCONTEXT),
+			GFP_KERNEL | __GFP_NORETRY);
+	if (obj->procDirPropertyContexts == NULL) {
+		ERRDRV("out of memory\n");
+		goto Away;
+	}
 	obj->procDirProperties =
-		kmalloc((type->nProperties+1) * sizeof(struct proc_dir_entry *),
-			GFP_KERNEL|__GFP_NORETRY);
-	if (obj->procDirProperties == NULL)
-		FAIL("out of memory", 0);
-	memset(obj->procDirProperties, 0,
-	       (type->nProperties+1) * sizeof(struct proc_dir_entry *));
+		kzalloc((type->nProperties + 1) * sizeof(struct proc_dir_entry *),
+			GFP_KERNEL | __GFP_NORETRY);
+	if (obj->procDirProperties == NULL) {
+		ERRDRV("out of memory\n");
+		goto Away;
+	}
 	for (i = 0; i < type->nProperties; i++) {
 		obj->procDirPropertyContexts[i].procObject = obj;
 		obj->procDirPropertyContexts[i].propertyIndex = i;
@@ -264,11 +276,13 @@ MYPROCOBJECT *visor_proc_CreateObject(MYPROCTYPE *type,
 				createProcFile(type->propertyNames[i],
 					       obj->procDir, &proc_fops,
 					       &obj->procDirPropertyContexts[i]);
-			if (obj->procDirProperties[i] == NULL)
-				RETPTR(NULL);
+			if (obj->procDirProperties[i] == NULL) {
+				rc = NULL;
+				goto Away;
+			}
 		}
 	}
-	RETPTR(obj);
+	rc = obj;
 Away:
 	if (rc == NULL) {
 		if (obj != NULL) {

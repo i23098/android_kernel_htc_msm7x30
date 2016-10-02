@@ -105,6 +105,8 @@ int PIPEnsControlOutAsyn(struct vnt_private *pDevice, u8 byRequest,
 
 int PIPEnsControlOut(struct vnt_private *pDevice, u8 byRequest, u16 wValue,
 		u16 wIndex, u16 wLength, u8 *pbyBuffer)
+		__releases(&pDevice->lock)
+		__acquires(&pDevice->lock)
 {
 	int ntStatus = 0;
 	int ii;
@@ -167,6 +169,8 @@ int PIPEnsControlOut(struct vnt_private *pDevice, u8 byRequest, u16 wValue,
 
 int PIPEnsControlIn(struct vnt_private *pDevice, u8 byRequest, u16 wValue,
 	u16 wIndex, u16 wLength,  u8 *pbyBuffer)
+	__releases(&pDevice->lock)
+	__acquires(&pDevice->lock)
 {
 	int ntStatus = 0;
 	int ii;
@@ -309,7 +313,7 @@ int PIPEnsInterruptRead(struct vnt_private *priv)
 
 	usb_fill_int_urb(priv->pInterruptURB,
 		priv->usb,
-		usb_rcvbulkpipe(priv->usb, 1),
+		usb_rcvintpipe(priv->usb, 1),
 		priv->int_buf.data_buf,
 		MAX_INTERRUPT_SIZE,
 		s_nsInterruptUsbIoCompleteRead,

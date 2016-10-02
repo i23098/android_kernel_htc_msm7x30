@@ -28,27 +28,22 @@
 #define CURRENT_FILE_PC UISLIB_PC_uisqueue_c
 #define __MYFILE__ "uisqueue.c"
 
-#define RETVOID    do { goto Away; } while (0)
-#define RETINT(x)  do { rc = (x); goto Away; } while (0)
-#define RETPTR(x)  do { rc = (x); goto Away; } while (0)
-#define RETBOOL(x) do { rc = (x); goto Away; } while (0)
-
 #define CHECK_CACHE_ALIGN 0
 
 /*****************************************************/
 /* Exported functions                                */
 /*****************************************************/
 unsigned long long
-uisqueue_InterlockedOr(volatile unsigned long long *Target,
+uisqueue_InterlockedOr(unsigned long long __iomem *Target,
 		       unsigned long long Set)
 {
 	unsigned long long i;
 	unsigned long long j;
 
-	j = *Target;
+	j = readq(Target);
 	do {
 		i = j;
-		j = uislibcmpxchg64((unsigned long long *) Target,
+		j = uislibcmpxchg64((__force unsigned long long *)Target,
 				    i, i | Set, sizeof(*(Target)));
 
 	} while (i != j);
@@ -58,16 +53,16 @@ uisqueue_InterlockedOr(volatile unsigned long long *Target,
 EXPORT_SYMBOL_GPL(uisqueue_InterlockedOr);
 
 unsigned long long
-uisqueue_InterlockedAnd(volatile unsigned long long *Target,
+uisqueue_InterlockedAnd(unsigned long long __iomem *Target,
 			unsigned long long Set)
 {
 	unsigned long long i;
 	unsigned long long j;
 
-	j = *Target;
+	j = readq(Target);
 	do {
 		i = j;
-		j = uislibcmpxchg64((unsigned long long *) Target,
+		j = uislibcmpxchg64((__force unsigned long long *)Target,
 				    i, i & Set, sizeof(*(Target)));
 
 	} while (i != j);
@@ -94,13 +89,13 @@ do_locked_client_insert(struct uisqueue_info *queueinfo,
 	locked = 1;
 
 	if (!ULTRA_CHANNEL_CLIENT_ACQUIRE_OS(queueinfo->chan, channelId, NULL))
-		RETINT(0);
+		goto Away;
 
 	acquired = 1;
 
 	queueWasEmpty = visor_signalqueue_empty(queueinfo->chan, whichqueue);
 	if (!visor_signal_insert(queueinfo->chan, whichqueue, pSignal))
-		RETINT(0);
+		goto Away;
 	ULTRA_CHANNEL_CLIENT_RELEASE_OS(queueinfo->chan, channelId, NULL);
 	acquired = 0;
 	spin_unlock_irqrestore(lock, flags);
@@ -108,8 +103,7 @@ do_locked_client_insert(struct uisqueue_info *queueinfo,
 
 	queueinfo->packets_sent++;
 
-	RETINT(1);
-
+	rc = 1;
 Away:
 	if (acquired) {
 		ULTRA_CHANNEL_CLIENT_RELEASE_OS(queueinfo->chan, channelId,
