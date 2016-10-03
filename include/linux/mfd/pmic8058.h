@@ -23,7 +23,6 @@
 #include <linux/mfd/pm8xxx/irq.h>
 #include <linux/mfd/pm8xxx/gpio.h>
 #include <linux/mfd/pm8xxx/mpp.h>
-#include <linux/mfd/pm8xxx/rtc.h>
 #include <linux/input/pmic8xxx-pwrkey.h>
 #include <linux/input/pmic8xxx-keypad.h>
 #include <linux/mfd/pm8xxx/vibrator.h>
@@ -119,6 +118,15 @@ enum pm8058_smpl_delay {
 	PM8058_SMPL_DELAY_1p0,
 	PM8058_SMPL_DELAY_1p5,
 	PM8058_SMPL_DELAY_2p0,
+};
+
+#define PM8XXX_RTC_DEV_NAME     "rtc-pm8xxx"
+/**
+ * struct pm8xxx_rtc_pdata - RTC driver platform data
+ * @rtc_write_enable: variable stating RTC write capability
+ */
+struct pm8xxx_rtc_platform_data {
+	bool rtc_write_enable;
 };
 
 struct pm8058_platform_data {
