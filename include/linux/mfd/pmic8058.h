@@ -23,8 +23,6 @@
 #include <linux/mfd/pm8xxx/irq.h>
 #include <linux/mfd/pm8xxx/gpio.h>
 #include <linux/mfd/pm8xxx/mpp.h>
-#include <linux/input/pmic8xxx-pwrkey.h>
-#include <linux/input/pmic8xxx-keypad.h>
 #include <linux/mfd/pm8xxx/vibrator.h>
 #include <linux/mfd/pm8xxx/nfc.h>
 #include <linux/mfd/pm8xxx/upl.h>
@@ -120,6 +118,7 @@ enum pm8058_smpl_delay {
 	PM8058_SMPL_DELAY_2p0,
 };
 
+// from rtc
 #define PM8XXX_RTC_DEV_NAME     "rtc-pm8xxx"
 /**
  * struct pm8xxx_rtc_pdata - RTC driver platform data
@@ -127,6 +126,59 @@ enum pm8058_smpl_delay {
  */
 struct pm8xxx_rtc_platform_data {
 	bool rtc_write_enable;
+};
+
+//from pwrkey
+#define PM8XXX_PWRKEY_DEV_NAME "pm8xxx-pwrkey"
+
+/**
+ * struct pm8xxx_pwrkey_platform_data - platform data for pwrkey driver
+ * @pull up:  power on register control for pull up/down configuration
+ * @kpd_trigger_delay_us: time delay for power key state change interrupt
+ *                  trigger.
+ * @wakeup: configure power key as wakeup source
+ */
+struct pm8xxx_pwrkey_platform_data  {
+	bool pull_up;
+	u32  kpd_trigger_delay_us;
+	u32  wakeup;
+};
+
+//from keypad
+#include <linux/input/matrix_keypad.h>
+
+#define PM8XXX_KEYPAD_DEV_NAME     "pm8xxx-keypad"
+
+/**
+ * struct pm8xxx_keypad_platform_data - platform data for keypad
+ * @keymap_data - matrix keymap data
+ * @input_name - input device name
+ * @input_phys_device - input device name
+ * @num_cols - number of columns of keypad
+ * @num_rows - number of row of keypad
+ * @debounce_ms - debounce period in milliseconds
+ * @scan_delay_ms - scan delay in milliseconds
+ * @row_hold_ns - row hold period in nanoseconds
+ * @wakeup - configure keypad as wakeup
+ * @rep - enable or disable key repeat bit
+ */
+struct pm8xxx_keypad_platform_data {
+	const struct matrix_keymap_data *keymap_data;
+
+	const char *input_name;
+	const char *input_phys_device;
+
+	unsigned int num_cols;
+	unsigned int num_rows;
+	unsigned int rows_gpio_start;
+	unsigned int cols_gpio_start;
+
+	unsigned int debounce_ms;
+	unsigned int scan_delay_ms;
+	unsigned int row_hold_ns;
+
+	bool wakeup;
+	bool rep;
 };
 
 struct pm8058_platform_data {
