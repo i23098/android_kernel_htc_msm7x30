@@ -422,36 +422,6 @@ config TIMPANI_CODEC
 	 This driver programs Timpani Wideband Codec for input/output of
 	 audio signal.
 
-config MFD_PM8821_CORE
-	tristate "Qualcomm PM8821 PMIC chip"
-	depends on MSM_SSBI
-	select MFD_CORE
-	select MFD_PM8XXX
-	help
-	  If you say yes to this option, support will be included for the
-	  built-in PM8821 PMIC chip.
-
-	  This is required if your board has a PM8821 and uses its features,
-	  such as: MPPs, and interrupts.
-
-	  Say M here if you want to include support for PM8821 chip as a module.
-	  This will build a module called "pm8821-core".
-
-config MFD_PM8018_CORE
-	tristate "Qualcomm PM8018 PMIC chip"
-	depends on MSM_SSBI
-	select MFD_CORE
-	select MFD_PM8XXX
-	help
-	  If you say yes to this option, support will be included for the
-	  built-in PM8018 PMIC chip.
-
-	  This is required if your board has a PM8018 and uses its features,
-	  such as: MPPs, GPIOs, regulators, interrupts, and PWM.
-
-	  Say M here if you want to include support for PM8018 chip as a module.
-	  This will build a module called "pm8018-core".
-
 config MFD_MAX8997
 	bool "Maxim Semiconductor MAX8997/8966 PMIC Support"
 	depends on I2C=y
@@ -544,22 +514,6 @@ config UCB1400_CORE
 
 config MFD_PM8XXX
 	tristate
-
-config MFD_PM8921_CORE
-	tristate "Qualcomm PM8921 PMIC chip"
-	depends on (ARCH_MSM || HEXAGON)
-	depends on BROKEN
-	select MFD_CORE
-	select MFD_PM8XXX
-	help
-	  If you say yes to this option, support will be included for the
-	  built-in PM8921 PMIC chip.
-
-	  This is required if your board has a PM8921 and uses its features,
-	  such as: MPPs, GPIOs, regulators, interrupts, and PWM.
-
-	  Say M here if you want to include support for PM8921 chip as a module.
-	  This will build a module called "pm8921-core".
 
 config MFD_PM8XXX_IRQ
 	bool "Qualcomm PM8xxx IRQ features"

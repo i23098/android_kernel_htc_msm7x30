@@ -32,10 +32,6 @@
 #include <mach/htc_headset_mgr.h>
 #include <mach/htc_headset_pmic.h>
 
-#ifdef HTC_HEADSET_CONFIG_PMIC_8XXX_ADC
-#include <linux/mfd/pm8xxx/pm8xxx-adc.h>
-#endif
-
 #define DRIVER_NAME "HS_PMIC"
 
 static struct workqueue_struct *detect_wq;
@@ -158,24 +154,6 @@ static int hs_pmic_remote_adc(int *adc)
 }
 #endif
 
-#ifdef HTC_HEADSET_CONFIG_PMIC_8XXX_ADC
-static int hs_pmic_remote_adc_pm8921(int *adc)
-{
-	struct pm8xxx_adc_chan_result result;
-
-	HS_DBG();
-
-	result.physical = -EINVAL;
-	pm8xxx_adc_mpp_config_read(hi->pdata.adc_mpp, hi->pdata.adc_amux,
-				   &result);
-	*adc = (int) result.physical;
-	*adc = *adc / 1000; /* uA to mA */
-	HS_LOG("Remote ADC %d (0x%X)", *adc, *adc);
-
-	return 1;
-}
-#endif
-
 static int hs_pmic_mic_status(void)
 {
 	int adc = 0;
@@ -189,11 +167,6 @@ static int hs_pmic_mic_status(void)
 
 	if (hi->pdata.driver_flag & DRIVER_HS_PMIC_DYNAMIC_THRESHOLD)
 		hs_pmic_remote_threshold((unsigned int) adc);
-#endif
-
-#ifdef HTC_HEADSET_CONFIG_PMIC_8XXX_ADC
-	if (!hs_pmic_remote_adc_pm8921(&adc))
-		return HEADSET_UNKNOWN_MIC;
 #endif
 
 	if (adc >= hi->pdata.adc_mic_bias[0] &&
@@ -397,12 +370,6 @@ static void hs_pmic_register(void)
 #ifdef HTC_HEADSET_CONFIG_MSM_RPC
 		notifier.id = HEADSET_REG_REMOTE_ADC;
 		notifier.func = hs_pmic_remote_adc;
-		headset_notifier_register(&notifier);
-#endif
-
-#ifdef HTC_HEADSET_CONFIG_PMIC_8XXX_ADC
-		notifier.id = HEADSET_REG_REMOTE_ADC;
-		notifier.func = hs_pmic_remote_adc_pm8921;
 		headset_notifier_register(&notifier);
 #endif
 
