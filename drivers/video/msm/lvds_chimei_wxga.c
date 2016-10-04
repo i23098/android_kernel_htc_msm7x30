@@ -12,7 +12,6 @@
 
 #include "msm_fb.h"
 #include <linux/pwm.h>
-#include <linux/mfd/pm8xxx/pm8921.h>
 
 #define LVDS_CHIMEI_PWM_FREQ_HZ 300
 #define LVDS_CHIMEI_PWM_PERIOD_USEC (USEC_PER_SEC / LVDS_CHIMEI_PWM_FREQ_HZ)

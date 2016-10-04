@@ -31,7 +31,6 @@
 #include <linux/alarmtimer.h>
 
 #include <linux/gpio.h>
-#include <linux/mfd/pm8xxx/pm8921.h>
 
 
 #ifdef CONFIG_AMP_TPA2051D3_ON_GPIO

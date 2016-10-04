@@ -25,8 +25,6 @@
 #include <linux/mfd/pm8xxx/misc.h>
 #include <linux/mfd/pm8xxx/tm.h>
 #include <linux/mfd/pm8xxx/batt-alarm.h>
-#include <linux/input/pmic8xxx-pwrkey.h>
-#include <linux/input/pmic8xxx-keypad.h>
 #include <linux/regulator/pm8921-regulator.h>
 #include <linux/mfd/pm8xxx/pm8xxx-adc.h>
 #include <linux/leds-pm8xxx.h>
