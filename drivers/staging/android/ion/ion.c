@@ -160,6 +160,7 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 		return ERR_PTR(-ENOMEM);
 
 	buffer->heap = heap;
+	buffer->flags = flags;
 	kref_init(&buffer->ref);
 
 	ret = heap->ops->allocate(heap, buffer, len, align, flags);
@@ -171,7 +172,6 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 
 	buffer->dev = dev;
 	buffer->size = len;
-	buffer->flags = flags;
 
 	table = buffer->heap->ops->map_dma(buffer->heap, buffer);
 	if (IS_ERR_OR_NULL(table)) {
@@ -351,7 +351,14 @@ static void ion_handle_get(struct ion_handle *handle)
 
 static int ion_handle_put(struct ion_handle *handle)
 {
-	return kref_put(&handle->ref, ion_handle_destroy);
+	struct ion_client *client = handle->client;
+	int ret;
+
+	mutex_lock(&client->lock);
+	ret = kref_put(&handle->ref, ion_handle_destroy);
+	mutex_unlock(&client->lock);
+
+	return ret;
 }
 
 static struct ion_handle *ion_handle_lookup(struct ion_client *client,
@@ -431,12 +438,12 @@ struct ion_handle *ion_alloc(struct ion_client *client, size_t len,
 	 * request of the caller allocate from it.  Repeat until allocate has
 	 * succeeded or all heaps have been tried
 	 */
-	if (WARN_ON(!len))
-		return ERR_PTR(-EINVAL);
-
 	len = PAGE_ALIGN(len);
 
-	mutex_lock(&dev->buffer_lock);
+	if (!len)
+		return ERR_PTR(-EINVAL);
+
+	down_read(&dev->lock);
 	for (n = rb_first(&dev->heaps); n != NULL; n = rb_next(n)) {
 		struct ion_heap *heap = rb_entry(n, struct ion_heap, node);
 		/* if the client doesn't support this heap type */
@@ -468,7 +475,7 @@ struct ion_handle *ion_alloc(struct ion_client *client, size_t len,
 			}
 		}
 	}
-	mutex_unlock(&dev->buffer_lock);
+	up_read(&dev->lock);
 
 	if (buffer == NULL)
 		return ERR_PTR(-ENODEV);
@@ -553,7 +560,10 @@ static void *ion_buffer_kmap_get(struct ion_buffer *buffer)
 		return buffer->vaddr;
 	}
 	vaddr = buffer->heap->ops->map_kernel(buffer->heap, buffer);
-	if (IS_ERR_OR_NULL(vaddr))
+	if (WARN_ONCE(vaddr == NULL,
+			"heap->ops->map_kernel should return ERR_PTR on error"))
+		return ERR_PTR(-EINVAL);
+	if (IS_ERR(vaddr))
 		return vaddr;
 	buffer->vaddr = vaddr;
 	buffer->kmap_cnt++;
@@ -972,12 +982,12 @@ struct ion_client *ion_client_create(struct ion_device *dev,
 	if (!client->name)
 		goto err_free_client;
 
-	mutex_lock(&dev->buffer_lock);
+	down_write(&dev->lock);
 	client->display_serial = ion_get_client_serial(&dev->clients, name);
 	client->display_name = kasprintf(
 		GFP_KERNEL, "%s-%d", name, client->display_serial);
 	if (!client->display_name) {
-		mutex_unlock(&dev->buffer_lock);
+		up_write(&dev->lock);
 		goto err_free_client_name;
 	}
 	p = &dev->clients.rb_node;
@@ -1003,7 +1013,7 @@ struct ion_client *ion_client_create(struct ion_device *dev,
 			path, client->display_name);
 	}
 
-	mutex_unlock(&dev->buffer_lock);
+	up_write(&dev->lock);
 
 	return client;
 
@@ -1029,12 +1039,13 @@ void ion_client_destroy(struct ion_client *client)
 						     node);
 		ion_handle_destroy(&handle->ref);
 	}
-	mutex_lock(&dev->buffer_lock);
+
+	down_write(&dev->lock);
 	if (client->task)
 		put_task_struct(client->task);
 	rb_erase(&client->node, &dev->clients);
 	debugfs_remove_recursive(client->debug_root);
-	mutex_unlock(&dev->buffer_lock);
+	up_write(&dev->lock);
 
 	kfree(client->display_name);
 	kfree(client->name);
@@ -1259,14 +1270,15 @@ int ion_share_dma_buf(struct ion_client *client,
 
 	mutex_lock(&client->lock);
 	valid_handle = ion_handle_validate(client, handle);
-	mutex_unlock(&client->lock);
 	if (!valid_handle) {
 		WARN(1, "%s: invalid handle passed to share.\n", __func__);
+		mutex_unlock(&client->lock);
 		return -EINVAL;
 	}
-
 	buffer = handle->buffer;
 	ion_buffer_get(buffer);
+	mutex_unlock(&client->lock);
+
 	dmabuf = dma_buf_export(buffer, &dma_buf_ops, buffer->size, O_RDWR);
 	if (IS_ERR(dmabuf)) {
 		ion_buffer_put(buffer);
@@ -1331,20 +1343,24 @@ struct ion_handle *ion_import_dma_buf(struct ion_client *client, int fd)
 	handle = ion_handle_lookup(client, buffer);
 	if (!IS_ERR_OR_NULL(handle)) {
 		ion_handle_get(handle);
+		mutex_unlock(&client->lock);
 		goto end;
 	}
+	mutex_unlock(&client->lock);
+
 	handle = ion_handle_create(client, buffer);
 	if (IS_ERR_OR_NULL(handle))
 		goto end;
 
+	mutex_lock(&client->lock);
 	ret = ion_handle_add(client, handle);
+	mutex_unlock(&client->lock);
 	if (ret) {
 		ion_handle_put(handle);
 		handle = ERR_PTR(ret);
 	}
 
 end:
-	mutex_unlock(&client->lock);
 	dma_buf_put(dmabuf);
 	return handle;
 }
