@@ -26,7 +26,6 @@
 #include <linux/mfd/pm8xxx/vibrator.h>
 #include <linux/mfd/pm8xxx/nfc.h>
 #include <linux/mfd/pm8xxx/upl.h>
-#include <linux/mfd/pm8xxx/misc.h>
 #include <linux/mfd/pm8xxx/batt-alarm.h>
 #include <linux/leds-pmic8058.h>
 #include <linux/mfd/pm8xxx/tm.h>
@@ -161,7 +160,6 @@ struct pm8058_platform_data {
 	struct pm8xxx_gpio_platform_data	*gpio_pdata;
 	struct pm8xxx_irq_platform_data		*irq_pdata;
 	struct pm8xxx_vibrator_platform_data	*vibrator_pdata;
-	struct pm8xxx_misc_platform_data	*misc_pdata;
 	struct pmic8058_leds_platform_data	*leds_pdata;
 	struct pm8058_pwm_pdata			*pwm_pdata;
 	struct pm8058_vreg_pdata		*regulator_pdatas;

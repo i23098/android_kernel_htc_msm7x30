@@ -673,17 +673,6 @@ static struct mfd_cell pm8058_charger_cell = {
 	.num_resources	= ARRAY_SIZE(pm8058_charger_resources),
 };
 
-static const struct resource misc_cell_resources[] = {
-	SINGLE_IRQ_RESOURCE("pm8xxx_osc_halt_irq", PM8058_OSCHALT_IRQ),
-};
-
-static struct mfd_cell misc_cell = {
-	.name		= PM8XXX_MISC_DEV_NAME,
-	.id		= -1,
-	.resources	= misc_cell_resources,
-	.num_resources	= ARRAY_SIZE(misc_cell_resources),
-};
-
 static struct mfd_cell pm8058_pwm_cell = {
 	.name		= "pm8058-pwm",
 	.id		= -1,
@@ -954,17 +943,6 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 				irq_base, NULL);
 		if (rc) {
 			pr_err("Failed to add pwm subdevice ret=%d\n", rc);
-			goto bail;
-		}
-	}
-
-	if (pdata->misc_pdata) {
-		misc_cell.platform_data = pdata->misc_pdata;
-		misc_cell.pdata_size = sizeof(struct pm8xxx_misc_platform_data);
-		rc = mfd_add_devices(pmic->dev, 0, &misc_cell, 1, NULL,
-				irq_base, NULL);
-		if (rc) {
-			pr_err("Failed to add  misc subdevice ret=%d\n", rc);
 			goto bail;
 		}
 	}
