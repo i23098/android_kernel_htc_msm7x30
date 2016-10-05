@@ -800,7 +800,7 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 {
 	int rc = 0, irq_base = 0, i;
 	struct pm_irq_chip *irq_chip;
-	static struct mfd_cell *mfd_regulators, *mfd_xo_buffers;
+	static struct mfd_cell *mfd_xo_buffers;
 
 	if (pdata->irq_pdata) {
 		pdata->irq_pdata->irq_cdata.nirqs = PM8058_NR_IRQS;
@@ -839,35 +839,6 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 			pr_err("Failed to add mpp subdevice ret=%d\n", rc);
 			goto bail;
 		}
-	}
-
-	if (pdata->num_regulators > 0 && pdata->regulator_pdatas) {
-		mfd_regulators = kzalloc(sizeof(struct mfd_cell)
-					 * (pdata->num_regulators), GFP_KERNEL);
-		if (!mfd_regulators) {
-			pr_err("Cannot allocate %d bytes for pm8058 regulator "
-				"mfd cells\n", sizeof(struct mfd_cell)
-						* (pdata->num_regulators));
-			rc = -ENOMEM;
-			goto bail;
-		}
-		for (i = 0; i < pdata->num_regulators; i++) {
-			mfd_regulators[i].name = "pm8058-regulator";
-			mfd_regulators[i].id = pdata->regulator_pdatas[i].id;
-			mfd_regulators[i].platform_data =
-				&(pdata->regulator_pdatas[i]);
-			mfd_regulators[i].pdata_size =
-					sizeof(struct pm8058_vreg_pdata);
-		}
-		rc = mfd_add_devices(pmic->dev, 0, mfd_regulators,
-				pdata->num_regulators, NULL, irq_base, NULL);
-		if (rc) {
-			pr_err("Failed to add regulator subdevices ret=%d\n",
-				rc);
-			kfree(mfd_regulators);
-			goto bail;
-		}
-		pmic->mfd_regulators = mfd_regulators;
 	}
 
 	if (pdata->num_xo_buffers > 0 && pdata->xo_buffer_pdata) {
