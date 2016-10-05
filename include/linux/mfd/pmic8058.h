@@ -118,16 +118,6 @@ enum pm8058_smpl_delay {
 	PM8058_SMPL_DELAY_2p0,
 };
 
-// from rtc
-#define PM8XXX_RTC_DEV_NAME     "rtc-pm8xxx"
-/**
- * struct pm8xxx_rtc_pdata - RTC driver platform data
- * @rtc_write_enable: variable stating RTC write capability
- */
-struct pm8xxx_rtc_platform_data {
-	bool rtc_write_enable;
-};
-
 //from pwrkey
 #define PM8XXX_PWRKEY_DEV_NAME "pm8xxx-pwrkey"
 
@@ -186,7 +176,6 @@ struct pm8058_platform_data {
 	struct pm8xxx_keypad_platform_data      *keypad_pdata;
 	struct pm8xxx_gpio_platform_data	*gpio_pdata;
 	struct pm8xxx_irq_platform_data		*irq_pdata;
-	struct pm8xxx_rtc_platform_data		*rtc_pdata;
 	struct pm8xxx_pwrkey_platform_data	*pwrkey_pdata;
 	struct pm8xxx_vibrator_platform_data	*vibrator_pdata;
 	struct pm8xxx_misc_platform_data	*misc_pdata;
