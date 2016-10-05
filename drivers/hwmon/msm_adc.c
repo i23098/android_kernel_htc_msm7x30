@@ -24,7 +24,6 @@
 #include <linux/uaccess.h>
 #include <linux/msm_adc.h>
 #include <linux/module.h>
-#include <linux/pmic8058-xoadc.h>
 #include <linux/slab.h>
 #include <linux/semaphore.h>
 

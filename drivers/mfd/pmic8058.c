@@ -689,17 +689,6 @@ static struct mfd_cell pm8058_pwm_cell = {
 	.id		= -1,
 };
 
-static struct resource xoadc_resources[] = {
-	SINGLE_IRQ_RESOURCE(NULL, PM8058_ADC_IRQ),
-};
-
-static struct mfd_cell xoadc_cell = {
-	.name		= "pm8058-xoadc",
-	.id		= -1,
-	.resources	= xoadc_resources,
-	.num_resources	= ARRAY_SIZE(xoadc_resources),
-};
-
 static const struct resource thermal_alarm_cell_resources[] = {
 	SINGLE_IRQ_RESOURCE("pm8058_tempstat_irq", PM8058_TEMPSTAT_IRQ),
 	SINGLE_IRQ_RESOURCE("pm8058_overtemp_irq", PM8058_OVERTEMP_IRQ),
@@ -951,18 +940,6 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 		leds_cell.pdata_size =
 			sizeof(struct pmic8058_leds_platform_data);
 		rc = mfd_add_devices(pmic->dev, 0, &leds_cell, 1, NULL,
-				irq_base, NULL);
-		if (rc) {
-			pr_err("Failed to add leds subdevice ret=%d\n", rc);
-			goto bail;
-		}
-	}
-
-	if (pdata->xoadc_pdata) {
-		xoadc_cell.platform_data = pdata->xoadc_pdata;
-		xoadc_cell.pdata_size =
-			sizeof(struct xoadc_platform_data);
-		rc = mfd_add_devices(pmic->dev, 0, &xoadc_cell, 1, NULL,
 				irq_base, NULL);
 		if (rc) {
 			pr_err("Failed to add leds subdevice ret=%d\n", rc);

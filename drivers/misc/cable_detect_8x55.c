@@ -17,10 +17,8 @@
 #include <linux/module.h>
 #include <linux/interrupt.h>
 #include <linux/mfd/pmic8058.h>
-#include <linux/pmic8058-xoadc.h>
 #include <linux/platform_device.h>
 #include <linux/gpio.h>
-/*#include <linux/msm_adc.h>*/
 #include <mach/board_htc.h>
 
 #include <mach/cable_detect.h>
