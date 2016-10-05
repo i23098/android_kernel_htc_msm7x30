@@ -118,21 +118,6 @@ enum pm8058_smpl_delay {
 	PM8058_SMPL_DELAY_2p0,
 };
 
-//from pwrkey
-#define PM8XXX_PWRKEY_DEV_NAME "pm8xxx-pwrkey"
-
-/**
- * struct pm8xxx_pwrkey_platform_data - platform data for pwrkey driver
- * @pull up:  power on register control for pull up/down configuration
- * @kpd_trigger_delay_us: time delay for power key state change interrupt
- *                  trigger.
- * @wakeup: configure power key as wakeup source
- */
-struct pm8xxx_pwrkey_platform_data  {
-	bool pull_up;
-	u32  kpd_trigger_delay_us;
-	u32  wakeup;
-};
 
 //from keypad
 #include <linux/input/matrix_keypad.h>
@@ -176,7 +161,6 @@ struct pm8058_platform_data {
 	struct pm8xxx_keypad_platform_data      *keypad_pdata;
 	struct pm8xxx_gpio_platform_data	*gpio_pdata;
 	struct pm8xxx_irq_platform_data		*irq_pdata;
-	struct pm8xxx_pwrkey_platform_data	*pwrkey_pdata;
 	struct pm8xxx_vibrator_platform_data	*vibrator_pdata;
 	struct pm8xxx_misc_platform_data	*misc_pdata;
 	struct pmic8058_leds_platform_data	*leds_pdata;

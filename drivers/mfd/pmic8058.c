@@ -767,21 +767,9 @@ static struct mfd_cell nfc_cell = {
 	.id		= -1,
 };
 
-static const struct resource resources_pwrkey[] = {
-	SINGLE_IRQ_RESOURCE(NULL, PM8058_PWRKEY_REL_IRQ),
-	SINGLE_IRQ_RESOURCE(NULL, PM8058_PWRKEY_PRESS_IRQ),
-};
-
 static struct mfd_cell vibrator_cell = {
 	.name		= PM8XXX_VIBRATOR_DEV_NAME,
 	.id		= -1,
-};
-
-static struct mfd_cell pwrkey_cell = {
-	.name		= PM8XXX_PWRKEY_DEV_NAME,
-	.id		= -1,
-	.num_resources	= ARRAY_SIZE(resources_pwrkey),
-	.resources	= resources_pwrkey,
 };
 
 static const struct resource resources_keypad[] = {
@@ -941,18 +929,6 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 				irq_base, NULL);
 		if (rc) {
 			pr_err("Failed to add keypad subdevice ret=%d\n", rc);
-			goto bail;
-		}
-	}
-
-	if (pdata->pwrkey_pdata) {
-		pwrkey_cell.platform_data = pdata->pwrkey_pdata;
-		pwrkey_cell.pdata_size =
-			sizeof(struct pm8xxx_pwrkey_platform_data);
-		rc = mfd_add_devices(pmic->dev, 0, &pwrkey_cell, 1, NULL,
-				irq_base, NULL);
-		if (rc) {
-			pr_err("Failed to add pwrkey subdevice ret=%d\n", rc);
 			goto bail;
 		}
 	}
