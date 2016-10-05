@@ -94,12 +94,6 @@
 #define PM8058_CBLPWR_IRQ		PM8058_IRQ_BLOCK_BIT(4, 3)
 #define PM8058_RESOUT_IRQ		PM8058_IRQ_BLOCK_BIT(6, 4)
 
-struct pmic8058_charger_data {
-	unsigned int max_source_current;
-	int charger_type;
-	bool charger_data_valid;
-};
-
 enum pon_config{
 	DISABLE_HARD_RESET = 0,
 	SHUTDOWN_ON_HARD_RESET,
@@ -115,7 +109,7 @@ enum pm8058_smpl_delay {
 };
 
 
-//from keypad
+#if defined(CONFIG_MACH_SPADE)
 #include <linux/input/matrix_keypad.h>
 
 #define PM8XXX_KEYPAD_DEV_NAME     "pm8xxx-keypad"
@@ -151,16 +145,18 @@ struct pm8xxx_keypad_platform_data {
 	bool wakeup;
 	bool rep;
 };
+#endif
 
 struct pm8058_platform_data {
 	struct pm8xxx_mpp_platform_data		*mpp_pdata;
+#if defined(CONFIG_MACH_SPADE)
 	struct pm8xxx_keypad_platform_data      *keypad_pdata;
+#endif
 	struct pm8xxx_gpio_platform_data	*gpio_pdata;
 	struct pm8xxx_irq_platform_data		*irq_pdata;
 	struct pm8xxx_vibrator_platform_data	*vibrator_pdata;
 	struct pmic8058_leds_platform_data	*leds_pdata;
 	struct pm8058_pwm_pdata			*pwm_pdata;
-	struct pmic8058_charger_data		*charger_pdata;
 };
 
 #ifdef CONFIG_PMIC8058

@@ -642,37 +642,6 @@ static struct pm8xxx_drvdata pm8058_drvdata = {
 	.pmic_get_revision	= pm8058_get_revision,
 };
 
-static const struct resource pm8058_charger_resources[] = {
-	SINGLE_IRQ_RESOURCE("CHGVAL",		PM8058_CHGVAL_IRQ),
-	SINGLE_IRQ_RESOURCE("CHGINVAL",		PM8058_CHGINVAL_IRQ),
-	SINGLE_IRQ_RESOURCE("CHGILIM",		PM8058_CHGILIM_IRQ),
-	SINGLE_IRQ_RESOURCE("VCP",		PM8058_VCP_IRQ),
-	SINGLE_IRQ_RESOURCE("ATC_DONE",		PM8058_ATC_DONE_IRQ),
-	SINGLE_IRQ_RESOURCE("ATCFAIL",		PM8058_ATCFAIL_IRQ),
-	SINGLE_IRQ_RESOURCE("AUTO_CHGDONE",	PM8058_AUTO_CHGDONE_IRQ),
-	SINGLE_IRQ_RESOURCE("AUTO_CHGFAIL",	PM8058_AUTO_CHGFAIL_IRQ),
-	SINGLE_IRQ_RESOURCE("CHGSTATE",		PM8058_CHGSTATE_IRQ),
-	SINGLE_IRQ_RESOURCE("FASTCHG",		PM8058_FASTCHG_IRQ),
-	SINGLE_IRQ_RESOURCE("CHG_END",		PM8058_CHG_END_IRQ),
-	SINGLE_IRQ_RESOURCE("BATTTEMP",		PM8058_BATTTEMP_IRQ),
-	SINGLE_IRQ_RESOURCE("CHGHOT",		PM8058_CHGHOT_IRQ),
-	SINGLE_IRQ_RESOURCE("CHGTLIMIT",	PM8058_CHGTLIMIT_IRQ),
-	SINGLE_IRQ_RESOURCE("CHG_GONE",		PM8058_CHG_GONE_IRQ),
-	SINGLE_IRQ_RESOURCE("VCPMAJOR",		PM8058_VCPMAJOR_IRQ),
-	SINGLE_IRQ_RESOURCE("VBATDET",		PM8058_VBATDET_IRQ),
-	SINGLE_IRQ_RESOURCE("BATFET",		PM8058_BATFET_IRQ),
-	SINGLE_IRQ_RESOURCE("BATT_REPLACE",	PM8058_BATT_REPLACE_IRQ),
-	SINGLE_IRQ_RESOURCE("BATTCONNECT",	PM8058_BATTCONNECT_IRQ),
-	SINGLE_IRQ_RESOURCE("VBATDET_LOW",	PM8058_VBATDET_LOW_IRQ),
-};
-
-static struct mfd_cell pm8058_charger_cell = {
-	.name		= "pm8058-charger",
-	.id		= -1,
-	.resources	= pm8058_charger_resources,
-	.num_resources	= ARRAY_SIZE(pm8058_charger_resources),
-};
-
 static struct mfd_cell pm8058_pwm_cell = {
 	.name		= "pm8058-pwm",
 	.id		= -1,
@@ -840,6 +809,7 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 		}
 	}
 
+#if defined(CONFIG_MACH_SPADE)
 	if (pdata->keypad_pdata) {
 		keypad_cell.platform_data = pdata->keypad_pdata;
 		keypad_cell.pdata_size =
@@ -851,6 +821,7 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 			goto bail;
 		}
 	}
+#endif
 
 	if (pdata->vibrator_pdata) {
 		vibrator_cell.platform_data = pdata->vibrator_pdata;
@@ -914,18 +885,6 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 	if (rc) {
 		pr_err("Failed to add upl subdevice ret=%d\n", rc);
 		goto bail;
-	}
-
-	if (pdata->charger_pdata) {
-		pm8058_charger_cell.platform_data = pdata->charger_pdata;
-		pm8058_charger_cell.pdata_size = sizeof(struct
-						pmic8058_charger_data);
-		rc = mfd_add_devices(pmic->dev, 0, &pm8058_charger_cell,
-				1, NULL, irq_base, NULL);
-		if (rc) {
-			pr_err("Failed to add charger subdevice ret=%d\n", rc);
-			goto bail;
-		}
 	}
 
 	rc = mfd_add_devices(pmic->dev, 0, &debugfs_cell, 1, NULL, irq_base, NULL);
