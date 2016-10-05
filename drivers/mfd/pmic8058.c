@@ -798,9 +798,8 @@ static int
 pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 				struct pm8058_chip *pmic)
 {
-	int rc = 0, irq_base = 0, i;
+	int rc = 0, irq_base = 0;
 	struct pm_irq_chip *irq_chip;
-	static struct mfd_cell *mfd_xo_buffers;
 
 	if (pdata->irq_pdata) {
 		pdata->irq_pdata->irq_cdata.nirqs = PM8058_NR_IRQS;
@@ -839,35 +838,6 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 			pr_err("Failed to add mpp subdevice ret=%d\n", rc);
 			goto bail;
 		}
-	}
-
-	if (pdata->num_xo_buffers > 0 && pdata->xo_buffer_pdata) {
-		mfd_xo_buffers = kzalloc(sizeof(struct mfd_cell)
-					 * (pdata->num_xo_buffers), GFP_KERNEL);
-		if (!mfd_xo_buffers) {
-			pr_err("Cannot allocate %d bytes for pm8058 XO buffer "
-				"mfd cells\n", sizeof(struct mfd_cell)
-						* (pdata->num_xo_buffers));
-			rc = -ENOMEM;
-			goto bail;
-		}
-		for (i = 0; i < pdata->num_xo_buffers; i++) {
-			mfd_xo_buffers[i].name = PM8058_XO_BUFFER_DEV_NAME;
-			mfd_xo_buffers[i].id = pdata->xo_buffer_pdata[i].id;
-			mfd_xo_buffers[i].platform_data =
-				&(pdata->xo_buffer_pdata[i]);
-			mfd_xo_buffers[i].pdata_size =
-					sizeof(struct pm8058_xo_pdata);
-		}
-		rc = mfd_add_devices(pmic->dev, 0, mfd_xo_buffers,
-				pdata->num_xo_buffers, NULL, irq_base, NULL);
-		if (rc) {
-			pr_err("Failed to add XO buffer subdevices ret=%d\n",
-				rc);
-			kfree(mfd_xo_buffers);
-			goto bail;
-		}
-		pmic->mfd_xo_buffers = mfd_xo_buffers;
 	}
 
 	if (pdata->keypad_pdata) {
@@ -967,7 +937,6 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 	return rc;
 bail:
 	if (pmic->irq_chip) {
-		//pm8xxx_irq_exit(pmic->irq_chip);
 		pmic->irq_chip = NULL;
 	}
 	return rc;

@@ -29,7 +29,6 @@
 #include <linux/mfd/pm8xxx/batt-alarm.h>
 #include <linux/leds-pmic8058.h>
 #include <linux/mfd/pm8xxx/tm.h>
-#include <linux/regulator/pm8058-xo.h>
 #include <linux/pwm.h>
 #include <linux/pmic8058-pwm.h>
 
@@ -161,8 +160,6 @@ struct pm8058_platform_data {
 	struct pm8xxx_vibrator_platform_data	*vibrator_pdata;
 	struct pmic8058_leds_platform_data	*leds_pdata;
 	struct pm8058_pwm_pdata			*pwm_pdata;
-	struct pm8058_xo_pdata			*xo_buffer_pdata;
-	int					num_xo_buffers;
 	struct pmic8058_charger_data		*charger_pdata;
 };
 
