@@ -23,7 +23,6 @@
 #include <mach/hardware.h>
 #include <mach/msm_iomap.h>
 #include <mach/clk.h>
-#include <asm/system.h>
 #include <asm/mach-types.h>
 #include <linux/semaphore.h>
 #include <linux/uaccess.h>

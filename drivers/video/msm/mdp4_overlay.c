@@ -34,7 +34,6 @@
 #include <linux/file.h>
 #include <linux/android_pmem.h>
 #include <linux/major.h>
-#include <asm/system.h>
 #include <asm/mach-types.h>
 #include <linux/semaphore.h>
 #include <linux/uaccess.h>

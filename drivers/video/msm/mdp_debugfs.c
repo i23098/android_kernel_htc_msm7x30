@@ -23,7 +23,6 @@
 #include <linux/debugfs.h>
 #include <linux/semaphore.h>
 #include <linux/uaccess.h>
-#include <asm/system.h>
 #include <asm/mach-types.h>
 #include <mach/hardware.h>
 

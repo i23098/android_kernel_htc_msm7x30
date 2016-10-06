@@ -14,7 +14,6 @@
 #define VIDC_H
 #include <linux/io.h>
 #include <linux/delay.h>
-#include <asm/system.h>
 
 #define VIDC_720P_IN(reg)                       VIDC_##reg##_IN
 #define VIDC_720P_INM(reg,  mask)                VIDC_##reg##_INM(mask)

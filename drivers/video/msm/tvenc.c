@@ -23,7 +23,6 @@
 #include <linux/io.h>
 #include <linux/pm_runtime.h>
 
-#include <asm/system.h>
 #include <asm/mach-types.h>
 #include <linux/semaphore.h>
 #include <linux/uaccess.h>

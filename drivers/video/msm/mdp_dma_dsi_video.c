@@ -22,7 +22,6 @@
 #include <linux/semaphore.h>
 #include <linux/spinlock.h>
 #include <linux/fb.h>
-#include <asm/system.h>
 #include <mach/hardware.h>
 #include "mdp.h"
 #include "msm_fb.h"

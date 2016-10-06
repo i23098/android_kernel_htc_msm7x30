@@ -27,7 +27,6 @@
 #include <linux/regulator/consumer.h>
 #include <linux/semaphore.h>
 #include <linux/uaccess.h>
-#include <asm/system.h>
 #include <asm/mach-types.h>
 #include <mach/clk.h>
 #include <mach/hardware.h>

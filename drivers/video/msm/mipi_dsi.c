@@ -24,7 +24,6 @@
 #include <linux/uaccess.h>
 #include <linux/clk.h>
 #include <linux/platform_device.h>
-#include <asm/system.h>
 #include <asm/mach-types.h>
 #include <mach/hardware.h>
 #include <mach/gpio.h>

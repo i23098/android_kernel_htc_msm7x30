@@ -26,7 +26,6 @@
 #include <linux/io.h>
 #include <mach/board_htc.h>
 
-#include <asm/system.h>
 #include <asm/mach-types.h>
 #include <mach/msm_mem.h>
 #include <linux/semaphore.h>

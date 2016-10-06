@@ -32,7 +32,6 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <asm/io.h>
-#include <asm/system.h>
 #include <linux/semaphore.h>
 #include <mach/msm_rpcrouter.h>
 #include <mach/oem_rapi_client.h>
