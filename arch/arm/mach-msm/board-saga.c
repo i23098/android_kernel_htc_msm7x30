@@ -105,7 +105,7 @@
 #include <linux/bma150_spi.h>
 #include "board-saga.h"
 #include <linux/tpa2051d3.h>
-#include "board-msm7x30-regulator.h"
+#include "proccomm-regulator.h"
 #include <linux/ti_wilink_st.h>
 #include <mach/cable_detect.h>
 #ifdef CONFIG_BT

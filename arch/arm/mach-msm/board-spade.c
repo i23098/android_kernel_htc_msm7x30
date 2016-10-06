@@ -107,7 +107,7 @@
 #include <mach/qdsp5v2/audio_dev_ctl.h>
 #include "smd_private.h"
 #include "board-spade.h"
-#include "board-msm7x30-regulator.h"
+#include "proccomm-regulator.h"
 #ifdef CONFIG_PERFLOCK
 #include <mach/perflock.h>
 #endif

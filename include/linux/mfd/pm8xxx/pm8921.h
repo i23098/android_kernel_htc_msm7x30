@@ -10,12 +10,21 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/*
+ * Qualcomm PMIC 8921 driver header file
+ *
+ */
 
-#ifndef __ARCH_ARM_MACH_MSM_BOARD_7X30_REGULATOR_H__
-#define __ARCH_ARM_MACH_MSM_BOARD_7X30_REGULATOR_H__
+#ifndef __MFD_PM8921_H
+#define __MFD_PM8921_H
 
-#include "proccomm-regulator.h"
+#include <linux/mfd/pm8xxx/irq.h>
 
-extern struct proccomm_regulator_platform_data msm7x30_proccomm_regulator_data;
+#define PM8921_NR_IRQS		256
+
+struct pm8921_platform_data {
+	int					irq_base;
+	struct pm8xxx_irq_platform_data		*irq_pdata;
+};
 
 #endif
