@@ -1,7 +1,7 @@
 /*
  *
  * Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2009-2012,2014, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -25,14 +25,10 @@
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/sched_clock.h>
-
-#include <asm/mach/time.h>
-
-#include "common.h"
-
 #include <linux/delay.h>
+
 #if defined(CONFIG_MSM_SMD)
-#include "smd_private.h"
+#include "../../arch/arm/mach-msm/smd_private.h"
 #endif
 
 #define TIMER_MATCH_VAL			0x0000
@@ -113,15 +109,6 @@ static void __iomem *source_base;
 static notrace cycle_t msm_read_timer_count(struct clocksource *cs)
 {
 	return readl_relaxed(source_base + TIMER_COUNT_VAL);
-}
-
-static notrace cycle_t msm_read_timer_count_shift(struct clocksource *cs)
-{
-	/*
-	 * Shift timer count down by a constant due to unreliable lower bits
-	 * on some targets.
-	 */
-	return msm_read_timer_count(cs) >> MSM_DGT_SHIFT;
 }
 
 static struct clocksource msm_clocksource = {
@@ -237,7 +224,7 @@ err:
 	sched_clock_register(msm_sched_clock_read, sched_bits, dgt_hz);
 }
 
-#ifdef CONFIG_OF
+#ifdef CONFIG_ARCH_QCOM
 static void __init msm_dt_timer_init(struct device_node *np)
 {
 	u32 freq;
@@ -290,7 +277,7 @@ static void __init msm_dt_timer_init(struct device_node *np)
 }
 CLOCKSOURCE_OF_DECLARE(kpss_timer, "qcom,kpss-timer", msm_dt_timer_init);
 CLOCKSOURCE_OF_DECLARE(scss_timer, "qcom,scss-timer", msm_dt_timer_init);
-#endif
+#else
 
 static int __init msm_timer_map(phys_addr_t addr, u32 event, u32 source,
 				u32 sts)
@@ -308,6 +295,15 @@ static int __init msm_timer_map(phys_addr_t addr, u32 event, u32 source,
 		sts_base = base + sts;
 
 	return 0;
+}
+
+static notrace cycle_t msm_read_timer_count_shift(struct clocksource *cs)
+{
+	/*
+	 * Shift timer count down by a constant due to unreliable lower bits
+	 * on some targets.
+	 */
+	return msm_read_timer_count(cs) >> MSM_DGT_SHIFT;
 }
 
 void __init msm7x01_timer_init(void)
@@ -596,3 +592,4 @@ int __init msm_timer_init_time_sync(void (*timeout)(void)) {
 	return 0; 
 }
 #endif
+#endif //CONFIG_ARCH_QCOM
