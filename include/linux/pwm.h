@@ -7,7 +7,7 @@
 struct pwm_device;
 struct seq_file;
 
-#if IS_ENABLED(CONFIG_PWM) || IS_ENABLED(CONFIG_HAVE_PWM) || IS_ENABLED(CONFIG_PWM_PMIC8058)
+#if IS_ENABLED(CONFIG_PWM) || IS_ENABLED(CONFIG_PWM_PMIC8058)
 /*
  * pwm_request - request a PWM device
  */

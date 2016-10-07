@@ -17,3 +17,4 @@ git checkout HEAD -- lib/lzo/lzo1x_decompress_safe.c
 # unable back FREQ_MSM 77b0999d490765a88edbdb1bba3fc3147bb9e782
 # clean up include/linux/usb/phy.h
 # use devicetree for qcom,pm8058-pwrkey;qcom,pm8058-rtc
+# use official include/linux/pwm.h
