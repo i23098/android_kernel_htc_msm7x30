@@ -382,29 +382,25 @@ static int
 kgsl_mem_entry_attach_process(struct kgsl_mem_entry *entry,
 				   struct kgsl_device_private *dev_priv)
 {
-	int ret;
+	int ret, id = 0;
 	struct kgsl_process_private *process = dev_priv->process_priv;
 
 	ret = kref_get_unless_zero(&process->refcount);
 	if (!ret)
 		return -EBADF;
 
-	while (1) {
-		if (idr_pre_get(&process->mem_idr, GFP_KERNEL) == 0) {
-			ret = -ENOMEM;
-			goto err_put_proc_priv;
-		}
+	idr_preload(GFP_KERNEL);
+	spin_lock(&process->mem_lock);
+	id = idr_alloc(&process->mem_idr, entry, 1, 0, GFP_NOWAIT);
+	spin_unlock(&process->mem_lock);
+	idr_preload_end();
 
-		spin_lock(&process->mem_lock);
-		ret = idr_get_new_above(&process->mem_idr, entry, 1,
-					&entry->id);
-		spin_unlock(&process->mem_lock);
-
-		if (ret == 0)
-			break;
-		else if (ret != -EAGAIN)
-			goto err_put_proc_priv;
+	if (id < 0) {
+		ret = id;
+		goto err_put_proc_priv;
 	}
+
+	entry->id = id;
 	entry->priv = process;
 	entry->dev_priv = dev_priv;
 
@@ -467,24 +463,15 @@ kgsl_create_context(struct kgsl_device_private *dev_priv)
 		return ERR_PTR(-ENOMEM);
 
 
-	while (1) {
-		if (idr_pre_get(&device->context_idr, GFP_KERNEL) == 0) {
-			KGSL_DRV_INFO(device, "idr_pre_get: ENOMEM\n");
-			ret = -ENOMEM;
-			break;
-		}
+	idr_preload(GFP_KERNEL);
+	write_lock(&device->context_lock);
+	id = idr_alloc(&device->context_idr, context, 1,
+		KGSL_MEMSTORE_MAX, GFP_NOWAIT);
+	write_unlock(&device->context_lock);
+	idr_preload_end();
 
-		write_lock(&device->context_lock);
-		ret = idr_get_new_above(&device->context_idr, context, 1, &id);
+	if (id > 0)
 		context->id = id;
-		write_unlock(&device->context_lock);
-
-		if (ret != -EAGAIN)
-			break;
-	}
-
-	if (ret)
-		goto func_end;
 
 	/* MAX - 1, there is one memdesc in memstore for device info */
 	if (id >= KGSL_MEMSTORE_MAX) {
