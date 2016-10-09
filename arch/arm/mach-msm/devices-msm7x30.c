@@ -415,7 +415,7 @@ static struct resource resources_qup[] = {
 };
 
 struct platform_device qup_device_i2c = {
-	.name		= "qup_i2c",
+	.name		= "i2c_qup",
 	.id		= 4,
 	.num_resources	= ARRAY_SIZE(resources_qup),
 	.resource	= resources_qup,

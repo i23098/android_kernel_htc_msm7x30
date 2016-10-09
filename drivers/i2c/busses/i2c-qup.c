@@ -1400,52 +1400,50 @@ static int i2c_qup_runtime_idle(struct device *dev)
 	return 0;
 }
 
-static int i2c_qup_runtime_suspend(struct device *dev)
+static int qup_i2c_pm_suspend_runtime(struct device *dev)
 {
 	dev_dbg(dev, "pm_runtime: suspending...\n");
 	return 0;
 }
 
-static int i2c_qup_runtime_resume(struct device *dev)
+static int qup_i2c_pm_resume_runtime(struct device *dev)
 {
 	dev_dbg(dev, "pm_runtime: resuming...\n");
 	return 0;
 }
 #endif
 
-static const struct dev_pm_ops i2c_qup_dev_pm_ops = {
+static const struct dev_pm_ops qup_i2c_qup_pm_ops = {
 	SET_SYSTEM_SLEEP_PM_OPS(
 		qup_i2c_suspend,
-		qup_i2c_resume
-	)
+		qup_i2c_resume)
 	SET_RUNTIME_PM_OPS(
-		i2c_qup_runtime_suspend,
-		i2c_qup_runtime_resume,
+		qup_i2c_pm_suspend_runtime,
+		qup_i2c_pm_resume_runtime,
 		i2c_qup_runtime_idle
 	)
 };
 
+static const struct of_device_id qup_i2c_dt_match[] = {
+	{ .compatible = "qcom,i2c-qup-v1.1.1" },
+	{ .compatible = "qcom,i2c-qup-v2.1.1" },
+	{ .compatible = "qcom,i2c-qup-v2.2.1" },
+	{}
+};
+MODULE_DEVICE_TABLE(of, qup_i2c_dt_match);
+
 static struct platform_driver qup_i2c_driver = {
-	.probe		= qup_i2c_probe,
-	.remove		= qup_i2c_remove,
-	.driver		= {
-		.name	= "qup_i2c",
-		.owner	= THIS_MODULE,
-		.pm = &i2c_qup_dev_pm_ops,
+	.probe  = qup_i2c_probe,
+	.remove = qup_i2c_remove,
+	.driver = {
+		.name = "i2c_qup",
+		.owner = THIS_MODULE,
+		.pm = &qup_i2c_qup_pm_ops,
+		.of_match_table = qup_i2c_dt_match,
 	},
 };
 
-/* QUP may be needed to bring up other drivers */
-static int __init
-qup_i2c_init_driver(void)
-{
-	return platform_driver_register(&qup_i2c_driver);
-}
-arch_initcall(qup_i2c_init_driver);
+module_platform_driver(qup_i2c_driver);
 
-static void __exit qup_i2c_exit_driver(void)
-{
-	platform_driver_unregister(&qup_i2c_driver);
-}
-module_exit(qup_i2c_exit_driver);
-
+MODULE_LICENSE("GPL v2");
+MODULE_ALIAS("platform:i2c_qup");
