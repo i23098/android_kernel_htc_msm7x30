@@ -209,16 +209,6 @@ extern struct platform_device msm_footswitch;
 
 extern struct resource msm_fb_resources[];
 extern struct platform_device msm_fb_device;
-#ifdef CONFIG_MSM_V4L2_VIDEO_OVERLAY_DEVICE
-/*
- * Reserve space for double buffered full screen
- * res V4L2 video overlay - i.e. 800x480x1.5x2
- */
-#define MSM_V4L2_VIDEO_OVERLAY_BUF_SIZE 1152000
-
-extern struct resource msm_v4l2_video_overlay_resources[];
-extern struct platform_device msm_v4l2_video_overlay_device;
-#endif
 
 struct msm_list_device {
   char *name;

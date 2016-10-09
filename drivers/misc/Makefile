@@ -49,7 +49,6 @@ obj-y				+= lis3lv02d/
 obj-y				+= carma/
 obj-$(CONFIG_HAPTIC_ISA1200)		+= isa1200.o
 obj-$(CONFIG_SENSORS_BMA150_SPI)+= bma150_spi.o
-obj-$(CONFIG_PMIC8XXX_VIBRATOR) += pm8xxx-vibrator.o
 obj-$(CONFIG_PMIC8XXX_UPL) += pm8xxx-upl.o
 obj-$(CONFIG_MSM_MEMORY_LOW_POWER_MODE_SUSPEND_DEEP_POWER_DOWN) \
 	+= msm_migrate_pages.o

@@ -77,8 +77,6 @@ obj-$(CONFIG_TWL4030_POWER)    += twl4030-power.o
 obj-$(CONFIG_MFD_TWL4030_AUDIO)	+= twl4030-audio.o
 obj-$(CONFIG_MARIMBA_CODEC)     += marimba-codec.o
 obj-$(CONFIG_MARIMBA_CORE)	+= marimba-core.o
-obj-$(CONFIG_TPS65023)		+= tps65023.o
-obj-$(CONFIG_TIMPANI_CODEC)	+= timpani-codec.o
 obj-$(CONFIG_TWL6040_CORE)	+= twl6040.o
 
 obj-$(CONFIG_MFD_MC13XXX)	+= mc13xxx-core.o

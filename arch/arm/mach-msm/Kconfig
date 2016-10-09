@@ -150,7 +150,6 @@ config MACH_SPADE
 	default n
 	bool "Spade"
 	select CLKDEV_LOOKUP
-	select VIDEOBUF2_MSM
 	help
 	  Support for the Qualcomm Spade board.
 

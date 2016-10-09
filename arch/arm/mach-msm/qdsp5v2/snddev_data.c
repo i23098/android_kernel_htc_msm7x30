@@ -69,9 +69,6 @@
 
 #include <mach/qdsp5v2/marimba_profile.h>
 #include <linux/spi_aic3254.h>
-#ifdef CONFIG_TIMPANI_CODEC
-#include "timpani_profile_8x60.h"
-#endif
 
 /* define the value for BT_SCO */
 #define BT_SCO_PCM_CTL_VAL (PCM_CTL__RPCM_WIDTH__LINEAR_V |\
@@ -144,11 +141,7 @@ void qtr_headset_enable(int en)
 }
 
 static struct adie_codec_action_unit iearpiece_48KHz_osr256_actions[] =
-#ifdef CONFIG_TIMPANI_CODEC
-	EAR_PRI_MONO_8000_OSR_256;
-#else
 	HANDSET_RX_48000_OSR_256;
-#endif
 
 static struct adie_codec_hwsetting_entry iearpiece_settings[] = {
 	{
@@ -246,27 +239,6 @@ static struct platform_device msm_imic_device = {
 	.dev = { .platform_data = &snddev_imic_data },
 };
 
-#ifdef CONFIG_TIMPANI_CODEC
-static struct adie_codec_action_unit headset_ab_cpls_48KHz_osr256_actions[] =
-	HEADSET_AB_CPLS_48000_OSR_256;
-
-static struct adie_codec_hwsetting_entry headset_ab_cpls_settings[] = {
-	{
-		.freq_plan = 48000,
-		.osr = 256,
-		.actions = headset_ab_cpls_48KHz_osr256_actions,
-		.action_sz = ARRAY_SIZE(headset_ab_cpls_48KHz_osr256_actions),
-	}
-};
-
-static struct adie_codec_dev_profile headset_ab_cpls_profile = {
-	.path_type = ADIE_CODEC_RX,
-	.settings = headset_ab_cpls_settings,
-	.setting_sz = ARRAY_SIZE(headset_ab_cpls_settings),
-};
-
-#else
-
 static struct adie_codec_action_unit ihs_stereo_rx_48KHz_osr256_actions[] =
 	HEADSET_STEREO_RX_CAPLESS_48000_OSR_256;
 
@@ -284,7 +256,6 @@ static struct adie_codec_dev_profile ihs_stereo_rx_profile = {
 	.settings = ihs_stereo_rx_settings,
 	.setting_sz = ARRAY_SIZE(ihs_stereo_rx_settings),
 };
-#endif
 
 static struct snddev_mi2s_data snddev_mi2s_stereo_rx_data = {
 	.capability = SNDDEV_CAP_RX ,
@@ -307,11 +278,7 @@ static struct snddev_icodec_data snddev_ihs_stereo_rx_data = {
 	.name = "headset_stereo_rx",
 	.copp_id = 0,
 	.acdb_id = ACDB_ID_HEADSET_SPKR_STEREO,
-#ifdef CONFIG_TIMPANI_CODEC
-	.profile = &headset_ab_cpls_profile,
-#else
 	.profile = &ihs_stereo_rx_profile,
-#endif
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
 	/* change to raise ncp power. capless need ncp bias. */
@@ -562,25 +529,6 @@ static struct platform_device msm_ifmradio_handset_device = {
 	.dev = { .platform_data = &snddev_ifmradio_handset_data },
 };
 
-#ifdef CONFIG_TIMPANI_CODEC
-static struct adie_codec_action_unit ispkr_stereo_48KHz_osr256_actions[] =
-	SPEAKER_PRI_STEREO_48000_OSR_256;
-
-static struct adie_codec_hwsetting_entry ispkr_stereo_settings[] = {
-	{
-		.freq_plan = 48000,
-		.osr = 256,
-		.actions = ispkr_stereo_48KHz_osr256_actions,
-		.action_sz = ARRAY_SIZE(ispkr_stereo_48KHz_osr256_actions),
-	}
-};
-
-static struct adie_codec_dev_profile ispkr_stereo_profile = {
-	.path_type = ADIE_CODEC_RX,
-	.settings = ispkr_stereo_settings,
-	.setting_sz = ARRAY_SIZE(ispkr_stereo_settings),
-};
-#else
 static struct adie_codec_action_unit ispeaker_rx_48KHz_osr256_actions[] =
 	SPEAKER_RX_48000_OSR_256;
 
@@ -598,19 +546,13 @@ static struct adie_codec_dev_profile ispeaker_rx_profile = {
 	.settings = ispeaker_rx_settings,
 	.setting_sz = ARRAY_SIZE(ispeaker_rx_settings),
 };
-#endif
 
 static struct snddev_icodec_data snddev_ispeaker_rx_data = {
 	.capability = (SNDDEV_CAP_RX | SNDDEV_CAP_VOICE),
 	.name = "speaker_mono_rx",
 	.copp_id = 0,
-#ifdef CONFIG_TIMPANI_CODEC
-	.acdb_id = 7,
-	.profile = &ispkr_stereo_profile,
-#else
 	.acdb_id = ACDB_ID_SPKR_PHONE_MONO,
 	.profile = &ispeaker_rx_profile,
-#endif
 	.channel_mode = 2,
 	.pmctl_id = NULL,
 	.pmctl_id_sz = 0,
