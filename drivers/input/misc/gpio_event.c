@@ -153,13 +153,8 @@ static int gpio_event_probe(struct platform_device *pdev)
 		input_dev->event = gpio_input_event;
 		ip->input_devs->dev[i] = input_dev;
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
-#ifdef CONFIG_MACH_SAGA
-		if (!strcmp(input_dev->name, "saga-keypad")) {
-			sweep2wake_saga_setdev(input_dev);
-#else
 		if (!strcmp(input_dev->name, "spade-keypad")) {
 			sweep2wake_atmel_setdev(input_dev);
-#endif
 			printk(KERN_INFO "[sweep2wake]: set device %s\n", input_dev->name);
 		}
 #endif

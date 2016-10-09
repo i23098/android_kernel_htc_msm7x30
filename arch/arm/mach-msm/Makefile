@@ -88,12 +88,6 @@ obj-$(CONFIG_MACH_SPADE) += board-spade-microp.o board-spade-rfkill.o
 obj-$(CONFIG_MACH_SPADE) += board-spade-keypad.o board-spade-audio.o
 obj-$(CONFIG_MACH_SPADE) += board-spade-mmc.o board-spade-wifi.o
 obj-$(CONFIG_MACH_SPADE) += htc_bdaddress.o
-obj-$(CONFIG_MACH_SAGA) += htc_wifi_nvs.o
-obj-$(CONFIG_MACH_SAGA) += board-saga.o
-obj-$(CONFIG_MACH_SAGA) += board-saga-keypad.o
-obj-$(CONFIG_MACH_SAGA) += board-saga-mmc.o board-saga-wifi.o board-saga-rfkill.o
-obj-$(CONFIG_MACH_SAGA) += board-saga-audio.o
-obj-$(CONFIG_MACH_SAGA) += htc_bdaddress.o
 
 obj-$(CONFIG_ARCH_MSM_FLASHLIGHT) += msm_flashlight.o
 

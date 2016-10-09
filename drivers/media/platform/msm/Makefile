@@ -26,11 +26,7 @@ obj-$(CONFIG_ARCH_MSM_ARM11) += msm_vfe7x.o msm_io7x.o
 obj-$(CONFIG_ARCH_MSM7X30) += msm_vfe_7x30.o msm_io_7x30.o msm_vpe1_7x30.o
 obj-$(CONFIG_ARCH_QSD8X50) += msm_vfe8x.o msm_vfe8x_proc.o msm_io8x.o
 
-ifdef CONFIG_MACH_SAGA
-obj-$(CONFIG_S5K4E1GX) += s5k4e1gx_saga.o s5k4e1gx_reg.o
-else
 obj-$(CONFIG_S5K4E1GX) += s5k4e1gx.o s5k4e1gx_reg.o
-endif
 
 obj-$(CONFIG_MSM_V4L2_VIDEO_OVERLAY_DEVICE) += msm_v4l2_video.o
 
@@ -54,11 +50,7 @@ ifeq ($(CONFIG_MSM_CAMERA_V4L2),y)
   obj-$(CONFIG_VX6953) += vx6953_v4l2.o vx6953_reg_v4l2.o
   obj-$(CONFIG_MT9V113) += mt9v113_v4l2.o mt9v113_reg_lens_9251.o
 else
-  ifdef CONFIG_MACH_SAGA
-	obj-$(CONFIG_MT9V113) += mt9v113_saga.o mt9v113_reg.o
-  else
-	obj-$(CONFIG_MT9V113) += mt9v113.o mt9v113_reg.o
-  endif
+  obj-$(CONFIG_MT9V113) += mt9v113.o mt9v113_reg.o
   obj-$(CONFIG_VX6953) += vx6953.o vx6953_reg.o
   obj-$(CONFIG_IMX074) += imx074.o imx074_reg.o
 endif

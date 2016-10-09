@@ -121,9 +121,6 @@ extern void early_init_dt_setup_awb_cal(char * data, size_t len);
 extern void early_init_dt_setup_gpio_table(char * data, size_t len);
 extern void early_init_dt_setup_msm_partitions(char * data, size_t len);
 extern void early_init_dt_setup_revision(int revision, int revision2);
-#if defined(CONFIG_MACH_SAGA)
-extern void early_init_dt_setup_msm_wifi_data(char * data, size_t len);
-#endif
 /* end htc board specific */
 
 /* Early flat tree scan hooks */

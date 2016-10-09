@@ -46,7 +46,7 @@
 #endif
 
 /* Virtual addresses shared across all MSM targets. */
-#if !defined(CONFIG_MACH_SPADE) && !defined(CONFIG_MACH_SAGA)
+#if !defined(CONFIG_MACH_SPADE)
 #define MSM_CSR_BASE		IOMEM(0xE0001000)
 #define MSM_GPIO1_BASE		IOMEM(0xE0003000)
 #define MSM_GPIO2_BASE		IOMEM(0xE0004000)

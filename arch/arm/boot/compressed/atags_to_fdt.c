@@ -196,10 +196,6 @@ int atags_to_fdt(void *atag_list, void *fdt, int total_space)
 			char append[] = "\nsd_oobonly=1\nbtc_params80=0\nbtc_params6=30\n";
 			__u32 len = 0;
 			__u32 full_len = (atag->hdr.size-2)*sizeof(__u32);
-#if defined(CONFIG_MACH_SAGA)
-			setprop_values(fdt, "/chosen", "linux,wifi",
-				(unsigned char *)(&atag->u), full_len);
-#endif
 			// check that we have enought space for get len
 			if (full_len > NVS_LEN_OFFSET)
 				memcpy(&len, (unsigned char *)(&atag->u) + NVS_LEN_OFFSET, sizeof(len));

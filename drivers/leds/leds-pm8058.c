@@ -23,10 +23,6 @@
 #include <linux/wakelock.h>
 #include <linux/module.h>
 
-#ifdef CONFIG_TOUCHSCREEN_SAGA_SWEEP2WAKE
-#include <linux/atmel_qt602240.h>
-#endif
-
 #ifdef CONFIG_HTC_HEADSET_MISC
 #include <mach/htc_headset_misc.h>
 #endif
@@ -648,14 +644,6 @@ static int pm8058_led_probe(struct platform_device *pdev)
 			goto err_register_attr_currents;
 		}
 	}
-
-#ifdef CONFIG_TOUCHSCREEN_SAGA_SWEEP2WAKE
-	if (!strcmp(pdata->led_config[2].name, "button-backlight")) {
-			sweep2wake_setleddev(&ldata[2].ldev);
-			printk(KERN_INFO "[sweep2wake]: set led device %s, bank %d\n", pdata->led_config[2].name, ldata[2].bank);
-	}
-#endif
-
 	return 0;
 
 err_register_attr_currents:

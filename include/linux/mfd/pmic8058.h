@@ -108,50 +108,8 @@ enum pm8058_smpl_delay {
 	PM8058_SMPL_DELAY_2p0,
 };
 
-
-#if defined(CONFIG_MACH_SPADE)
-#include <linux/input/matrix_keypad.h>
-
-#define PM8XXX_KEYPAD_DEV_NAME     "pm8xxx-keypad"
-
-/**
- * struct pm8xxx_keypad_platform_data - platform data for keypad
- * @keymap_data - matrix keymap data
- * @input_name - input device name
- * @input_phys_device - input device name
- * @num_cols - number of columns of keypad
- * @num_rows - number of row of keypad
- * @debounce_ms - debounce period in milliseconds
- * @scan_delay_ms - scan delay in milliseconds
- * @row_hold_ns - row hold period in nanoseconds
- * @wakeup - configure keypad as wakeup
- * @rep - enable or disable key repeat bit
- */
-struct pm8xxx_keypad_platform_data {
-	const struct matrix_keymap_data *keymap_data;
-
-	const char *input_name;
-	const char *input_phys_device;
-
-	unsigned int num_cols;
-	unsigned int num_rows;
-	unsigned int rows_gpio_start;
-	unsigned int cols_gpio_start;
-
-	unsigned int debounce_ms;
-	unsigned int scan_delay_ms;
-	unsigned int row_hold_ns;
-
-	bool wakeup;
-	bool rep;
-};
-#endif
-
 struct pm8058_platform_data {
 	struct pm8xxx_mpp_platform_data		*mpp_pdata;
-#if defined(CONFIG_MACH_SPADE)
-	struct pm8xxx_keypad_platform_data      *keypad_pdata;
-#endif
 	struct pm8xxx_gpio_platform_data	*gpio_pdata;
 	struct pm8xxx_irq_platform_data		*irq_pdata;
 	struct pm8xxx_vibrator_platform_data	*vibrator_pdata;

@@ -53,11 +53,7 @@
 /* mv = (750mV + (raw * 25mV)) * (2 - VREF_SEL) */
 #define VDD_RAW(mv) (((MV(mv) / V_STEP) - 30) | VREG_DATA)
 
-#ifdef CONFIG_MACH_SAGA
-#define MAX_AXI_KHZ 192000
-#else
 #define MAX_AXI_KHZ 201600
-#endif
 
 #define ACPU_MIN_UV_MV 700U
 #define ACPU_MAX_UV_MV 1600U
@@ -94,29 +90,12 @@ static struct clock_state drv_state = { 0 };
 static struct clkctl_acpu_speed *backup_s;
 
 static struct pll pll2_tbl[] = {
-#ifdef CONFIG_MACH_SAGA
-	{  28, 1, 3, 0 }, /*  544 MHz */
-	{  31, 1, 4, 0 }, /*  600 MHz */
-	{  42, 0, 1, 0 }, /*  806 MHz */
-	{  48, 1, 3, 0 }, /*  921 MHz */
-	{  53, 1, 3, 0 }, /* 1024 MHz */
-	{ 125, 0, 1, 1 }, /* 1200 MHz */
-	{  68, 1, 3, 0 }, /* 1305 MHz */
-	{  73, 0, 1, 0 }, /* 1401 MHz */
-	{  79, 0, 1, 0 }, /* 1500 MHz */
-	{  84, 0, 1, 0 }, /* 1.6 */
-	{  89, 0, 1, 0 }, /* 1.7 */
-	{  94, 0, 1, 0 }, /* 1.8 */
-	{  98, 1, 3, 0 }, /* 1900 MHz */
-	{ 103, 1, 3, 0 }, /* 2016 MHz */
-#else
 	{  42, 0, 1, 0 }, /*  806 MHz */
 	{  53, 1, 3, 0 }, /* 1024 MHz */
 	{ 125, 0, 1, 1 }, /* 1200 MHz */
 	{  68, 0, 1, 0 }, /* 1305 MHz */
 	{  73, 0, 1, 0 }, /* 1401 MHz */
 	{  78, 0, 1, 0 }, /* 1500 MHz */
-#endif
 };
 
 /* Use negative numbers for sources that can't be enabled/disabled */
@@ -140,32 +119,6 @@ static struct clk *acpuclk_sources[MAX_SOURCE];
  * know all the h/w requirements.
  */
 static struct clkctl_acpu_speed acpu_freq_tbl[] = {
-#ifdef CONFIG_MACH_SAGA
-	{ 0, 24576,  LPXO,     0, 0,  30720000,  800, VDD_RAW(800) },
-	{ 0, 61440,  PLL_3,    5, 11, 61440000,  800, VDD_RAW(800) },
-	{ 0, 122880, PLL_3,    5, 5,  61440000,  800, VDD_RAW(800) },
-	{ 0, 184320, PLL_3,    5, 4,  61440000,  800, VDD_RAW(800) },
-	{ 0, MAX_AXI_KHZ, AXI, 1, 0,  61440000,  800, VDD_RAW(800) },
-	{ 1, 245760, PLL_3,    5, 2,  61440000,  800, VDD_RAW(800) },
-	{ 1, 368640, PLL_3,    5, 1,  122800000, 800, VDD_RAW(800) },
-	{ 1, 544000, PLL_2,    3, 0,  122800000, 900, VDD_RAW(900), &pll2_tbl[0] },
-	{ 1, 600000, PLL_2,    3, 0,  122800000, 925, VDD_RAW(925), &pll2_tbl[1] },
-	/* AXI has MSMC1 implications. See above. */
-	{ 1, 768000, PLL_1,    2, 0,  153600000, 950, VDD_RAW(950) },
-	{ 1, 806400,  PLL_2, 3, 0, 192000000, 1025, VDD_RAW(1025), &pll2_tbl[2]},
-	/* AXI has MSMC1.  End */
-	{ 1, 921600,  PLL_2, 3, 0, 192000000, 1050, VDD_RAW(1050), &pll2_tbl[3]},
-	{ 1, 1024000, PLL_2, 3, 0, 192000000, 1050, VDD_RAW(1050), &pll2_tbl[4]},
-	{ 1, 1200000, PLL_2, 3, 0, 192000000, 1100, VDD_RAW(1100), &pll2_tbl[5]},
-	{ 1, 1305600, PLL_2, 3, 0, 192000000, 1125, VDD_RAW(1125), &pll2_tbl[6]},
-	{ 1, 1401600, PLL_2, 3, 0, 192000000, 1200, VDD_RAW(1200), &pll2_tbl[7]},
-	{ 1, 1516800, PLL_2, 3, 0, 192000000, 1250, VDD_RAW(1250), &pll2_tbl[8]},
-	{ 1, 1612800, PLL_2, 3, 0, 192000000, 1350, VDD_RAW(1350), &pll2_tbl[9]},
-	{ 1, 1708800, PLL_2, 3, 0, 192000000, 1350, VDD_RAW(1350), &pll2_tbl[10]},
-	{ 1, 1804800, PLL_2, 3, 0, 192000000, 1400, VDD_RAW(1400), &pll2_tbl[11]},
-	{ 1, 1920000, PLL_2, 3, 0, 192000000, 1450, VDD_RAW(1450), &pll2_tbl[12]},
-	{ 1, 2016000, PLL_2, 3, 0, 192000000, 1500, VDD_RAW(1500), &pll2_tbl[13]},
-#else
 	{ 0, 24576,  LPXO,     0, 0,  30720000,  900, VDD_RAW(900) },
 	{ 0, 61440,  PLL_3,    5, 11, 61440000,  900, VDD_RAW(900) },
 	{ 0, 122880, PLL_3,    5, 5,  61440000,  900, VDD_RAW(900) },
@@ -194,7 +147,6 @@ static struct clkctl_acpu_speed acpu_freq_tbl[] = {
 	{ 1, 1920000, PLL_2, 3, 0, 199680000, 1475, VDD_RAW(1475), &pll2_tbl[5]},
 	{ 1, 1996800, PLL_2, 3, 0, 199680000, 1500, VDD_RAW(1500), &pll2_tbl[5]},
 	{ 1, 2016000, PLL_2, 3, 0, 201600000, 1525, VDD_RAW(1525), &pll2_tbl[5]},
-#endif
 	{ 0 }
 };
 

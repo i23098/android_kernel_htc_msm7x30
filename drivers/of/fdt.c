@@ -901,12 +901,6 @@ void __init early_init_dt_check_htc_board(unsigned long node)
 		    of_read_ulong(prop + 1, len/8)
 		);
 
-#if defined(CONFIG_MACH_SAGA)
-	prop = of_get_flat_dt_prop(node, "linux,wifi", &len);
-	if (prop && len > 0)
-		early_init_dt_setup_msm_wifi_data((char *)prop, len);
-#endif
-
 	prop = of_get_flat_dt_prop(node, "linux,awb_cal", &len);
 	if (prop && len > 0)
 		early_init_dt_setup_awb_cal((char *)prop, len);

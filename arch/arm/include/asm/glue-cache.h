@@ -130,7 +130,7 @@
 #endif
 
 #ifndef __ASSEMBLER__
-#if !defined(CONFIG_MACH_SPADE) && !defined(CONFIG_MACH_SAGA)
+#if !defined(CONFIG_MACH_SPADE)
 extern inline void nop_flush_icache_all(void) { }
 extern inline void nop_flush_kern_cache_all(void) { }
 extern inline void nop_flush_kern_cache_louis(void) { }

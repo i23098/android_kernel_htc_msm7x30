@@ -719,18 +719,6 @@ static struct mfd_cell vibrator_cell = {
 	.id		= -1,
 };
 
-static const struct resource resources_keypad[] = {
-	SINGLE_IRQ_RESOURCE(NULL, PM8058_KEYPAD_IRQ),
-	SINGLE_IRQ_RESOURCE(NULL, PM8058_KEYSTUCK_IRQ),
-};
-
-static struct mfd_cell keypad_cell = {
-	.name		= PM8XXX_KEYPAD_DEV_NAME,
-	.id		= -1,
-	.num_resources  = ARRAY_SIZE(resources_keypad),
-	.resources	= resources_keypad,
-};
-
 static const struct resource mpp_cell_resources[] = {
 	{
 		.start	= PM8058_IRQ_BLOCK_BIT(PM8058_MPP_BLOCK_START, 0),
@@ -808,20 +796,6 @@ pm8058_add_subdevices(const struct pm8058_platform_data *pdata,
 			goto bail;
 		}
 	}
-
-#if defined(CONFIG_MACH_SPADE)
-	if (pdata->keypad_pdata) {
-		keypad_cell.platform_data = pdata->keypad_pdata;
-		keypad_cell.pdata_size =
-			sizeof(struct pm8xxx_keypad_platform_data);
-		rc = mfd_add_devices(pmic->dev, 0, &keypad_cell, 1, NULL,
-				irq_base, NULL);
-		if (rc) {
-			pr_err("Failed to add keypad subdevice ret=%d\n", rc);
-			goto bail;
-		}
-	}
-#endif
 
 	if (pdata->vibrator_pdata) {
 		vibrator_cell.platform_data = pdata->vibrator_pdata;

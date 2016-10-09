@@ -42,16 +42,9 @@ config TOUCHSCREEN_ATMEL
 	  This enables support for Atmel over I2C based touchscreens.
 
 config TOUCHSCREEN_ATMEL_SWEEP2WAKE
-    bool "Sweep2Wake for Atmel based touchscreens"
-    depends on TOUCHSCREEN_ATMEL
-    default n
-
-config TOUCHSCREEN_SAGA_SWEEP2WAKE
-	bool "Saga atmel driver with s2w feature"
-	depends on MACH_SAGA
+	bool "Sweep2Wake for Atmel based touchscreens"
+	depends on TOUCHSCREEN_ATMEL
 	default n
-	help
-	  Enable this to compile a different atmel driver to enable s2w on saga
 
 config TOUCHSCREEN_88PM860X
 	tristate "Marvell 88PM860x touchscreen"

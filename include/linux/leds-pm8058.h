@@ -89,9 +89,4 @@ struct pm8058_led_data {
 };
 void button_backlight_flash (int brightness_key);
 
-#ifdef CONFIG_TOUCHSCREEN_SAGA_SWEEP2WAKE
-extern void pm8058_drvx_led_brightness_set(struct led_classdev *led_cdev,
-		   enum led_brightness brightness);
-#endif
-
 #endif /* _LINUX_LEDS_PM8058_H */
