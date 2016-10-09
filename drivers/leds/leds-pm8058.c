@@ -23,16 +23,6 @@
 #include <linux/wakelock.h>
 #include <linux/module.h>
 
-#ifdef CONFIG_HTC_HEADSET_MISC
-#include <mach/htc_headset_misc.h>
-#endif
-
-#ifdef CONFIG_HTC_HEADSET_MISC
-#define charming_led_enable(enable) headset_indicator_enable(enable)
-#else
-#define charming_led_enable(enable) {}
-#endif
-
 #define LED_DBG_LOG(fmt, ...) \
 		printk(KERN_DEBUG "[LED]" fmt, ##__VA_ARGS__)
 #define LED_INFO_LOG(fmt, ...) \
@@ -141,9 +131,6 @@ static void led_work_func(struct work_struct *work)
 
 	ldata = container_of(work, struct pm8058_led_data, led_work);
 	pwm_disable(ldata->pwm_led);
-
-	if (strcmp(ldata->ldev.name, "charming-led") == 0)
-		charming_led_enable(0);
 }
 
 static enum alarmtimer_restart led_alarm_handler(struct alarm *alarm,
@@ -173,8 +160,6 @@ static void pm8058_pwm_led_brightness_set(struct led_classdev *led_cdev,
 	       ldata->bank, brightness);
 
 	enable = (brightness) ? 1 : 0;
-	if (strcmp(ldata->ldev.name, "charming-led") == 0)
-		charming_led_enable(enable);
 
 	if (brightness) {
 		pwm_config(ldata->pwm_led, 64000, 64000);
@@ -216,8 +201,6 @@ extern void pm8058_drvx_led_brightness_set(struct led_classdev *led_cdev,
 	       ldata->bank, brightness);
 
 	enable = (brightness) ? 1 : 0;
-	if (strcmp(ldata->ldev.name, "charming-led") == 0)
-		charming_led_enable(enable);
 
 	lut_flag = ldata->lut_flag & ~(PM_PWM_LUT_LOOP | PM_PWM_LUT_REVERSE);
 	virtual_key_state = enable;
@@ -290,11 +273,6 @@ static ssize_t pm8058_led_blink_store(struct device *dev,
 	int id, mode;
 	int val;
 	int enable = 0;
-#ifdef CONFIG_HTC_HEADSET_MISC
-	int *pduties;
-#endif
-
-/*struct timespec ts1, ts2;*/
 
 	val = -1;
 	sscanf(buf, "%u", &val);
@@ -315,8 +293,6 @@ static ssize_t pm8058_led_blink_store(struct device *dev,
 	LED_INFO_LOG("%s: bank %d blink %d\n", __func__, ldata->bank, val);
 
 	enable = (val > 0) ? 1 : 0;
-	if (strcmp(ldata->ldev.name, "charming-led") == 0)
-		charming_led_enable(enable);
 
 	switch (val) {
 	case -1: /* stop flashing */
@@ -375,24 +351,6 @@ static ssize_t pm8058_led_blink_store(struct device *dev,
 		pwm_config(ldata->pwm_led, 100000, 200000);
 		pwm_enable(ldata->pwm_led);
 		break;
-#ifdef CONFIG_HTC_HEADSET_MISC
-	case 6:
-		pm8058_pwm_config_led(ldata->pwm_led, id, mode,
-				      ldata->out_current);
-		pduties = &duties[ldata->start_index];
-		pm8058_pwm_lut_config(ldata->pwm_led, ldata->period_us,
-				      pduties, ldata->duty_time_ms,
-				      ldata->start_index, ldata->duites_size,
-				      0, 0, ldata->lut_flag);
-		pm8058_pwm_lut_enable(ldata->pwm_led, 0);
-		pm8058_pwm_lut_enable(ldata->pwm_led, 1);
-		break;
-	case 7:
-		pwm_disable(ldata->pwm_led);
-		pwm_config(ldata->pwm_led, 64000, 4000000);
-		pwm_enable(ldata->pwm_led);
-		break;
-#endif
 	default:
 		LED_ERR_LOG(KERN_INFO "%s: bank %d not support blink %d\n", __func__, ldata->bank, val);
 		return -EINVAL;

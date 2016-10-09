@@ -58,19 +58,8 @@ enum flashlight_mode_flags {
 #endif
 
 };
-#if defined(CONFIG_FLASHLIGHT_AAT1271)
-struct flashlight_platform_data {
-	void (*gpio_init) (void);
-	uint32_t torch;
-	uint32_t flash;
-	uint32_t flash_duration_ms;
-	uint8_t led_count; /* 0: 1 LED, 1: 2 LED */
 
-};
-int aat1271_flashlight_control(int mode);
-#endif
-
-#if (defined(CONFIG_ARCH_MSM_FLASHLIGHT)) && !defined(CONFIG_FLASHLIGHT_AAT1271)
+#if (defined(CONFIG_ARCH_MSM_FLASHLIGHT))
 struct flashlight_platform_data {
 	void (*gpio_init) (void);
 	uint32_t torch;
@@ -83,17 +72,6 @@ struct flashlight_platform_data {
 	uint32_t chip_model;
 };
 int aat1271_flashlight_control(int mode);
-#endif
-
-#ifdef CONFIG_FLASHLIGHT_TPS61310
-struct TPS61310_flashlight_platform_data {
-	void (*gpio_init) (void);
-	uint32_t flash_duration_ms;
-	uint8_t led_count; /* 0: 1 LED, 1: 2 LED */
-	uint32_t tps61310_strb0;
-	uint32_t tps61310_strb1;
-};
-int tps61310_flashlight_control(int mode);
 #endif
 
 #undef __HTC_FLASHLIGHT_H

@@ -59,7 +59,6 @@ obj-$(CONFIG_MSM_ONCRPCROUTER) += rpc_hsusb.o rpc_fsusb.o
 obj-$(CONFIG_ARCH_MSM7X30_SMD) += 7x30-smd/
 obj-$(CONFIG_ARCH_MSM7X30_SMD) += smd.o
 
-obj-$(CONFIG_MSM_RESET_MODEM) += reset_modem.o
 obj-$(CONFIG_MSM_DALRPC) += dal.o
 obj-$(CONFIG_ARCH_MSM7X30) += dal_axi.o htc_sdservice.o
 obj-$(CONFIG_MSM7KV2_AUDIO) += qdsp5v2/
@@ -99,16 +98,13 @@ obj-$(CONFIG_HTC_HEADSET_MGR) += htc_headset_mgr.o
 obj-$(CONFIG_HTC_HEADSET_GPIO) += htc_headset_gpio.o
 obj-$(CONFIG_HTC_HEADSET_MICROP) += htc_headset_microp.o
 obj-$(CONFIG_HTC_HEADSET_PMIC) += htc_headset_pmic.o
-obj-$(CONFIG_HTC_HEADSET_MISC) += htc_headset_misc.o
 ifeq ($(CONFIG_ARCH_MSM7X30),y)
 	obj-$(CONFIG_MSM_RMT_STORAGE_CLIENT) += rmt_storage_client-7x30.o
 endif
-obj-$(CONFIG_MSM_RMT_STORAGE_SERVER) += rmt_storage_server.o
 
 obj-$(CONFIG_MSM_SHOW_RESUME_IRQ) += msm_show_resume_irq.o
 obj-$(CONFIG_MSM_RPC_VIBRATOR) += msm_vibrator.o
 
-obj-$(CONFIG_PERFLOCK) += perflock.o
 obj-$(CONFIG_MICROP_COMMON) += atmega_microp_common.o
 obj-y += display/
 obj-$(CONFIG_MSM_SMD) += smd_debug.o

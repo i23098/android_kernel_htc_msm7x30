@@ -27,9 +27,6 @@
 
 #ifdef CONFIG_HTC_HEADSET_MGR
 #include <mach/htc_headset_mgr.h>
-#ifdef CONFIG_HTC_HEADSET_MISC
-#include <mach/htc_headset_misc.h>
-#endif
 #endif
 
 /*#define MHL_INTERNAL_POWER 1*/

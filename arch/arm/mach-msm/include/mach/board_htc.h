@@ -246,24 +246,6 @@ struct msm_usb_host_platform_data;
 int  msm_add_host(unsigned int host,
 		struct msm_usb_host_platform_data *plat);
 
-#ifdef CONFIG_MSM_RMT_STORAGE_SERVER
-struct shared_ramfs_entry {
-	uint32_t client_id;   	/* Client id to uniquely identify a client */
-	uint32_t base_addr;	/* Base address of shared RAMFS memory */
-	uint32_t size;		/* Size of the shared RAMFS memory */
-	uint32_t server_status;	/* This will be initialized to 1 when
-				   remote storage RPC server is available */
-};
-struct shared_ramfs_table {
-	uint32_t magic_id;  	/* Identify RAMFS details in SMEM */
-	uint32_t version;	/* Version of shared_ramfs_table */
-	uint32_t entries;	/* Total number of valid entries   */
-	struct shared_ramfs_entry ramfs_entry[3];	/* List all entries */
-};
-
-int __init rmt_storage_add_ramfs(void);
-#endif
-
 int board_mfg_mode(void);
 unsigned int board_get_skuid(void);
 unsigned int board_get_engineerid(void);

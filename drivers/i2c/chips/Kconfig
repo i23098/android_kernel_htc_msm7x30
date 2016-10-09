@@ -6,19 +6,6 @@
 
 menu "Miscellaneous I2C Chip support"
 
-
-config SENSORS_BMA150
-	tristate "BMA150 G-sensor Driver"
-	depends on I2C=y
-	help
-	 BMA150 G-sensor Driver implemented by HTC.
-
-config SENSORS_ONLY_BMA250
-	tristate "BMA250 acceleration sensor support"
-	depends on I2C=y
-	help
-	  BMA250 ONLY G-sensor Driver implemented by HTC.
-
 config SENSORS_I2C_AK_BMA250
 	tristate "BMA250 acceleration sensor without AKM support(SH)"
 	depends on I2C=y
@@ -64,18 +51,6 @@ config SENSORS_NFC_PN544
 	depends on I2C=y
 	help
 	  PN544 NFC Driver implemented.
-
-config INPUT_CAPELLA_CM3628
-	tristate "CM3628 proximity and light sensor"
-	help
-	  Say Y here to enable the CM3628 Short Distance Proximity
-	  Sensor with Ambient Light Sensor.
-
-config INPUT_CAPELLA_CM3629
-	tristate "CM3629 proximity and light sensor"
-	help
-	  Say Y here to enable the CM3629 Short Distance Proximity
-	  Sensor with Ambient Light Sensor.
 
 config VP_A1026
 	tristate "A1026 Voice Processor Driver"

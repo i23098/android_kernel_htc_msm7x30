@@ -1569,7 +1569,7 @@ static void msm_pm_restart(char str, const char *cmd)
 	else
 		msm_proc_comm(PCOM_RESET_CHIP, &restart_reason, 0);
 
-#if defined(CONFIG_MSM_RMT_STORAGE_SERVER) || defined(CONFIG_MSM_RMT_STORAGE_CLIENT)
+#if defined(CONFIG_MSM_RMT_STORAGE_CLIENT)
 	printk(KERN_INFO "from %s\r\n", __func__);
 	wait_rmt_final_call_back(10);
 	printk(KERN_INFO "back %s\r\n", __func__);

@@ -405,16 +405,6 @@ config LEDS_PM8058
 	  This option enables support for LEDs connected to PM8058
 	  LED driver chips accessed via the SSBI bus and rpc.
 
-config FLASHLIGHT_TPS61310
-	tristate "TI TPS61310 flashlight"
-	help
-	  Say Y here to enable the TI TPS61310 flashlight
-
-config FLASHLIGHT_AAT1271
-	tristate "flashlight AAT1271"
-	help
-	  Say Y here to enable the AAT flashlight
-
 config LEDS_INTEL_SS4200
 	tristate "LED driver for Intel NAS SS4200 series"
 	depends on LEDS_CLASS

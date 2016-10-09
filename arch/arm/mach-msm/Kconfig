@@ -515,13 +515,6 @@ config MSM_N_WAY_SMSM
 	  Supports APPS-QDSP SMSM communication along with
 	  normal APPS-MODEM SMSM communication.
 
-config MSM_RESET_MODEM
-	tristate "Reset Modem Driver"
-	depends on MSM_SMD
-	default m
-	help
-	  Allows the user to reset the modem through a device node.
-
 config MSM_SMD_LOGGING
 	depends on MSM_SMD
 	default y
@@ -529,15 +522,6 @@ config MSM_SMD_LOGGING
 	help
 	  This option exposes the shared memory logger at /dev/smem_log
 	  and a debugfs node named smem_log.
-
-	  If in doubt, say yes.
-
-config MSM_SMD_NMEA
-	bool "NMEA GPS Driver"
-	depends on MSM_SMD
-	default y
-	help
-	  Enable this to support the NMEA GPS device.
 
 	  If in doubt, say yes.
 
@@ -556,15 +540,6 @@ config MSM_SMD_QMI
 	default y
 	help
 	  Manages network data connections.
-
-	  If in doubt, say yes.
-
-config MSM_SMD_PKT
-	bool "SMD Packet Driver"
-	depends on MSM_SMD
-	default y
-	help
-	  Provides a binary SMD non-muxed packet port interface.
 
 	  If in doubt, say yes.
 
@@ -637,14 +612,6 @@ config MSM_RPCSERVER_HANDSET
 	  headset switch and clamshell state.
 
 config MSM_RMT_STORAGE_CLIENT
-	depends on (ARCH_MSM && MSM_ONCRPCROUTER)
-	default n
-	bool "Remote Storage RPC client"
-	help
-	  Provide RPC mechanism for remote processors to access storage
-	  device on apps processor.
-
-config MSM_RMT_STORAGE_SERVER
 	depends on (ARCH_MSM && MSM_ONCRPCROUTER)
 	default n
 	bool "Remote Storage RPC client"
@@ -898,13 +865,6 @@ config HTC_HEADSET_PMIC
 	default n
 	help
 	  Provides support of HTC PMIC headset detection.
-
-config HTC_HEADSET_MISC
-	tristate "HTC MISC headset detection driver"
-	depends on HTC_HEADSET_MGR
-	default n
-	help
-	  Provides support of HTC MISC headset detection.
 
 config SMD_OFFSET_TCXO_STAT
 	depends on MSM_SMD

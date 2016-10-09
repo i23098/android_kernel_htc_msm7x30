@@ -32,9 +32,6 @@
 
 #include "gadget_chips.h"
 #include <linux/wakelock.h>
-#ifdef CONFIG_PERFLOCK
-#include <mach/perflock.h>
-#endif
 
 /*
  * Kbuild is not very cooperative with respect to linking separately
@@ -147,10 +144,6 @@ static struct class *android_class;
 static struct android_dev *_android_dev;
 
 static struct wake_lock android_usb_idle_wake_lock;
-#ifdef CONFIG_PERFLOCK
-static struct perf_lock android_usb_perf_lock;
-#endif
-
 
 static int android_bind_config(struct usb_configuration *c);
 static void android_unbind_config(struct usb_configuration *c);
@@ -216,10 +209,6 @@ static void android_work(struct work_struct *data)
 	/* release performance related locks first */
 	if (wake_lock_active(&android_usb_idle_wake_lock))
 		wake_unlock(&android_usb_idle_wake_lock);
-#ifdef CONFIG_PERFLOCK
-	if (is_perf_lock_active(&android_usb_perf_lock))
-		perf_unlock(&android_usb_perf_lock);
-#endif
 
 	spin_lock_irqsave(&cdev->lock, flags);
 	if (cdev->config) {
@@ -238,10 +227,6 @@ static void android_work(struct work_struct *data)
 		if (count) {
 			if (!wake_lock_active(&android_usb_idle_wake_lock))
 				wake_lock(&android_usb_idle_wake_lock);
-#ifdef CONFIG_PERFLOCK
-			if (!is_perf_lock_active(&android_usb_perf_lock))
-				perf_lock(&android_usb_perf_lock);
-#endif
 		}
 
 		if (!connect2pc && dev->connected) {
@@ -1853,10 +1838,6 @@ static int __init init(void)
 
 	wake_lock_init(&android_usb_idle_wake_lock, WAKE_LOCK_SUSPEND,
 					"android_usb_idle");
-
-#ifdef CONFIG_PERFLOCK
-	perf_lock_init(&android_usb_perf_lock, PERF_LOCK_HIGHEST, "android_usb");
-#endif
 
 	/* Override composite driver functions */
 	composite_driver_template.setup = android_setup;

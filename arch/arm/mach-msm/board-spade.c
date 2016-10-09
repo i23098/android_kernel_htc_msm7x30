@@ -108,9 +108,6 @@
 #include "smd_private.h"
 #include "board-spade.h"
 #include "proccomm-regulator.h"
-#ifdef CONFIG_PERFLOCK
-#include <mach/perflock.h>
-#endif
 #ifdef CONFIG_BT
 #include <mach/htc_bdaddress.h>
 #endif
@@ -2593,19 +2590,6 @@ static struct msm_spm_platform_data msm_spm_data __initdata = {
 	.vctl_timeout_us = 50,
 };
 
-#ifdef CONFIG_PERFLOCK
-static unsigned spade_perf_acpu_table[] = {
-	245000000,
-	768000000,
-	1024000000,
-};
-
-static struct perflock_platform_data spade_perflock_data = {
-	.perf_acpu_table = spade_perf_acpu_table,
-	.table_size = ARRAY_SIZE(spade_perf_acpu_table),
-};
-#endif
-
 void spade_add_usb_devices(void)
 {
 	printk(KERN_INFO "%s rev: %d\n", __func__, system_rev);
@@ -2754,10 +2738,6 @@ static void __init spade_init(void)
 	msm_spm_init(&msm_spm_data, 1);
 	platform_device_register(&msm7x30_device_acpuclk);
 
-#ifdef CONFIG_PERFLOCK
-	perflock_init(&spade_perflock_data);
-#endif
-
 #ifdef CONFIG_BT
 	bt_export_bd_address();
 #endif
@@ -2839,10 +2819,6 @@ static void __init spade_init(void)
 	msm_device_ssbi7.dev.platform_data = &msm_i2c_ssbi7_pdata;
 #endif
 	pm8058_gpios_init();
-
-#ifdef CONFIG_MSM_RMT_STORAGE_SERVER
-	rmt_storage_add_ramfs();
-#endif
 
 	entry = proc_create_data("emmc", 0, NULL, &emmc_partition_fops, NULL);
 	if (!entry)
