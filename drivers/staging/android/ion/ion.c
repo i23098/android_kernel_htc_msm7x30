@@ -58,7 +58,7 @@ struct ion_device {
 	struct rb_root buffers;
 	struct mutex buffer_lock;
 	struct rw_semaphore lock;
-	struct rb_root heaps;
+	struct plist_head heaps;
 	long (*custom_ioctl)(struct ion_client *client, unsigned int cmd,
 			     unsigned long arg);
 	struct rb_root clients;
@@ -420,7 +420,6 @@ struct ion_handle *ion_alloc(struct ion_client *client, size_t len,
 			     size_t align, unsigned int heap_mask,
 			     unsigned int flags)
 {
-	struct rb_node *n;
 	struct ion_handle *handle;
 	struct ion_device *dev = client->dev;
 	struct ion_buffer *buffer = NULL;
@@ -428,6 +427,7 @@ struct ion_handle *ion_alloc(struct ion_client *client, size_t len,
 	const unsigned int MAX_DBG_STR_LEN = 64;
 	char dbg_str[MAX_DBG_STR_LEN];
 	unsigned int dbg_str_idx = 0;
+	struct ion_heap *heap;
 	int ret;
 
 	dbg_str[0] = '\0';
@@ -444,8 +444,7 @@ struct ion_handle *ion_alloc(struct ion_client *client, size_t len,
 		return ERR_PTR(-EINVAL);
 
 	down_read(&dev->lock);
-	for (n = rb_first(&dev->heaps); n != NULL; n = rb_next(n)) {
-		struct ion_heap *heap = rb_entry(n, struct ion_heap, node);
+	plist_for_each_entry(heap, &dev->heaps, node) {
 		/* if the client doesn't support this heap type */
 		if (!((1 << heap->type) & client->heap_mask))
 			continue;
@@ -1709,9 +1708,6 @@ static const struct file_operations debug_heap_fops = {
 void ion_device_add_heap(struct ion_device *dev, struct ion_heap *heap)
 {
 	struct dentry *debug_file;
-	struct rb_node **p = &dev->heaps.rb_node;
-	struct rb_node *parent = NULL;
-	struct ion_heap *entry;
 
 	if (!heap->ops->allocate || !heap->ops->free || !heap->ops->map_dma ||
 	    !heap->ops->unmap_dma)
@@ -1728,23 +1724,10 @@ void ion_device_add_heap(struct ion_device *dev, struct ion_heap *heap)
 
 	heap->dev = dev;
 	mutex_lock(&dev->buffer_lock);
-	while (*p) {
-		parent = *p;
-		entry = rb_entry(parent, struct ion_heap, node);
-
-		if (heap->id < entry->id) {
-			p = &(*p)->rb_left;
-		} else if (heap->id > entry->id ) {
-			p = &(*p)->rb_right;
-		} else {
-			pr_err("%s: can not insert multiple heaps with "
-				"id %d\n", __func__, heap->id);
-			goto end;
-		}
-	}
-
-	rb_link_node(&heap->node, parent, p);
-	rb_insert_color(&heap->node, &dev->heaps);
+	/* use negative heap->id to reverse the priority -- when traversing
+	   the list later attempt higher id numbers first */
+	plist_node_init(&heap->node, -heap->id);
+	plist_add(&heap->node, &dev->heaps);
 	debug_file = debugfs_create_file(heap->name, 0664,
 					dev->heaps_debug_root, heap,
 					&debug_heap_fops);
@@ -1756,14 +1739,13 @@ void ion_device_add_heap(struct ion_device *dev, struct ion_heap *heap)
 			path, heap->name);
 	}
 
-end:
 	mutex_unlock(&dev->buffer_lock);
 }
 
 int ion_secure_heap(struct ion_device *dev, int heap_id, int version,
 			void *data)
 {
-	struct rb_node *n;
+	struct ion_heap *heap;
 	int ret_val = 0;
 
 	/*
@@ -1771,8 +1753,7 @@ int ion_secure_heap(struct ion_device *dev, int heap_id, int version,
 	 * and find the heap that is specified.
 	 */
 	mutex_lock(&dev->buffer_lock);
-	for (n = rb_first(&dev->heaps); n != NULL; n = rb_next(n)) {
-		struct ion_heap *heap = rb_entry(n, struct ion_heap, node);
+	plist_for_each_entry(heap, &dev->heaps, node) {
 		if (heap->type != (enum ion_heap_type) ION_HEAP_TYPE_CP)
 			continue;
 		if (ION_HEAP(heap->id) != heap_id)
@@ -1791,7 +1772,7 @@ EXPORT_SYMBOL(ion_secure_heap);
 int ion_unsecure_heap(struct ion_device *dev, int heap_id, int version,
 			void *data)
 {
-	struct rb_node *n;
+	struct ion_heap *heap;
 	int ret_val = 0;
 
 	/*
@@ -1799,8 +1780,7 @@ int ion_unsecure_heap(struct ion_device *dev, int heap_id, int version,
 	 * and find the heap that is specified.
 	 */
 	mutex_lock(&dev->buffer_lock);
-	for (n = rb_first(&dev->heaps); n != NULL; n = rb_next(n)) {
-		struct ion_heap *heap = rb_entry(n, struct ion_heap, node);
+	plist_for_each_entry(heap, &dev->heaps, node) {
 		if (heap->type != (enum ion_heap_type) ION_HEAP_TYPE_CP)
 			continue;
 		if (ION_HEAP(heap->id) != heap_id)
@@ -1919,8 +1899,7 @@ debugfs_done:
 	idev->buffers = RB_ROOT;
 	mutex_init(&idev->buffer_lock);
 	init_rwsem(&idev->lock);
-	idev->heaps = RB_ROOT;
-	idev->clients = RB_ROOT;
+	plist_head_init(&idev->heaps);
 	debugfs_create_file("check_leaked_fds", 0664, idev->debug_root, idev,
 			    &debug_leak_fops);
 	return idev;
