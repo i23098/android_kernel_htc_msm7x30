@@ -1094,7 +1094,7 @@ qup_i2c_probe(struct platform_device *pdev)
 	struct msm_i2c_platform_data *pdata;
 
 	gsbi_mem = NULL;
-	dev_dbg(&pdev->dev, "qup_i2c_probe\n");
+	dev_dbg(&pdev->dev, "i2c_qup_probe\n");
 
 	pdata = pdev->dev.platform_data;
 	if (!pdata) {

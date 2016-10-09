@@ -1059,7 +1059,7 @@ static struct rcg_clk qup_i2c_clk = {
 	.set_rate = set_rate_nop,
 	.current_freq = &rcg_dummy_freq,
 	.c = {
-		.dbg_name = "qup_i2c_clk",
+		.dbg_name = "i2c_qup_clk",
 		.ops = &clk_ops_rcg_7x30,
 		VDD_DIG_FMAX_MAP1(NOMINAL, 19200000),
 		CLK_INIT(qup_i2c_clk.c),
@@ -2842,7 +2842,7 @@ static struct clk_local_ownership {
 	OWN(ROW1,  4, "core_clk",	usb_hs3_core_clk, ""),
 	OWN(ROW1,  4, "iface_clk",	usb_hs3_p_clk,	""),
 
-	OWN(ROW2,  3, "core_clk",	qup_i2c_clk,	"qup_i2c.4"),
+	OWN(ROW2,  3, "core_clk",	qup_i2c_clk,	"i2c_qup.4"),
 	OWN(ROW2,  1, "core_clk",	spi_clk,	"spi_qsd.0"),
 	OWN(ROW2,  1, "iface_clk",	spi_p_clk,	"spi_qsd.0"),
 	OWN(ROW2,  9, "core_clk",	uart1_clk,	"msm_serial.0"),
@@ -2853,7 +2853,7 @@ static struct clk_local_ownership {
 
 	OWN(APPS3,  6, "cam_m_clk",	cam_m_clk,	NULL),
 	OWN(APPS3,  6, "camif_pad_pclk", camif_pad_p_clk, NULL),
-	OWN(APPS3,  6, "iface_clk",	camif_pad_p_clk, "qup_i2c.4"),
+	OWN(APPS3,  6, "iface_clk",	camif_pad_p_clk, "i2c_qup.4"),
 	OWN(APPS3, 11, "csi_clk",	csi0_clk,	NULL),
 	OWN(APPS3, 11, "csi_vfe_clk",	csi0_vfe_clk,	NULL),
 	OWN(APPS3, 11, "csi_pclk",	csi0_p_clk,	NULL),
