@@ -63,14 +63,6 @@
 #define CFG_GET_EXP_GAIN	52
 #define CFG_SET_FRAMERATE 	53
 
-#ifdef CONFIG_RAWCHIP
-#define CFG_SET_EXP_GAIN_YUSHAN	54
-#define CFG_GET_CUR_STEPS      55
-#define CFG_MAX        	        56
-#endif
-
-
-
 #define MOVE_NEAR	0
 #define MOVE_FAR	1
 

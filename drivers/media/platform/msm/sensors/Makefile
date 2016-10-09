@@ -5,7 +5,6 @@ obj-$(CONFIG_MSM_CAMERA_SENSOR) += msm_sensor.o
 obj-$(CONFIG_IMX074) += imx074_v4l2.o
 ifeq ($(CONFIG_MSM_CAMERA_V4L2),y)
 obj-$(CONFIG_S5K3H2YX) += s5k3h2yx_v4l2.o
-obj-$(CONFIG_S5K4E5YX) += s5k4e5yx_v4l2.o
 else
 obj-$(CONFIG_S5K3H2YX) += s5k3h2yx.o
 endif

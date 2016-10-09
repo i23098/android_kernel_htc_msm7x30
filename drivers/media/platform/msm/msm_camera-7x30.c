@@ -44,11 +44,6 @@
 #include <linux/slab.h>
 #include <linux/pm_qos.h>
 
-#ifdef CONFIG_RAWCHIP
-#include "rawchip/rawchip.h"
-#include "rawchip/Yushan_API.h"
-#endif
-
 DEFINE_MUTEX(pp_prev_lock);
 DEFINE_MUTEX(pp_snap_lock);
 DEFINE_MUTEX(ctrl_cmd_lock);
@@ -98,10 +93,6 @@ int g_v4l2_opencnt;
 		   IN_RANGE(__r1, __e, field));                 \
 	res;							\
 })
-
-#ifdef CONFIG_RAWCHIP
-int Yushan_init = 0;
-#endif
 
 static inline void free_qcmd(struct msm_queue_cmd *qcmd)
 {
@@ -2399,16 +2390,6 @@ static long msm_ioctl_config(struct file *filep, unsigned int cmd,
 	void __user *argp = (void __user *)arg;
 	struct msm_cam_device *pmsm = filep->private_data;
 
-#ifdef CONFIG_RAWCHIP
-	struct sensor_cfg_data cdata;
-	/* extern Yushan_New_Context_Config_t sYushanVideoContextConfig;*/
-/* sungfeng: remove later
-	extern Yushan_New_Context_Config_t	sYushanFullContextConfig;
-	extern Yushan_New_Context_Config_t sYushanVideoFastContextConfig;
-	extern Yushan_New_Context_Config_t sYushanQTRContextConfig;
-*/
-	extern void frame_counter(void);
-#endif
 	CDBG("[CAM] %s: cmd %d\n", __func__, _IOC_NR(cmd));
 
 	switch (cmd) {
@@ -2477,28 +2458,6 @@ static long msm_ioctl_config(struct file *filep, unsigned int cmd,
 		break;
 
 	case MSM_CAM_IOCTL_SENSOR_IO_CFG:
-#ifdef CONFIG_RAWCHIP
-	if (copy_from_user(&cdata, (void *)argp, sizeof(struct sensor_cfg_data)))
-		return -EFAULT;
-/* sungfeng: remove later
-	if ((cdata.cfgtype == CFG_SET_MODE) && (cdata.mode == SENSOR_PREVIEW_MODE) && (cdata.rs == 0)) {
-		if (Yushan_init == 1) {
-			pr_info("[CAM]config QTR resolution in msm_ioctl_config..\n");
-			Yushan_ContextUpdate_Wrapper(&sYushanQTRContextConfig);
-		}
-	} else if ((cdata.cfgtype == CFG_SET_MODE) && (cdata.mode == SENSOR_PREVIEW_MODE) && (cdata.rs == 1)) {
-		if (Yushan_init == 1) {
-			pr_info("[CAM]config full size resolution in msm_ioctl_config..\n");
-			Yushan_ContextUpdate_Wrapper(&sYushanFullContextConfig);
-		}
-	} else if ((cdata.cfgtype == CFG_SET_MODE) && (cdata.mode == SENSOR_PREVIEW_MODE) && (cdata.rs == 4 || cdata.rs == 5 )) {
-		if (Yushan_init == 1) {
-			pr_info("<ChenC>config video fast resolution in msm_ioctl_config..\n");
-			Yushan_ContextUpdate_Wrapper(&sYushanVideoFastContextConfig);
-		}
-	}
-*/
-#endif
 		rc = pmsm->sync->sctrl.s_config(argp);
 		break;
 
@@ -2662,10 +2621,6 @@ static int __msm_release(struct msm_sync *sync)
 		pr_info("[CAM] %s, vfe_release\n", __func__);
 		if (sync->vfefn.vfe_release)
 			sync->vfefn.vfe_release(sync->pdev);
-
-#ifdef CONFIG_RAWCHIP
-		rawchip_release();
-#endif
 
 		kfree(sync->cropinfo);
 		sync->cropinfo = NULL;
@@ -3200,12 +3155,6 @@ static int __msm_open(struct msm_sync *sync, const char *const apps_id)
 					__func__, rc);
 				goto msm_open_done;
 			}
-#ifdef CONFIG_RAWCHIP
-			Yushan_init = 0;
-			/* afsu_info.active_number = 0;*/
-			pr_info("[CAM] __msm_open:Yushan_common_init \n");
-			rawchip_open_init();
-#endif
 			rc = sync->sctrl.s_init(sync->sdata);
 			if (rc < 0) {
 				pr_err("[CAM]%s: sensor init failed: %d\n",
@@ -3719,21 +3668,12 @@ static int msm_sync_init(struct msm_sync *sync,
 	}
 	sctrl.node = camera_node;
 
-#ifdef CONFIG_RAWCHIP
-	if (sync->sdata->use_rawchip) {
-		rc = rawchip_probe_init();
-	}
-#endif
-
 	pr_info("[CAM] sctrl.node %d\n", sctrl.node);
 	rc = sensor_probe(sync->sdata, &sctrl);
 	if (rc >= 0) {
 		sync->pdev = pdev;
 		sync->sctrl = sctrl;
 	}
-#ifdef CONFIG_RAWCHIP
-	rawchip_probe_deinit();
-#endif
 	if (!sync->sdata->use_rawchip) {
 		msm_camio_probe_off(pdev);
 	}
