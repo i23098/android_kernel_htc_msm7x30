@@ -1,4 +1,7 @@
-/* Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
+/*
+ * Copyright (c) 2009-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014, Sony Mobile Communications AB.
+ *
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -10,122 +13,107 @@
  * GNU General Public License for more details.
  *
  */
-/*
- * QUP driver for Qualcomm MSM platforms
- *
- */
-
-/* #define DEBUG */
 
 #include <linux/clk.h>
+#include <linux/delay.h>
 #include <linux/err.h>
-#include <linux/init.h>
 #include <linux/i2c.h>
 #include <linux/interrupt.h>
-#include <linux/platform_device.h>
-#include <linux/delay.h>
 #include <linux/io.h>
+#include <linux/module.h>
+#include <linux/of.h>
+#include <linux/platform_device.h>
+#include <linux/pm_runtime.h>
+#include <linux/init.h>
 #include <linux/mutex.h>
 #include <linux/timer.h>
 #include <linux/slab.h>
 #include <mach/board_htc.h>
 #include <mach/msm_gpiomux.h>
 #include <linux/slab.h>
-#include <linux/pm_runtime.h>
 #include <linux/gpio.h>
 #include <mach/socinfo.h>
 #include <linux/module.h>
 #include "../../../arch/arm/mach-msm/gpiomux.h"
-
-MODULE_LICENSE("GPL v2");
-MODULE_VERSION("0.2");
-MODULE_ALIAS("platform:i2c_qup");
+/* #define DEBUG */
 
 /* QUP Registers */
-enum {
-	QUP_CONFIG              = 0x0,
-	QUP_STATE               = 0x4,
-	QUP_IO_MODE             = 0x8,
-	QUP_SW_RESET            = 0xC,
-	QUP_OPERATIONAL         = 0x18,
-	QUP_ERROR_FLAGS         = 0x1C,
-	QUP_ERROR_FLAGS_EN      = 0x20,
-	QUP_MX_READ_CNT         = 0x208,
-	QUP_MX_INPUT_CNT        = 0x200,
-	QUP_MX_WR_CNT           = 0x100,
-	QUP_OUT_DEBUG           = 0x108,
-	QUP_OUT_FIFO_CNT        = 0x10C,
-	QUP_OUT_FIFO_BASE       = 0x110,
-	QUP_IN_READ_CUR         = 0x20C,
-	QUP_IN_DEBUG            = 0x210,
-	QUP_IN_FIFO_CNT         = 0x214,
-	QUP_IN_FIFO_BASE        = 0x218,
-	QUP_I2C_CLK_CTL         = 0x400,
-	QUP_I2C_STATUS          = 0x404,
-};
+#define QUP_CONFIG		0x000
+#define QUP_STATE		0x004
+#define QUP_IO_MODE		0x008
+#define QUP_SW_RESET		0x00c
+#define QUP_OPERATIONAL		0x018
+#define QUP_ERROR_FLAGS		0x01c
+#define QUP_ERROR_FLAGS_EN	0x020
+#define QUP_HW_VERSION		0x030
+#define QUP_MX_WR_CNT		0x100
+#define QUP_OUT_DEBUG		0x108
+#define QUP_OUT_FIFO_CNT	0x10c
+#define QUP_OUT_FIFO_BASE       0x110
+#define QUP_MX_INPUT_CNT	0x200
+#define QUP_MX_READ_CNT		0x208
+#define QUP_IN_READ_CUR		0x20c
+#define QUP_IN_DEBUG		0x210
+#define QUP_IN_FIFO_CNT		0x214
+#define QUP_IN_FIFO_BASE	0x218
+#define QUP_I2C_CLK_CTL		0x400
+#define QUP_I2C_STATUS		0x404
 
 /* QUP States and reset values */
-enum {
-	QUP_RESET_STATE         = 0,
-	QUP_RUN_STATE           = 1U,
-	QUP_STATE_MASK          = 3U,
-	QUP_PAUSE_STATE         = 3U,
-	QUP_STATE_VALID         = 1U << 2,
-	QUP_I2C_MAST_GEN        = 1U << 4,
-	QUP_OPERATIONAL_RESET   = 0xFF0,
-	QUP_I2C_STATUS_RESET    = 0xFFFFFC,
-};
+#define QUP_RESET_STATE		0
+#define QUP_RUN_STATE		1
+#define QUP_PAUSE_STATE		3
+#define QUP_STATE_MASK		3
+
+#define QUP_STATE_VALID		BIT(2)
+#define QUP_I2C_MAST_GEN	BIT(4)
+
+#define QUP_OPERATIONAL_RESET	0x000ff0
+#define QUP_I2C_STATUS_RESET	0xfffffc
 
 /* QUP OPERATIONAL FLAGS */
-enum {
-	QUP_OUT_SVC_FLAG        = 1U << 8,
-	QUP_IN_SVC_FLAG         = 1U << 9,
-	QUP_MX_INPUT_DONE       = 1U << 11,
-};
+#define QUP_I2C_NACK_FLAG	BIT(3)
+#define QUP_OUT_NOT_EMPTY	BIT(4)
+#define QUP_IN_NOT_EMPTY	BIT(5)
+#define QUP_OUT_FULL		BIT(6)
+#define QUP_OUT_SVC_FLAG	BIT(8)
+#define QUP_IN_SVC_FLAG		BIT(9)
+#define QUP_MX_OUTPUT_DONE	BIT(10)
+#define QUP_MX_INPUT_DONE	BIT(11)
 
 /* I2C mini core related values */
-enum {
-	I2C_MINI_CORE           = 2U << 8,
-	I2C_N_VAL               = 0xF,
+#define QUP_CLOCK_AUTO_GATE	BIT(13)
+#define I2C_MINI_CORE		(2 << 8)
+#define I2C_N_VAL		15
+/* Most significant word offset in FIFO port */
+#define QUP_MSW_SHIFT		(I2C_N_VAL + 1)
 
-};
-
-/* Packing Unpacking words in FIFOs , and IO modes*/
-enum {
-	QUP_WR_BLK_MODE  = 1U << 10,
-	QUP_RD_BLK_MODE  = 1U << 12,
-	QUP_UNPACK_EN = 1U << 14,
-	QUP_PACK_EN = 1U << 15,
-};
+/* Packing/Unpacking words in FIFOs, and IO modes */
+#define QUP_WR_BLK_MODE  	1U << 10
+#define QUP_RD_BLK_MODE  	1U << 12
+#define QUP_UNPACK_EN		1U << 14
+#define QUP_PACK_EN 		1U << 15
 
 /* QUP tags */
-enum {
-	QUP_OUT_NOP   = 0,
-	QUP_OUT_START = 1U << 8,
-	QUP_OUT_DATA  = 2U << 8,
-	QUP_OUT_STOP  = 3U << 8,
-	QUP_OUT_REC   = 4U << 8,
-	QUP_IN_DATA   = 5U << 8,
-	QUP_IN_STOP   = 6U << 8,
-	QUP_IN_NACK   = 7U << 8,
-};
+#define QUP_OUT_NOP		0
+#define QUP_OUT_START		1U << 8
+#define QUP_OUT_DATA		2U << 8
+#define QUP_OUT_STOP		3U << 8
+#define QUP_OUT_REC		4U << 8
+#define QUP_IN_DATA		5U << 8
+#define QUP_IN_STOP		6U << 8
+#define QUP_IN_NACK		7U << 8
 
 /* Status, Error flags */
-enum {
-	I2C_STATUS_WR_BUFFER_FULL  = 1U << 0,
-	I2C_STATUS_BUS_ACTIVE      = 1U << 8,
-	I2C_STATUS_BUS_MASTER      = 1U << 9,
-	I2C_STATUS_ERROR_MASK      = 0x38000FC,
-	QUP_I2C_NACK_FLAG          = 1U << 3,
-	QUP_IN_NOT_EMPTY           = 1U << 5,
-	QUP_STATUS_ERROR_FLAGS     = 0x7C,
-};
+#define I2C_STATUS_WR_BUFFER_FULL	1U << 0
+#define I2C_STATUS_BUS_ACTIVE		1U << 8
+#define I2C_STATUS_BUS_MASTER		1U << 9
+#define I2C_STATUS_ERROR_MASK		0x38000fc
+#define QUP_STATUS_ERROR_FLAGS		0x7c
 
 /* Master status clock states */
-enum {
-	I2C_CLK_RESET_BUSIDLE_STATE	= 0,
-	I2C_CLK_FORCED_LOW_STATE	= 5,
-};
+#define I2C_CLK_RESET_BUSIDLE_STATE	0
+#define I2C_CLK_FORCED_LOW_STATE	5
 
 #define QUP_MAX_CLK_STATE_RETRIES	300
 
@@ -138,37 +126,40 @@ static struct gpiomux_setting recovery_config = {
 };
 
 struct qup_i2c_dev {
-	struct device                *dev;
-	void __iomem                 *base;		/* virtual */
-	void __iomem                 *gsbi;		/* virtual */
-	int                          in_irq;
-	int                          out_irq;
-	int                          err_irq;
-	int                          num_irqs;
-	struct clk                   *clk;
-	struct clk                   *pclk;
-	struct i2c_adapter           adapter;
+	struct device		*dev;
+	void __iomem		*base; /* virtual */
+	void __iomem		*gsbi; /* virtual */
+	int			in_irq;
+	int			out_irq;
+	int			err_irq;
+	int			num_irqs;
+	struct clk		*clk;
+	struct clk		*pclk;
+	struct i2c_adapter	adapter;
 
-	struct i2c_msg               *msg;
-	int                          pos;
-	int                          cnt;
-	int                          err;
-	int                          mode;
-	int                          clk_ctl;
-	int                          one_bit_t;
-	int                          out_fifo_sz;
-	int                          in_fifo_sz;
-	int                          out_blk_sz;
-	int                          in_blk_sz;
-	int                          wr_sz;
+	struct i2c_msg		*msg;
+	int			cnt;
+	int			err;
+	int			mode;
+	int			clk_ctl;
+	int			one_bit_t;
+	int			out_fifo_sz;
+	int			in_fifo_sz;
+	int			out_blk_sz;
+	int			in_blk_sz;
+
+	/* Current posion in user message buffer */
+	int			pos;
+
+	int			wr_sz;
 	struct msm_i2c_platform_data *pdata;
-	int                          suspended;
-	int                          clk_state;
-	struct timer_list            pwr_timer;
-	struct mutex                 mlock;
-	void                         *complete;
-	int                          i2c_gpios[ARRAY_SIZE(i2c_rsrcs)];
-	int                          share_uart;
+	int			suspended;
+	int			clk_state;
+	struct timer_list	pwr_timer;
+	struct mutex		mlock;
+	void			*complete;
+	int			i2c_gpios[ARRAY_SIZE(i2c_rsrcs)];
+	int			share_uart;
 };
 
 #ifdef DEBUG
@@ -189,8 +180,7 @@ static inline void qup_print_status(struct qup_i2c_dev *dev)
 }
 #endif
 
-static irqreturn_t
-qup_i2c_interrupt(int irq, void *devid)
+static irqreturn_t qup_i2c_interrupt(int irq, void *devid)
 {
 	struct qup_i2c_dev *dev = devid;
 	uint32_t status = readl_relaxed(dev->base + QUP_I2C_STATUS);
@@ -266,8 +256,7 @@ intr_done:
 	return IRQ_HANDLED;
 }
 
-static int
-qup_i2c_poll_state(struct qup_i2c_dev *dev, uint32_t req_state, bool only_valid)
+static int qup_i2c_poll_state(struct qup_i2c_dev *dev, uint32_t req_state, bool only_valid)
 {
 	uint32_t retries = 0;
 
@@ -296,8 +285,7 @@ qup_i2c_poll_state(struct qup_i2c_dev *dev, uint32_t req_state, bool only_valid)
 	return -ETIMEDOUT;
 }
 
-static int
-qup_update_state(struct qup_i2c_dev *dev, uint32_t state)
+static int qup_update_state(struct qup_i2c_dev *dev, uint32_t state)
 {
 	if (qup_i2c_poll_state(dev, 0, true) != 0)
 		return -EIO;
@@ -307,8 +295,7 @@ qup_update_state(struct qup_i2c_dev *dev, uint32_t state)
 	return 0;
 }
 
-static void
-qup_i2c_pwr_mgmt(struct qup_i2c_dev *dev, unsigned int state)
+static void qup_i2c_pwr_mgmt(struct qup_i2c_dev *dev, unsigned int state)
 {
 	dev->clk_state = state;
 	if (state != 0) {
@@ -321,8 +308,7 @@ qup_i2c_pwr_mgmt(struct qup_i2c_dev *dev, unsigned int state)
 	}
 }
 
-static void
-qup_i2c_pwr_timer(unsigned long data)
+static void qup_i2c_pwr_timer(unsigned long data)
 {
 	struct qup_i2c_dev *dev = (struct qup_i2c_dev *) data;
 	dev_dbg(dev->dev, "QUP_Power: Inactivity based power management\n");
@@ -330,8 +316,7 @@ qup_i2c_pwr_timer(unsigned long data)
 		qup_i2c_pwr_mgmt(dev, 0);
 }
 
-static int
-qup_i2c_poll_writeready(struct qup_i2c_dev *dev, int rem)
+static int qup_i2c_poll_writeready(struct qup_i2c_dev *dev, int rem)
 {
 	uint32_t retries = 0;
 
@@ -438,8 +423,7 @@ static inline void qup_verify_fifo(struct qup_i2c_dev *dev, uint32_t val,
 }
 #endif
 
-static void
-qup_issue_read(struct qup_i2c_dev *dev, struct i2c_msg *msg, int *idx,
+static void qup_issue_read(struct qup_i2c_dev *dev, struct i2c_msg *msg, int *idx,
 		uint32_t carry_over)
 {
 	uint16_t addr = (msg->addr << 1) | 1;
@@ -472,8 +456,7 @@ qup_issue_read(struct qup_i2c_dev *dev, struct i2c_msg *msg, int *idx,
 	*idx += 4;
 }
 
-static void
-qup_issue_write(struct qup_i2c_dev *dev, struct i2c_msg *msg, int rem,
+static void qup_issue_write(struct qup_i2c_dev *dev, struct i2c_msg *msg, int rem,
 			int *idx, uint32_t *carry_over)
 {
 	int entries = dev->cnt;
@@ -589,8 +572,7 @@ qup_issue_write(struct qup_i2c_dev *dev, struct i2c_msg *msg, int rem,
 	dev->cnt = msg->len - dev->pos;
 }
 
-static void
-qup_set_read_mode(struct qup_i2c_dev *dev, int rd_len)
+static void qup_i2c_set_read_mode(struct qup_i2c_dev *dev, int rd_len)
 {
 	uint32_t wr_mode = (dev->wr_sz < dev->out_fifo_sz) ?
 				QUP_WR_BLK_MODE : 0;
@@ -609,8 +591,7 @@ qup_set_read_mode(struct qup_i2c_dev *dev, int rd_len)
 	}
 }
 
-static int
-qup_set_wr_mode(struct qup_i2c_dev *dev, int rem)
+static int qup_set_wr_mode(struct qup_i2c_dev *dev, int rem)
 {
 	int total_len = 0;
 	int ret = 0;
@@ -636,7 +617,7 @@ qup_set_wr_mode(struct qup_i2c_dev *dev, int rem)
 	if (rem > 1) {
 		if (next->addr == dev->msg->addr &&
 			next->flags == I2C_M_RD) {
-			qup_set_read_mode(dev, next->len);
+			qup_i2c_set_read_mode(dev, next->len);
 			/* make sure read start & read command are in 1 blk */
 			if ((total_len % dev->out_blk_sz) ==
 				(dev->out_blk_sz - 1))
@@ -728,8 +709,7 @@ recovery_end:
 	enable_irq(dev->err_irq);
 }
 
-static int
-qup_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
+static int qup_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 {
 	DECLARE_COMPLETION_ONSTACK(complete);
 	struct qup_i2c_dev *dev = i2c_get_adapdata(adap);
@@ -847,7 +827,7 @@ qup_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 		qup_print_status(dev);
 		/* HW limits Read upto 256 bytes in 1 read without stop */
 		if (dev->msg->flags & I2C_M_RD) {
-			qup_set_read_mode(dev, dev->cnt);
+			qup_i2c_set_read_mode(dev, dev->cnt);
 			if (dev->cnt > 256)
 				dev->cnt = 256;
 		} else {
@@ -1071,8 +1051,7 @@ timeout_err:
 	return ret;
 }
 
-static u32
-qup_i2c_func(struct i2c_adapter *adap)
+static u32 qup_i2c_func(struct i2c_adapter *adap)
 {
 	return I2C_FUNC_I2C | (I2C_FUNC_SMBUS_EMUL & ~I2C_FUNC_SMBUS_QUICK);
 }
@@ -1082,8 +1061,7 @@ static const struct i2c_algorithm qup_i2c_algo = {
 	.functionality	= qup_i2c_func,
 };
 
-static int
-qup_i2c_probe(struct platform_device *pdev)
+static int qup_i2c_probe(struct platform_device *pdev)
 {
 	struct qup_i2c_dev	*dev;
 	struct resource         *qup_mem, *gsbi_mem, *qup_io, *gsbi_io, *res;
@@ -1149,14 +1127,14 @@ qup_i2c_probe(struct platform_device *pdev)
 		}
 	}
 
-	clk = clk_get(&pdev->dev, "core_clk");
+	clk = clk_get(&pdev->dev, "core");
 	if (IS_ERR(clk)) {
 		dev_err(&pdev->dev, "Could not get core_clk\n");
 		ret = PTR_ERR(clk);
 		goto err_clk_get_failed;
 	}
 
-	pclk = clk_get(&pdev->dev, "iface_clk");
+	pclk = clk_get(&pdev->dev, "iface");
 	if (IS_ERR(pclk)) {
 		dev_err(&pdev->dev, "Could not get iface_clk\n");
 		ret = PTR_ERR(pclk);
@@ -1319,8 +1297,7 @@ err_res_failed:
 	return ret;
 }
 
-static int
-qup_i2c_remove(struct platform_device *pdev)
+static int qup_i2c_remove(struct platform_device *pdev)
 {
 	struct qup_i2c_dev	*dev = platform_get_drvdata(pdev);
 	struct resource		*qup_mem, *gsbi_mem;
@@ -1367,6 +1344,20 @@ qup_i2c_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
+static int qup_i2c_pm_suspend_runtime(struct device *device)
+{
+	dev_dbg(device, "pm_runtime: suspending...\n");
+	return 0;
+}
+
+static int qup_i2c_pm_resume_runtime(struct device *device)
+{
+	dev_dbg(device, "pm_runtime: resuming...\n");
+	return 0;
+}
+#endif
+
+#ifdef CONFIG_PM_SLEEP
 static int qup_i2c_suspend(struct device *device)
 {
 	struct platform_device *pdev = to_platform_device(device);
@@ -1391,26 +1382,6 @@ static int qup_i2c_resume(struct device *device)
 	dev->suspended = 0;
 	return 0;
 }
-#endif /* CONFIG_PM */
-
-#ifdef CONFIG_PM_RUNTIME
-static int i2c_qup_runtime_idle(struct device *dev)
-{
-	dev_dbg(dev, "pm_runtime: idle...\n");
-	return 0;
-}
-
-static int qup_i2c_pm_suspend_runtime(struct device *dev)
-{
-	dev_dbg(dev, "pm_runtime: suspending...\n");
-	return 0;
-}
-
-static int qup_i2c_pm_resume_runtime(struct device *dev)
-{
-	dev_dbg(dev, "pm_runtime: resuming...\n");
-	return 0;
-}
 #endif
 
 static const struct dev_pm_ops qup_i2c_qup_pm_ops = {
@@ -1420,8 +1391,7 @@ static const struct dev_pm_ops qup_i2c_qup_pm_ops = {
 	SET_RUNTIME_PM_OPS(
 		qup_i2c_pm_suspend_runtime,
 		qup_i2c_pm_resume_runtime,
-		i2c_qup_runtime_idle
-	)
+		NULL)
 };
 
 static const struct of_device_id qup_i2c_dt_match[] = {
