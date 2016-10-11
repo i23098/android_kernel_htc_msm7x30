@@ -46,10 +46,11 @@
 #define QUP_ERROR_FLAGS		0x01c
 #define QUP_ERROR_FLAGS_EN	0x020
 #define QUP_HW_VERSION		0x030
-#define QUP_MX_WR_CNT		0x100
+#define QUP_MX_OUTPUT_CNT	0x100
 #define QUP_OUT_DEBUG		0x108
 #define QUP_OUT_FIFO_CNT	0x10c
-#define QUP_OUT_FIFO_BASE       0x110
+#define QUP_OUT_FIFO_BASE	0x110
+#define QUP_MX_WRITE_CNT	0x150
 #define QUP_MX_INPUT_CNT	0x200
 #define QUP_MX_READ_CNT		0x208
 #define QUP_IN_READ_CUR		0x20c
@@ -89,27 +90,36 @@
 #define QUP_MSW_SHIFT		(I2C_N_VAL + 1)
 
 /* Packing/Unpacking words in FIFOs, and IO modes */
-#define QUP_WR_BLK_MODE  	1U << 10
-#define QUP_RD_BLK_MODE  	1U << 12
-#define QUP_UNPACK_EN		1U << 14
-#define QUP_PACK_EN 		1U << 15
+#define QUP_OUTPUT_BLK_MODE	(1 << 10)
+#define QUP_INPUT_BLK_MODE	(1 << 12)
+#define QUP_UNPACK_EN		BIT(14)
+#define QUP_PACK_EN		BIT(15)
+
+#define QUP_REPACK_EN		(QUP_UNPACK_EN | QUP_PACK_EN)
+
+#define QUP_OUTPUT_BLOCK_SIZE(x)(((x) >> 0) & 0x03)
+#define QUP_OUTPUT_FIFO_SIZE(x)	(((x) >> 2) & 0x07)
+#define QUP_INPUT_BLOCK_SIZE(x)	(((x) >> 5) & 0x03)
+#define QUP_INPUT_FIFO_SIZE(x)	(((x) >> 7) & 0x07)
 
 /* QUP tags */
 #define QUP_OUT_NOP		0
-#define QUP_OUT_START		1U << 8
-#define QUP_OUT_DATA		2U << 8
-#define QUP_OUT_STOP		3U << 8
-#define QUP_OUT_REC		4U << 8
+#define QUP_TAG_START		(1 << 8)
+#define QUP_TAG_DATA		(2 << 8)
+#define QUP_TAG_STOP		(3 << 8)
+#define QUP_TAG_REC		(4 << 8)
 #define QUP_IN_DATA		5U << 8
 #define QUP_IN_STOP		6U << 8
 #define QUP_IN_NACK		7U << 8
 
 /* Status, Error flags */
-#define I2C_STATUS_WR_BUFFER_FULL	1U << 0
-#define I2C_STATUS_BUS_ACTIVE		1U << 8
-#define I2C_STATUS_BUS_MASTER		1U << 9
+#define I2C_STATUS_WR_BUFFER_FULL	BIT(0)
+#define I2C_STATUS_BUS_ACTIVE		BIT(8)
+#define I2C_STATUS_BUS_MASTER		BIT(9)
 #define I2C_STATUS_ERROR_MASK		0x38000fc
 #define QUP_STATUS_ERROR_FLAGS		0x7c
+
+#define QUP_READ_LIMIT			256
 
 /* Master status clock states */
 #define I2C_CLK_RESET_BUSIDLE_STATE	0
@@ -433,24 +443,24 @@ static void qup_issue_read(struct qup_i2c_dev *dev, struct i2c_msg *msg, int *id
 	uint16_t rd_len = ((dev->cnt == 256) ? 0 : dev->cnt);
 
 	if (*idx % 4) {
-		writel_relaxed(carry_over | ((QUP_OUT_START | addr) << 16),
+		writel_relaxed(carry_over | ((QUP_TAG_START | addr) << 16),
 		dev->base + QUP_OUT_FIFO_BASE);/* + (*idx-2)); */
 
 		qup_verify_fifo(dev, carry_over |
-			((QUP_OUT_START | addr) << 16), (uint32_t)dev->base
+			((QUP_TAG_START | addr) << 16), (uint32_t)dev->base
 			+ QUP_OUT_FIFO_BASE + (*idx - 2), 1);
-		writel_relaxed((QUP_OUT_REC | rd_len),
+		writel_relaxed((QUP_TAG_REC | rd_len),
 			dev->base + QUP_OUT_FIFO_BASE);/* + (*idx+2)); */
 
-		qup_verify_fifo(dev, (QUP_OUT_REC | rd_len),
+		qup_verify_fifo(dev, (QUP_TAG_REC | rd_len),
 		(uint32_t)dev->base + QUP_OUT_FIFO_BASE + (*idx + 2), 1);
 	} else {
-		writel_relaxed(((QUP_OUT_REC | rd_len) << 16)
-			| QUP_OUT_START | addr,
+		writel_relaxed(((QUP_TAG_REC | rd_len) << 16)
+			| QUP_TAG_START | addr,
 			dev->base + QUP_OUT_FIFO_BASE);/* + (*idx)); */
 
-		qup_verify_fifo(dev, QUP_OUT_REC << 16 | rd_len << 16 |
-		QUP_OUT_START | addr,
+		qup_verify_fifo(dev, QUP_TAG_REC << 16 | rd_len << 16 |
+		QUP_TAG_START | addr,
 		(uint32_t)dev->base + QUP_OUT_FIFO_BASE + (*idx), 1);
 	}
 	*idx += 4;
@@ -468,15 +478,15 @@ static void qup_issue_write(struct qup_i2c_dev *dev, struct i2c_msg *msg, int re
 
 	if (dev->pos == 0) {
 		if (*idx % 4) {
-			writel_relaxed(*carry_over | ((QUP_OUT_START |
+			writel_relaxed(*carry_over | ((QUP_TAG_START |
 							addr) << 16),
 					dev->base + QUP_OUT_FIFO_BASE);
 
-			qup_verify_fifo(dev, *carry_over | QUP_OUT_START << 16 |
+			qup_verify_fifo(dev, *carry_over | QUP_TAG_START << 16 |
 				addr << 16, (uint32_t)dev->base +
 				QUP_OUT_FIFO_BASE + (*idx) - 2, 0);
 		} else
-			val = QUP_OUT_START | addr;
+			val = QUP_TAG_START | addr;
 		*idx += 2;
 		i++;
 		entries++;
@@ -495,24 +505,24 @@ static void qup_issue_write(struct qup_i2c_dev *dev, struct i2c_msg *msg, int re
 
 	for (; i < (entries - 1); i++) {
 		if (*idx % 4) {
-			writel_relaxed(val | ((QUP_OUT_DATA |
+			writel_relaxed(val | ((QUP_TAG_DATA |
 				msg->buf[dev->pos]) << 16),
 				dev->base + QUP_OUT_FIFO_BASE);
 
-			qup_verify_fifo(dev, val | QUP_OUT_DATA << 16 |
+			qup_verify_fifo(dev, val | QUP_TAG_DATA << 16 |
 				msg->buf[dev->pos] << 16, (uint32_t)dev->base +
 				QUP_OUT_FIFO_BASE + (*idx) - 2, 0);
 		} else
-			val = QUP_OUT_DATA | msg->buf[dev->pos];
+			val = QUP_TAG_DATA | msg->buf[dev->pos];
 		(*idx) += 2;
 		dev->pos++;
 	}
 	if (dev->pos < (msg->len - 1))
-		last_entry = QUP_OUT_DATA;
+		last_entry = QUP_TAG_DATA;
 	else if (rem > 1) /* not last array entry */
-		last_entry = QUP_OUT_DATA;
+		last_entry = QUP_TAG_DATA;
 	else
-		last_entry = QUP_OUT_STOP;
+		last_entry = QUP_TAG_STOP;
 	if ((*idx % 4) == 0) {
 		/*
 		 * If read-start and read-command end up in different fifos, it
@@ -539,12 +549,12 @@ static void qup_issue_write(struct qup_i2c_dev *dev, struct i2c_msg *msg, int re
 					&& *idx < (dev->wr_sz*2) &&
 					(next->addr != msg->addr)) {
 				/* Last byte of an intermittent write */
-				writel_relaxed((QUP_OUT_STOP |
+				writel_relaxed((QUP_TAG_STOP |
 						msg->buf[dev->pos]),
 					dev->base + QUP_OUT_FIFO_BASE);
 
 				qup_verify_fifo(dev,
-					QUP_OUT_STOP | msg->buf[dev->pos],
+					QUP_TAG_STOP | msg->buf[dev->pos],
 					(uint32_t)dev->base +
 					QUP_OUT_FIFO_BASE + (*idx), 0);
 				*idx += 2;
@@ -575,7 +585,7 @@ static void qup_issue_write(struct qup_i2c_dev *dev, struct i2c_msg *msg, int re
 static void qup_i2c_set_read_mode(struct qup_i2c_dev *dev, int rd_len)
 {
 	uint32_t wr_mode = (dev->wr_sz < dev->out_fifo_sz) ?
-				QUP_WR_BLK_MODE : 0;
+				QUP_OUTPUT_BLK_MODE : 0;
 	if (rd_len > 256) {
 		dev_dbg(dev->dev, "HW limit: Breaking reads in chunk of 256\n");
 		rd_len = 256;
@@ -585,7 +595,7 @@ static void qup_i2c_set_read_mode(struct qup_i2c_dev *dev, int rd_len)
 			dev->base + QUP_IO_MODE);
 		writel_relaxed(rd_len, dev->base + QUP_MX_READ_CNT);
 	} else {
-		writel_relaxed(wr_mode | QUP_RD_BLK_MODE |
+		writel_relaxed(wr_mode | QUP_INPUT_BLK_MODE |
 			QUP_PACK_EN | QUP_UNPACK_EN, dev->base + QUP_IO_MODE);
 		writel_relaxed(rd_len, dev->base + QUP_MX_INPUT_CNT);
 	}
@@ -607,7 +617,7 @@ static int qup_set_wr_mode(struct qup_i2c_dev *dev, int rem)
 	if (len >= (dev->out_fifo_sz - 1)) {
 		total_len = len + 1 + (len/(dev->out_blk_sz-1));
 
-		writel_relaxed(QUP_WR_BLK_MODE | QUP_PACK_EN | QUP_UNPACK_EN,
+		writel_relaxed(QUP_OUTPUT_BLK_MODE | QUP_PACK_EN | QUP_UNPACK_EN,
 			dev->base + QUP_IO_MODE);
 		dev->wr_sz = dev->out_blk_sz;
 	} else
@@ -628,7 +638,7 @@ static int qup_set_wr_mode(struct qup_i2c_dev *dev, int rem)
 	}
 	/* WRITE COUNT register valid/used only in block mode */
 	if (dev->wr_sz == dev->out_blk_sz)
-		writel_relaxed(total_len, dev->base + QUP_MX_WR_CNT);
+		writel_relaxed(total_len, dev->base + QUP_MX_OUTPUT_CNT);
 	return ret;
 }
 
