@@ -163,7 +163,6 @@ endif
 
 obj-$(CONFIG_FB_MSM_SPADE_PANEL) += lcdc_spade_wvga.o
 
-obj-$(CONFIG_MSM_VIDC_1080P) += vidc/
 obj-$(CONFIG_MSM_VIDC_720P) += vidc/
 clean:
 	rm *.o .*cmd
