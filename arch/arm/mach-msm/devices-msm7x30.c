@@ -1078,17 +1078,6 @@ static struct resource msm_tvenc_resources[] = {
 	}
 };
 
-#ifdef CONFIG_FB_MSM_TVOUT
-static struct resource tvout_device_resources[] = {
-	{
-		.name  = "tvout_device_irq",
-		.start = INT_TV_ENC,
-		.end   = INT_TV_ENC,
-		.flags = IORESOURCE_IRQ,
-	},
-};
-#endif
-
 static struct platform_device msm_mdp_device = {
 	.name   = "mdp",
 	.id     = 0,
@@ -1133,15 +1122,6 @@ static struct platform_device msm_tvenc_device = {
 	.num_resources  = ARRAY_SIZE(msm_tvenc_resources),
 	.resource       = msm_tvenc_resources,
 };
-
-#ifdef CONFIG_FB_MSM_TVOUT
-static struct platform_device tvout_msm_device = {
-	.name = "tvout_device",
-	.id = 0,
-	.num_resources = ARRAY_SIZE(tvout_device_resources),
-	.resource = tvout_device_resources,
-};
-#endif
 
 #ifdef CONFIG_MSM_ROTATOR
 static struct resource resources_msm_rotator[] = {
@@ -1255,10 +1235,6 @@ void __init msm_fb_register_device(char *name, void *data)
 		msm_register_device(&msm_lcdc_device, data);
 	else if (!strncmp(name, "dtv", 3))
 		msm_register_device(&msm_dtv_device, data);
-#ifdef CONFIG_FB_MSM_TVOUT
-	else if (!strncmp(name, "tvout_device", 12))
-		msm_register_device(&tvout_msm_device, data);
-#endif
 	else
 		printk(KERN_ERR "%s: unknown device! %s\n", __func__, name);
 }

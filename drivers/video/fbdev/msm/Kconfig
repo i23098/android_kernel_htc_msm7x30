@@ -113,10 +113,6 @@ config FB_MSM_EXTMDDI
 	bool
 	default n
 
-config FB_MSM_TVOUT
-	bool
-	default n
-
 config FB_MSM_MDDI_TOSHIBA_COMMON
 	bool
 	select FB_MSM_MDDI
@@ -684,60 +680,6 @@ config FB_MSM_HDMI_MHL_9244
 	  Support the HDMI to MHL conversion.
 	  MHL (Mobile High-Definition Link) technology
 	  uses USB connector to output HDMI content
-
-choice
-	depends on  (FB_MSM_MDP22 || FB_MSM_MDP31 || FB_MSM_MDP40)
-	prompt "TVOut Region"
-	default FB_MSM_TVOUT_NONE
-
-config FB_MSM_TVOUT_NTSC_M
-	bool "NTSC M"
-	select FB_MSM_TVOUT
-        select FB_MSM_EXT_INTERFACE_COMMON
-	---help---
-	  Support for NTSC M region (North American and Korea)
-
-config FB_MSM_TVOUT_NTSC_J
-	bool "NTSC J"
-	select FB_MSM_TVOUT
-        select FB_MSM_EXT_INTERFACE_COMMON
-	---help---
-	  Support for NTSC J region (Japan)
-
-config FB_MSM_TVOUT_PAL_BDGHIN
-	bool "PAL BDGHIN"
-	select FB_MSM_TVOUT
-        select FB_MSM_EXT_INTERFACE_COMMON
-	---help---
-	  Support for PAL BDGHIN region (Non-argentina PAL-N)
-
-config FB_MSM_TVOUT_PAL_M
-	bool "PAL M"
-	select FB_MSM_TVOUT
-        select FB_MSM_EXT_INTERFACE_COMMON
-	---help---
-	  Support for PAL M region
-
-config FB_MSM_TVOUT_PAL_N
-	bool "PAL N"
-	select FB_MSM_TVOUT
-        select FB_MSM_EXT_INTERFACE_COMMON
-	---help---
-	  Support for PAL N region (Argentina PAL-N)
-
-config FB_MSM_TVOUT_NONE
-	bool "NONE"
-	---help---
-	  This will disable TV Out functionality.
-endchoice
-
-config FB_MSM_TVOUT_SVIDEO
-	bool "TVOut on S-video"
-	depends on FB_MSM_TVOUT
-	default n
-	---help---
-	  Selects whether the TVOut signal uses S-video.
-	  Choose n for composite output.
 
 choice
 	depends on  FB_MSM_MDP22

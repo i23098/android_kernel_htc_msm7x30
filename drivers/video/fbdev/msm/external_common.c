@@ -98,21 +98,6 @@ void mdp_vid_quant_set(void)
 	}
 }
 
-const char *video_format_2string(uint32 format)
-{
-	switch (format) {
-#if defined(CONFIG_FB_MSM_TVOUT)
-	case TVOUT_VFRMT_NTSC_M_720x480i:     return "NTSC_M_720x480i";
-	case TVOUT_VFRMT_NTSC_J_720x480i:     return "NTSC_J_720x480i";
-	case TVOUT_VFRMT_PAL_BDGHIN_720x576i: return "PAL_BDGHIN_720x576i";
-	case TVOUT_VFRMT_PAL_M_720x480i:      return "PAL_M_720x480i";
-	case TVOUT_VFRMT_PAL_N_720x480i:      return "PAL_N_720x480i";
-#endif
-	default: return "???";
-	}
-}
-EXPORT_SYMBOL(video_format_2string);
-
 static ssize_t external_common_rda_video_mode_str(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
@@ -680,8 +665,6 @@ static ssize_t external_common_wta_video_mode(struct device *dev,
 	}
 	external_common_state->disp_mode_list.num_of_elements = 1;
 	external_common_state->disp_mode_list.disp_mode_list[0] = video_mode;
-#elif defined(CONFIG_FB_MSM_TVOUT)
-	external_common_state->video_resolution = video_mode;
 #endif
 	DEV_DBG("%s: 'mode=%d %s' successful (sending OFF/ONLINE)\n", __func__,
 		video_mode, msm_hdmi_mode_2string(video_mode));

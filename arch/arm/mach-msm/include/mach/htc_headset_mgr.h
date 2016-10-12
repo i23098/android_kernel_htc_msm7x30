@@ -342,8 +342,4 @@ int headset_get_type_sync(int count, unsigned int interval);
 
 extern int switch_send_event(unsigned int bit, int on);
 
-#if defined(CONFIG_FB_MSM_TVOUT) && defined(CONFIG_ARCH_MSM8X60)
-extern void tvout_enable_detection(unsigned int on);
-#endif
-
 #endif

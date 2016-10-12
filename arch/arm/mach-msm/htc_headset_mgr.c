@@ -605,9 +605,6 @@ static void mic_detect_work_func(struct work_struct *work)
 	case HEADSET_TV_OUT:
 		new_state |= BIT_TV_OUT;
 		HS_LOG("HEADSET_TV_OUT");
-#if defined(CONFIG_FB_MSM_TVOUT) && defined(CONFIG_ARCH_MSM8X60)
-		tvout_enable_detection(1);
-#endif
 		break;
 	case HEADSET_BEATS:
 		new_state |= BIT_HEADSET;
@@ -728,13 +725,6 @@ static void remove_detect_work_func(struct work_struct *work)
 		hs_mgr_notifier.indicator_enable(0);
 
 	set_35mm_hw_state(0);
-#if defined(CONFIG_FB_MSM_TVOUT) && defined(CONFIG_ARCH_MSM8X60)
-	if (hi->hs_35mm_type == HEADSET_TV_OUT && hi->pdata.hptv_sel_gpio) {
-		HS_LOG_TIME("Remove 3.5mm TVOUT cable");
-		tvout_enable_detection(0);
-		gpio_set_value(hi->pdata.hptv_sel_gpio, 0);
-	}
-#endif
 	if (hi->metrico_status)
 		enable_metrico_headset(0);
 
@@ -751,20 +741,8 @@ static void remove_detect_work_func(struct work_struct *work)
 		return;
 	}
 
-#if 0
-	if (hi->cable_in1 && !gpio_get_value(hi->cable_in1)) {
-		state &= ~BIT_35MM_HEADSET;
-		switch_set_state(&hi->sdev_h2w, state);
-		queue_delayed_work(detect_wq, &detect_h2w_work,
-				   HS_DELAY_ZERO_JIFFIES);
-	} else {
-		state &= ~(MASK_35MM_HEADSET | MASK_FM_ATTRIBUTE);
-		switch_set_state(&hi->sdev_h2w, state);
-	}
-#else
 	state &= ~(MASK_35MM_HEADSET | MASK_FM_ATTRIBUTE);
 	switch_set_state(&hi->sdev_h2w, state);
-#endif
 
 	HS_LOG_TIME("Remove 3.5mm accessory");
 
@@ -840,9 +818,6 @@ static void insert_detect_work_func(struct work_struct *work)
 	case HEADSET_TV_OUT:
 		state |= BIT_TV_OUT;
 		HS_LOG_TIME("HEADSET_TV_OUT");
-#if defined(CONFIG_FB_MSM_TVOUT) && defined(CONFIG_ARCH_MSM8X60)
-		tvout_enable_detection(1);
-#endif
 		break;
 	case HEADSET_BEATS:
 		state |= BIT_HEADSET;
@@ -1193,9 +1168,6 @@ static ssize_t headset_simulate_store(struct device *dev,
 		HS_LOG("Headset simulation: headset_tv_out");
 		hi->hs_35mm_type = HEADSET_TV_OUT;
 		state |= BIT_TV_OUT;
-#if defined(CONFIG_FB_MSM_TVOUT) && defined(CONFIG_ARCH_MSM8X60)
-		tvout_enable_detection(1);
-#endif
 	} else if (strncmp(buf, "headset_indicator", count - 1) == 0) {
 		HS_LOG("Headset simulation: headset_indicator");
 		hi->hs_35mm_type = HEADSET_INDICATOR;

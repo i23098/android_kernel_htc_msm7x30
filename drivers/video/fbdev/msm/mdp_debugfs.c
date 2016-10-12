@@ -842,12 +842,6 @@ static ssize_t dbg_base_read(
 				(int)msm_emdh_base);
 	bp += len;
 	dlen -= len;
-#ifdef CONFIG_FB_MSM_TVOUT
-	len = snprintf(bp, dlen, "tvenv_base:    %08x\n",
-				(int)tvenc_base);
-	bp += len;
-	dlen -= len;
-#endif
 
 #ifdef CONFIG_FB_MSM_MIPI_DSI
 	len = snprintf(bp, dlen, "mipi_dsi_base: %08x\n",

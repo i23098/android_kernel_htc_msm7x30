@@ -101,7 +101,6 @@ extern struct mutex hdmi_msm_state_mutex;
 
 #ifdef CONFIG_FB_MSM_HDMI_COMMON
 int hdmi_common_read_edid(void);
-const char *video_format_2string(uint32 format);
 bool hdmi_common_get_video_format_from_drv_data(struct msm_fb_data_type *mfd);
 const struct msm_hdmi_mode_timing_info *hdmi_common_get_mode(uint32 mode);
 const struct msm_hdmi_mode_timing_info *hdmi_common_get_supported_mode(

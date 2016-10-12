@@ -76,12 +76,6 @@ obj-$(CONFIG_FB_MSM_MIPI_DSI_SIMULATOR) += mipi_simulator.o
 # MIPI Bridge
 obj-$(CONFIG_FB_MSM_MIPI_DSI_TC358764_DSI2LVDS) += mipi_tc358764_dsi2lvds.o
 
-# TVEnc
-obj-$(CONFIG_FB_MSM_TVOUT) += tvenc.o
-ifeq ($(CONFIG_FB_MSM_OVERLAY),y)
-obj-$(CONFIG_FB_MSM_TVOUT) += mdp4_overlay_atv.o
-endif
-
 # MSM FB Panel
 obj-y += msm_fb_panel.o
 obj-$(CONFIG_FB_MSM_EBI2_TMD_QVGA_EPSON_QCIF) += ebi2_tmd20.o
@@ -146,8 +140,6 @@ obj-$(CONFIG_FB_MSM_LVDS_CHIMEI_WXGA) += lvds_chimei_wxga.o
 obj-$(CONFIG_FB_MSM_LVDS_FRC_FHD) += lvds_frc_fhd.o
 obj-$(CONFIG_FB_MSM_HDMI_MSM_PANEL) += hdmi_msm.o
 obj-$(CONFIG_FB_MSM_EXT_INTERFACE_COMMON) += external_common.o
-
-obj-$(CONFIG_FB_MSM_TVOUT) += tvout_msm.o
 
 obj-$(CONFIG_FB_MSM_EXTMDDI_SVGA) += mddi_ext_lcd.o
 
