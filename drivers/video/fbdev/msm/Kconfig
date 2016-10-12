@@ -163,11 +163,6 @@ config FB_MSM_MIPI_DSI_NOVATEK
         select FB_MSM_MIPI_DSI
         default n
 
-config FB_MSM_MIPI_DSI_ORISE
-        bool
-        select FB_MSM_MIPI_DSI
-        default n
-
 config FB_MSM_LCDC_ST15_WXGA
     bool
     select FB_MSM_LCDC_PANEL
@@ -253,16 +248,6 @@ config FB_MSM_MIPI_NOVATEK_VIDEO_QHD_PT
 config FB_MSM_MIPI_NOVATEK_CMD_QHD_PT
 	bool
 	select FB_MSM_MIPI_DSI_NOVATEK
-	default n
-
-config FB_MSM_MIPI_ORISE_VIDEO_720P_PT
-	bool
-	select FB_MSM_MIPI_DSI_ORISE
-	default n
-
-config FB_MSM_MIPI_ORISE_CMD_720P_PT
-	bool
-	select FB_MSM_MIPI_DSI_ORISE
 	default n
 
 config FB_MSM_MIPI_SIMULATOR_VIDEO
@@ -413,8 +398,6 @@ config FB_MSM_MIPI_PANEL_DETECT
 	bool "MIPI Panel Detect"
 	select FB_MSM_MIPI_NOVATEK_VIDEO_QHD_PT
 	select FB_MSM_MIPI_NOVATEK_CMD_QHD_PT
-	select FB_MSM_MIPI_ORISE_VIDEO_720P_PT
-	select FB_MSM_MIPI_ORISE_CMD_720P_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
 	---help---
 	  Support for MIPI panel auto detect
@@ -454,8 +437,6 @@ config FB_MSM_LVDS_MIPI_PANEL_DETECT
 	select FB_MSM_LVDS_FRC_FHD
 	select FB_MSM_MIPI_NOVATEK_VIDEO_QHD_PT
 	select FB_MSM_MIPI_NOVATEK_CMD_QHD_PT
-	select FB_MSM_MIPI_ORISE_VIDEO_720P_PT
-	select FB_MSM_MIPI_ORISE_CMD_720P_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
 	---help---
 	  Support for LVDS + MIPI panel auto detect
@@ -501,14 +482,6 @@ config FB_MSM_MIPI_NOVATEK_VIDEO_QHD_PT_PANEL
 config FB_MSM_MIPI_NOVATEK_CMD_QHD_PT_PANEL
 	bool "MIPI NOVATEK CMD QHD PT Panel"
 	select FB_MSM_MIPI_NOVATEK_CMD_QHD_PT
-
-config FB_MSM_MIPI_ORISE_VIDEO_720P_PT_PANEL
-	bool "MIPI ORISE VIDEO 720P PT Panel"
-	select FB_MSM_MIPI_ORISE_VIDEO_720P_PT
-
-config FB_MSM_MIPI_ORISE_CMD_720P_PT_PANEL
-	bool "MIPI ORISE CMD 720P PT Panel"
-	select FB_MSM_MIPI_ORISE_CMD_720P_PT
 
 config FB_MSM_MIPI_SIMULATOR_VIDEO_PANEL
 	bool "MIPI Simulator Video Panel"
