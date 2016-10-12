@@ -168,16 +168,6 @@ config FB_MSM_MIPI_DSI_ORISE
         select FB_MSM_MIPI_DSI
         default n
 
-config FB_MSM_MIPI_DSI_TC358764_DSI2LVDS
-	bool
-	select FB_MSM_MIPI_DSI
-	---help---
-	  Support for Toshiba MIPI DSI-to-LVDS bridge.
-	  The chip supports 1366x768 24-bit
-	  using a single LVDS link
-	  and up to WUXGA 1920x1200 18-bit
-	  using a dual LVDS link.
-
 config FB_MSM_LCDC_ST15_WXGA
     bool
     select FB_MSM_LCDC_PANEL
@@ -274,24 +264,6 @@ config FB_MSM_MIPI_ORISE_CMD_720P_PT
 	bool
 	select FB_MSM_MIPI_DSI_ORISE
 	default n
-
-config FB_MSM_MIPI_CHIMEI_WXGA
-	bool "LVDS Chimei WXGA Panel using Toshiba MIPI DSI-to-LVDS bridge."
-	select FB_MSM_MIPI_DSI_TC358764_DSI2LVDS
-	---help---
-	  Support for Chimei WXGA (1366x768) panel.
-	  The panel is using a serial LVDS input.
-	  The panel is connected to the host
-	  via Toshiba DSI-to-LVDS bridge.
-
-config FB_MSM_MIPI_CHIMEI_WUXGA
-	bool "LVDS Chimei WUXGA Panel using Toshiba MIPI DSI-to-LVDS bridge."
-	select FB_MSM_MIPI_DSI_TC358764_DSI2LVDS
-	---help---
-	  Support for Chimei WUXGA (1920x1200) panel.
-	  The panel is using a serial LVDS input.
-	  The panel is connected to the host
-	  via Toshiba DSI-to-LVDS bridge.
 
 config FB_MSM_MIPI_SIMULATOR_VIDEO
 	bool
@@ -444,8 +416,6 @@ config FB_MSM_MIPI_PANEL_DETECT
 	select FB_MSM_MIPI_ORISE_VIDEO_720P_PT
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
-	select FB_MSM_MIPI_CHIMEI_WXGA
-	select FB_MSM_MIPI_CHIMEI_WUXGA
 	---help---
 	  Support for MIPI panel auto detect
 
@@ -487,8 +457,6 @@ config FB_MSM_LVDS_MIPI_PANEL_DETECT
 	select FB_MSM_MIPI_ORISE_VIDEO_720P_PT
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
 	select FB_MSM_MIPI_SIMULATOR_VIDEO
-	select FB_MSM_MIPI_CHIMEI_WXGA
-	select FB_MSM_MIPI_CHIMEI_WUXGA
 	---help---
 	  Support for LVDS + MIPI panel auto detect
 
@@ -541,14 +509,6 @@ config FB_MSM_MIPI_ORISE_VIDEO_720P_PT_PANEL
 config FB_MSM_MIPI_ORISE_CMD_720P_PT_PANEL
 	bool "MIPI ORISE CMD 720P PT Panel"
 	select FB_MSM_MIPI_ORISE_CMD_720P_PT
-
-config FB_MSM_MIPI_CHIMEI_WXGA_PANEL
-	bool "MIPI Chimei WXGA PT Panel"
-	select FB_MSM_MIPI_CHIMEI_WXGA
-
-config FB_MSM_MIPI_CHIMEI_WUXGA_PANEL
-	bool "MIPI Chimei WUXGA Panel"
-	select FB_MSM_MIPI_CHIMEI_WUXGA
 
 config FB_MSM_MIPI_SIMULATOR_VIDEO_PANEL
 	bool "MIPI Simulator Video Panel"
