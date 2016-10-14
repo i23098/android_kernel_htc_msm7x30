@@ -571,8 +571,8 @@ struct board_t {
 	ulong		membase;	/* Start of base memory of the card */
 	ulong		membase_end;	/* End of base memory of the card */
 
-	u8		*re_map_port;	/* Remapped io port of the card */
-	u8		*re_map_membase;/* Remapped memory of the card */
+	u8 __iomem	*re_map_port;	/* Remapped io port of the card */
+	u8 __iomem	*re_map_membase;/* Remapped memory of the card */
 
 	u8		runwait;	/* # Processes waiting for FEP  */
 	u8		inhibit_poller; /* Tells the poller to leave us alone */
@@ -580,20 +580,20 @@ struct board_t {
 	struct channel_t *channels[MAXPORTS]; /* array of pointers to our */
 					      /* channels.                */
 
-	struct tty_driver	*SerialDriver;
-	struct tty_port *SerialPorts;
-	char		SerialName[200];
-	struct tty_driver	*PrintDriver;
-	struct tty_port *PrinterPorts;
-	char		PrintName[200];
+	struct tty_driver	*serial_driver;
+	struct tty_port *serial_ports;
+	char		serial_name[200];
+	struct tty_driver	*print_driver;
+	struct tty_port *printer_ports;
+	char		print_name[200];
 
-	u32		dgap_Major_Serial_Registered;
-	u32		dgap_Major_TransparentPrint_Registered;
+	u32		dgap_major_serial_registered;
+	u32		dgap_major_transparent_print_registered;
 
-	u32		dgap_Serial_Major;
-	u32		dgap_TransparentPrint_Major;
+	u32		dgap_serial_major;
+	u32		dgap_transparent_print_major;
 
-	struct bs_t	*bd_bs;		/* Base structure pointer         */
+	struct bs_t __iomem *bd_bs;	/* Base structure pointer         */
 
 	char	*flipbuf;		/* Our flip buffer, alloced if    */
 					/* board is found                 */
@@ -637,7 +637,7 @@ struct un_t {
 	struct	channel_t *un_ch;
 	u32	un_time;
 	u32	un_type;
-	u32	un_open_count;	/* Counter of opens to port		*/
+	int	un_open_count;	/* Counter of opens to port		*/
 	struct tty_struct *un_tty;/* Pointer to unit tty structure	*/
 	u32	un_flags;	/* Unit flags				*/
 	wait_queue_head_t un_flags_wait; /* Place to sleep to wait on unit */
@@ -968,12 +968,12 @@ struct digi_cmd {
  ************************************************************************/
 struct channel_t {
 	int magic;			/* Channel Magic Number		*/
-	struct bs_t	*ch_bs;		/* Base structure pointer       */
-	struct cm_t	*ch_cm;		/* Command queue pointer        */
+	struct bs_t __iomem *ch_bs;	/* Base structure pointer       */
+	struct cm_t __iomem *ch_cm;	/* Command queue pointer        */
 	struct board_t *ch_bd;		/* Board structure pointer      */
-	unsigned char *ch_vaddr;	/* FEP memory origin            */
-	unsigned char *ch_taddr;	/* Write buffer origin          */
-	unsigned char *ch_raddr;	/* Read buffer origin           */
+	u8 __iomem *ch_vaddr;		/* FEP memory origin            */
+	u8 __iomem *ch_taddr;		/* Write buffer origin          */
+	u8 __iomem *ch_raddr;		/* Read buffer origin           */
 	struct digi_t  ch_digi;		/* Transparent Print structure  */
 	struct un_t ch_tun;		/* Terminal unit info           */
 	struct un_t ch_pun;		/* Printer unit info            */
@@ -1041,12 +1041,6 @@ struct channel_t {
 	ulong	ch_err_frame;		/* Count of framing errors on channel */
 	ulong	ch_err_break;		/* Count of breaks on channel	*/
 	ulong	ch_err_overrun;		/* Count of overruns on channel	*/
-
-	uint ch_sniff_in;
-	uint ch_sniff_out;
-	char *ch_sniff_buf;		/* Sniff buffer for proc */
-	ulong ch_sniff_flags;		/* Channel flags                */
-	wait_queue_head_t ch_sniff_wait;
 };
 
 /************************************************************************

@@ -34,7 +34,6 @@
 #include <linux/compiler.h>
 #include "firmware.h"
 #include "control.h"
-#include "rndis.h"
 
 static int msglevel = MSG_LEVEL_INFO;
 /* static int msglevel = MSG_LEVEL_DEBUG; */
@@ -44,7 +43,7 @@ static int msglevel = MSG_LEVEL_INFO;
 
 #define FIRMWARE_CHUNK_SIZE	0x400
 
-int FIRMWAREbDownload(struct vnt_private *pDevice) __must_hold(&pDevice->lock)
+int FIRMWAREbDownload(struct vnt_private *pDevice)
 {
 	struct device *dev = &pDevice->usb->dev;
 	const struct firmware *fw;
@@ -55,7 +54,6 @@ int FIRMWAREbDownload(struct vnt_private *pDevice) __must_hold(&pDevice->lock)
 	int ii, rc;
 
 	DBG_PRT(MSG_LEVEL_DEBUG, KERN_INFO"---->Download firmware\n");
-	spin_unlock_irq(&pDevice->lock);
 
 	rc = request_firmware(&fw, FIRMWARE_NAME, dev);
 	if (rc) {
@@ -72,7 +70,7 @@ int FIRMWAREbDownload(struct vnt_private *pDevice) __must_hold(&pDevice->lock)
 		wLength = min_t(int, fw->size - ii, FIRMWARE_CHUNK_SIZE);
 		memcpy(pBuffer, fw->data + ii, wLength);
 
-		NdisStatus = CONTROLnsRequestOutAsyn(pDevice,
+		NdisStatus = CONTROLnsRequestOut(pDevice,
 						0,
 						0x1200+ii,
 						0x0000,
@@ -92,7 +90,6 @@ free_fw:
 out:
 	kfree(pBuffer);
 
-	spin_lock_irq(&pDevice->lock);
 	return result;
 }
 MODULE_FIRMWARE(FIRMWARE_NAME);

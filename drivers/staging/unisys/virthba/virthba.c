@@ -91,7 +91,7 @@ static const struct x86_cpu_id unisys_spar_ids[] = {
 MODULE_DEVICE_TABLE(x86cpu, unisys_spar_ids);
 
 #ifdef DEF_SCSI_QCMD
-DEF_SCSI_QCMD(virthba_queue_command)
+static DEF_SCSI_QCMD(virthba_queue_command)
 #else
 #define virthba_queue_command virthba_queue_command_lck
 #endif
@@ -1698,6 +1698,9 @@ virthba_mod_init(void)
 {
 	int error;
 	int i;
+
+	if (!unisys_spar_platform)
+		return -ENODEV;
 
 	LOGINF("Entering virthba_mod_init...\n");
 

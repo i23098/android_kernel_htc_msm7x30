@@ -58,7 +58,7 @@
 
 #define WPA_CIPHER_NONE		BIT(0)
 #define WPA_CIPHER_WEP40	BIT(1)
-#define WPA_CIPHER_WEP104 BIT(2)
+#define WPA_CIPHER_WEP104	BIT(2)
 #define WPA_CIPHER_TKIP		BIT(3)
 #define WPA_CIPHER_CCMP		BIT(4)
 
@@ -105,41 +105,53 @@ enum ratr_table_mode {
 
 enum NETWORK_TYPE
 {
-    WIRELESS_INVALID = 0,
-    /* Sub-Element */
-    WIRELESS_11B = BIT(0), /*  tx: cck only , rx: cck only, hw: cck */
-    WIRELESS_11G = BIT(1), /*  tx: ofdm only, rx: ofdm & cck, hw: cck & ofdm */
-    WIRELESS_11A = BIT(2), /*  tx: ofdm only, rx: ofdm only, hw: ofdm only */
-    WIRELESS_11_24N = BIT(3), /*  tx: MCS only, rx: MCS & cck, hw: MCS & cck */
-    WIRELESS_11_5N = BIT(4), /*  tx: MCS only, rx: MCS & ofdm, hw: ofdm only */
+	WIRELESS_INVALID = 0,
+	/* Sub-Element */
+	/*  tx: cck only , rx: cck only, hw: cck */
+	WIRELESS_11B = BIT(0),
+	/*  tx: ofdm only, rx: ofdm & cck, hw: cck & ofdm */
+	WIRELESS_11G = BIT(1),
+	/*  tx: ofdm only, rx: ofdm only, hw: ofdm only */
+	WIRELESS_11A = BIT(2),
+	/*  tx: MCS only, rx: MCS & cck, hw: MCS & cck */
+	WIRELESS_11_24N = BIT(3),
+	/*  tx: MCS only, rx: MCS & ofdm, hw: ofdm only */
+	WIRELESS_11_5N = BIT(4),
 	/* WIRELESS_AUTO		= BIT(5), */
-	WIRELESS_AC		= BIT(6),
+	WIRELESS_AC = BIT(6),
 
-    /* Combination */
-    WIRELESS_11BG = (WIRELESS_11B|WIRELESS_11G), /*  tx: cck & ofdm, rx: cck & ofdm & MCS, hw: cck & ofdm */
-    WIRELESS_11G_24N = (WIRELESS_11G|WIRELESS_11_24N), /*  tx: ofdm & MCS, rx: ofdm & cck & MCS, hw: cck & ofdm */
-    WIRELESS_11A_5N = (WIRELESS_11A|WIRELESS_11_5N), /*  tx: ofdm & MCS, rx: ofdm & MCS, hw: ofdm only */
-    WIRELESS_11BG_24N = (WIRELESS_11B|WIRELESS_11G|WIRELESS_11_24N), /*  tx: ofdm & cck & MCS, rx: ofdm & cck & MCS, hw: ofdm & cck */
-    WIRELESS_11AGN = (WIRELESS_11A|WIRELESS_11G|WIRELESS_11_24N|WIRELESS_11_5N), /*  tx: ofdm & MCS, rx: ofdm & MCS, hw: ofdm only */
-    WIRELESS_11ABGN = (WIRELESS_11A|WIRELESS_11B|WIRELESS_11G|WIRELESS_11_24N|WIRELESS_11_5N),
+	/* Combination */
+	 /*  tx: cck & ofdm, rx: cck & ofdm & MCS, hw: cck & ofdm */
+	WIRELESS_11BG = WIRELESS_11B|WIRELESS_11G,
+	/*  tx: ofdm & MCS, rx: ofdm & cck & MCS, hw: cck & ofdm */
+	WIRELESS_11G_24N = WIRELESS_11G | WIRELESS_11_24N,
+	/*  tx: ofdm & MCS, rx: ofdm & MCS, hw: ofdm only */
+	WIRELESS_11A_5N = WIRELESS_11A | WIRELESS_11_5N,
+	/*  tx: ofdm & cck & MCS, rx: ofdm & cck & MCS, hw: ofdm & cck */
+	WIRELESS_11BG_24N = WIRELESS_11B | WIRELESS_11G | WIRELESS_11_24N,
+	/*  tx: ofdm & MCS, rx: ofdm & MCS, hw: ofdm only */
+	WIRELESS_11AGN = WIRELESS_11A | WIRELESS_11G | WIRELESS_11_24N |
+				WIRELESS_11_5N,
+	WIRELESS_11ABGN = WIRELESS_11A | WIRELESS_11B | WIRELESS_11G |
+				WIRELESS_11_24N | WIRELESS_11_5N,
 };
 
 #define SUPPORTED_24G_NETTYPE_MSK (WIRELESS_11B | WIRELESS_11G | WIRELESS_11_24N)
 #define SUPPORTED_5G_NETTYPE_MSK (WIRELESS_11A | WIRELESS_11_5N)
 
-#define IsSupported24G(NetType) ((NetType) & SUPPORTED_24G_NETTYPE_MSK ? true : false)
-#define IsSupported5G(NetType) ((NetType) & SUPPORTED_5G_NETTYPE_MSK ? true : false)
+#define IsSupported24G(NetType) (NetType & SUPPORTED_24G_NETTYPE_MSK ? true : false)
+#define IsSupported5G(NetType) (NetType & SUPPORTED_5G_NETTYPE_MSK ? true : false)
 
 #define IsEnableHWCCK(NetType) IsSupported24G(NetType)
-#define IsEnableHWOFDM(NetType) ((NetType) & (WIRELESS_11G|WIRELESS_11_24N|SUPPORTED_5G_NETTYPE_MSK) ? true : false)
+#define IsEnableHWOFDM(NetType) (NetType & (WIRELESS_11G|WIRELESS_11_24N|SUPPORTED_5G_NETTYPE_MSK) ? true : false)
 
 #define IsSupportedRxCCK(NetType) IsEnableHWCCK(NetType)
 #define IsSupportedRxOFDM(NetType) IsEnableHWOFDM(NetType)
 #define IsSupportedRxMCS(NetType) IsEnableHWOFDM(NetType)
 
-#define IsSupportedTxCCK(NetType) ((NetType) & (WIRELESS_11B) ? true : false)
-#define IsSupportedTxOFDM(NetType) ((NetType) & (WIRELESS_11G|WIRELESS_11A) ? true : false)
-#define IsSupportedTxMCS(NetType) ((NetType) & (WIRELESS_11_24N|WIRELESS_11_5N) ? true : false)
+#define IsSupportedTxCCK(NetType) (NetType & (WIRELESS_11B) ? true : false)
+#define IsSupportedTxOFDM(NetType) (NetType & (WIRELESS_11G|WIRELESS_11A) ? true : false)
+#define IsSupportedTxMCS(NetType) (NetType & (WIRELESS_11_24N|WIRELESS_11_5N) ? true : false)
 
 
 struct ieee_param {
@@ -192,7 +204,7 @@ struct ieee_param {
 /* QoS,QOS */
 #define NORMAL_ACK			0
 #define NO_ACK				1
-#define NON_EXPLICIT_ACK	2
+#define NON_EXPLICIT_ACK		2
 #define BLOCK_ACK			3
 
 /* IEEE 802.11 defines */
@@ -200,24 +212,22 @@ struct ieee_param {
 #define P80211_OUI_LEN 3
 
 struct ieee80211_snap_hdr {
-
         u8    dsap;   /* always 0xAA */
         u8    ssap;   /* always 0xAA */
         u8    ctrl;   /* always 0x03 */
         u8    oui[P80211_OUI_LEN];    /* organizational universal id */
-
 } __attribute__ ((packed));
 
 
 #define SNAP_SIZE sizeof(struct ieee80211_snap_hdr)
 
-#define WLAN_FC_GET_TYPE(fc) ((fc) & IEEE80211_FCTL_FTYPE)
-#define WLAN_FC_GET_STYPE(fc) ((fc) & IEEE80211_FCTL_STYPE)
+#define WLAN_FC_GET_TYPE(fc)		(fc & IEEE80211_FCTL_FTYPE)
+#define WLAN_FC_GET_STYPE(fc)		(fc & IEEE80211_FCTL_STYPE)
 
-#define WLAN_QC_GET_TID(qc) ((qc) & 0x0f)
+#define WLAN_QC_GET_TID(qc)		(qc & 0x0f)
 
-#define WLAN_GET_SEQ_FRAG(seq) ((seq) & RTW_IEEE80211_SCTL_FRAG)
-#define WLAN_GET_SEQ_SEQ(seq)  ((seq) & RTW_IEEE80211_SCTL_SEQ)
+#define WLAN_GET_SEQ_FRAG(seq)		(seq & RTW_IEEE80211_SCTL_FRAG)
+#define WLAN_GET_SEQ_SEQ(seq)		(seq & RTW_IEEE80211_SCTL_SEQ)
 
 
 #define WLAN_REASON_JOIN_WRONG_CHANNEL       65534
@@ -302,16 +312,16 @@ struct ieee80211_snap_hdr {
  * only use 8, and then use extended rates for the remaining supported
  * rates.  Other APs, however, stick all of their supported rates on the
  * main rates information element... */
-#define MAX_RATES_LENGTH                  ((u8)12)
-#define MAX_RATES_EX_LENGTH               ((u8)16)
-#define MAX_CHANNEL_NUMBER                 161
+#define MAX_RATES_LENGTH	12
+#define MAX_RATES_EX_LENGTH	16
+#define MAX_CHANNEL_NUMBER	161
 
-#define MAX_WPA_IE_LEN (256)
-#define MAX_WPS_IE_LEN (512)
-#define MAX_P2P_IE_LEN (256)
-#define MAX_WFD_IE_LEN (128)
+#define MAX_WPA_IE_LEN		256
+#define MAX_WPS_IE_LEN		512
+#define MAX_P2P_IE_LEN		256
+#define MAX_WFD_IE_LEN		128
 
-#define IW_ESSID_MAX_SIZE 32
+#define IW_ESSID_MAX_SIZE	32
 
 /*
 join_res:
@@ -415,11 +425,9 @@ enum secondary_ch_offset {
 	SCA = 1, /* secondary channel above */
 	SCB = 3,  /* secondary channel below */
 };
-u8 secondary_ch_offset_to_hal_ch_offset23a(u8 ch_offset);
 u8 hal_ch_offset_to_secondary_ch_offset23a(u8 ch_offset);
 u8 *rtw_set_ie23a_ch_switch(u8 *buf, u32 *buf_len, u8 ch_switch_mode, u8 new_ch, u8 ch_switch_cnt);
 u8 *rtw_set_ie23a_secondary_ch_offset(u8 *buf, u32 *buf_len, u8 secondary_ch_offset);
-u8 *rtw_set_ie23a_mesh_ch_switch_parm(u8 *buf, u32 *buf_len, u8 ttl, u8 flags, u16 reason, u16 precedence);
 
 u8 *rtw_get_ie23a(u8*pbuf, int index, int *len, int limit);
 u8 *rtw_get_ie23a_ex(u8 *in_ie, uint in_len, u8 eid, u8 *oui, u8 oui_len, u8 *ie, uint *ielen);
@@ -434,7 +442,6 @@ int rtw_parse_wpa2_ie23a(const u8* wpa_ie, int wpa_ie_len, int *group_cipher, in
 
 int rtw_get_sec_ie23a(u8 *in_ie,uint in_len,u8 *rsn_ie,u16 *rsn_len,u8 *wpa_ie,u16 *wpa_len);
 
-u8 rtw_is_wps_ie23a(u8 *ie_ptr, uint *wps_ielen);
 u8 *rtw_get_wps_ie23a(u8 *in_ie, uint in_len, u8 *wps_ie, uint *wps_ielen);
 u8 *rtw_get_wps_attr23a(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_attr, u32 *len_attr);
 u8 *rtw_get_wps_attr_content23a(u8 *wps_ie, uint wps_ielen, u16 target_attr_id ,u8 *buf_content, uint *len_content);
@@ -447,19 +454,12 @@ int rtw_generate_ie23a(struct registry_priv *pregistrypriv);
 
 int rtw_get_bit_value_from_ieee_value23a(u8 val);
 
-uint rtw_is_cckrates_included23a(u8 *rate);
-
-uint rtw_is_cckratesonly_included23a(u8 *rate);
-
 int rtw_check_network_type23a(unsigned char *rate, int ratelen, int channel);
 
 void rtw_get_bcn_info23a(struct wlan_network *pnetwork);
 
-void rtw_macaddr_cfg23a(u8 *mac_addr);
-
 u16 rtw_mcs_rate23a(u8 rf_type, u8 bw_40MHz, u8 short_GI_20, u8 short_GI_40, unsigned char * MCS_rate);
 
-int rtw_action_frame_parse23a(const u8 *frame, u32 frame_len, u8* category, u8 *action);
 const char *action_public_str23a(u8 action);
 
 #endif /* IEEE80211_H */

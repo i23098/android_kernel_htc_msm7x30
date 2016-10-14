@@ -373,7 +373,7 @@ static irqreturn_t apci3xxx_irq_handler(int irq, void *d)
 		writel(status, devpriv->mmio + 16);
 
 		val = readl(devpriv->mmio + 28);
-		comedi_buf_put(s->async, val);
+		comedi_buf_put(s, val);
 
 		s->async->events |= COMEDI_CB_EOA;
 		comedi_event(dev, s);
@@ -699,7 +699,8 @@ static int apci3xxx_dio_insn_config(struct comedi_device *dev,
 		if (chan < 16)
 			return -EINVAL;
 		else
-			/* changing any channel in port 2 changes the entire port */
+			/* changing any channel in port 2 */
+			/* changes the entire port        */
 			mask = 0xff0000;
 	}
 

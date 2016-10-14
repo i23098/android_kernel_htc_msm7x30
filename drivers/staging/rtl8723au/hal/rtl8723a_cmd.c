@@ -20,6 +20,7 @@
 #include <mlme_osdep.h>
 #include <rtw_ioctl_set.h>
 #include <rtl8723a_hal.h>
+#include <usb_ops_linux.h>
 
 #define RTL92C_MAX_H2C_BOX_NUMS		4
 #define RTL92C_MAX_CMD_LEN		5
@@ -33,7 +34,7 @@ static u8 _is_fw_read_cmd_down(struct rtw_adapter *padapter, u8 msgbox_num)
 	u8 valid;
 
 	do {
-		valid = rtw_read8(padapter, REG_HMETFR) & BIT(msgbox_num);
+		valid = rtl8723au_read8(padapter, REG_HMETFR) & BIT(msgbox_num);
 		if (0 == valid)
 			read_down = true;
 	} while ((!read_down) && (retry_cnts--));
@@ -47,7 +48,8 @@ static u8 _is_fw_read_cmd_down(struct rtw_adapter *padapter, u8 msgbox_num)
 *| h2c_msg	|Ext_bit	|CMD_ID	|
 *
 ******************************************/
-s32 FillH2CCmd(struct rtw_adapter *padapter, u8 ElementID, u32 CmdLen, u8 *pCmdBuffer)
+int FillH2CCmd(struct rtw_adapter *padapter, u8 ElementID, u32 CmdLen,
+	       u8 *pCmdBuffer)
 {
 	u8 bcmd_down = false;
 	s32 retry_cnts = 100;
@@ -57,7 +59,7 @@ s32 FillH2CCmd(struct rtw_adapter *padapter, u8 ElementID, u32 CmdLen, u8 *pCmdB
 	struct hal_data_8723a *pHalData = GET_HAL_DATA(padapter);
 	u32 h2c_cmd = 0;
 	u16 h2c_cmd_ex = 0;
-	s32 ret = _FAIL;
+	int ret = _FAIL;
 
 	padapter = GET_PRIMARY_ADAPTER(padapter);
 	pHalData = GET_HAL_DATA(padapter);
@@ -93,11 +95,11 @@ s32 FillH2CCmd(struct rtw_adapter *padapter, u8 ElementID, u32 CmdLen, u8 *pCmdB
 		if (h2c_cmd & BIT(7)) {
 			msgbox_ex_addr = REG_HMEBOX_EXT_0 + (h2c_box_num * EX_MESSAGE_BOX_SIZE);
 			h2c_cmd_ex = le16_to_cpu(h2c_cmd_ex);
-			rtw_write16(padapter, msgbox_ex_addr, h2c_cmd_ex);
+			rtl8723au_write16(padapter, msgbox_ex_addr, h2c_cmd_ex);
 		}
 		msgbox_addr = REG_HMEBOX_0 + (h2c_box_num * MESSAGE_BOX_SIZE);
 		h2c_cmd = le32_to_cpu(h2c_cmd);
-		rtw_write32(padapter, msgbox_addr, h2c_cmd);
+		rtl8723au_write32(padapter, msgbox_addr, h2c_cmd);
 
 		bcmd_down = true;
 
@@ -112,9 +114,9 @@ exit:
 	return ret;
 }
 
-u8 rtl8723a_set_rssi_cmd(struct rtw_adapter *padapter, u8 *param)
+int rtl8723a_set_rssi_cmd(struct rtw_adapter *padapter, u8 *param)
 {
-	u8 res = _SUCCESS;
+	int res = _SUCCESS;
 
 	*((u32 *)param) = cpu_to_le32(*((u32 *)param));
 
@@ -123,10 +125,10 @@ u8 rtl8723a_set_rssi_cmd(struct rtw_adapter *padapter, u8 *param)
 	return res;
 }
 
-u8 rtl8723a_set_raid_cmd(struct rtw_adapter *padapter, u32 mask, u8 arg)
+int rtl8723a_set_raid_cmd(struct rtw_adapter *padapter, u32 mask, u8 arg)
 {
 	u8 buf[5];
-	u8 res = _SUCCESS;
+	int res = _SUCCESS;
 
 	memset(buf, 0, 5);
 	mask = cpu_to_le32(mask);
@@ -136,7 +138,6 @@ u8 rtl8723a_set_raid_cmd(struct rtw_adapter *padapter, u32 mask, u8 arg)
 	FillH2CCmd(padapter, MACID_CONFIG_EID, 5, buf);
 
 	return res;
-
 }
 
 /* bitmap[0:27] = tx_rate_bitmap */
@@ -167,7 +168,8 @@ void rtl8723a_add_rateatid(struct rtw_adapter *pAdapter, u32 bitmap, u8 arg, u8 
 		if (shortGIrate == true)
 			init_rate |= BIT(6);
 
-		rtw_write8(pAdapter, (REG_INIDATA_RATE_SEL+macid), (u8)init_rate);
+		rtl8723au_write8(pAdapter, REG_INIDATA_RATE_SEL + macid,
+				 init_rate);
 	}
 }
 
@@ -202,27 +204,26 @@ void rtl8723a_set_FwPwrMode_cmd(struct rtw_adapter *padapter, u8 Mode)
 static void ConstructBeacon(struct rtw_adapter *padapter, u8 *pframe, u32 *pLength)
 {
 	struct ieee80211_hdr *pwlanhdr;
-	__le16 *fctrl;
 	u32 rate_len, pktlen;
 	struct mlme_ext_priv *pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info *pmlmeinfo = &pmlmeext->mlmext_info;
 	struct wlan_bssid_ex *cur_network = &pmlmeinfo->network;
 	u8 bc_addr[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+	int bcn_fixed_size;
 
 	/* DBG_8723A("%s\n", __FUNCTION__); */
 
 	pwlanhdr = (struct ieee80211_hdr *)pframe;
 
-	fctrl = &pwlanhdr->frame_control;
-	*(fctrl) = 0;
+	pwlanhdr->frame_control =
+		cpu_to_le16(IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_BEACON);
 
 	memcpy(pwlanhdr->addr1, bc_addr, ETH_ALEN);
 	memcpy(pwlanhdr->addr2, myid(&padapter->eeprompriv), ETH_ALEN);
 	memcpy(pwlanhdr->addr3, get_my_bssid23a(cur_network), ETH_ALEN);
 
-	SetSeqNum(pwlanhdr, 0/*pmlmeext->mgnt_seq*/);
-	/* pmlmeext->mgnt_seq++; */
-	SetFrameSubType(pframe, WIFI_BEACON);
+	/* A Beacon frame shouldn't have fragment bits set */
+	pwlanhdr->seq_ctrl = 0;
 
 	pframe += sizeof(struct ieee80211_hdr_3addr);
 	pktlen = sizeof (struct ieee80211_hdr_3addr);
@@ -244,9 +245,13 @@ static void ConstructBeacon(struct rtw_adapter *padapter, u8 *pframe, u32 *pLeng
 	pktlen += 2;
 
 	if ((pmlmeinfo->state&0x03) == WIFI_FW_AP_STATE) {
+		bcn_fixed_size =
+			offsetof(struct ieee80211_mgmt, u.beacon.variable) -
+			offsetof(struct ieee80211_mgmt, u.beacon);
+
 		/* DBG_8723A("ie len =%d\n", cur_network->IELength); */
-		pktlen += cur_network->IELength - sizeof(struct ndis_802_11_fixed_ies);
-		memcpy(pframe, cur_network->IEs+sizeof(struct ndis_802_11_fixed_ies), pktlen);
+		pktlen += cur_network->IELength - bcn_fixed_size;
+		memcpy(pframe, cur_network->IEs + bcn_fixed_size, pktlen);
 
 		goto _ConstructBeacon;
 	}
@@ -265,15 +270,15 @@ static void ConstructBeacon(struct rtw_adapter *padapter, u8 *pframe, u32 *pLeng
 
 	/*  DS parameter set */
 	pframe = rtw_set_ie23a(pframe, WLAN_EID_DS_PARAMS, 1, (unsigned char *)
-			       &cur_network->Configuration.DSConfig, &pktlen);
+			       &cur_network->DSConfig, &pktlen);
 
 	if ((pmlmeinfo->state&0x03) == WIFI_FW_ADHOC_STATE) {
 		u32 ATIMWindow;
 		/*  IBSS Parameter Set... */
-		/* ATIMWindow = cur->Configuration.ATIMWindow; */
+		/* ATIMWindow = cur->ATIMWindow; */
 		ATIMWindow = 0;
 		pframe = rtw_set_ie23a(pframe, WLAN_EID_IBSS_PARAMS, 2,
-				       (unsigned char *)(&ATIMWindow), &pktlen);
+				       (unsigned char *)&ATIMWindow, &pktlen);
 	}
 
 	/* todo: ERP IE */
@@ -300,23 +305,22 @@ _ConstructBeacon:
 
 }
 
-static void ConstructPSPoll(struct rtw_adapter *padapter, u8 *pframe, u32 *pLength)
+static void ConstructPSPoll(struct rtw_adapter *padapter,
+			    u8 *pframe, u32 *pLength)
 {
 	struct ieee80211_hdr *pwlanhdr;
-	__le16 *fctrl;
 	struct mlme_ext_priv *pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info *pmlmeinfo = &pmlmeext->mlmext_info;
 
 	pwlanhdr = (struct ieee80211_hdr *)pframe;
 
 	/*  Frame control. */
-	fctrl = &pwlanhdr->frame_control;
-	*(fctrl) = 0;
-	SetPwrMgt(fctrl);
-	SetFrameSubType(pframe, WIFI_PSPOLL);
+	pwlanhdr->frame_control =
+		cpu_to_le16(IEEE80211_FTYPE_CTL | IEEE80211_STYPE_PSPOLL);
+	pwlanhdr->frame_control |= cpu_to_le16(IEEE80211_FCTL_PM);
 
 	/*  AID. */
-	SetDuration(pframe, (pmlmeinfo->aid | 0xc000));
+	pwlanhdr->duration_id = cpu_to_le16(pmlmeinfo->aid | 0xc000);
 
 	/*  BSSID. */
 	memcpy(pwlanhdr->addr1, get_my_bssid23a(&pmlmeinfo->network), ETH_ALEN);
@@ -327,49 +331,46 @@ static void ConstructPSPoll(struct rtw_adapter *padapter, u8 *pframe, u32 *pLeng
 	*pLength = 16;
 }
 
-static void ConstructNullFunctionData(
-	struct rtw_adapter *padapter,
-	u8 *pframe,
-	u32 *pLength,
-	u8 *StaAddr,
-	u8 bQoS,
-	u8 AC,
-	u8 bEosp,
-	u8 bForcePowerSave)
+static void
+ConstructNullFunctionData(struct rtw_adapter *padapter, u8 *pframe,
+			  u32 *pLength, u8 *StaAddr, u8 bQoS, u8 AC,
+			  u8 bEosp, u8 bForcePowerSave)
 {
 	struct ieee80211_hdr *pwlanhdr;
-	__le16 *fctrl;
 	u32 pktlen;
 	struct mlme_priv *pmlmepriv = &padapter->mlmepriv;
-	struct wlan_network		*cur_network = &pmlmepriv->cur_network;
+	struct wlan_network *cur_network = &pmlmepriv->cur_network;
 	struct mlme_ext_priv *pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info *pmlmeinfo = &pmlmeext->mlmext_info;
 
 	pwlanhdr = (struct ieee80211_hdr *)pframe;
 
-	fctrl = &pwlanhdr->frame_control;
-	*(fctrl) = 0;
-	if (bForcePowerSave)
-		SetPwrMgt(fctrl);
+	pwlanhdr->frame_control = 0;
+	pwlanhdr->seq_ctrl = 0;
 
-	switch (cur_network->network.InfrastructureMode) {
-	case Ndis802_11Infrastructure:
-		SetToDs(fctrl);
+	if (bForcePowerSave)
+		pwlanhdr->frame_control |= cpu_to_le16(IEEE80211_FCTL_PM);
+
+	switch (cur_network->network.ifmode) {
+	case NL80211_IFTYPE_P2P_CLIENT:
+	case NL80211_IFTYPE_STATION:
+		pwlanhdr->frame_control |= cpu_to_le16(IEEE80211_FCTL_TODS);
 		memcpy(pwlanhdr->addr1,
 		       get_my_bssid23a(&pmlmeinfo->network), ETH_ALEN);
 		memcpy(pwlanhdr->addr2, myid(&padapter->eeprompriv),
 		       ETH_ALEN);
 		memcpy(pwlanhdr->addr3, StaAddr, ETH_ALEN);
 		break;
-	case Ndis802_11APMode:
-		SetFrDs(fctrl);
+	case NL80211_IFTYPE_P2P_GO:
+	case NL80211_IFTYPE_AP:
+		pwlanhdr->frame_control |= cpu_to_le16(IEEE80211_FCTL_FROMDS);
 		memcpy(pwlanhdr->addr1, StaAddr, ETH_ALEN);
 		memcpy(pwlanhdr->addr2,
 		       get_my_bssid23a(&pmlmeinfo->network), ETH_ALEN);
 		memcpy(pwlanhdr->addr3, myid(&padapter->eeprompriv),
 		       ETH_ALEN);
 		break;
-	case Ndis802_11IBSS:
+	case NL80211_IFTYPE_ADHOC:
 	default:
 		memcpy(pwlanhdr->addr1, StaAddr, ETH_ALEN);
 		memcpy(pwlanhdr->addr2, myid(&padapter->eeprompriv), ETH_ALEN);
@@ -378,20 +379,23 @@ static void ConstructNullFunctionData(
 		break;
 	}
 
-	SetSeqNum(pwlanhdr, 0);
-
 	if (bQoS == true) {
-		struct ieee80211_qos_hdr *pwlanqoshdr;
+		struct ieee80211_qos_hdr *qoshdr;
+		qoshdr = (struct ieee80211_qos_hdr *)pframe;
 
-		SetFrameSubType(pframe, WIFI_QOS_DATA_NULL);
+		qoshdr->frame_control |=
+			cpu_to_le16(IEEE80211_FTYPE_DATA |
+				    IEEE80211_STYPE_QOS_NULLFUNC);
 
-		pwlanqoshdr = (struct ieee80211_qos_hdr *)pframe;
-		SetPriority(&pwlanqoshdr->qos_ctrl, AC);
-		SetEOSP(&pwlanqoshdr->qos_ctrl, bEosp);
+		qoshdr->qos_ctrl = cpu_to_le16(AC & IEEE80211_QOS_CTL_TID_MASK);
+		if (bEosp)
+			qoshdr->qos_ctrl |= cpu_to_le16(IEEE80211_QOS_CTL_EOSP);
 
 		pktlen = sizeof(struct ieee80211_qos_hdr);
 	} else {
-		SetFrameSubType(pframe, WIFI_DATA_NULL);
+		pwlanhdr->frame_control |=
+			cpu_to_le16(IEEE80211_FTYPE_DATA |
+				    IEEE80211_STYPE_NULLFUNC);
 
 		pktlen = sizeof(struct ieee80211_hdr_3addr);
 	}
@@ -399,10 +403,10 @@ static void ConstructNullFunctionData(
 	*pLength = pktlen;
 }
 
-static void ConstructProbeRsp(struct rtw_adapter *padapter, u8 *pframe, u32 *pLength, u8 *StaAddr, bool bHideSSID)
+static void ConstructProbeRsp(struct rtw_adapter *padapter, u8 *pframe,
+			      u32 *pLength, u8 *StaAddr, bool bHideSSID)
 {
 	struct ieee80211_hdr *pwlanhdr;
-	__le16 *fctrl;
 	u8 *mac, *bssid;
 	u32 pktlen;
 	struct mlme_ext_priv *pmlmeext = &padapter->mlmeextpriv;
@@ -416,14 +420,14 @@ static void ConstructProbeRsp(struct rtw_adapter *padapter, u8 *pframe, u32 *pLe
 	mac = myid(&padapter->eeprompriv);
 	bssid = cur_network->MacAddress;
 
-	fctrl = &pwlanhdr->frame_control;
-	*(fctrl) = 0;
+	pwlanhdr->frame_control =
+		cpu_to_le16(IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_PROBE_RESP);
+
+	pwlanhdr->seq_ctrl = 0;
+
 	memcpy(pwlanhdr->addr1, StaAddr, ETH_ALEN);
 	memcpy(pwlanhdr->addr2, mac, ETH_ALEN);
 	memcpy(pwlanhdr->addr3, bssid, ETH_ALEN);
-
-	SetSeqNum(pwlanhdr, 0);
-	SetFrameSubType(fctrl, WIFI_PROBERSP);
 
 	pktlen = sizeof(struct ieee80211_hdr_3addr);
 	pframe += pktlen;
@@ -512,13 +516,13 @@ static void SetFwRsvdPagePkt(struct rtw_adapter *padapter, bool bDLFinished)
 
 	/* 3 (3) null data */
 	RsvdPageLoc.LocNullData = PageNum;
-	ConstructNullFunctionData(
-		padapter,
-		&ReservedPagePacket[BufIndex],
-		&NullDataLength,
-		get_my_bssid23a(&pmlmeinfo->network),
-		false, 0, 0, false);
-	rtl8723a_fill_fake_txdesc(padapter, &ReservedPagePacket[BufIndex-TxDescLen], NullDataLength, false, false);
+	ConstructNullFunctionData(padapter, &ReservedPagePacket[BufIndex],
+				  &NullDataLength,
+				  get_my_bssid23a(&pmlmeinfo->network),
+				  false, 0, 0, false);
+	rtl8723a_fill_fake_txdesc(padapter,
+				  &ReservedPagePacket[BufIndex-TxDescLen],
+				  NullDataLength, false, false);
 
 	PageNeed = (u8)PageNum_128(TxDescLen + NullDataLength);
 	PageNum += PageNeed;
@@ -578,7 +582,7 @@ static void SetFwRsvdPagePkt(struct rtw_adapter *padapter, bool bDLFinished)
 	pattrib->pktlen = pattrib->last_txcmdsz = TotalPacketLen - TXDESC_OFFSET;
 	memcpy(pmgntframe->buf_addr, ReservedPagePacket, TotalPacketLen);
 
-	rtw_hal_mgnt_xmit23a(padapter, pmgntframe);
+	rtl8723au_mgnt_xmit(padapter, pmgntframe);
 
 	DBG_8723A("%s: Set RSVD page location to Fw\n", __FUNCTION__);
 	FillH2CCmd(padapter, RSVD_PAGE_EID, sizeof(RsvdPageLoc), (u8 *)&RsvdPageLoc);
@@ -602,17 +606,18 @@ void rtl8723a_set_FwJoinBssReport_cmd(struct rtw_adapter *padapter, u8 mstatus)
 
 		/*  We should set AID, correct TSF, HW seq enable before set JoinBssReport to Fw in 88/92C. */
 		/*  Suggested by filen. Added by tynli. */
-		rtw_write16(padapter, REG_BCN_PSR_RPT, (0xC000|pmlmeinfo->aid));
+		rtl8723au_write16(padapter, REG_BCN_PSR_RPT,
+				  0xC000|pmlmeinfo->aid);
 		/*  Do not set TSF again here or vWiFi beacon DMA INT will not work. */
 		/* correct_TSF23a(padapter, pmlmeext); */
 		/*  Hw sequende enable by dedault. 2010.06.23. by tynli. */
-		/* rtw_write16(padapter, REG_NQOS_SEQ, ((pmlmeext->mgnt_seq+100)&0xFFF)); */
-		/* rtw_write8(padapter, REG_HWSEQ_CTRL, 0xFF); */
+		/* rtl8723au_write16(padapter, REG_NQOS_SEQ, ((pmlmeext->mgnt_seq+100)&0xFFF)); */
+		/* rtl8723au_write8(padapter, REG_HWSEQ_CTRL, 0xFF); */
 
 		/*  set REG_CR bit 8 */
-		v8 = rtw_read8(padapter, REG_CR+1);
+		v8 = rtl8723au_read8(padapter, REG_CR+1);
 		v8 |= BIT(0); /*  ENSWBCN */
-		rtw_write8(padapter,  REG_CR+1, v8);
+		rtl8723au_write8(padapter,  REG_CR+1, v8);
 
 		/*  Disable Hw protection for a time which revserd for Hw sending beacon. */
 		/*  Fix download reserved page packet fail that access collision with the protection time. */
@@ -626,8 +631,9 @@ void rtl8723a_set_FwJoinBssReport_cmd(struct rtw_adapter *padapter, u8 mstatus)
 			bRecover = true;
 
 		/*  To tell Hw the packet is not a real beacon frame. */
-		/* U1bTmp = rtw_read8(padapter, REG_FWHW_TXQ_CTRL+2); */
-		rtw_write8(padapter, REG_FWHW_TXQ_CTRL+2, pHalData->RegFwHwTxQCtrl & ~BIT(6));
+		/* U1bTmp = rtl8723au_read8(padapter, REG_FWHW_TXQ_CTRL+2); */
+		rtl8723au_write8(padapter, REG_FWHW_TXQ_CTRL + 2,
+				 pHalData->RegFwHwTxQCtrl & ~BIT(6));
 		pHalData->RegFwHwTxQCtrl &= ~BIT(6);
 		SetFwRsvdPagePkt(padapter, 0);
 
@@ -640,14 +646,15 @@ void rtl8723a_set_FwJoinBssReport_cmd(struct rtw_adapter *padapter, u8 mstatus)
 		/*  the beacon cannot be sent by HW. */
 		/*  2010.06.23. Added by tynli. */
 		if (bRecover) {
-			rtw_write8(padapter, REG_FWHW_TXQ_CTRL+2, pHalData->RegFwHwTxQCtrl | BIT(6));
+			rtl8723au_write8(padapter, REG_FWHW_TXQ_CTRL + 2,
+					 pHalData->RegFwHwTxQCtrl | BIT(6));
 			pHalData->RegFwHwTxQCtrl |= BIT(6);
 		}
 
 		/*  Clear CR[8] or beacon packet will not be send to TxBuf anymore. */
-		v8 = rtw_read8(padapter, REG_CR+1);
+		v8 = rtl8723au_read8(padapter, REG_CR+1);
 		v8 &= ~BIT(0); /*  ~ENSWBCN */
-		rtw_write8(padapter, REG_CR+1, v8);
+		rtl8723au_write8(padapter, REG_CR+1, v8);
 	}
 
 	JoinBssRptParm.OpMode = mstatus;
@@ -737,7 +744,7 @@ static void SetFwRsvdPagePkt_BTCoex(struct rtw_adapter *padapter)
 	pattrib->pktlen = pattrib->last_txcmdsz = TotalPacketLen - TXDESC_OFFSET;
 	memcpy(pmgntframe->buf_addr, ReservedPagePacket, TotalPacketLen);
 
-	rtw_hal_mgnt_xmit23a(padapter, pmgntframe);
+	rtl8723au_mgnt_xmit(padapter, pmgntframe);
 
 	DBG_8723A("%s: Set RSVD page location to Fw\n", __FUNCTION__);
 	FillH2CCmd(padapter, RSVD_PAGE_EID, sizeof(RsvdPageLoc), (u8 *)&RsvdPageLoc);
@@ -761,7 +768,8 @@ void rtl8723a_set_BTCoex_AP_mode_FwRsvdPkt_cmd(struct rtw_adapter *padapter)
 
 	/*  To tell Hw the packet is not a real beacon frame. */
 	pHalData->RegFwHwTxQCtrl &= ~BIT(6);
-	rtw_write8(padapter, REG_FWHW_TXQ_CTRL+2, pHalData->RegFwHwTxQCtrl);
+	rtl8723au_write8(padapter, REG_FWHW_TXQ_CTRL + 2,
+			 pHalData->RegFwHwTxQCtrl);
 	SetFwRsvdPagePkt_BTCoex(padapter);
 
 	/*  To make sure that if there exists an adapter which would like to send beacon. */
@@ -771,7 +779,8 @@ void rtl8723a_set_BTCoex_AP_mode_FwRsvdPkt_cmd(struct rtw_adapter *padapter)
 	/*  2010.06.23. Added by tynli. */
 	if (bRecover) {
 		pHalData->RegFwHwTxQCtrl |= BIT(6);
-		rtw_write8(padapter, REG_FWHW_TXQ_CTRL+2, pHalData->RegFwHwTxQCtrl);
+		rtl8723au_write8(padapter, REG_FWHW_TXQ_CTRL + 2,
+				 pHalData->RegFwHwTxQCtrl);
 	}
 }
 #endif

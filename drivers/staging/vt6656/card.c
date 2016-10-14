@@ -57,7 +57,6 @@
 #include "rc4.h"
 #include "country.h"
 #include "datarate.h"
-#include "rndis.h"
 #include "control.h"
 
 //static int          msglevel                =MSG_LEVEL_DEBUG;
@@ -191,114 +190,95 @@ static u16 swGetOFDMControlRate(struct vnt_private *pDevice, u16 wRateIdx)
  * Description: Calculate TxRate and RsvTime fields for RSPINF in OFDM mode.
  *
  * Parameters:
- *  In:
- *      wRate           - Tx Rate
- *      byPktType       - Tx Packet type
- *  Out:
- *      pbyTxRate       - pointer to RSPINF TxRate field
- *      pbyRsvTime      - pointer to RSPINF RsvTime field
+ * In:
+ *	rate	- Tx Rate
+ *	bb_type	- Tx Packet type
+ * Out:
+ *	tx_rate	- pointer to RSPINF TxRate field
+ *	rsv_time- pointer to RSPINF RsvTime field
  *
  * Return Value: none
  *
  */
-static void
-CARDvCalculateOFDMRParameter (
-      u16 wRate,
-      u8 byBBType,
-     u8 * pbyTxRate,
-     u8 * pbyRsvTime
-    )
+void CARDvCalculateOFDMRParameter(u16 rate, u8 bb_type,
+					u8 *tx_rate, u8 *rsv_time)
 {
-    switch (wRate) {
-    case RATE_6M :
-        if (byBBType == BB_TYPE_11A) {//5GHZ
-            *pbyTxRate = 0x9B;
-            *pbyRsvTime = 24;
-        }
-        else {
-            *pbyTxRate = 0x8B;
-            *pbyRsvTime = 30;
-        }
-        break;
 
-    case RATE_9M :
-        if (byBBType == BB_TYPE_11A) {//5GHZ
-            *pbyTxRate = 0x9F;
-            *pbyRsvTime = 16;
-        }
-        else {
-            *pbyTxRate = 0x8F;
-            *pbyRsvTime = 22;
-        }
-        break;
-
-   case RATE_12M :
-        if (byBBType == BB_TYPE_11A) {//5GHZ
-            *pbyTxRate = 0x9A;
-            *pbyRsvTime = 12;
-        }
-        else {
-            *pbyTxRate = 0x8A;
-            *pbyRsvTime = 18;
-        }
-        break;
-
-   case RATE_18M :
-        if (byBBType == BB_TYPE_11A) {//5GHZ
-            *pbyTxRate = 0x9E;
-            *pbyRsvTime = 8;
-        }
-        else {
-            *pbyTxRate = 0x8E;
-            *pbyRsvTime = 14;
-        }
-        break;
-
-    case RATE_36M :
-        if (byBBType == BB_TYPE_11A) {//5GHZ
-            *pbyTxRate = 0x9D;
-            *pbyRsvTime = 4;
-        }
-        else {
-            *pbyTxRate = 0x8D;
-            *pbyRsvTime = 10;
-        }
-        break;
-
-    case RATE_48M :
-        if (byBBType == BB_TYPE_11A) {//5GHZ
-            *pbyTxRate = 0x98;
-            *pbyRsvTime = 4;
-        }
-        else {
-            *pbyTxRate = 0x88;
-            *pbyRsvTime = 10;
-        }
-        break;
-
-    case RATE_54M :
-        if (byBBType == BB_TYPE_11A) {//5GHZ
-            *pbyTxRate = 0x9C;
-            *pbyRsvTime = 4;
-        }
-        else {
-            *pbyTxRate = 0x8C;
-            *pbyRsvTime = 10;
-        }
-        break;
-
-    case RATE_24M :
-    default :
-        if (byBBType == BB_TYPE_11A) {//5GHZ
-            *pbyTxRate = 0x99;
-            *pbyRsvTime = 8;
-        }
-        else {
-            *pbyTxRate = 0x89;
-            *pbyRsvTime = 14;
-        }
-        break;
-    }
+	switch (rate) {
+	case RATE_6M:
+		if (bb_type == BB_TYPE_11A) {
+			*tx_rate = 0x9b;
+			*rsv_time = 24;
+		} else {
+			*tx_rate = 0x8b;
+			*rsv_time = 30;
+		}
+			break;
+	case RATE_9M:
+		if (bb_type == BB_TYPE_11A) {
+			*tx_rate = 0x9f;
+			*rsv_time = 16;
+		} else {
+			*tx_rate = 0x8f;
+			*rsv_time = 22;
+		}
+		break;
+	case RATE_12M:
+		if (bb_type == BB_TYPE_11A) {
+			*tx_rate = 0x9a;
+			*rsv_time = 12;
+		} else {
+			*tx_rate = 0x8a;
+			*rsv_time = 18;
+		}
+		break;
+	case RATE_18M:
+		if (bb_type == BB_TYPE_11A) {
+			*tx_rate = 0x9e;
+			*rsv_time = 8;
+		} else {
+			*tx_rate = 0x8e;
+			*rsv_time = 14;
+		}
+		break;
+	case RATE_36M:
+		if (bb_type == BB_TYPE_11A) {
+			*tx_rate = 0x9d;
+			*rsv_time = 4;
+		} else {
+			*tx_rate = 0x8d;
+			*rsv_time = 10;
+		}
+		break;
+	case RATE_48M:
+		if (bb_type == BB_TYPE_11A) {
+			*tx_rate = 0x98;
+			*rsv_time = 4;
+		} else {
+			*tx_rate = 0x88;
+		*rsv_time = 10;
+		}
+		break;
+	case RATE_54M:
+		if (bb_type == BB_TYPE_11A) {
+			*tx_rate = 0x9c;
+			*rsv_time = 4;
+		} else {
+			*tx_rate = 0x8c;
+			*rsv_time = 10;
+		}
+		break;
+	case RATE_24M:
+	default:
+		if (bb_type == BB_TYPE_11A) {
+			*tx_rate = 0x99;
+			*rsv_time = 8;
+		} else {
+			*tx_rate = 0x89;
+			*rsv_time = 14;
+		}
+		break;
+	}
 }
 
 /*
@@ -313,112 +293,91 @@ CARDvCalculateOFDMRParameter (
  * Return Value: None.
  *
  */
-void CARDvSetRSPINF(struct vnt_private *pDevice, u8 byBBType)
+
+void CARDvSetRSPINF(struct vnt_private *priv, u8 bb_type)
 {
 	struct vnt_phy_field phy[4];
-	u8 abyTxRate[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0}; /* For OFDM */
-	u8 abyRsvTime[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-	u8 abyData[34];
+	u8 tx_rate[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0}; /* For OFDM */
+	u8 rsv_time[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+	u8 data[34];
 	int i;
 
-    //RSPINF_b_1
-	BBvCalculateParameter(pDevice, 14,
-		swGetCCKControlRate(pDevice, RATE_1M), PK_TYPE_11B, &phy[0]);
+	/*RSPINF_b_1*/
+	BBvCalculateParameter(priv, 14,
+		swGetCCKControlRate(priv, RATE_1M), PK_TYPE_11B, &phy[0]);
 
-    ///RSPINF_b_2
-	BBvCalculateParameter(pDevice, 14,
-		swGetCCKControlRate(pDevice, RATE_2M), PK_TYPE_11B, &phy[1]);
+	/*RSPINF_b_2*/
+	BBvCalculateParameter(priv, 14,
+		swGetCCKControlRate(priv, RATE_2M), PK_TYPE_11B, &phy[1]);
 
-    //RSPINF_b_5
-	BBvCalculateParameter(pDevice, 14,
-		swGetCCKControlRate(pDevice, RATE_5M), PK_TYPE_11B, &phy[2]);
+	/*RSPINF_b_5*/
+	BBvCalculateParameter(priv, 14,
+		swGetCCKControlRate(priv, RATE_5M), PK_TYPE_11B, &phy[2]);
 
-    //RSPINF_b_11
-	BBvCalculateParameter(pDevice, 14,
-		swGetCCKControlRate(pDevice, RATE_11M), PK_TYPE_11B, &phy[3]);
+	/*RSPINF_b_11*/
+	BBvCalculateParameter(priv, 14,
+		swGetCCKControlRate(priv, RATE_11M), PK_TYPE_11B, &phy[3]);
 
-    //RSPINF_a_6
-    CARDvCalculateOFDMRParameter (RATE_6M,
-                                 byBBType,
-                                 &abyTxRate[0],
-                                 &abyRsvTime[0]);
 
-    //RSPINF_a_9
-    CARDvCalculateOFDMRParameter (RATE_9M,
-                                 byBBType,
-                                 &abyTxRate[1],
-                                 &abyRsvTime[1]);
+	/*RSPINF_a_6*/
+	CARDvCalculateOFDMRParameter(RATE_6M, bb_type,
+						&tx_rate[0], &rsv_time[0]);
 
-    //RSPINF_a_12
-    CARDvCalculateOFDMRParameter (RATE_12M,
-                                 byBBType,
-                                 &abyTxRate[2],
-                                 &abyRsvTime[2]);
+	/*RSPINF_a_9*/
+	CARDvCalculateOFDMRParameter(RATE_9M, bb_type,
+						&tx_rate[1], &rsv_time[1]);
 
-    //RSPINF_a_18
-    CARDvCalculateOFDMRParameter (RATE_18M,
-                                 byBBType,
-                                 &abyTxRate[3],
-                                 &abyRsvTime[3]);
+	/*RSPINF_a_12*/
+	CARDvCalculateOFDMRParameter(RATE_12M, bb_type,
+						&tx_rate[2], &rsv_time[2]);
 
-    //RSPINF_a_24
-    CARDvCalculateOFDMRParameter (RATE_24M,
-                                 byBBType,
-                                 &abyTxRate[4],
-                                 &abyRsvTime[4]);
+	/*RSPINF_a_18*/
+	CARDvCalculateOFDMRParameter(RATE_18M, bb_type,
+						&tx_rate[3], &rsv_time[3]);
 
-    //RSPINF_a_36
-    CARDvCalculateOFDMRParameter (swGetOFDMControlRate(pDevice, RATE_36M),
-                                 byBBType,
-                                 &abyTxRate[5],
-                                 &abyRsvTime[5]);
+	/*RSPINF_a_24*/
+	CARDvCalculateOFDMRParameter(RATE_24M, bb_type,
+						&tx_rate[4], &rsv_time[4]);
 
-    //RSPINF_a_48
-    CARDvCalculateOFDMRParameter (swGetOFDMControlRate(pDevice, RATE_48M),
-                                 byBBType,
-                                 &abyTxRate[6],
-                                 &abyRsvTime[6]);
+	/*RSPINF_a_36*/
+	CARDvCalculateOFDMRParameter(swGetOFDMControlRate(priv, RATE_36M),
+					bb_type, &tx_rate[5], &rsv_time[5]);
 
-    //RSPINF_a_54
-    CARDvCalculateOFDMRParameter (swGetOFDMControlRate(pDevice, RATE_54M),
-                                 byBBType,
-                                 &abyTxRate[7],
-                                 &abyRsvTime[7]);
+	/*RSPINF_a_48*/
+	CARDvCalculateOFDMRParameter(swGetOFDMControlRate(priv, RATE_48M),
+					bb_type, &tx_rate[6], &rsv_time[6]);
 
-    //RSPINF_a_72
-    CARDvCalculateOFDMRParameter (swGetOFDMControlRate(pDevice, RATE_54M),
-                                 byBBType,
-                                 &abyTxRate[8],
-                                 &abyRsvTime[8]);
+	/*RSPINF_a_54*/
+	CARDvCalculateOFDMRParameter(swGetOFDMControlRate(priv, RATE_54M),
+					bb_type, &tx_rate[7], &rsv_time[7]);
 
-	put_unaligned(phy[0].len, (u16 *)&abyData[0]);
-	abyData[2] = phy[0].signal;
-	abyData[3] = phy[0].service;
+	/*RSPINF_a_72*/
+	CARDvCalculateOFDMRParameter(swGetOFDMControlRate(priv, RATE_54M),
+					bb_type, &tx_rate[8], &rsv_time[8]);
 
-	put_unaligned(phy[1].len, (u16 *)&abyData[4]);
-	abyData[6] = phy[1].signal;
-	abyData[7] = phy[1].service;
+	put_unaligned(phy[0].len, (u16 *)&data[0]);
+	data[2] = phy[0].signal;
+	data[3] = phy[0].service;
 
-	put_unaligned(phy[2].len, (u16 *)&abyData[8]);
-	abyData[10] = phy[2].signal;
-	abyData[11] = phy[2].service;
+	put_unaligned(phy[1].len, (u16 *)&data[4]);
+	data[6] = phy[1].signal;
+	data[7] = phy[1].service;
 
-	put_unaligned(phy[3].len, (u16 *)&abyData[12]);
-	abyData[14] = phy[3].signal;
-	abyData[15] = phy[3].service;
+	put_unaligned(phy[2].len, (u16 *)&data[8]);
+	data[10] = phy[2].signal;
+	data[11] = phy[2].service;
 
-    for (i = 0; i < 9; i++) {
-	abyData[16+i*2] = abyTxRate[i];
-	abyData[16+i*2+1] = abyRsvTime[i];
-    }
+	put_unaligned(phy[3].len, (u16 *)&data[12]);
+	data[14] = phy[3].signal;
+	data[15] = phy[3].service;
 
-    CONTROLnsRequestOut(pDevice,
-                        MESSAGE_TYPE_WRITE,
-                        MAC_REG_RSPINF_B_1,
-                        MESSAGE_REQUEST_MACREG,
-                        34,
-                        &abyData[0]);
+	for (i = 0; i < 9; i++) {
+		data[16 + i * 2] = tx_rate[i];
+		data[16 + i * 2 + 1] = rsv_time[i];
+	}
 
+	CONTROLnsRequestOut(priv, MESSAGE_TYPE_WRITE,
+		MAC_REG_RSPINF_B_1, MESSAGE_REQUEST_MACREG, 34, &data[0]);
 }
 
 /*
@@ -426,120 +385,119 @@ void CARDvSetRSPINF(struct vnt_private *pDevice, u8 byBBType)
  *
  * Parameters:
  *  In:
- *      pDevice             - The adapter to be set
- *  Out:
- *      none
+ *	priv - The adapter to be set
+ * Out:
+ *	none
  *
  * Return Value: None.
  *
  */
-void vUpdateIFS(struct vnt_private *pDevice)
+void vUpdateIFS(struct vnt_private *priv)
 {
-	u8 byMaxMin = 0;
-	u8 byData[4];
+	u8 max_min = 0;
+	u8 data[4];
 
-    if (pDevice->byPacketType==PK_TYPE_11A) {//0000 0000 0000 0000,11a
-        pDevice->uSlot = C_SLOT_SHORT;
-        pDevice->uSIFS = C_SIFS_A;
-        pDevice->uDIFS = C_SIFS_A + 2*C_SLOT_SHORT;
-        pDevice->uCwMin = C_CWMIN_A;
-        byMaxMin = 4;
-    }
-    else if (pDevice->byPacketType==PK_TYPE_11B) {//0000 0001 0000 0000,11b
-        pDevice->uSlot = C_SLOT_LONG;
-        pDevice->uSIFS = C_SIFS_BG;
-        pDevice->uDIFS = C_SIFS_BG + 2*C_SLOT_LONG;
-          pDevice->uCwMin = C_CWMIN_B;
-        byMaxMin = 5;
-    }
-    else {// PK_TYPE_11GA & PK_TYPE_11GB
-        u8 byRate = 0;
-        bool bOFDMRate = false;
-	unsigned int ii = 0;
-        PWLAN_IE_SUPP_RATES pItemRates = NULL;
+	if (priv->byPacketType == PK_TYPE_11A) {
+		priv->uSlot = C_SLOT_SHORT;
+		priv->uSIFS = C_SIFS_A;
+		priv->uDIFS = C_SIFS_A + 2 * C_SLOT_SHORT;
+		priv->uCwMin = C_CWMIN_A;
+		max_min = 4;
+	} else if (priv->byPacketType == PK_TYPE_11B) {
+		priv->uSlot = C_SLOT_LONG;
+		priv->uSIFS = C_SIFS_BG;
+		priv->uDIFS = C_SIFS_BG + 2 * C_SLOT_LONG;
+		priv->uCwMin = C_CWMIN_B;
+		max_min = 5;
+	} else {/* PK_TYPE_11GA & PK_TYPE_11GB */
+		u8 rate = 0;
+		bool ofdm_rate = false;
+		unsigned int ii = 0;
+		PWLAN_IE_SUPP_RATES item_rates = NULL;
 
-        pDevice->uSIFS = C_SIFS_BG;
-        if (pDevice->bShortSlotTime) {
-            pDevice->uSlot = C_SLOT_SHORT;
-        } else {
-            pDevice->uSlot = C_SLOT_LONG;
-        }
-        pDevice->uDIFS = C_SIFS_BG + 2*pDevice->uSlot;
+		priv->uSIFS = C_SIFS_BG;
 
-	pItemRates = (PWLAN_IE_SUPP_RATES)pDevice->vnt_mgmt.abyCurrSuppRates;
-        for (ii = 0; ii < pItemRates->len; ii++) {
-            byRate = (u8)(pItemRates->abyRates[ii]&0x7F);
-            if (RATEwGetRateIdx(byRate) > RATE_11M) {
-                bOFDMRate = true;
-                break;
-            }
-        }
-        if (bOFDMRate == false) {
-		pItemRates = (PWLAN_IE_SUPP_RATES)pDevice->vnt_mgmt
-			.abyCurrExtSuppRates;
-            for (ii = 0; ii < pItemRates->len; ii++) {
-                byRate = (u8)(pItemRates->abyRates[ii]&0x7F);
-                if (RATEwGetRateIdx(byRate) > RATE_11M) {
-                    bOFDMRate = true;
-                    break;
-                }
-            }
-        }
-        if (bOFDMRate == true) {
-            pDevice->uCwMin = C_CWMIN_A;
-            byMaxMin = 4;
-        } else {
-            pDevice->uCwMin = C_CWMIN_B;
-            byMaxMin = 5;
-        }
-    }
+		if (priv->bShortSlotTime)
+			priv->uSlot = C_SLOT_SHORT;
+		else
+			priv->uSlot = C_SLOT_LONG;
 
-    pDevice->uCwMax = C_CWMAX;
-    pDevice->uEIFS = C_EIFS;
+		priv->uDIFS = C_SIFS_BG + 2 * priv->uSlot;
 
-    byData[0] = (u8)pDevice->uSIFS;
-    byData[1] = (u8)pDevice->uDIFS;
-    byData[2] = (u8)pDevice->uEIFS;
-    byData[3] = (u8)pDevice->uSlot;
-    CONTROLnsRequestOut(pDevice,
-                        MESSAGE_TYPE_WRITE,
-                        MAC_REG_SIFS,
-                        MESSAGE_REQUEST_MACREG,
-                        4,
-                        &byData[0]);
+		item_rates =
+			(PWLAN_IE_SUPP_RATES)priv->vnt_mgmt.abyCurrSuppRates;
 
-    byMaxMin |= 0xA0;//1010 1111,C_CWMAX = 1023
-    CONTROLnsRequestOut(pDevice,
-                        MESSAGE_TYPE_WRITE,
-                        MAC_REG_CWMAXMIN0,
-                        MESSAGE_REQUEST_MACREG,
-                        1,
-                        &byMaxMin);
+		for (ii = 0; ii < item_rates->len; ii++) {
+			rate = (u8)(item_rates->abyRates[ii] & 0x7f);
+			if (RATEwGetRateIdx(rate) > RATE_11M) {
+				ofdm_rate = true;
+				break;
+			}
+		}
+
+		if (ofdm_rate == false) {
+			item_rates = (PWLAN_IE_SUPP_RATES)priv->vnt_mgmt
+				.abyCurrExtSuppRates;
+			for (ii = 0; ii < item_rates->len; ii++) {
+				rate = (u8)(item_rates->abyRates[ii] & 0x7f);
+				if (RATEwGetRateIdx(rate) > RATE_11M) {
+					ofdm_rate = true;
+					break;
+				}
+			}
+		}
+
+		if (ofdm_rate == true) {
+			priv->uCwMin = C_CWMIN_A;
+			max_min = 4;
+		} else {
+			priv->uCwMin = C_CWMIN_B;
+			max_min = 5;
+			}
+	}
+
+	priv->uCwMax = C_CWMAX;
+	priv->uEIFS = C_EIFS;
+
+	data[0] = (u8)priv->uSIFS;
+	data[1] = (u8)priv->uDIFS;
+	data[2] = (u8)priv->uEIFS;
+	data[3] = (u8)priv->uSlot;
+
+	CONTROLnsRequestOut(priv, MESSAGE_TYPE_WRITE, MAC_REG_SIFS,
+		MESSAGE_REQUEST_MACREG, 4, &data[0]);
+
+	max_min |= 0xa0;
+
+	CONTROLnsRequestOut(priv, MESSAGE_TYPE_WRITE, MAC_REG_CWMAXMIN0,
+		MESSAGE_REQUEST_MACREG, 1, &max_min);
 }
 
-void CARDvUpdateBasicTopRate(struct vnt_private *pDevice)
+void CARDvUpdateBasicTopRate(struct vnt_private *priv)
 {
-	u8 byTopOFDM = RATE_24M, byTopCCK = RATE_1M;
-	u8 ii;
+	u8 top_ofdm = RATE_24M, top_cck = RATE_1M;
+	u8 i;
 
-     //Determines the highest basic rate.
-     for (ii = RATE_54M; ii >= RATE_6M; ii --) {
-         if ( (pDevice->wBasicRate) & ((u16)(1<<ii)) ) {
-             byTopOFDM = ii;
-             break;
-         }
-     }
-     pDevice->byTopOFDMBasicRate = byTopOFDM;
+	/*Determines the highest basic rate.*/
+	for (i = RATE_54M; i >= RATE_6M; i--) {
+		if (priv->wBasicRate & (u16)(1 << i)) {
+			top_ofdm = i;
+			break;
+		}
+	}
 
-     for (ii = RATE_11M;; ii --) {
-         if ( (pDevice->wBasicRate) & ((u16)(1<<ii)) ) {
-             byTopCCK = ii;
-             break;
-         }
-         if (ii == RATE_1M)
-            break;
-     }
-     pDevice->byTopCCKBasicRate = byTopCCK;
+	priv->byTopOFDMBasicRate = top_ofdm;
+
+	for (i = RATE_11M;; i--) {
+		if (priv->wBasicRate & (u16)(1 << i)) {
+			top_cck = i;
+			break;
+		}
+		if (i == RATE_1M)
+			break;
+	}
+
+	priv->byTopCCKBasicRate = top_cck;
  }
 
 /*
@@ -555,14 +513,13 @@ void CARDvUpdateBasicTopRate(struct vnt_private *pDevice)
  * Return Value: true if succeeded; false if failed.
  *
  */
-void CARDbAddBasicRate(struct vnt_private *pDevice, u16 wRateIdx)
+void CARDbAddBasicRate(struct vnt_private *priv, u16 rate_idx)
 {
-	u16 wRate = (1 << wRateIdx);
 
-    pDevice->wBasicRate |= wRate;
+	priv->wBasicRate |= (1 << rate_idx);
 
-    //Determines the highest basic rate.
-    CARDvUpdateBasicTopRate(pDevice);
+	/*Determines the highest basic rate.*/
+	CARDvUpdateBasicTopRate(priv);
 }
 
 int CARDbIsOFDMinBasicRate(struct vnt_private *pDevice)

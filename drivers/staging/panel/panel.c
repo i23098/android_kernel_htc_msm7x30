@@ -462,7 +462,7 @@ MODULE_PARM_DESC(lcd_type,
 static int lcd_proto = -1;
 module_param(lcd_proto, int, 0000);
 MODULE_PARM_DESC(lcd_proto,
-		"LCD communication: 0=parallel (//), 1=serial, 2=TI LCD Interface");
+		 "LCD communication: 0=parallel (//), 1=serial, 2=TI LCD Interface");
 
 static int lcd_charset = -1;
 module_param(lcd_charset, int, 0000);
@@ -711,10 +711,9 @@ static void pin_to_bits(int pin, unsigned char *d_val, unsigned char *c_val)
 /* sleeps that many milliseconds with a reschedule */
 static void long_sleep(int ms)
 {
-
-	if (in_interrupt())
+	if (in_interrupt()) {
 		mdelay(ms);
-	else {
+	} else {
 		current->state = TASK_INTERRUPTIBLE;
 		schedule_timeout((ms * HZ + 999) / 1000);
 	}
@@ -952,7 +951,6 @@ static void lcd_clear_display(void)
 
 static void lcd_init_display(void)
 {
-
 	lcd_flags = ((lcd_height > 1) ? LCD_FLAG_N : 0)
 	    | LCD_FLAG_D | LCD_FLAG_C | LCD_FLAG_B;
 
@@ -1141,13 +1139,13 @@ static inline int handle_lcd_special_code(void)
 		value = 0;
 		while (*esc && cgoffset < 8) {
 			shift ^= 4;
-			if (*esc >= '0' && *esc <= '9')
+			if (*esc >= '0' && *esc <= '9') {
 				value |= (*esc - '0') << shift;
-			else if (*esc >= 'A' && *esc <= 'Z')
+			} else if (*esc >= 'A' && *esc <= 'Z') {
 				value |= (*esc - 'A' + 10) << shift;
-			else if (*esc >= 'a' && *esc <= 'z')
+			} else if (*esc >= 'a' && *esc <= 'z') {
 				value |= (*esc - 'a' + 10) << shift;
-			else {
+			} else {
 				esc++;
 				continue;
 			}
@@ -1183,8 +1181,9 @@ static inline int handle_lcd_special_code(void)
 				esc++;
 				if (kstrtoul(esc, 10, &lcd_addr_y) < 0)
 					break;
-			} else
+			} else {
 				break;
+			}
 		}
 
 		lcd_gotoxy();
@@ -1313,7 +1312,7 @@ static void lcd_write_char(char c)
 }
 
 static ssize_t lcd_write(struct file *file,
-	const char __user *buf, size_t count, loff_t *ppos)
+			 const char __user *buf, size_t count, loff_t *ppos)
 {
 	const char __user *tmp = buf;
 	char c;
@@ -1324,7 +1323,7 @@ static ssize_t lcd_write(struct file *file,
 			   that need some CPU */
 			schedule();
 
-		if (get_user(c, buf))
+		if (get_user(c, tmp))
 			return -EFAULT;
 
 		lcd_write_char(c);
@@ -1590,7 +1589,6 @@ static void lcd_init(void)
 static ssize_t keypad_read(struct file *file,
 			   char __user *buf, size_t count, loff_t *ppos)
 {
-
 	unsigned i = *ppos;
 	char __user *tmp = buf;
 
@@ -1615,7 +1613,6 @@ static ssize_t keypad_read(struct file *file,
 
 static int keypad_open(struct inode *inode, struct file *file)
 {
-
 	if (keypad_open_cnt)
 		return -EBUSY;	/* open only once at a time */
 
@@ -1745,8 +1742,8 @@ static inline int input_state_high(struct logical_input *input)
 	 * release function.
 	 * eg: 0 -(press A)-> A -(press B)-> AB : don't match A's release.
 	 */
-	if (((phys_prev & input->mask) == input->value)
-	    && ((phys_curr & input->mask) > input->value)) {
+	if (((phys_prev & input->mask) == input->value) &&
+	    ((phys_curr & input->mask) >  input->value)) {
 		input->state = INPUT_ST_LOW; /* invalidate */
 		return 1;
 	}
@@ -1801,8 +1798,8 @@ static inline void input_state_falling(struct logical_input *input)
 {
 #if 0
 	/* FIXME !!! same comment as in input_state_high */
-	if (((phys_prev & input->mask) == input->value)
-	    && ((phys_curr & input->mask) > input->value)) {
+	if (((phys_prev & input->mask) == input->value) &&
+	    ((phys_curr & input->mask) >  input->value)) {
 		input->state = INPUT_ST_LOW;	/* invalidate */
 		return;
 	}
@@ -1960,9 +1957,10 @@ static int input_name2mask(const char *name, pmask_t *mask, pmask_t *value,
 	while (*name) {
 		int in, out, bit, neg;
 
-		for (in = 0; (in < sizeof(sigtab)) &&
-			     (sigtab[in] != *name); in++)
+		for (in = 0; (in < sizeof(sigtab)) && (sigtab[in] != *name);
+		     in++)
 			;
+
 		if (in >= sizeof(sigtab))
 			return 0;	/* input name not found */
 		neg = (in & 1);	/* odd (lower) names are negated */
@@ -1973,10 +1971,11 @@ static int input_name2mask(const char *name, pmask_t *mask, pmask_t *value,
 		if (isdigit(*name)) {
 			out = *name - '0';
 			om |= (1 << out);
-		} else if (*name == '-')
+		} else if (*name == '-') {
 			out = 8;
-		else
+		} else {
 			return 0;	/* unknown bit name */
+		}
 
 		bit = (out * 5) + in;
 
@@ -2004,7 +2003,7 @@ static struct logical_input *panel_bind_key(const char *name, const char *press,
 {
 	struct logical_input *key;
 
-	key = kzalloc(sizeof(struct logical_input), GFP_KERNEL);
+	key = kzalloc(sizeof(*key), GFP_KERNEL);
 	if (!key)
 		return NULL;
 
@@ -2042,7 +2041,7 @@ static struct logical_input *panel_bind_callback(char *name,
 {
 	struct logical_input *callback;
 
-	callback = kmalloc(sizeof(struct logical_input), GFP_KERNEL);
+	callback = kmalloc(sizeof(*callback), GFP_KERNEL);
 	if (!callback)
 		return NULL;
 

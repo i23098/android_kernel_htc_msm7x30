@@ -25,7 +25,7 @@
 #include <linux/mtd/mtd.h>
 #include <linux/platform_device.h>
 #include <linux/mutex.h>
-
+#include <linux/goldfish.h>
 #include <asm/div64.h>
 
 #include "goldfish_nand_reg.h"
@@ -67,7 +67,7 @@ static u32 goldfish_nand_cmd_with_params(struct mtd_info *mtd,
 	cps->addr_high = (u32)(addr >> 32);
 	cps->addr_low = (u32)addr;
 	cps->transfer_size = len;
-	cps->data = (u32)ptr;
+	cps->data = (unsigned long)ptr;
 	writel(cmdp, base + NAND_COMMAND);
 	*rv = cps->result;
 	return 0;
@@ -86,7 +86,7 @@ static u32 goldfish_nand_cmd(struct mtd_info *mtd, enum nand_cmd cmd,
 		writel((u32)(addr >> 32), base + NAND_ADDR_HIGH);
 		writel((u32)addr, base + NAND_ADDR_LOW);
 		writel(len, base + NAND_TRANSFER_SIZE);
-		writel((u32)ptr, base + NAND_DATA);
+		gf_write64((u64)ptr, base + NAND_DATA, base + NAND_DATA_HIGH);
 		writel(cmd, base + NAND_COMMAND);
 		rv = readl(base + NAND_RESULT);
 	}
@@ -199,8 +199,6 @@ static int goldfish_nand_read(struct mtd_info *mtd, loff_t from, size_t len,
 
 	if (from + len > mtd->size)
 		goto invalid_arg;
-	if (len != mtd->writesize)
-		goto invalid_arg;
 
 	rem = do_div(from, mtd->writesize);
 	if (rem)
@@ -222,8 +220,6 @@ static int goldfish_nand_write(struct mtd_info *mtd, loff_t to, size_t len,
 	u32 rem;
 
 	if (to + len > mtd->size)
-		goto invalid_arg;
-	if (len != mtd->writesize)
 		goto invalid_arg;
 
 	rem = do_div(to, mtd->writesize);

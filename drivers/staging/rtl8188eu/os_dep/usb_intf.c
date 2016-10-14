@@ -55,6 +55,7 @@ static struct usb_device_id rtw_usb_id_tbl[] = {
 	/*=== Customer ID ===*/
 	/****** 8188EUS ********/
 	{USB_DEVICE(0x07b8, 0x8179)}, /* Abocom - Abocom */
+	{USB_DEVICE(0x2001, 0x3308)}, /* DLink DWA-121 REV A1 */
 	{USB_DEVICE(0x2001, 0x330F)}, /* DLink DWA-125 REV D1 */
 	{USB_DEVICE(0x2001, 0x3310)}, /* Dlink DWA-123 REV D1 */
 	{}	/* Terminating entry */
@@ -80,46 +81,6 @@ static struct rtw_usb_drv rtl8188e_usb_drv = {
 
 static struct rtw_usb_drv *usb_drv = &rtl8188e_usb_drv;
 
-static inline int RT_usb_endpoint_dir_in(const struct usb_endpoint_descriptor *epd)
-{
-	return (epd->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_IN;
-}
-
-static inline int RT_usb_endpoint_dir_out(const struct usb_endpoint_descriptor *epd)
-{
-	return (epd->bEndpointAddress & USB_ENDPOINT_DIR_MASK) == USB_DIR_OUT;
-}
-
-static inline int RT_usb_endpoint_xfer_int(const struct usb_endpoint_descriptor *epd)
-{
-	return (epd->bmAttributes & USB_ENDPOINT_XFERTYPE_MASK) == USB_ENDPOINT_XFER_INT;
-}
-
-static inline int RT_usb_endpoint_xfer_bulk(const struct usb_endpoint_descriptor *epd)
-{
-	return (epd->bmAttributes & USB_ENDPOINT_XFERTYPE_MASK) == USB_ENDPOINT_XFER_BULK;
-}
-
-static inline int RT_usb_endpoint_is_bulk_in(const struct usb_endpoint_descriptor *epd)
-{
-	return RT_usb_endpoint_xfer_bulk(epd) && RT_usb_endpoint_dir_in(epd);
-}
-
-static inline int RT_usb_endpoint_is_bulk_out(const struct usb_endpoint_descriptor *epd)
-{
-	return RT_usb_endpoint_xfer_bulk(epd) && RT_usb_endpoint_dir_out(epd);
-}
-
-static inline int usb_endpoint_is_int(const struct usb_endpoint_descriptor *epd)
-{
-	return RT_usb_endpoint_xfer_int(epd) && RT_usb_endpoint_dir_in(epd);
-}
-
-static inline int RT_usb_endpoint_num(const struct usb_endpoint_descriptor *epd)
-{
-	return epd->bEndpointAddress & USB_ENDPOINT_NUMBER_MASK;
-}
-
 static u8 rtw_init_intf_priv(struct dvobj_priv *dvobj)
 {
 	u8 rst = _SUCCESS;
@@ -128,7 +89,7 @@ static u8 rtw_init_intf_priv(struct dvobj_priv *dvobj)
 
 	dvobj->usb_alloc_vendor_req_buf = rtw_zmalloc(MAX_USB_IO_CTL_SIZE);
 	if (dvobj->usb_alloc_vendor_req_buf == NULL) {
-		DBG_88E("alloc usb_vendor_req_buf failed... /n");
+		DBG_88E("alloc usb_vendor_req_buf failed...\n");
 		rst = _FAIL;
 		goto exit;
 	}
@@ -183,60 +144,35 @@ static struct dvobj_priv *usb_dvobj_init(struct usb_interface *usb_intf)
 	pdvobjpriv->nr_endpoint = piface_desc->bNumEndpoints;
 
 	for (i = 0; i < pdvobjpriv->nr_endpoint; i++) {
+		int ep_num;
 		phost_endp = phost_iface->endpoint + i;
+
 		if (phost_endp) {
 			pendp_desc = &phost_endp->desc;
+			ep_num = usb_endpoint_num(pendp_desc);
 
-			DBG_88E("\nusb_endpoint_descriptor(%d):\n", i);
-			DBG_88E("bLength=%x\n", pendp_desc->bLength);
-			DBG_88E("bDescriptorType=%x\n",
-				pendp_desc->bDescriptorType);
-			DBG_88E("bEndpointAddress=%x\n",
-				pendp_desc->bEndpointAddress);
-			DBG_88E("wMaxPacketSize=%d\n",
-				le16_to_cpu(pendp_desc->wMaxPacketSize));
-			DBG_88E("bInterval=%x\n", pendp_desc->bInterval);
-
-			if (RT_usb_endpoint_is_bulk_in(pendp_desc)) {
-				DBG_88E("RT_usb_endpoint_is_bulk_in = %x\n",
-					RT_usb_endpoint_num(pendp_desc));
-				pdvobjpriv->RtInPipe[pdvobjpriv->RtNumInPipes] = RT_usb_endpoint_num(pendp_desc);
+			if (usb_endpoint_is_bulk_in(pendp_desc)) {
+				pdvobjpriv->RtInPipe[pdvobjpriv->RtNumInPipes] = ep_num;
 				pdvobjpriv->RtNumInPipes++;
-			} else if (usb_endpoint_is_int(pendp_desc)) {
-				DBG_88E("usb_endpoint_is_int = %x, Interval = %x\n",
-					RT_usb_endpoint_num(pendp_desc),
-					pendp_desc->bInterval);
-				pdvobjpriv->RtInPipe[pdvobjpriv->RtNumInPipes] = RT_usb_endpoint_num(pendp_desc);
+			} else if (usb_endpoint_is_int_in(pendp_desc)) {
+				pdvobjpriv->RtInPipe[pdvobjpriv->RtNumInPipes] = ep_num;
 				pdvobjpriv->RtNumInPipes++;
-			} else if (RT_usb_endpoint_is_bulk_out(pendp_desc)) {
-				DBG_88E("RT_usb_endpoint_is_bulk_out = %x\n",
-					RT_usb_endpoint_num(pendp_desc));
-				pdvobjpriv->RtOutPipe[pdvobjpriv->RtNumOutPipes] = RT_usb_endpoint_num(pendp_desc);
+			} else if (usb_endpoint_is_bulk_out(pendp_desc)) {
+				pdvobjpriv->RtOutPipe[pdvobjpriv->RtNumOutPipes] = ep_num;
 				pdvobjpriv->RtNumOutPipes++;
 			}
-			pdvobjpriv->ep_num[i] = RT_usb_endpoint_num(pendp_desc);
+			pdvobjpriv->ep_num[i] = ep_num;
 		}
 	}
 
-	DBG_88E("nr_endpoint=%d, in_num=%d, out_num=%d\n\n",
-		pdvobjpriv->nr_endpoint, pdvobjpriv->RtNumInPipes,
-		pdvobjpriv->RtNumOutPipes);
-
-	if (pusbd->speed == USB_SPEED_HIGH) {
+	if (pusbd->speed == USB_SPEED_HIGH)
 		pdvobjpriv->ishighspeed = true;
-		DBG_88E("USB_SPEED_HIGH\n");
-	} else {
+	else
 		pdvobjpriv->ishighspeed = false;
-		DBG_88E("NON USB_SPEED_HIGH\n");
-	}
 
-	if (rtw_init_intf_priv(pdvobjpriv) == _FAIL) {
-		RT_TRACE(_module_os_intfs_c_, _drv_err_,
-			 ("\n Can't INIT rtw_init_intf_priv\n"));
+	if (rtw_init_intf_priv(pdvobjpriv) == _FAIL)
 		goto free_dvobj;
-	}
 
-	/* 3 misc */
 	sema_init(&(pdvobjpriv->usb_suspend_sema), 0);
 	rtw_reset_continual_urb_error(pdvobjpriv);
 
@@ -370,49 +306,47 @@ int rtw_hw_suspend(struct adapter *padapter)
 		goto error_exit;
 	}
 
-	if (padapter) { /* system suspend */
-		LeaveAllPowerSaveMode(padapter);
+	/* system suspend */
+	LeaveAllPowerSaveMode(padapter);
 
-		DBG_88E("==> rtw_hw_suspend\n");
-		_enter_pwrlock(&pwrpriv->lock);
-		pwrpriv->bips_processing = true;
-		/* s1. */
-		if (pnetdev) {
-			netif_carrier_off(pnetdev);
-			rtw_netif_stop_queue(pnetdev);
-		}
-
-		/* s2. */
-		rtw_disassoc_cmd(padapter, 500, false);
-
-		/* s2-2.  indicate disconnect to os */
-		{
-			struct	mlme_priv *pmlmepriv = &padapter->mlmepriv;
-
-			if (check_fwstate(pmlmepriv, _FW_LINKED)) {
-				_clr_fwstate_(pmlmepriv, _FW_LINKED);
-
-				rtw_led_control(padapter, LED_CTL_NO_LINK);
-
-				rtw_os_indicate_disconnect(padapter);
-
-				/* donnot enqueue cmd */
-				rtw_lps_ctrl_wk_cmd(padapter, LPS_CTRL_DISCONNECT, 0);
-			}
-		}
-		/* s2-3. */
-		rtw_free_assoc_resources(padapter, 1);
-
-		/* s2-4. */
-		rtw_free_network_queue(padapter, true);
-		rtw_ips_dev_unload(padapter);
-		pwrpriv->rf_pwrstate = rf_off;
-		pwrpriv->bips_processing = false;
-
-		_exit_pwrlock(&pwrpriv->lock);
-	} else {
-		goto error_exit;
+	DBG_88E("==> rtw_hw_suspend\n");
+	_enter_pwrlock(&pwrpriv->lock);
+	pwrpriv->bips_processing = true;
+	/* s1. */
+	if (pnetdev) {
+		netif_carrier_off(pnetdev);
+		rtw_netif_stop_queue(pnetdev);
 	}
+
+	/* s2. */
+	rtw_disassoc_cmd(padapter, 500, false);
+
+	/* s2-2.  indicate disconnect to os */
+	{
+		struct	mlme_priv *pmlmepriv = &padapter->mlmepriv;
+
+		if (check_fwstate(pmlmepriv, _FW_LINKED)) {
+			_clr_fwstate_(pmlmepriv, _FW_LINKED);
+
+			rtw_led_control(padapter, LED_CTL_NO_LINK);
+
+			rtw_os_indicate_disconnect(padapter);
+
+			/* donnot enqueue cmd */
+			rtw_lps_ctrl_wk_cmd(padapter, LPS_CTRL_DISCONNECT, 0);
+		}
+	}
+	/* s2-3. */
+	rtw_free_assoc_resources(padapter, 1);
+
+	/* s2-4. */
+	rtw_free_network_queue(padapter, true);
+	rtw_ips_dev_unload(padapter);
+	pwrpriv->rf_pwrstate = rf_off;
+	pwrpriv->bips_processing = false;
+
+	_exit_pwrlock(&pwrpriv->lock);
+
 	return 0;
 
 error_exit:
@@ -426,35 +360,32 @@ int rtw_hw_resume(struct adapter *padapter)
 	struct net_device *pnetdev = padapter->pnetdev;
 
 
-	if (padapter) { /* system resume */
-		DBG_88E("==> rtw_hw_resume\n");
-		_enter_pwrlock(&pwrpriv->lock);
-		pwrpriv->bips_processing = true;
-		rtw_reset_drv_sw(padapter);
+	/* system resume */
+	DBG_88E("==> rtw_hw_resume\n");
+	_enter_pwrlock(&pwrpriv->lock);
+	pwrpriv->bips_processing = true;
+	rtw_reset_drv_sw(padapter);
 
-		if (pm_netdev_open(pnetdev, false) != 0) {
-			_exit_pwrlock(&pwrpriv->lock);
-			goto error_exit;
-		}
-
-		netif_device_attach(pnetdev);
-		netif_carrier_on(pnetdev);
-
-		if (!netif_queue_stopped(pnetdev))
-			netif_start_queue(pnetdev);
-		else
-			netif_wake_queue(pnetdev);
-
-		pwrpriv->bkeepfwalive = false;
-		pwrpriv->brfoffbyhw = false;
-
-		pwrpriv->rf_pwrstate = rf_on;
-		pwrpriv->bips_processing = false;
-
+	if (pm_netdev_open(pnetdev, false) != 0) {
 		_exit_pwrlock(&pwrpriv->lock);
-	} else {
 		goto error_exit;
 	}
+
+	netif_device_attach(pnetdev);
+	netif_carrier_on(pnetdev);
+
+	if (!netif_queue_stopped(pnetdev))
+		netif_start_queue(pnetdev);
+	else
+		netif_wake_queue(pnetdev);
+
+	pwrpriv->bkeepfwalive = false;
+	pwrpriv->brfoffbyhw = false;
+
+	pwrpriv->rf_pwrstate = rf_on;
+	pwrpriv->bips_processing = false;
+
+	_exit_pwrlock(&pwrpriv->lock);
 
 
 	return 0;
@@ -565,8 +496,7 @@ int rtw_resume_process(struct adapter *padapter)
 
 	_enter_pwrlock(&pwrpriv->lock);
 	rtw_reset_drv_sw(padapter);
-	if (pwrpriv)
-		pwrpriv->bkeepfwalive = false;
+	pwrpriv->bkeepfwalive = false;
 
 	DBG_88E("bkeepfwalive(%x)\n", pwrpriv->bkeepfwalive);
 	if (pm_netdev_open(pnetdev, true) != 0)
@@ -750,7 +680,7 @@ static void rtw_usb_if1_deinit(struct adapter *if1)
 static int rtw_drv_init(struct usb_interface *pusb_intf, const struct usb_device_id *pdid)
 {
 	struct adapter *if1 = NULL;
-	int status;
+	int status = _FAIL;
 	struct dvobj_priv *dvobj;
 
 	RT_TRACE(_module_hci_intfs_c_, _drv_err_, ("+rtw_drv_init\n"));
@@ -778,8 +708,6 @@ static int rtw_drv_init(struct usb_interface *pusb_intf, const struct usb_device
 
 	status = _SUCCESS;
 
-	if (status != _SUCCESS && if1)
-		rtw_usb_if1_deinit(if1);
 free_dvobj:
 	if (status != _SUCCESS)
 		usb_dvobj_deinit(pusb_intf);

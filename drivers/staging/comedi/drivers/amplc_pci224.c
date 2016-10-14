@@ -377,7 +377,6 @@ struct pci224_private {
 	unsigned int cached_div1;
 	unsigned int cached_div2;
 	unsigned int ao_stop_count;
-	short ao_stop_continuous;
 	unsigned short ao_enab;	/* max 16 channels so 'short' will do */
 	unsigned char intsce;
 };
@@ -521,7 +520,7 @@ static void pci224_ao_start(struct comedi_device *dev,
 	unsigned long flags;
 
 	set_bit(AO_CMD_STARTED, &devpriv->state);
-	if (!devpriv->ao_stop_continuous && devpriv->ao_stop_count == 0) {
+	if (cmd->stop_src == TRIG_COUNT && devpriv->ao_stop_count == 0) {
 		/* An empty acquisition! */
 		s->async->events |= COMEDI_CB_EOA;
 		cfc_handle_events(dev, s);
@@ -559,8 +558,8 @@ static void pci224_ao_handle_fifo(struct comedi_device *dev,
 		bytes_per_scan = sizeof(short);
 	}
 	/* Determine number of scans available in buffer. */
-	num_scans = comedi_buf_read_n_available(s->async) / bytes_per_scan;
-	if (!devpriv->ao_stop_continuous) {
+	num_scans = comedi_buf_read_n_available(s) / bytes_per_scan;
+	if (cmd->stop_src == TRIG_COUNT) {
 		/* Fixed number of scans. */
 		if (num_scans > devpriv->ao_stop_count)
 			num_scans = devpriv->ao_stop_count;
@@ -572,7 +571,7 @@ static void pci224_ao_handle_fifo(struct comedi_device *dev,
 	switch (dacstat & PCI224_DACCON_FIFOFL_MASK) {
 	case PCI224_DACCON_FIFOFL_EMPTY:
 		room = PCI224_FIFO_ROOM_EMPTY;
-		if (!devpriv->ao_stop_continuous && devpriv->ao_stop_count == 0) {
+		if (cmd->stop_src == TRIG_COUNT && devpriv->ao_stop_count == 0) {
 			/* FIFO empty at end of counted acquisition. */
 			s->async->events |= COMEDI_CB_EOA;
 			cfc_handle_events(dev, s);
@@ -614,7 +613,7 @@ static void pci224_ao_handle_fifo(struct comedi_device *dev,
 			     dev->iobase + PCI224_DACDATA);
 		}
 	}
-	if (!devpriv->ao_stop_continuous) {
+	if (cmd->stop_src == TRIG_COUNT) {
 		devpriv->ao_stop_count -= num_scans;
 		if (devpriv->ao_stop_count == 0) {
 			/*
@@ -720,7 +719,7 @@ pci224_ao_cmdtest(struct comedi_device *dev, struct comedi_subdevice *s,
 {
 	struct pci224_private *devpriv = dev->private;
 	int err = 0;
-	unsigned int tmp;
+	unsigned int arg;
 
 	/* Step 1 : check if triggers are trivially valid */
 
@@ -747,14 +746,14 @@ pci224_ao_cmdtest(struct comedi_device *dev, struct comedi_subdevice *s,
 	 * There's only one external trigger signal (which makes these
 	 * tests easier).  Only one thing can use it.
 	 */
-	tmp = 0;
+	arg = 0;
 	if (cmd->start_src & TRIG_EXT)
-		tmp++;
+		arg++;
 	if (cmd->scan_begin_src & TRIG_EXT)
-		tmp++;
+		arg++;
 	if (cmd->stop_src & TRIG_EXT)
-		tmp++;
-	if (tmp > 1)
+		arg++;
+	if (arg > 1)
 		err |= -EINVAL;
 
 	if (err)
@@ -787,10 +786,10 @@ pci224_ao_cmdtest(struct comedi_device *dev, struct comedi_subdevice *s,
 		err |= cfc_check_trigger_arg_max(&cmd->scan_begin_arg,
 						 MAX_SCAN_PERIOD);
 
-		tmp = cmd->chanlist_len * CONVERT_PERIOD;
-		if (tmp < MIN_SCAN_PERIOD)
-			tmp = MIN_SCAN_PERIOD;
-		err |= cfc_check_trigger_arg_min(&cmd->scan_begin_arg, tmp);
+		arg = cmd->chanlist_len * CONVERT_PERIOD;
+		if (arg < MIN_SCAN_PERIOD)
+			arg = MIN_SCAN_PERIOD;
+		err |= cfc_check_trigger_arg_min(&cmd->scan_begin_arg, arg);
 		break;
 	case TRIG_EXT:
 		/* Force to external trigger 0. */
@@ -841,15 +840,13 @@ pci224_ao_cmdtest(struct comedi_device *dev, struct comedi_subdevice *s,
 	/* Step 4: fix up any arguments. */
 
 	if (cmd->scan_begin_src == TRIG_TIMER) {
-		tmp = cmd->scan_begin_arg;
+		arg = cmd->scan_begin_arg;
 		/* Use two timers. */
 		i8253_cascade_ns_to_timer(I8254_OSC_BASE_10MHZ,
 					  &devpriv->cached_div1,
 					  &devpriv->cached_div2,
-					  &cmd->scan_begin_arg,
-					  cmd->flags);
-		if (tmp != cmd->scan_begin_arg)
-			err++;
+					  &arg, cmd->flags);
+		err |= cfc_check_trigger_arg_is(&cmd->scan_begin_arg, arg);
 	}
 
 	if (err)
@@ -869,6 +866,7 @@ static void pci224_ao_start_pacer(struct comedi_device *dev,
 				  struct comedi_subdevice *s)
 {
 	struct pci224_private *devpriv = dev->private;
+	unsigned long timer_base = devpriv->iobase1 + PCI224_Z2_CT0;
 
 	/*
 	 * The output of timer Z2-0 will be used as the scan trigger
@@ -882,13 +880,13 @@ static void pci224_ao_start_pacer(struct comedi_device *dev,
 	/* Z2-2 needs 10 MHz clock. */
 	outb(CLK_CONFIG(2, CLK_10MHZ), devpriv->iobase1 + PCI224_ZCLK_SCE);
 	/* Load Z2-2 mode (2) and counter (div1). */
-	i8254_load(devpriv->iobase1 + PCI224_Z2_CT0, 0,
-			2, devpriv->cached_div1, 2);
+	i8254_set_mode(timer_base, 0, 2, I8254_MODE2 | I8254_BINARY);
+	i8254_write(timer_base, 0, 2, devpriv->cached_div1);
 	/* Z2-0 is clocked from Z2-2's output. */
 	outb(CLK_CONFIG(0, CLK_OUTNM1), devpriv->iobase1 + PCI224_ZCLK_SCE);
 	/* Load Z2-0 mode (2) and counter (div2). */
-	i8254_load(devpriv->iobase1 + PCI224_Z2_CT0, 0,
-		   0, devpriv->cached_div2, 2);
+	i8254_set_mode(timer_base, 0, 0, I8254_MODE2 | I8254_BINARY);
+	i8254_write(timer_base, 0, 0, devpriv->cached_div2);
 }
 
 static int pci224_ao_cmd(struct comedi_device *dev, struct comedi_subdevice *s)
@@ -952,18 +950,10 @@ static int pci224_ao_cmd(struct comedi_device *dev, struct comedi_subdevice *s)
 	/*
 	 * Sort out end of acquisition.
 	 */
-	switch (cmd->stop_src) {
-	case TRIG_COUNT:
-		/* Fixed number of scans.  */
-		devpriv->ao_stop_continuous = 0;
+	if (cmd->stop_src == TRIG_COUNT)
 		devpriv->ao_stop_count = cmd->stop_arg;
-		break;
-	default:
-		/* Continuous scans. */
-		devpriv->ao_stop_continuous = 1;
+	else	/* TRIG_EXT | TRIG_NONE */
 		devpriv->ao_stop_count = 0;
-		break;
-	}
 
 	spin_lock_irqsave(&devpriv->ao_spinlock, flags);
 	if (cmd->start_src == TRIG_INT) {
