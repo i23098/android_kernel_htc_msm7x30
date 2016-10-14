@@ -78,7 +78,12 @@ __setup("fpe=", fpe_setup);
 #endif
 
 #ifdef CONFIG_ARM_INSERT_DTB
+#ifdef CONFIG_MACH_SAGA
 extern unsigned char arch_arm_boot_dts_saga_dtb[];
+#endif
+#ifdef CONFIG_MACH_SPADE
+extern unsigned char arch_arm_boot_dts_spade_dtb[];
+#endif
 #endif
 
 extern void paging_init(struct machine_desc *desc);
@@ -936,7 +941,12 @@ static struct machine_desc * __init setup_machine_tags(unsigned int nr)
 	strlcpy(boot_command_line, from, COMMAND_LINE_SIZE);
 
 #ifdef CONFIG_ARM_INSERT_DTB
+#ifdef CONFIG_MACH_SAGA
 	setup_safe_machine_fdt(arch_arm_boot_dts_saga_dtb);
+#endif
+#ifdef CONFIG_MACH_SPADE
+	setup_safe_machine_fdt(arch_arm_boot_dts_spade_dtb);
+#endif
 #endif
 	return mdesc;
 }

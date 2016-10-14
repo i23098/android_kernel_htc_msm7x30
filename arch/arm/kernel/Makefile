@@ -17,10 +17,23 @@ obj-y		:= elf.o entry-armv.o entry-common.o irq.o \
 		   process.o ptrace.o return_address.o setup.o signal.o \
 		   sys_arm.o stacktrace.o time.o traps.o
 
+ifdef CONFIG_MACH_SAGA
+
 # generate dtb include
 # scripts/dtc/dtc -I dts -O dtb -o arch/arm/boot/dts/saga.dtb arch/arm/boot/dts/saga.dts
 # xxd -i arch/arm/boot/dts/saga.dtb > arch/arm/kernel/dtb_include_saga.c
 obj-$(CONFIG_ARM_INSERT_DTB) += dtb_include_saga.o
+
+endif
+
+ifdef CONFIG_MACH_SPADE
+
+# generate dtb include
+# scripts/dtc/dtc -I dts -O dtb -o arch/arm/boot/dts/spade.dtb arch/arm/boot/dts/spade.dts
+# xxd -i arch/arm/boot/dts/spade.dtb > arch/arm/kernel/dtb_include_spade.c
+obj-$(CONFIG_ARM_INSERT_DTB) += dtb_include_spade.o
+
+endif
 
 obj-$(CONFIG_DEPRECATED_PARAM_STRUCT) += compat.o
 
