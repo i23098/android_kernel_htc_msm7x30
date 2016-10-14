@@ -37,7 +37,6 @@ struct ion_carveout_heap {
 	struct ion_heap heap;
 	struct gen_pool *pool;
 	ion_phys_addr_t base;
-	unsigned long allocated_bytes;
 	unsigned long total_size;
 	int (*ion_request_region)(void *);
 	int (*ion_release_region)(void *);
@@ -58,7 +57,6 @@ ion_phys_addr_t ion_carveout_allocate(struct ion_heap *heap,
 	if (!offset)
 		return ION_CARVEOUT_ALLOCATE_FAIL;
 
-	carveout_heap->allocated_bytes += size;
 	return offset;
 }
 
@@ -71,7 +69,6 @@ void ion_carveout_free(struct ion_heap *heap, ion_phys_addr_t addr,
 	if (addr == ION_CARVEOUT_ALLOCATE_FAIL)
 		return;
 	gen_pool_free(carveout_heap->pool, addr, size);
-	carveout_heap->allocated_bytes -= size;
 }
 
 static int ion_carveout_heap_phys(struct ion_heap *heap,
@@ -164,7 +161,7 @@ static int ion_carveout_release_region(struct ion_carveout_heap *carveout_heap)
 	return ret_value;
 }
 
-void *ion_carveout_heap_map_kernel(struct ion_heap *heap,
+void *ion_heap_map_kernel(struct ion_heap *heap,
 				   struct ion_buffer *buffer)
 {
 	struct ion_carveout_heap *carveout_heap =
@@ -184,7 +181,7 @@ void *ion_carveout_heap_map_kernel(struct ion_heap *heap,
 	return ret_value;
 }
 
-void ion_carveout_heap_unmap_kernel(struct ion_heap *heap,
+void ion_heap_unmap_kernel(struct ion_heap *heap,
 				    struct ion_buffer *buffer)
 {
 	struct ion_carveout_heap *carveout_heap =
@@ -197,7 +194,7 @@ void ion_carveout_heap_unmap_kernel(struct ion_heap *heap,
 	return;
 }
 
-int ion_carveout_heap_map_user(struct ion_heap *heap, struct ion_buffer *buffer,
+int ion_heap_map_user(struct ion_heap *heap, struct ion_buffer *buffer,
 			       struct vm_area_struct *vma)
 {
 	struct ion_carveout_heap *carveout_heap =
@@ -319,8 +316,6 @@ static int ion_carveout_print_debug(struct ion_heap *heap, struct seq_file *s,
 	struct ion_carveout_heap *carveout_heap =
 		container_of(heap, struct ion_carveout_heap, heap);
 
-	seq_printf(s, "total bytes currently allocated: %lx\n",
-		carveout_heap->allocated_bytes);
 	seq_printf(s, "total heap size: %lx\n", carveout_heap->total_size);
 
 	if (mem_map) {
@@ -473,10 +468,10 @@ static struct ion_heap_ops carveout_heap_ops = {
 	.phys = ion_carveout_heap_phys,
 	.map_dma = ion_carveout_heap_map_dma,
 	.unmap_dma = ion_carveout_heap_unmap_dma,
-	.map_user = ion_carveout_heap_map_user,
-	.map_kernel = ion_carveout_heap_map_kernel,
+	.map_user = ion_heap_map_user,
+	.map_kernel = ion_heap_map_kernel,
+	.unmap_kernel = ion_heap_unmap_kernel,
 	.unmap_user = ion_carveout_heap_unmap_user,
-	.unmap_kernel = ion_carveout_heap_unmap_kernel,
 	.cache_op = ion_carveout_cache_ops,
 	.print_debug = ion_carveout_print_debug,
 	.map_iommu = ion_carveout_heap_map_iommu,
@@ -498,8 +493,7 @@ struct ion_heap *ion_carveout_heap_create(struct ion_platform_heap *heap_data)
 		return ERR_PTR(-ENOMEM);
 	}
 	carveout_heap->base = heap_data->base;
-	ret = gen_pool_add(carveout_heap->pool, carveout_heap->base,
-			heap_data->size, -1);
+	ret = gen_pool_add(carveout_heap->pool, carveout_heap->base, heap_data->size, -1);
 	if (ret < 0) {
 		gen_pool_destroy(carveout_heap->pool);
 		kfree(carveout_heap);
@@ -507,7 +501,6 @@ struct ion_heap *ion_carveout_heap_create(struct ion_platform_heap *heap_data)
 	}
 	carveout_heap->heap.ops = &carveout_heap_ops;
 	carveout_heap->heap.type = ION_HEAP_TYPE_CARVEOUT;
-	carveout_heap->allocated_bytes = 0;
 	carveout_heap->total_size = heap_data->size;
 	carveout_heap->has_outer_cache = heap_data->has_outer_cache;
 
