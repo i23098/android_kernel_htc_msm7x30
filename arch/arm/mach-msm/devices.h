@@ -229,15 +229,6 @@ extern struct platform_device led_pdev;
 extern struct platform_device msm_rpm_device;
 extern struct platform_device msm_device_rng;
 
-#if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || \
-		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE)
-extern struct platform_device msm9615_qcrypto_device;
-#endif
-
-#if defined(CONFIG_CRYPTO_DEV_QCEDEV) || \
-		defined(CONFIG_CRYPTO_DEV_QCEDEV_MODULE)
-extern struct platform_device msm9615_qcedev_device;
-#endif
 extern struct platform_device msm8960_device_watchdog;
 extern struct platform_device msm8660_device_watchdog;
 extern struct platform_device msm8064_device_watchdog;

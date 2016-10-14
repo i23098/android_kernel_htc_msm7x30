@@ -2655,16 +2655,6 @@ static struct platform_device *devices[] __initdata = {
 #ifdef CONFIG_MSM_VPE
 	&msm_vpe_device,
 #endif
-
-#if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || \
-    defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE)
-	&qcrypto_device,
-#endif
-
-#if defined(CONFIG_CRYPTO_DEV_QCEDEV) || \
-    defined(CONFIG_CRYPTO_DEV_QCEDEV_MODULE)
-	&qcedev_device,
-#endif
 	&htc_battery_pdev,
 	&ds2746_battery_pdev,
 	&msm_ebi0_thermal,
