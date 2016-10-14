@@ -1913,7 +1913,7 @@ config ZBOOT_ROM_MMCIF
 
 config ARM_INSERT_DTB
 	bool "Use insert device tree blob to kernel (EXPERIMENTAL)"
-	default y
+	default n
 	help
 	    Insert device tree blob into kernel code
 

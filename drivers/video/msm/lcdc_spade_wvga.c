@@ -51,7 +51,6 @@ int qspi_send_9bit(struct spi_msg *msg);
 
 static int spade_adjust_backlight(enum led_brightness val);
 
-extern int panel_type;
 static DEFINE_MUTEX(panel_lock);
 static void (*panel_power_gpio)(int on);
 static struct wake_lock panel_idle_lock;
@@ -71,7 +70,7 @@ static void spadewvga_panel_power(int on)
 {
 	if (panel_power_gpio)
 		(*panel_power_gpio)(on);
-	if (on == 1 && (panel_type == PANEL_SHARP || panel_type == PANEL_ID_SPADE_AUO_N90))
+	if (on == 1 && (board_get_panel_type() == PANEL_SHARP || board_get_panel_type() == PANEL_ID_SPADE_AUO_N90))
 		screen_on = true;
 }
 
@@ -682,7 +681,7 @@ static int lcdc_spade_panel_on(struct platform_device *pdev)
 	LCMDBG("\n");
 	mutex_lock(&panel_lock);
 
-	switch (panel_type) {
+	switch (board_get_panel_type()) {
 		case PANEL_AUO:
 			lcm_auo_write_seq(auo_init_seq, ARRAY_SIZE(auo_init_seq));
 			LCMDBG(": init auo_panel\n");
@@ -714,7 +713,7 @@ static int lcdc_spade_panel_off(struct platform_device *pdev)
 	atomic_set(&lcm_init_done, 0);
 
 	mutex_lock(&panel_lock);
-	switch (panel_type) {
+	switch (board_get_panel_type()) {
 		case PANEL_AUO:
 			lcm_auo_write_seq(auo_sleep_in_seq, ARRAY_SIZE(auo_sleep_in_seq));
 			lcm_auo_write_seq(auo_uninit_seq, ARRAY_SIZE(auo_uninit_seq));
@@ -749,7 +748,7 @@ static int spade_adjust_backlight(enum led_brightness val)
 	uint8_t shrink_br;
 
 
-	if (panel_type == PANEL_ID_SPADE_SHA_N90)
+	if (board_get_panel_type() == PANEL_ID_SPADE_SHA_N90)
 		def_bl = 101;
 	else
 		def_bl = 91;
@@ -879,7 +878,7 @@ int spade_panel_sleep_in(void)
 	}
 
 	spadewvga_panel_power(1);
-	switch (panel_type) {
+	switch (board_get_panel_type()) {
 		case PANEL_AUO:
 			lcm_auo_write_seq(auo_sleep_in_seq,
 				ARRAY_SIZE(auo_sleep_in_seq));
@@ -950,7 +949,7 @@ static int __init spadewvga_init(void)
 	pinfo->lcdc.underflow_clr = 0xff;
 	pinfo->lcdc.hsync_skew = 0;
 
-	switch (panel_type)
+	switch (board_get_panel_type())
 	{
 		case PANEL_AUO:
 			pinfo->lcdc.h_back_porch = 30;

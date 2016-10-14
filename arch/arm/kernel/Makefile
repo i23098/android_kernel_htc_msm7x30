@@ -19,8 +19,8 @@ obj-y		:= elf.o entry-armv.o entry-common.o irq.o \
 
 # generate dtb include
 # scripts/dtc/dtc -I dts -O dtb -o arch/arm/boot/dts/saga.dtb arch/arm/boot/dts/saga.dts
-# xxd -i arch/arm/boot/dts/saga.dtb > arch/arm/kernel/dtb_include.c
-obj-$(CONFIG_ARM_INSERT_DTB) += dtb_include.o
+# xxd -i arch/arm/boot/dts/saga.dtb > arch/arm/kernel/dtb_include_saga.c
+obj-$(CONFIG_ARM_INSERT_DTB) += dtb_include_saga.o
 
 obj-$(CONFIG_DEPRECATED_PARAM_STRUCT) += compat.o
 
