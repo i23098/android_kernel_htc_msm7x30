@@ -754,8 +754,8 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 	    (strcmp(uname, "chosen") != 0 && strcmp(uname, "chosen@0") != 0))
 		return 0;
 
-	return 0;
 	early_init_dt_check_for_initrd(node);
+	return 0;
 	early_init_dt_check_htc_board(node);
 
 	/* Retrieve command line */
