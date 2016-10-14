@@ -345,7 +345,7 @@ void rtw_cpwm_event_callback23a(struct rtw_adapter *adapter, u8 *pbuf);
 int event_thread(void *context);
 void rtw23a_join_to_handler(unsigned long);
 
-void rtw_free_network_queue23a(struct rtw_adapter *adapter, u8 isfreeall);
+void rtw_free_network_queue23a(struct rtw_adapter *adapter);
 int rtw_init_mlme_priv23a(struct rtw_adapter *adapter);
 
 void rtw_free_mlme_priv23a(struct mlme_priv *pmlmepriv);
@@ -450,27 +450,18 @@ void rtw_clear_scan_deny(struct rtw_adapter *adapter);
 void rtw_set_scan_deny_timer_hdl(unsigned long data);
 void rtw_set_scan_deny(struct rtw_adapter *adapter, u32 ms);
 
-int _rtw_init_mlme_priv23a(struct rtw_adapter *padapter);
-
 void rtw23a_free_mlme_priv_ie_data(struct mlme_priv *pmlmepriv);
 
 void _rtw_free_mlme_priv23a(struct mlme_priv *pmlmepriv);
 
 struct wlan_network *rtw_alloc_network(struct mlme_priv *pmlmepriv);
 
-void _rtw_free_network23a_nolock23a(struct mlme_priv *pmlmepriv,
-			      struct wlan_network *pnetwork);
-
-struct wlan_network *_rtw_find_network23a(struct rtw_queue *scanned_queue, u8 *addr);
-
-void _rtw_free_network23a_queue23a(struct rtw_adapter *padapter, u8 isfreeall);
-
 int rtw_if_up23a(struct rtw_adapter *padapter);
 
 int rtw_linked_check(struct rtw_adapter *padapter);
 
-u8 *rtw_get_capability23a_from_ie(u8 *ie);
-u8 *rtw_get_beacon_interval23a_from_ie(u8 *ie);
+__le16 *rtw_get_capability23a_from_ie(u8 *ie);
+__le16 *rtw_get_beacon_interval23a_from_ie(u8 *ie);
 
 
 void rtw_joinbss_reset23a(struct rtw_adapter *padapter);

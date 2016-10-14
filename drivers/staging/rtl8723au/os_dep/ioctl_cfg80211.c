@@ -260,9 +260,9 @@ static int rtw_cfg80211_inform_bss(struct rtw_adapter *padapter,
 	size_t notify_ielen;
 	s32 notify_signal;
 	u8 buf[MAX_BSSINFO_LEN], *pbuf;
-	size_t len, bssinf_len = 0;
+	size_t len;
 	struct ieee80211_hdr *pwlanhdr;
-	unsigned short *fctrl;
+	__le16 *fctrl;
 
 	struct wireless_dev *wdev = padapter->rtw_wdev;
 	struct wiphy *wiphy = wdev->wiphy;
@@ -270,11 +270,9 @@ static int rtw_cfg80211_inform_bss(struct rtw_adapter *padapter,
 
 	/* DBG_8723A("%s\n", __func__); */
 
-	bssinf_len =
-		pnetwork->network.IELength + sizeof(struct ieee80211_hdr_3addr);
-	if (bssinf_len > MAX_BSSINFO_LEN) {
+	if (pnetwork->network.IELength > MAX_IE_SZ) {
 		DBG_8723A("%s IE Length too long > %d byte\n", __func__,
-			  MAX_BSSINFO_LEN);
+			  MAX_IE_SZ);
 		goto exit;
 	}
 
@@ -294,7 +292,7 @@ static int rtw_cfg80211_inform_bss(struct rtw_adapter *padapter,
 	    le16_to_cpu(*(u16 *)
 			rtw_get_beacon_interval23a_from_ie(pnetwork->network.IEs));
 	notify_capability =
-	    le16_to_cpu(*(u16 *)
+		get_unaligned_le16(
 			rtw_get_capability23a_from_ie(pnetwork->network.IEs));
 
 	notify_ie = pnetwork->network.IEs + _FIXED_IE_LENGTH_;
@@ -523,8 +521,6 @@ static int set_group_key(struct rtw_adapter *padapter, u8 *key, u8 alg,
 	pcmd->cmdsz = (sizeof(struct setkey_parm));
 	pcmd->rsp = NULL;
 	pcmd->rspsz = 0;
-
-	INIT_LIST_HEAD(&pcmd->list);
 
 	res = rtw_enqueue_cmd23a(pcmdpriv, pcmd);
 
@@ -1079,7 +1075,7 @@ static int cfg80211_rtw_add_key(struct wiphy *wiphy, struct net_device *ndev,
 {
 	char *alg_name;
 	u32 param_len;
-	struct ieee_param *param = NULL;
+	struct ieee_param *param;
 	int ret = 0;
 	struct wireless_dev *rtw_wdev = wiphy_to_wdev(wiphy);
 	struct rtw_adapter *padapter = wiphy_to_adapter(wiphy);
@@ -1095,8 +1091,8 @@ static int cfg80211_rtw_add_key(struct wiphy *wiphy, struct net_device *ndev,
 
 	param_len = sizeof(struct ieee_param) + params->key_len;
 	param = kzalloc(param_len, GFP_KERNEL);
-	if (param == NULL)
-		return -1;
+	if (!param)
+		return -ENOMEM;
 
 	param->cmd = IEEE_CMD_SET_ENCRYPTION;
 	eth_broadcast_addr(param->sta_addr);
@@ -2336,7 +2332,7 @@ void rtw_cfg80211_indicate_sta_disassoc(struct rtw_adapter *padapter,
 	u8 *pmgmt_frame;
 	uint frame_len;
 	struct ieee80211_hdr *pwlanhdr;
-	unsigned short *fctrl;
+	__le16 *fctrl;
 	u8 mgmt_buf[128] = { 0 };
 	struct mlme_ext_priv *pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info *pmlmeinfo = &pmlmeext->mlmext_info;

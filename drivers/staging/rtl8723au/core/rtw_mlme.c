@@ -45,7 +45,7 @@ static void rtw_init_mlme_timer(struct rtw_adapter *padapter)
 		    rtw_set_scan_deny_timer_hdl, (unsigned long)padapter);
 }
 
-int _rtw_init_mlme_priv23a(struct rtw_adapter *padapter)
+int rtw_init_mlme_priv23a(struct rtw_adapter *padapter)
 {
 	struct mlme_priv *pmlmepriv = &padapter->mlmepriv;
 	int res = _SUCCESS;
@@ -147,27 +147,7 @@ struct wlan_network *rtw_alloc_network(struct mlme_priv *pmlmepriv)
 }
 
 static void _rtw_free_network23a(struct mlme_priv *pmlmepriv,
-				 struct wlan_network *pnetwork, u8 isfreeall)
-{
-	u32 lifetime = SCANQUEUE_LIFETIME;
-
-	if (!pnetwork)
-		return;
-
-	if (pnetwork->fixed == true)
-		return;
-
-	if ((check_fwstate(pmlmepriv, WIFI_ADHOC_MASTER_STATE) == true) ||
-	    (check_fwstate(pmlmepriv, WIFI_ADHOC_STATE) == true))
-		lifetime = 1;
-
-	list_del_init(&pnetwork->list);
-
-	kfree(pnetwork);
-}
-
-void _rtw_free_network23a_nolock23a(struct mlme_priv *pmlmepriv,
-				    struct wlan_network *pnetwork)
+				 struct wlan_network *pnetwork)
 {
 	if (!pnetwork)
 		return;
@@ -186,7 +166,7 @@ void _rtw_free_network23a_nolock23a(struct mlme_priv *pmlmepriv,
  Shall be calle under atomic context... to avoid possible racing condition...
 */
 struct wlan_network *
-_rtw_find_network23a(struct rtw_queue *scanned_queue, u8 *addr)
+rtw_find_network23a(struct rtw_queue *scanned_queue, u8 *addr)
 {
 	struct list_head *phead, *plist;
 	struct wlan_network *pnetwork = NULL;
@@ -220,7 +200,7 @@ exit:
 	return pnetwork;
 }
 
-void _rtw_free_network23a_queue23a(struct rtw_adapter *padapter, u8 isfreeall)
+void rtw_free_network_queue23a(struct rtw_adapter *padapter)
 {
 	struct list_head *phead, *plist, *ptmp;
 	struct wlan_network *pnetwork;
@@ -234,7 +214,7 @@ void _rtw_free_network23a_queue23a(struct rtw_adapter *padapter, u8 isfreeall)
 	list_for_each_safe(plist, ptmp, phead) {
 		pnetwork = container_of(plist, struct wlan_network, list);
 
-		_rtw_free_network23a(pmlmepriv,pnetwork, isfreeall);
+		_rtw_free_network23a(pmlmepriv, pnetwork);
 	}
 
 	spin_unlock_bh(&scanned_queue->lock);
@@ -333,9 +313,9 @@ void rtw23a_roaming(struct rtw_adapter *padapter,
 	spin_unlock_bh(&pmlmepriv->lock);
 }
 
-u8 *rtw_get_capability23a_from_ie(u8 *ie)
+__le16 *rtw_get_capability23a_from_ie(u8 *ie)
 {
-	return ie + 8 + 2;
+	return (__le16 *)(ie + 8 + 2);
 }
 
 u16 rtw_get_capability23a(struct wlan_bssid_ex *bss)
@@ -347,53 +327,15 @@ u16 rtw_get_capability23a(struct wlan_bssid_ex *bss)
 	return le16_to_cpu(val);
 }
 
-u8 *rtw_get_beacon_interval23a_from_ie(u8 *ie)
+__le16 *rtw_get_beacon_interval23a_from_ie(u8 *ie)
 {
-	return ie + 8;
+	return (__le16 *)(ie + 8);
 }
 
-int rtw_init_mlme_priv23a (struct rtw_adapter *padapter)
+static void rtw_free_network_nolock(struct mlme_priv *pmlmepriv,
+				    struct wlan_network *pnetwork)
 {
-	int	res;
-
-	res = _rtw_init_mlme_priv23a(padapter);
-
-	return res;
-}
-
-void rtw_free_network(struct mlme_priv *pmlmepriv,
-		      struct wlan_network *pnetwork, u8 is_freeall)
-{
-	RT_TRACE(_module_rtl871x_mlme_c_, _drv_err_,
-		 ("rtw_free_network ==> ssid = %s\n\n" ,
-		  pnetwork->network.Ssid.ssid));
-	_rtw_free_network23a(pmlmepriv, pnetwork, is_freeall);
-}
-
-void rtw_free_network_nolock(struct mlme_priv *pmlmepriv,
-			     struct wlan_network *pnetwork)
-{
-	_rtw_free_network23a_nolock23a(pmlmepriv, pnetwork);
-}
-
-void rtw_free_network_queue23a(struct rtw_adapter* dev, u8 isfreeall)
-{
-	_rtw_free_network23a_queue23a(dev, isfreeall);
-}
-
-/*
- return the wlan_network with the matching addr
-
- Shall be calle under atomic context... to avoid possible racing condition...
-*/
-struct	wlan_network *
-rtw_find_network23a(struct rtw_queue *scanned_queue, u8 *addr)
-{
-	struct wlan_network *pnetwork;
-
-	pnetwork = _rtw_find_network23a(scanned_queue, addr);
-
-	return pnetwork;
+	_rtw_free_network23a(pmlmepriv, pnetwork);
 }
 
 int rtw_is_same_ibss23a(struct rtw_adapter *adapter,
@@ -425,11 +367,8 @@ int is_same_network23a(struct wlan_bssid_ex *src, struct wlan_bssid_ex *dst)
 {
 	u16 s_cap, d_cap;
 
-	memcpy(&s_cap, rtw_get_capability23a_from_ie(src->IEs), 2);
-	memcpy(&d_cap, rtw_get_capability23a_from_ie(dst->IEs), 2);
-
-	s_cap = le16_to_cpu(s_cap);
-	d_cap = le16_to_cpu(d_cap);
+	s_cap = get_unaligned_le16(rtw_get_capability23a_from_ie(src->IEs));
+	d_cap = get_unaligned_le16(rtw_get_capability23a_from_ie(dst->IEs));
 
 	return ((src->Ssid.ssid_len == dst->Ssid.ssid_len) &&
 		/*	(src->Configuration.DSConfig == dst->Configuration.DSConfig) && */
@@ -628,8 +567,8 @@ exit:
 	spin_unlock_bh(&queue->lock);
 }
 
-void rtw_add_network(struct rtw_adapter *adapter,
-		     struct wlan_bssid_ex *pnetwork)
+static void rtw_add_network(struct rtw_adapter *adapter,
+			    struct wlan_bssid_ex *pnetwork)
 {
 	update_current_network(adapter, pnetwork);
 	rtw_update_scanned_network23a(adapter, pnetwork);
@@ -641,8 +580,8 @@ void rtw_add_network(struct rtw_adapter *adapter,
 /*			   (3) WMM */
 /*			   (4) HT */
 /*                      (5) others */
-int rtw_is_desired_network(struct rtw_adapter *adapter,
-			   struct wlan_network *pnetwork)
+static int rtw_is_desired_network(struct rtw_adapter *adapter,
+				  struct wlan_network *pnetwork)
 {
 	struct security_priv *psecuritypriv = &adapter->securitypriv;
 	struct mlme_priv *pmlmepriv = &adapter->mlmepriv;
@@ -1908,8 +1847,6 @@ int rtw_set_auth23a(struct rtw_adapter * adapter,
 	pcmd->rsp = NULL;
 	pcmd->rspsz = 0;
 
-	INIT_LIST_HEAD(&pcmd->list);
-
 	RT_TRACE(_module_rtl871x_mlme_c_,_drv_err_,
 		 ("after enqueue set_auth_cmd, auth_mode=%x\n",
 		  psecuritypriv->dot11AuthAlgrthm));
@@ -2008,8 +1945,6 @@ int rtw_set_key23a(struct rtw_adapter *adapter,
 	pcmd->cmdsz =  (sizeof(struct setkey_parm));
 	pcmd->rsp = NULL;
 	pcmd->rspsz = 0;
-
-	INIT_LIST_HEAD(&pcmd->list);
 
 	/* sema_init(&pcmd->cmd_sem, 0); */
 
@@ -2253,7 +2188,7 @@ void rtw_update_registrypriv_dev_network23a(struct rtw_adapter* adapter)
 	pdev_network->IELength = sz;
 
 	pdev_network->Length =
-		get_wlan_bssid_ex_sz((struct wlan_bssid_ex *)pdev_network);
+		get_wlan_bssid_ex_sz(pdev_network);
 
 	/* notes: translate IELength & Length after assign the
 	   Length to cmdsz in createbss_cmd(); */

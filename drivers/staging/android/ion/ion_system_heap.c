@@ -47,6 +47,7 @@ static const int num_orders = ARRAY_SIZE(orders);
 static int order_to_index(unsigned int order)
 {
 	int i;
+
 	for (i = 0; i < num_orders; i++)
 		if (order == orders[i])
 			return i;
@@ -105,6 +106,7 @@ static void free_buffer_page(struct ion_system_heap *heap,
 
 	if (!cached && !(buffer->private_flags & ION_PRIV_FLAG_SHRINKER_FREE)) {
 		struct ion_page_pool *pool = heap->pools[order_to_index(order)];
+
 		ion_page_pool_free(pool, page);
 	} else {
 		__free_pages(page, order);
@@ -275,6 +277,7 @@ static int ion_system_heap_shrink(struct ion_heap *heap, gfp_t gfp_mask,
 
 	for (i = 0; i < num_orders; i++) {
 		struct ion_page_pool *pool = sys_heap->pools[i];
+
 		nr_total += ion_page_pool_shrink(pool, gfp_mask, nr_to_scan);
 	}
 

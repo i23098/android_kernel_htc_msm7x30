@@ -140,7 +140,7 @@ u8 judge_network_type23a(struct rtw_adapter *padapter, unsigned char *rate, int 
 	return	network_type;
 }
 
-unsigned char ratetbl_val_2wifirate(unsigned char rate)
+static unsigned char ratetbl_val_2wifirate(unsigned char rate)
 {
 	unsigned char val = 0;
 
@@ -185,7 +185,7 @@ unsigned char ratetbl_val_2wifirate(unsigned char rate)
 	return val;
 }
 
-int is_basicrate(struct rtw_adapter *padapter, unsigned char rate)
+static int is_basicrate(struct rtw_adapter *padapter, unsigned char rate)
 {
 	int i;
 	unsigned char val;
@@ -203,7 +203,8 @@ int is_basicrate(struct rtw_adapter *padapter, unsigned char rate)
 	return false;
 }
 
-unsigned int ratetbl2rateset(struct rtw_adapter *padapter, unsigned char *rateset)
+static unsigned int ratetbl2rateset(struct rtw_adapter *padapter,
+				    unsigned char *rateset)
 {
 	int i;
 	unsigned char rate;
@@ -899,15 +900,17 @@ int rtw_check_bcn_info23a(struct rtw_adapter *Adapter,
 	}
 
 	bssid = (struct wlan_bssid_ex *)kzalloc(sizeof(struct wlan_bssid_ex),
-		GFP_ATOMIC);
+						GFP_ATOMIC);
+	if (!bssid)
+		return _FAIL;
 
 	bssid->reserved = 1;
 
-	bssid->Length = sizeof(struct wlan_bssid_ex) - MAX_IE_SZ + len;
+	bssid->Length = offsetof(struct wlan_bssid_ex, IEs) + len;
 
 	/* below is to copy the information element */
 	bssid->IELength = len;
-	memcpy(bssid->IEs, &mgmt->u, bssid->IELength);
+	memcpy(bssid->IEs, &mgmt->u, len);
 
 	/* check bw and channel offset */
 	/* parsing HT_CAP_IE */
@@ -1005,7 +1008,7 @@ int rtw_check_bcn_info23a(struct rtw_adapter *Adapter,
 	}
 
 	/* check encryption info */
-	val16 = rtw_get_capability23a((struct wlan_bssid_ex *)bssid);
+	val16 = rtw_get_capability23a(bssid);
 
 	if (val16 & BIT(4))
 		bssid->Privacy = 1;
@@ -1139,7 +1142,7 @@ unsigned int is_ap_in_tkip23a(struct rtw_adapter *padapter)
 	struct mlme_ext_info *pmlmeinfo = &pmlmeext->mlmext_info;
 	struct wlan_bssid_ex *cur_network = &pmlmeinfo->network;
 
-	if (rtw_get_capability23a((struct wlan_bssid_ex *)cur_network) & WLAN_CAPABILITY_PRIVACY) {
+	if (rtw_get_capability23a(cur_network) & WLAN_CAPABILITY_PRIVACY) {
 		for (i = sizeof(struct ndis_802_11_fixed_ies); i < pmlmeinfo->network.IELength;) {
 			pIE = (struct ndis_802_11_var_ies *)(pmlmeinfo->network.IEs + i);
 
@@ -1170,7 +1173,7 @@ unsigned int should_forbid_n_rate23a(struct rtw_adapter * padapter)
 	struct mlme_priv	*pmlmepriv = &padapter->mlmepriv;
 	struct wlan_bssid_ex  *cur_network = &pmlmepriv->cur_network.network;
 
-	if (rtw_get_capability23a((struct wlan_bssid_ex *)cur_network) & WLAN_CAPABILITY_PRIVACY) {
+	if (rtw_get_capability23a(cur_network) & WLAN_CAPABILITY_PRIVACY) {
 		for (i = sizeof(struct ndis_802_11_fixed_ies); i < cur_network->IELength;) {
 			pIE = (struct ndis_802_11_var_ies *)(cur_network->IEs + i);
 
@@ -1205,7 +1208,7 @@ unsigned int is_ap_in_wep23a(struct rtw_adapter *padapter)
 	struct mlme_ext_info *pmlmeinfo = &pmlmeext->mlmext_info;
 	struct wlan_bssid_ex *cur_network = &pmlmeinfo->network;
 
-	if (rtw_get_capability23a((struct wlan_bssid_ex *)cur_network) & WLAN_CAPABILITY_PRIVACY) {
+	if (rtw_get_capability23a(cur_network) & WLAN_CAPABILITY_PRIVACY) {
 		for (i = sizeof(struct ndis_802_11_fixed_ies); i < pmlmeinfo->network.IELength;) {
 			pIE = (struct ndis_802_11_var_ies *)(pmlmeinfo->network.IEs + i);
 
@@ -1230,7 +1233,7 @@ unsigned int is_ap_in_wep23a(struct rtw_adapter *padapter)
 	}
 }
 
-int wifirate2_ratetbl_inx23a(unsigned char rate)
+static int wifirate2_ratetbl_inx23a(unsigned char rate)
 {
 	int	inx = 0;
 	rate = rate & 0x7f;
@@ -1344,25 +1347,13 @@ unsigned char get_highest_rate_idx23a(u32 mask)
 	return rate_idx;
 }
 
-unsigned char get_highest_mcs_rate(struct HT_caps_element *pHT_caps)
-{
-	int i, mcs_rate;
-
-	mcs_rate = (pHT_caps->u.HT_cap_element.MCS_rate[0] | (pHT_caps->u.HT_cap_element.MCS_rate[1] << 8));
-
-	for (i = 15; i >= 0; i--) {
-		if (mcs_rate & (0x1 << i))
-			break;
-	}
-	return i;
-}
-
 void Update_RA_Entry23a(struct rtw_adapter *padapter, struct sta_info *psta)
 {
 	rtw_hal_update_ra_mask23a(psta, 0);
 }
 
-void enable_rate_adaptive(struct rtw_adapter *padapter, struct sta_info *psta)
+static void enable_rate_adaptive(struct rtw_adapter *padapter,
+				 struct sta_info *psta)
 {
 	Update_RA_Entry23a(padapter, psta);
 }
@@ -1589,9 +1580,11 @@ void update_bmc_sta_support_rate23a(struct rtw_adapter *padapter, u32 mac_id)
 
 	if (pmlmeext->cur_wireless_mode & WIRELESS_11B) {
 		/*  Only B, B/G, and B/G/N AP could use CCK rate */
-		memcpy((pmlmeinfo->FW_sta_info[mac_id].SupportedRates), rtw_basic_rate_cck, 4);
+		memcpy((pmlmeinfo->FW_sta_info[mac_id].SupportedRates),
+		       rtw_basic_rate_cck, 4);
 	} else {
-		memcpy((pmlmeinfo->FW_sta_info[mac_id].SupportedRates), rtw_basic_rate_ofdm, 4);
+		memcpy((pmlmeinfo->FW_sta_info[mac_id].SupportedRates),
+		       rtw_basic_rate_ofdm, 3);
 	}
 }
 

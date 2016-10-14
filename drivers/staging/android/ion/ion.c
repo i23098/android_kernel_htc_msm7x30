@@ -380,11 +380,11 @@ static bool ion_handle_validate(struct ion_client *client, struct ion_handle *ha
 	struct rb_node *n = client->handles.rb_node;
 
 	while (n) {
-		struct ion_handle *handle_node = rb_entry(n, struct ion_handle,
-							  node);
-		if (handle < handle_node)
+		struct ion_handle *entry = rb_entry(n, struct ion_handle, node);
+
+		if (handle < entry)
 			n = n->rb_left;
-		else if (handle > handle_node)
+		else if (handle > entry)
 			n = n->rb_right;
 		else
 			return true;
@@ -928,9 +928,11 @@ static int ion_get_client_serial(const struct rb_root *root,
 {
 	int serial = -1;
 	struct rb_node *node;
+
 	for (node = rb_first(root); node; node = rb_next(node)) {
 		struct ion_client *client = rb_entry(node, struct ion_client,
 						node);
+
 		if (strcmp(client->name, name))
 			continue;
 		serial = max(serial, client->display_serial);
@@ -1201,12 +1203,14 @@ static int ion_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 static void ion_dma_buf_release(struct dma_buf *dmabuf)
 {
 	struct ion_buffer *buffer = dmabuf->priv;
+
 	ion_buffer_put(buffer);
 }
 
 static void *ion_dma_buf_kmap(struct dma_buf *dmabuf, unsigned long offset)
 {
 	struct ion_buffer *buffer = dmabuf->priv;
+
 	return buffer->vaddr + offset;
 }
 
@@ -1675,6 +1679,7 @@ static int ion_debug_heap_show(struct seq_file *s, void *unused)
 		struct ion_client *client = rb_entry(n, struct ion_client,
 						     node);
 		size_t size = ion_debug_heap_total(client, heap->id);
+
 		if (!size)
 			continue;
 		if (client->task) {
@@ -1734,6 +1739,7 @@ void ion_device_add_heap(struct ion_device *dev, struct ion_heap *heap)
 
 	if (!debug_file) {
 		char buf[256], *path;
+
 		path = dentry_path(dev->heaps_debug_root, buf, 256);
 		pr_err("Failed to create heap debugfs at %s/%s\n",
 			path, heap->name);
@@ -1824,7 +1830,6 @@ static int ion_debug_leak_show(struct seq_file *s, void *unused)
 						struct ion_handle, node);
 
 			handle->buffer->marked = 0;
-
 		}
 		mutex_unlock(&client->lock);
 

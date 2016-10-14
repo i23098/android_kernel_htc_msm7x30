@@ -503,11 +503,8 @@ int rtw_parse_wpa_ie23a(const u8* wpa_ie, int wpa_ie_len, int *group_cipher, int
 		return _FAIL;
 	}
 
-	if ((*wpa_ie != WLAN_EID_VENDOR_SPECIFIC) ||
-	    (*(wpa_ie+1) != (u8)(wpa_ie_len - 2)) ||
-	    memcmp(wpa_ie + 2, RTW_WPA_OUI23A_TYPE, WPA_SELECTOR_LEN)) {
+	if (wpa_ie[1] != (u8)(wpa_ie_len - 2))
 		return _FAIL;
-	}
 
 	pos = wpa_ie;
 
@@ -1004,8 +1001,8 @@ void rtw_get_bcn_info23a(struct wlan_network *pnetwork)
 	unsigned int		len;
 	unsigned char		*p;
 
-	memcpy(&cap, rtw_get_capability23a_from_ie(pnetwork->network.IEs), 2);
-	cap = le16_to_cpu(cap);
+	cap = get_unaligned_le16(
+		rtw_get_capability23a_from_ie(pnetwork->network.IEs));
 	if (cap & WLAN_CAPABILITY_PRIVACY) {
 		bencrypt = 1;
 		pnetwork->network.Privacy = 1;
