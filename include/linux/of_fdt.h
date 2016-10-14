@@ -110,6 +110,25 @@ extern void early_init_dt_setup_initrd_arch(unsigned long start,
 					    unsigned long end);
 #endif
 
+/* htc board specific staff */
+extern void early_init_dt_setup_engineerid(unsigned long engineerid);
+extern void early_init_dt_setup_smi(unsigned long value);
+extern void early_init_dt_setup_hwid(unsigned long value);
+extern void early_init_dt_setup_skuid(unsigned long value);
+extern void early_init_dt_setup_panel_type(unsigned long value);
+extern void early_init_dt_setup_memsize(unsigned long value);
+extern void early_init_dt_setup_als_calibration(unsigned long value);
+extern void early_init_dt_setup_bt_mac(char * address, size_t len);
+extern void early_init_dt_setup_ps_type(unsigned long value);
+extern void early_init_dt_setup_ps_calibration(unsigned long ps_low, unsigned long ps_high);
+extern void early_init_dt_setup_gs_calibration(unsigned long value);
+extern void early_init_dt_setup_awb_cal(char * data, size_t len);
+extern void early_init_dt_setup_gpio_table(char * data, size_t len);
+extern void early_init_dt_setup_msm_partitions(char * data, size_t len);
+extern void early_init_dt_setup_revision(int revision, int revision2);
+extern void early_init_dt_setup_msm_wifi_data(char * data, size_t len);
+/* end htc board specific */
+
 /* Early flat tree scan hooks */
 extern int early_init_dt_scan_root(unsigned long node, const char *uname,
 				   int depth, void *data);

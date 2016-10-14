@@ -492,12 +492,16 @@ EXPORT_SYMBOL(board_build_flag);
 #define ATAG_PS_TYPE 0x4d534D77
 int ps_type;
 EXPORT_SYMBOL(ps_type);
+void __init early_init_dt_setup_ps_type(unsigned long value) {
+	pr_info("[dt]ps_type = 0x%lx\n", value);
+	ps_type = value;
+}
+
 int __init tag_ps_parsing(const struct tag *tags)
 {
 	ps_type = tags->u.revision.rev;
 
-	printk(KERN_DEBUG "%s: PS type = 0x%x\n", __func__,
-		ps_type);
+	printk("[atag]ps_type = 0x%x\n", ps_type);
 
 	return ps_type;
 }

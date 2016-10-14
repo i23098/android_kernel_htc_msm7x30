@@ -3474,6 +3474,11 @@ static void __init spade_fixup(struct machine_desc *desc, struct tag *tags,
 	mi->bank[1].size = MSM_LINUX_SIZE2;
 }
 
+static const char * const qcom_dt_match[] __initconst = {
+	"qcom,msm8255",
+	NULL
+};
+
 MACHINE_START(SPADE, "spade")
 	.fixup = spade_fixup,
 	.map_io = spade_map_io,
@@ -3482,5 +3487,6 @@ MACHINE_START(SPADE, "spade")
 	.init_machine = spade_init,
 	.timer = &msm_timer,
 	.init_early = spade_init_early,
+	.dt_compat = qcom_dt_match,
 MACHINE_END
 

@@ -579,6 +579,85 @@ inline void early_init_dt_check_for_initrd(unsigned long node)
 #endif /* CONFIG_BLK_DEV_INITRD */
 
 /**
+ * early_init_dt_check_for_initrd - Decode board settings from flat tree
+ * @node: reference to node containing board specific configs ('chosen')
+ */
+void __init early_init_dt_check_htc_board(unsigned long node)
+{
+	unsigned long len;
+	__be32 *prop;
+	prop = of_get_flat_dt_prop(node, "linux,engineerid", &len);
+	if (prop)
+		early_init_dt_setup_engineerid(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,smi", &len);
+	if (prop)
+		early_init_dt_setup_smi(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,hwid", &len);
+	if (prop)
+		early_init_dt_setup_hwid(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,skuid", &len);
+	if (prop)
+		early_init_dt_setup_skuid(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,panel_type", &len);
+	if (prop)
+		early_init_dt_setup_panel_type(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,memsize", &len);
+	if (prop)
+		early_init_dt_setup_memsize(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,bt_mac", &len);
+	if (prop && len > 0)
+		early_init_dt_setup_bt_mac((char *)prop, len);
+
+	prop = of_get_flat_dt_prop(node, "linux,als_calibration", &len);
+	if (prop)
+		early_init_dt_setup_als_calibration(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,gs_calibration", &len);
+	if (prop)
+		early_init_dt_setup_gs_calibration(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,ps_calibration", &len);
+	if (prop && len > 0)
+		early_init_dt_setup_ps_calibration(
+		    of_read_ulong(prop, len/8),
+		    of_read_ulong(prop + 1, len/8)
+		);
+
+	prop = of_get_flat_dt_prop(node, "linux,ps_type", &len);
+	if (prop)
+		early_init_dt_setup_ps_type(of_read_ulong(prop, len/4));
+
+	prop = of_get_flat_dt_prop(node, "linux,revision", &len);
+	if (prop && len > 0)
+		early_init_dt_setup_revision(
+		    of_read_ulong(prop, len/8),
+		    of_read_ulong(prop + 1, len/8)
+		);
+
+	prop = of_get_flat_dt_prop(node, "linux,wifi", &len);
+	if (prop && len > 0)
+		early_init_dt_setup_msm_wifi_data((char *)prop, len);
+
+	prop = of_get_flat_dt_prop(node, "linux,awb_cal", &len);
+	if (prop && len > 0)
+		early_init_dt_setup_awb_cal((char *)prop, len);
+
+	prop = of_get_flat_dt_prop(node, "linux,gpio_table", &len);
+	if (prop && len > 0)
+		early_init_dt_setup_gpio_table((char *)prop, len);
+
+	prop = of_get_flat_dt_prop(node, "linux,msm_partitions", &len);
+	if (prop && len > 0)
+		early_init_dt_setup_msm_partitions((char *)prop, len);
+}
+
+/**
  * early_init_dt_scan_root - fetch the top level address and size cells
  */
 int __init early_init_dt_scan_root(unsigned long node, const char *uname,
@@ -676,6 +755,7 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 		return 0;
 
 	early_init_dt_check_for_initrd(node);
+	early_init_dt_check_htc_board(node);
 
 	/* Retrieve command line */
 	p = of_get_flat_dt_prop(node, "bootargs", &l);

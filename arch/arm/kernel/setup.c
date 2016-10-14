@@ -715,6 +715,12 @@ static int __init parse_tag_serialnr(const struct tag *tag)
 
 __tagtable(ATAG_SERIAL, parse_tag_serialnr);
 
+void __init early_init_dt_setup_revision(int revision, int revision2) {
+	system_rev = revision;
+	system_rev2 = revision2;
+	pr_info("[dt]revision = %x, revision2 = %x\n", system_rev, system_rev2);
+}
+
 static int __init parse_tag_revision(const struct tag *tag)
 {
 	system_rev = tag->u.revision.rev;
