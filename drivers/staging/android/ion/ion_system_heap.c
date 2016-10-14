@@ -55,7 +55,7 @@ static int order_to_index(unsigned int order)
 	return -1;
 }
 
-static unsigned int order_to_size(int order)
+static inline unsigned int order_to_size(int order)
 {
 	return PAGE_SIZE << order;
 }
@@ -92,8 +92,6 @@ static struct page *alloc_buffer_page(struct ion_system_heap *heap,
 		ion_pages_sync_for_device(NULL, page, PAGE_SIZE << order,
 						DMA_BIDIRECTIONAL);
 	}
-	if (!page)
-		return NULL;
 
 	return page;
 }
@@ -139,7 +137,6 @@ static struct page_info *alloc_largest_available(struct ion_system_heap *heap,
 
 		info->page = page;
 		info->order = orders[i];
-		INIT_LIST_HEAD(&info->list);
 		return info;
 	}
 	kfree(info);
@@ -163,22 +160,22 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 		return -ENOMEM;
 	i = sg_alloc_table(table, npages, GFP_KERNEL);
 	if (i)
-		goto err0;
+		goto free_pages;
 	for_each_sg(table->sgl, sg, table->nents, i) {
 		struct page *page;
 		page = alloc_page(GFP_KERNEL|__GFP_ZERO);
 		if (!page)
-			goto err1;
+			goto free_table;
 		sg_set_page(sg, page, PAGE_SIZE, 0);
 	}
 	buffer->priv_virt = table;
 	atomic_add(size, &system_heap_allocated);
 	return 0;
-err1:
+free_table:
 	for_each_sg(table->sgl, sg, i, j)
 		__free_page(sg_page(sg));
 	sg_free_table(table);
-err0:
+free_pages:
 	kfree(table);
 	return -ENOMEM;
 }
@@ -710,4 +707,3 @@ void ion_system_contig_heap_destroy(struct ion_heap *heap)
 {
 	kfree(heap);
 }
-
