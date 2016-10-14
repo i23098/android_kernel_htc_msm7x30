@@ -455,15 +455,12 @@ void rtl8723a_set_ampdu_factor(struct rtw_adapter *padapter, u8 FactorToSet)
 	u8 index = 0;
 
 	pRegToSet = RegToSet_Normal;	/*  0xb972a841; */
-#ifdef CONFIG_8723AU_BT_COEXIST
-	if ((BT_IsBtDisabled(padapter) == false) &&
-	    (BT_1Ant(padapter) == true)) {
+
+	if (rtl8723a_BT_enabled(padapter) &&
+	    rtl8723a_BT_using_antenna_1(padapter))
 		MaxAggNum = 0x8;
-	} else
-#endif /*  CONFIG_8723AU_BT_COEXIST */
-	{
+	else
 		MaxAggNum = 0xF;
-	}
 
 	if (FactorToSet <= 3) {
 		FactorToSet = (1 << (FactorToSet + 2));
@@ -584,16 +581,14 @@ void rtl8723a_mlme_sitesurvey(struct rtw_adapter *padapter, u8 flag)
 		rtl8723au_write32(padapter, REG_RCR, v32);
 	}
 
-#ifdef CONFIG_8723AU_BT_COEXIST
-	BT_WifiScanNotify(padapter, flag ? true : false);
-#endif
+	rtl8723a_BT_wifiscan_notify(padapter, flag ? true : false);
 }
 
 void rtl8723a_on_rcr_am(struct rtw_adapter *padapter)
 {
 	rtl8723au_write32(padapter, REG_RCR,
 		    rtl8723au_read32(padapter, REG_RCR) | RCR_AM);
-	DBG_8723A("%s, %d, RCR = %x \n", __FUNCTION__, __LINE__,
+	DBG_8723A("%s, %d, RCR = %x \n", __func__, __LINE__,
 		  rtl8723au_read32(padapter, REG_RCR));
 }
 
@@ -601,7 +596,7 @@ void rtl8723a_off_rcr_am(struct rtw_adapter *padapter)
 {
 	rtl8723au_write32(padapter, REG_RCR,
 		    rtl8723au_read32(padapter, REG_RCR) & (~RCR_AM));
-	DBG_8723A("%s, %d, RCR = %x \n", __FUNCTION__, __LINE__,
+	DBG_8723A("%s, %d, RCR = %x \n", __func__, __LINE__,
 		  rtl8723au_read32(padapter, REG_RCR));
 }
 

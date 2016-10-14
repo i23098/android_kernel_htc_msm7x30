@@ -38,7 +38,7 @@
 #include "rf.h"
 #include "iowpa.h"
 #include "wpactl.h"
-#include "control.h"
+#include "usbpipe.h"
 #include "baseband.h"
 
 static const long frequency_list[] = {
@@ -57,7 +57,7 @@ struct iw_statistics *iwctl_get_wireless_stats(struct net_device *dev)
 	long ldBm;
 
 	pDevice->wstats.status = pDevice->op_mode;
-	RFvRSSITodBm(pDevice, (u8)(pDevice->uCurrRSSI), &ldBm);
+	vnt_rf_rssi_to_dbm(pDevice, (u8)(pDevice->uCurrRSSI), &ldBm);
 	pDevice->wstats.qual.level = ldBm;
 	pDevice->wstats.qual.noise = 0;
 	pDevice->wstats.qual.updated = 1;
@@ -91,6 +91,7 @@ int iwctl_siwscan(struct net_device *dev, struct iw_request_info *info,
 	struct iw_scan_req *req = (struct iw_scan_req *)extra;
 	u8 abyScanSSID[WLAN_IEHDR_LEN + WLAN_SSID_MAXLEN + 1];
 	PWLAN_IE_SSID pItemSSID = NULL;
+	unsigned long flags;
 
 	if (!(pDevice->flags & DEVICE_FLAGS_OPENED))
 		return -EINVAL;
@@ -115,7 +116,7 @@ int iwctl_siwscan(struct net_device *dev, struct iw_request_info *info,
 		return 0;
 	}
 
-	spin_lock_irq(&pDevice->lock);
+	spin_lock_irqsave(&pDevice->lock, flags);
 
 	BSSvClearBSSList((void *)pDevice, pDevice->bLinkPass);
 
@@ -136,7 +137,8 @@ int iwctl_siwscan(struct net_device *dev, struct iw_request_info *info,
 			PRINT_K("SIOCSIWSCAN:[desired_ssid=%s,len=%d]\n", ((PWLAN_IE_SSID)abyScanSSID)->abySSID,
 				((PWLAN_IE_SSID)abyScanSSID)->len);
 			bScheduleCommand((void *)pDevice, WLAN_CMD_BSSID_SCAN, abyScanSSID);
-			spin_unlock_irq(&pDevice->lock);
+
+			spin_unlock_irqrestore(&pDevice->lock, flags);
 
 			return 0;
 		} else if (req->scan_type == IW_SCAN_TYPE_PASSIVE) { // passive scan
@@ -148,7 +150,8 @@ int iwctl_siwscan(struct net_device *dev, struct iw_request_info *info,
 
 	pMgmt->eScanType = WMAC_SCAN_PASSIVE;
 	bScheduleCommand((void *)pDevice, WLAN_CMD_BSSID_SCAN, NULL);
-	spin_unlock_irq(&pDevice->lock);
+
+	spin_unlock_irqrestore(&pDevice->lock, flags);
 
 	return 0;
 }
@@ -232,7 +235,7 @@ int iwctl_giwscan(struct net_device *dev, struct iw_request_info *info,
 			// ADD quality
 			memset(&iwe, 0, sizeof(iwe));
 			iwe.cmd = IWEVQUAL;
-			RFvRSSITodBm(pDevice, (u8)(pBSS->uRSSI), &ldBm);
+			vnt_rf_rssi_to_dbm(pDevice, (u8)(pBSS->uRSSI), &ldBm);
 			iwe.u.qual.level = ldBm;
 			iwe.u.qual.noise = 0;
 
@@ -375,6 +378,7 @@ int iwctl_siwmode(struct net_device *dev, struct iw_request_info *info,
 	struct vnt_private *pDevice = netdev_priv(dev);
 	__u32 *wmode = &wrqu->mode;
 	struct vnt_manager *pMgmt = &pDevice->vnt_mgmt;
+	unsigned long flags;
 	int rc = 0;
 
 	DBG_PRT(MSG_LEVEL_DEBUG, KERN_INFO " SIOCSIWMODE\n");
@@ -415,10 +419,13 @@ int iwctl_siwmode(struct net_device *dev, struct iw_request_info *info,
 	if (pDevice->bCommit) {
 		if (pMgmt->eConfigMode == WMAC_CONFIG_AP) {
 			netif_stop_queue(pDevice->dev);
-			spin_lock_irq(&pDevice->lock);
+
+			spin_lock_irqsave(&pDevice->lock, flags);
+
 			bScheduleCommand((void *) pDevice,
 				WLAN_CMD_RUN_AP, NULL);
-			spin_unlock_irq(&pDevice->lock);
+
+			spin_unlock_irqrestore(&pDevice->lock, flags);
 		} else {
 			DBG_PRT(MSG_LEVEL_DEBUG, KERN_INFO
 				"Commit the settings\n");
@@ -435,9 +442,7 @@ int iwctl_siwmode(struct net_device *dev, struct iw_request_info *info,
 				memset(pMgmt->abyCurrBSSID, 0, 6);
 			}
 
-			ControlvMaskByte(pDevice,
-				MESSAGE_REQUEST_MACREG,	MAC_REG_PAPEDELAY,
-					LEDSTS_STS, LEDSTS_SLOW);
+			vnt_mac_set_led(pDevice, LEDSTS_STS, LEDSTS_SLOW);
 
 			netif_stop_queue(pDevice->dev);
 
@@ -1394,7 +1399,7 @@ int iwctl_giwsens(struct net_device *dev, struct iw_request_info *info,
 
 	DBG_PRT(MSG_LEVEL_DEBUG, KERN_INFO " SIOCGIWSENS\n");
 	if (pDevice->bLinkPass == true) {
-		RFvRSSITodBm(pDevice, (u8)(pDevice->uCurrRSSI), &ldBm);
+		vnt_rf_rssi_to_dbm(pDevice, (u8)(pDevice->uCurrRSSI), &ldBm);
 		wrq->value = ldBm;
 	} else {
 		wrq->value = 0;

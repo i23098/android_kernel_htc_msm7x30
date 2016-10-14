@@ -104,8 +104,6 @@ static char *slic_banner = "Alacritech SLIC Technology(tm) Server "
 
 static char *slic_proc_version = "2.0.351  2006/07/14 12:26:00";
 
-static struct net_device *head_netdevice;
-
 static struct base_driver slic_global = { {}, 0, 0, 0, 1, NULL, NULL };
 static int intagg_delay = 100;
 static u32 dynamic_intagg;
@@ -397,7 +395,7 @@ static int slic_card_download_gbrcv(struct adapter *adapter)
 	ret = request_firmware(&fw, file, &adapter->pcidev->dev);
 	if (ret) {
 		dev_err(&adapter->pcidev->dev,
-			"SLICOSS: Failed to load firmware %s\n", file);
+			"Failed to load firmware %s\n", file);
 		return ret;
 	}
 
@@ -475,7 +473,7 @@ static int slic_card_download(struct adapter *adapter)
 	ret = request_firmware(&fw, file, &adapter->pcidev->dev);
 	if (ret) {
 		dev_err(&adapter->pcidev->dev,
-			"SLICOSS: Failed to load firmware %s\n", file);
+			"Failed to load firmware %s\n", file);
 		return ret;
 	}
 	numsects = *(u32 *)(fw->data + index);
@@ -2701,13 +2699,8 @@ static int slic_card_init(struct sliccard *card, struct adapter *adapter)
 
 	/* Download the microcode */
 	status = slic_card_download(adapter);
-
-	if (status != 0) {
-		dev_err(&adapter->pcidev->dev,
-			"download failed bus %d slot %d\n",
-			adapter->busnumber, adapter->slotnumber);
+	if (status)
 		return status;
-	}
 
 	if (!card->config_set) {
 		peeprom = pci_alloc_consistent(adapter->pcidev,
@@ -2719,8 +2712,7 @@ static int slic_card_init(struct sliccard *card, struct adapter *adapter)
 
 		if (!peeprom) {
 			dev_err(&adapter->pcidev->dev,
-				"eeprom read failed to get memory bus %d slot %d\n", adapter->busnumber,
-				adapter->slotnumber);
+				"Failed to allocate DMA memory for EEPROM.\n");
 			return -ENOMEM;
 		} else {
 			memset(peeprom, 0, sizeof(struct slic_eeprom));
@@ -2769,8 +2761,7 @@ static int slic_card_init(struct sliccard *card, struct adapter *adapter)
 				i++;
 				if (i > 5000) {
 					dev_err(&adapter->pcidev->dev,
-						"%d config data fetch timed out!\n",
-						adapter->port);
+						"Fetch of config data timed out.\n");
 					slic_reg64_write(adapter,
 						&slic_regs->slic_isp, 0,
 						&slic_regs->slic_addr_upper,
@@ -2853,19 +2844,16 @@ static int slic_card_init(struct sliccard *card, struct adapter *adapter)
 			slic_reg64_write(adapter, &slic_regs->slic_isp, 0,
 					 &slic_regs->slic_addr_upper,
 					 0, FLUSH);
-			dev_err(&adapter->pcidev->dev,
-				"unsupported CONFIGURATION EEPROM invalid\n");
+			dev_err(&adapter->pcidev->dev, "EEPROM invalid.\n");
 			return -EINVAL;
 		}
 
 		card->config_set = 1;
 	}
 
-	if (slic_card_download_gbrcv(adapter)) {
-		dev_err(&adapter->pcidev->dev,
-			"unable to download GB receive microcode\n");
-		return -EINVAL;
-	}
+	status = slic_card_download_gbrcv(adapter);
+	if (status)
+		return status;
 
 	if (slic_global.dynamic_intagg)
 		slic_intagg_set(adapter, 0);
@@ -2918,8 +2906,6 @@ static void slic_init_adapter(struct net_device *netdev,
 	adapter->slic_regs = (__iomem struct slic_regs *)memaddr;
 	adapter->irq = pcidev->irq;
 /*	adapter->netdev = netdev;*/
-	adapter->next_netdevice = head_netdevice;
-	head_netdevice = netdev;
 	adapter->chipid = chip_idx;
 	adapter->port = 0;	/*adapter->functionnumber;*/
 	adapter->cardindex = adapter->port;

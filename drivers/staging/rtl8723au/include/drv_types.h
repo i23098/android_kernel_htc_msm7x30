@@ -38,7 +38,6 @@ enum _NIC_VERSION {
 #include <rtw_ht.h>
 
 #include <rtw_cmd.h>
-#include <wlan_bssdef.h>
 #include <rtw_xmit.h>
 #include <rtw_recv.h>
 #include <hal_intf.h>
@@ -228,10 +227,6 @@ struct rtw_adapter {
 	struct	pwrctrl_priv	pwrctrlpriv;
 	struct	eeprom_priv eeprompriv;
 	struct	led_priv	ledpriv;
-
-#ifdef CONFIG_8723AU_AP_MODE
-	struct	hostapd_priv	*phostapdpriv;
-#endif
 
 	u32	setband;
 

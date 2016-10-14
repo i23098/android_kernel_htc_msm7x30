@@ -1280,7 +1280,7 @@ u32 ODM_Get_Rate_Bitmap23a(struct dm_odm_t *pDM_Odm,
 		break;
 	}
 
-	/* printk("%s ==> rssi_level:0x%02x, WirelessMode:0x%02x, rate_bitmap:0x%08x \n", __FUNCTION__, rssi_level, WirelessMode, rate_bitmap); */
+	/* printk("%s ==> rssi_level:0x%02x, WirelessMode:0x%02x, rate_bitmap:0x%08x \n", __func__, rssi_level, WirelessMode, rate_bitmap); */
 	ODM_RT_TRACE(pDM_Odm, ODM_COMP_RA_MASK, ODM_DBG_LOUD, (" ==> rssi_level:0x%02x, WirelessMode:0x%02x, rate_bitmap:0x%08x \n", rssi_level, WirelessMode, rate_bitmap));
 
 	return rate_bitmap;
@@ -1336,7 +1336,7 @@ void odm_RefreshRateAdaptiveMask23aCE23a(struct dm_odm_t *pDM_Odm)
 		return;
 	}
 
-	/* printk("==> %s \n", __FUNCTION__); */
+	/* printk("==> %s \n", __func__); */
 
 	for (i = 0; i < ODM_ASSOCIATE_ENTRY_NUM; i++) {
 		struct sta_info *pstat = pDM_Odm->pODM_StaInfo[i];
@@ -1668,10 +1668,8 @@ void odm_EdcaTurboCheck23aCE23a(struct dm_odm_t *pDM_Odm)
 	if (pmlmeinfo->assoc_AP_vendor >=  HT_IOT_PEER_MAX)
 		goto dm_CheckEdcaTurbo_EXIT;
 
-#ifdef CONFIG_8723AU_BT_COEXIST
-	if (BT_DisableEDCATurbo(Adapter))
+	if (rtl8723a_BT_disable_EDCA_turbo(Adapter))
 		goto dm_CheckEdcaTurbo_EXIT;
-#endif
 
 	/*  Check if the status needs to be changed. */
 	if ((bbtchange) || (!precvpriv->bIsAnyNonBEPkts)) {

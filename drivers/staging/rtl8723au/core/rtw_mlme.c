@@ -221,7 +221,7 @@ int rtw_if_up23a(struct rtw_adapter *padapter)
 	int res;
 
 	if (padapter->bDriverStopped || padapter->bSurpriseRemoved ||
-	    check_fwstate(&padapter->mlmepriv, _FW_LINKED) == false) {
+	    !check_fwstate(&padapter->mlmepriv, _FW_LINKED)) {
 		RT_TRACE(_module_rtl871x_mlme_c_, _drv_info_,
 			 ("rtw_if_up23a:bDriverStopped(%d) OR "
 			  "bSurpriseRemoved(%d)", padapter->bDriverStopped,
@@ -682,7 +682,7 @@ void rtw_survey_event_cb23a(struct rtw_adapter *adapter, const u8 *pbuf)
 	}
 
 	/*  lock pmlmepriv->lock when you accessing network_q */
-	if (check_fwstate(pmlmepriv, _FW_UNDER_LINKING) == false) {
+	if (!check_fwstate(pmlmepriv, _FW_UNDER_LINKING)) {
 	        if (pnetwork->Ssid.ssid[0] == 0)
 			pnetwork->Ssid.ssid_len = 0;
 
@@ -730,7 +730,7 @@ rtw_surveydone_event_callback23a(struct rtw_adapter *adapter, const u8 *pbuf)
 
 	if (pmlmepriv->to_join == true) {
 		if (check_fwstate(pmlmepriv, WIFI_ADHOC_STATE)) {
-			if (check_fwstate(pmlmepriv, _FW_LINKED) == false) {
+			if (!check_fwstate(pmlmepriv, _FW_LINKED)) {
 				set_fwstate(pmlmepriv, _FW_UNDER_LINKING);
 
 				if (rtw_select_and_join_from_scanned_queue23a(
@@ -1824,8 +1824,7 @@ int rtw_set_auth23a(struct rtw_adapter * adapter,
 		goto exit;
 	}
 
-	psetauthparm = (struct setauth_parm*)
-		kzalloc(sizeof(struct setauth_parm), GFP_KERNEL);
+	psetauthparm = kzalloc(sizeof(struct setauth_parm), GFP_KERNEL);
 	if (!psetauthparm) {
 		kfree(pcmd);
 		res = _FAIL;
@@ -1866,7 +1865,7 @@ int rtw_set_key23a(struct rtw_adapter *adapter,
 		goto exit;
 	}
 
-	pcmd = (struct cmd_obj *)kzalloc(sizeof(struct cmd_obj), GFP_KERNEL);
+	pcmd = kzalloc(sizeof(struct cmd_obj), GFP_KERNEL);
 	if (!pcmd) {
 		res = _FAIL;  /* try again */
 		goto exit;

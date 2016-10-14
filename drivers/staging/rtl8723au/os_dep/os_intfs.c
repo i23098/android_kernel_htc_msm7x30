@@ -23,8 +23,6 @@
 
 #include <rtl8723a_hal.h>
 
-#include <linux/version.h>
-
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Realtek Wireless Lan Driver");
 MODULE_AUTHOR("Realtek Semiconductor Corp.");
@@ -835,10 +833,6 @@ static int netdev_close(struct net_device *pnetdev)
 
 	RT_TRACE(_module_os_intfs_c_, _drv_info_, ("+871x_drv - drv_close\n"));
 
-	if (padapter->pwrctrlpriv.bInternalAutoSuspend) {
-		if (padapter->pwrctrlpriv.rf_pwrstate == rf_off)
-			padapter->pwrctrlpriv.ps_flag = true;
-	}
 	padapter->net_closed = true;
 
 	if (padapter->pwrctrlpriv.rf_pwrstate == rf_on) {

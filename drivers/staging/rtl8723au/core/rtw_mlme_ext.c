@@ -643,7 +643,7 @@ void mgt_dispatcher23a(struct rtw_adapter *padapter,
 	switch (stype)
 	{
 	case IEEE80211_STYPE_AUTH:
-		if (check_fwstate(pmlmepriv, WIFI_AP_STATE) == true)
+		if (check_fwstate(pmlmepriv, WIFI_AP_STATE))
 			ptable->func = &OnAuth23a;
 		else
 			ptable->func = &OnAuth23aClient23a;
@@ -653,7 +653,7 @@ void mgt_dispatcher23a(struct rtw_adapter *padapter,
 		_mgt_dispatcher23a(padapter, ptable, precv_frame);
 		break;
 	case IEEE80211_STYPE_PROBE_REQ:
-		if (check_fwstate(pmlmepriv, WIFI_AP_STATE) == true)
+		if (check_fwstate(pmlmepriv, WIFI_AP_STATE))
 			_mgt_dispatcher23a(padapter, ptable, precv_frame);
 		else
 			_mgt_dispatcher23a(padapter, ptable, precv_frame);
@@ -662,7 +662,7 @@ void mgt_dispatcher23a(struct rtw_adapter *padapter,
 		_mgt_dispatcher23a(padapter, ptable, precv_frame);
 		break;
 	case IEEE80211_STYPE_ACTION:
-		/* if (check_fwstate(pmlmepriv, WIFI_AP_STATE) == true) */
+		/* if (check_fwstate(pmlmepriv, WIFI_AP_STATE)) */
 		_mgt_dispatcher23a(padapter, ptable, precv_frame);
 		break;
 	default:
@@ -1880,7 +1880,7 @@ OnDeAuth23a(struct rtw_adapter *padapter, struct recv_frame *precv_frame)
 	DBG_8723A("%s Reason code(%d)\n", __func__, reason);
 
 #ifdef CONFIG_8723AU_AP_MODE
-	if (check_fwstate(pmlmepriv, WIFI_AP_STATE) == true) {
+	if (check_fwstate(pmlmepriv, WIFI_AP_STATE)) {
 		struct sta_info *psta;
 		struct sta_priv *pstapriv = &padapter->stapriv;
 
@@ -2467,7 +2467,8 @@ void issue_beacon23a(struct rtw_adapter *padapter, int timeout_ms)
 
 	/* DBG_8723A("%s\n", __func__); */
 
-	if ((pmgntframe = alloc_mgtxmitframe23a(pxmitpriv)) == NULL) {
+	pmgntframe = alloc_mgtxmitframe23a(pxmitpriv);
+	if (!pmgntframe) {
 		DBG_8723A("%s, alloc mgnt frame fail\n", __func__);
 		return;
 	}
@@ -2843,7 +2844,8 @@ static int _issue_probereq(struct rtw_adapter *padapter,
 	RT_TRACE(_module_rtl871x_mlme_c_, _drv_notice_,
 		 ("+%s\n", __func__));
 
-	if ((pmgntframe = alloc_mgtxmitframe23a(pxmitpriv)) == NULL)
+	pmgntframe = alloc_mgtxmitframe23a(pxmitpriv);
+	if (!pmgntframe)
 		goto exit;
 
 	/* update attribute */
@@ -2991,7 +2993,8 @@ static void issue_auth(struct rtw_adapter *padapter, struct sta_info *psta,
 	struct mlme_ext_priv *pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info *pmlmeinfo = &pmlmeext->mlmext_info;
 
-	if ((pmgntframe = alloc_mgtxmitframe23a(pxmitpriv)) == NULL)
+	pmgntframe = alloc_mgtxmitframe23a(pxmitpriv);
+	if (!pmgntframe)
 		return;
 
 	/* update attribute */
@@ -3085,7 +3088,7 @@ static void issue_auth(struct rtw_adapter *padapter, struct sta_info *psta,
 						     (unsigned char *)&val32,
 						     &pattrib->pktlen);
 
-			pattrib->iv_len = 4;
+			pattrib->iv_len = IEEE80211_WEP_IV_LEN;
 		}
 
 		pframe = rtw_set_fixed_ie23a(pframe, _AUTH_ALGM_NUM_,
@@ -3121,7 +3124,7 @@ static void issue_auth(struct rtw_adapter *padapter, struct sta_info *psta,
 
 			pattrib->encrypt = WLAN_CIPHER_SUITE_WEP40;
 
-			pattrib->icv_len = 4;
+			pattrib->icv_len = IEEE80211_WEP_ICV_LEN;
 
 			pattrib->pktlen += pattrib->icv_len;
 		}
@@ -3478,13 +3481,12 @@ static void issue_assocreq(struct rtw_adapter *padapter)
 			pmlmeinfo->HT_caps.u.HT_cap_element.HT_caps_info =
 				cpu_to_le16(pmlmeinfo->HT_caps.u.HT_cap_element.HT_caps_info);
 
-#ifdef CONFIG_8723AU_BT_COEXIST
-			if (BT_1Ant(padapter) == true) {
+			if (rtl8723a_BT_coexist(padapter) &&
+			    rtl8723a_BT_using_antenna_1(padapter)) {
 				/*  set to 8K */
 				pmlmeinfo->HT_caps.u.HT_cap_element.AMPDU_para &= (u8)~IEEE80211_HT_AMPDU_PARM_FACTOR;
 /*				pmlmeinfo->HT_caps.u.HT_cap_element.AMPDU_para |= MAX_AMPDU_FACTOR_8K */
 			}
-#endif
 
 			pframe = rtw_set_ie23a(pframe, WLAN_EID_HT_CAPABILITY,
 					       p[1], (u8 *)&pmlmeinfo->HT_caps,
@@ -3570,7 +3572,8 @@ static int _issue_nulldata23a(struct rtw_adapter *padapter, unsigned char *da,
 	pmlmeext = &padapter->mlmeextpriv;
 	pmlmeinfo = &pmlmeext->mlmext_info;
 
-	if ((pmgntframe = alloc_mgtxmitframe23a(pxmitpriv)) == NULL)
+	pmgntframe = alloc_mgtxmitframe23a(pxmitpriv);
+	if (!pmgntframe)
 		goto exit;
 
 	/* update attribute */
@@ -3686,7 +3689,8 @@ static int _issue_qos_nulldata23a(struct rtw_adapter *padapter,
 
 	DBG_8723A("%s\n", __func__);
 
-	if ((pmgntframe = alloc_mgtxmitframe23a(pxmitpriv)) == NULL)
+	pmgntframe = alloc_mgtxmitframe23a(pxmitpriv);
+	if (!pmgntframe)
 		goto exit;
 
 	/* update attribute */
@@ -3811,7 +3815,8 @@ static int _issue_deauth(struct rtw_adapter *padapter, unsigned char *da,
 
 	/* DBG_8723A("%s to "MAC_FMT"\n", __func__, MAC_ARG(da)); */
 
-	if ((pmgntframe = alloc_mgtxmitframe23a(pxmitpriv)) == NULL)
+	pmgntframe = alloc_mgtxmitframe23a(pxmitpriv);
+	if (!pmgntframe)
 		goto exit;
 
 	/* update attribute */
@@ -3922,7 +3927,8 @@ void issue_action_spct_ch_switch23a(struct rtw_adapter *padapter,
 	DBG_8723A("%s(%s): ra ="MAC_FMT", ch:%u, offset:%u\n", __func__,
 		  padapter->pnetdev->name, MAC_ARG(ra), new_ch, ch_offset);
 
-	if ((pmgntframe = alloc_mgtxmitframe23a(pxmitpriv)) == NULL)
+	pmgntframe = alloc_mgtxmitframe23a(pxmitpriv);
+	if (!pmgntframe)
 		return;
 
 	/* update attribute */
@@ -3986,14 +3992,13 @@ void issue_action_BA23a(struct rtw_adapter *padapter,
 	struct sta_info *psta;
 	struct sta_priv *pstapriv = &padapter->stapriv;
 	struct registry_priv *pregpriv = &padapter->registrypriv;
-#ifdef CONFIG_8723AU_BT_COEXIST
 	u8 tendaAPMac[] = {0xC8, 0x3A, 0x35};
-#endif
 
 	DBG_8723A("%s, category =%d, action =%d, status =%d\n",
 		  __func__, category, action, status);
 
-	if ((pmgntframe = alloc_mgtxmitframe23a(pxmitpriv)) == NULL)
+	pmgntframe = alloc_mgtxmitframe23a(pxmitpriv);
+	if (!pmgntframe)
 		return;
 
 	/* update attribute */
@@ -4037,9 +4042,9 @@ void issue_action_BA23a(struct rtw_adapter *padapter,
 		pframe = rtw_set_fixed_ie23a(pframe, 1, &pmlmeinfo->dialogToken,
 					     &pattrib->pktlen);
 
-#ifdef CONFIG_8723AU_BT_COEXIST
-		if ((BT_1Ant(padapter) == true) &&
-		    ((pmlmeinfo->assoc_AP_vendor != broadcomAP) ||
+		if (rtl8723a_BT_coexist(padapter) &&
+		    rtl8723a_BT_using_antenna_1(padapter) &&
+		    (pmlmeinfo->assoc_AP_vendor != broadcomAP ||
 		     memcmp(raddr, tendaAPMac, 3))) {
 			/*  A-MSDU NOT Supported */
 			BA_para_set = 0;
@@ -4052,9 +4057,7 @@ void issue_action_BA23a(struct rtw_adapter *padapter,
 			/*  max buffer size is 8 MSDU */
 			BA_para_set |= (8 << 6) &
 				IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK;
-		} else
-#endif
-		{
+		} else {
 			/* immediate ack & 64 buffer size */
 			BA_para_set = (0x1002 | ((status & 0xf) << 2));
 		}
@@ -4104,16 +4107,15 @@ void issue_action_BA23a(struct rtw_adapter *padapter,
 		else
 			BA_para_set = ((le16_to_cpu(pmlmeinfo->ADDBA_req.BA_para_set) & 0x3f) | 0x1000); /* 64 buffer size */
 
-#ifdef CONFIG_8723AU_BT_COEXIST
-		if ((BT_1Ant(padapter) == true) &&
-		    ((pmlmeinfo->assoc_AP_vendor != broadcomAP) ||
+		if (rtl8723a_BT_coexist(padapter) &&
+		    rtl8723a_BT_using_antenna_1(padapter) &&
+		    (pmlmeinfo->assoc_AP_vendor != broadcomAP ||
 		     memcmp(raddr, tendaAPMac, 3))) {
 			/*  max buffer size is 8 MSDU */
 			BA_para_set &= ~IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK;
 			BA_para_set |= (8 << 6) &
 				IEEE80211_ADDBA_PARAM_BUF_SIZE_MASK;
 		}
-#endif
 
 		if (pregpriv->ampdu_amsdu == 0)/* disabled */
 			BA_para_set = cpu_to_le16(BA_para_set & ~BIT(0));

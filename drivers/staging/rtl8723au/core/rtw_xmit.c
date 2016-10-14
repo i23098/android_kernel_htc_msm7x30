@@ -77,8 +77,7 @@ int _rtw_init_xmit_priv23a(struct xmit_priv *pxmitpriv,
 	_rtw_init_queue23a(&pxmitpriv->free_xmit_queue);
 
 	for (i = 0; i < NR_XMITFRAME; i++) {
-		pxframe = (struct xmit_frame *)
-			kzalloc(sizeof(struct xmit_frame), GFP_KERNEL);
+		pxframe = kzalloc(sizeof(struct xmit_frame), GFP_KERNEL);
 		if (!pxframe)
 			break;
 		INIT_LIST_HEAD(&pxframe->list);
@@ -127,8 +126,7 @@ int _rtw_init_xmit_priv23a(struct xmit_priv *pxmitpriv,
 	_rtw_init_queue23a(&pxmitpriv->free_xframe_ext_queue);
 
 	for (i = 0; i < num_xmit_extbuf; i++) {
-		pxframe = (struct xmit_frame *)
-			kzalloc(sizeof(struct xmit_frame), GFP_KERNEL);
+		pxframe = kzalloc(sizeof(struct xmit_frame), GFP_KERNEL);
 		if (!pxframe)
 			break;
 		INIT_LIST_HEAD(&pxframe->list);
@@ -443,16 +441,14 @@ static int update_attrib(struct rtw_adapter *padapter,
 
 	pattrib->pctrl = 0;
 
-	if ((check_fwstate(pmlmepriv, WIFI_ADHOC_STATE) == true) ||
-		(check_fwstate(pmlmepriv, WIFI_ADHOC_MASTER_STATE) == true)) {
+	if (check_fwstate(pmlmepriv, WIFI_ADHOC_STATE) ||
+	    check_fwstate(pmlmepriv, WIFI_ADHOC_MASTER_STATE)) {
 		ether_addr_copy(pattrib->ra, pattrib->dst);
 		ether_addr_copy(pattrib->ta, pattrib->src);
-	}
-	else if (check_fwstate(pmlmepriv, WIFI_STATION_STATE)) {
+	} else if (check_fwstate(pmlmepriv, WIFI_STATION_STATE)) {
 		ether_addr_copy(pattrib->ra, get_bssid(pmlmepriv));
 		ether_addr_copy(pattrib->ta, pattrib->src);
-	}
-	else if (check_fwstate(pmlmepriv, WIFI_AP_STATE)) {
+	} else if (check_fwstate(pmlmepriv, WIFI_AP_STATE)) {
 		ether_addr_copy(pattrib->ra, pattrib->dst);
 		ether_addr_copy(pattrib->ta, get_bssid(pmlmepriv));
 	}
@@ -510,7 +506,7 @@ static int update_attrib(struct rtw_adapter *padapter,
 				  MAC_FMT"\n", MAC_ARG(pattrib->ra)));
 			res = _FAIL;
 			goto exit;
-		} else if ((check_fwstate(pmlmepriv, WIFI_AP_STATE) == true) &&
+		} else if (check_fwstate(pmlmepriv, WIFI_AP_STATE) &&
 			   (!(psta->state & _FW_LINKED))) {
 			res = _FAIL;
 			goto exit;
@@ -562,7 +558,7 @@ static int update_attrib(struct rtw_adapter *padapter,
 		pattrib->encrypt = 0;
 
 		if ((pattrib->ether_type != ETH_P_PAE) &&
-		    (check_fwstate(pmlmepriv, WIFI_MP_STATE) == false)) {
+		    !check_fwstate(pmlmepriv, WIFI_MP_STATE)) {
 			RT_TRACE(_module_rtl871x_xmit_c_, _drv_err_,
 				 ("\npsta->ieee8021x_blocked == true,  "
 				  "pattrib->ether_type(%.4x) != 0x888e\n",
@@ -597,13 +593,13 @@ static int update_attrib(struct rtw_adapter *padapter,
 	switch (pattrib->encrypt) {
 	case WLAN_CIPHER_SUITE_WEP40:
 	case WLAN_CIPHER_SUITE_WEP104:
-		pattrib->iv_len = 4;
-		pattrib->icv_len = 4;
+		pattrib->iv_len = IEEE80211_WEP_IV_LEN;
+		pattrib->icv_len = IEEE80211_WEP_ICV_LEN;
 		break;
 
 	case WLAN_CIPHER_SUITE_TKIP:
-		pattrib->iv_len = 8;
-		pattrib->icv_len = 4;
+		pattrib->iv_len = IEEE80211_TKIP_IV_LEN;
+		pattrib->icv_len = IEEE80211_TKIP_ICV_LEN;
 
 		if (!padapter->securitypriv.busetkipkey) {
 			RT_TRACE(_module_rtl871x_xmit_c_, _drv_err_,
@@ -619,8 +615,8 @@ static int update_attrib(struct rtw_adapter *padapter,
 		RT_TRACE(_module_rtl871x_xmit_c_, _drv_info_,
 			 ("pattrib->encrypt =%d (WLAN_CIPHER_SUITE_CCMP)\n",
 			  pattrib->encrypt));
-		pattrib->iv_len = 8;
-		pattrib->icv_len = 8;
+		pattrib->iv_len = IEEE80211_CCMP_HDR_LEN;
+		pattrib->icv_len = IEEE80211_CCMP_MIC_LEN;
 		break;
 
 	default:
@@ -897,35 +893,33 @@ static int rtw_make_wlanhdr(struct rtw_adapter *padapter, u8 *hdr,
 	pwlanhdr->frame_control = cpu_to_le16(pattrib->type);
 
 	if (pattrib->type & IEEE80211_FTYPE_DATA) {
-		if ((check_fwstate(pmlmepriv,  WIFI_STATION_STATE) == true)) {
+		if (check_fwstate(pmlmepriv,  WIFI_STATION_STATE)) {
 			/* to_ds = 1, fr_ds = 0; */
 			/* Data transfer to AP */
 			pwlanhdr->frame_control |=
 				cpu_to_le16(IEEE80211_FCTL_TODS);
-			memcpy(pwlanhdr->addr1, get_bssid(pmlmepriv), ETH_ALEN);
-			memcpy(pwlanhdr->addr2, pattrib->src, ETH_ALEN);
-			memcpy(pwlanhdr->addr3, pattrib->dst, ETH_ALEN);
+			ether_addr_copy(pwlanhdr->addr1, get_bssid(pmlmepriv));
+			ether_addr_copy(pwlanhdr->addr2, pattrib->src);
+			ether_addr_copy(pwlanhdr->addr3, pattrib->dst);
 
 			if (pmlmepriv->qos_option)
 				qos_option = true;
 
-		}
-		else if ((check_fwstate(pmlmepriv,  WIFI_AP_STATE) == true)) {
+		} else if (check_fwstate(pmlmepriv,  WIFI_AP_STATE)) {
 			/* to_ds = 0, fr_ds = 1; */
 			pwlanhdr->frame_control |=
 				cpu_to_le16(IEEE80211_FCTL_FROMDS);
-			memcpy(pwlanhdr->addr1, pattrib->dst, ETH_ALEN);
-			memcpy(pwlanhdr->addr2, get_bssid(pmlmepriv), ETH_ALEN);
-			memcpy(pwlanhdr->addr3, pattrib->src, ETH_ALEN);
+			ether_addr_copy(pwlanhdr->addr1, pattrib->dst);
+			ether_addr_copy(pwlanhdr->addr2, get_bssid(pmlmepriv));
+			ether_addr_copy(pwlanhdr->addr3, pattrib->src);
 
 			if (psta->qos_option)
 				qos_option = true;
-		}
-		else if ((check_fwstate(pmlmepriv, WIFI_ADHOC_STATE) == true) ||
-		(check_fwstate(pmlmepriv, WIFI_ADHOC_MASTER_STATE) == true)) {
-			memcpy(pwlanhdr->addr1, pattrib->dst, ETH_ALEN);
-			memcpy(pwlanhdr->addr2, pattrib->src, ETH_ALEN);
-			memcpy(pwlanhdr->addr3, get_bssid(pmlmepriv), ETH_ALEN);
+		} else if (check_fwstate(pmlmepriv, WIFI_ADHOC_STATE) ||
+			   check_fwstate(pmlmepriv, WIFI_ADHOC_MASTER_STATE)) {
+			ether_addr_copy(pwlanhdr->addr1, pattrib->dst);
+			ether_addr_copy(pwlanhdr->addr2, pattrib->src);
+			ether_addr_copy(pwlanhdr->addr3, get_bssid(pmlmepriv));
 
 			if (psta->qos_option)
 				qos_option = true;
@@ -1972,7 +1966,7 @@ int xmitframe_enqueue_for_sleeping_sta23a(struct rtw_adapter *padapter, struct x
 	struct mlme_priv *pmlmepriv = &padapter->mlmepriv;
 	int bmcst = is_multicast_ether_addr(pattrib->ra);
 
-	if (check_fwstate(pmlmepriv, WIFI_AP_STATE) == false)
+	if (!check_fwstate(pmlmepriv, WIFI_AP_STATE))
 		return ret;
 
 	if (pattrib->psta) {
