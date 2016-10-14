@@ -417,21 +417,22 @@ static int ion_handle_add(struct ion_client *client, struct ion_handle *handle)
 }
 
 struct ion_handle *ion_alloc(struct ion_client *client, size_t len,
-			     size_t align, unsigned int heap_mask,
+			     size_t align, unsigned int heap_id_mask,
 			     unsigned int flags)
 {
 	struct ion_handle *handle;
 	struct ion_device *dev = client->dev;
 	struct ion_buffer *buffer = NULL;
+	struct ion_heap *heap;
+	int ret;
 	unsigned long secure_allocation = flags & ION_SECURE;
 	const unsigned int MAX_DBG_STR_LEN = 64;
 	char dbg_str[MAX_DBG_STR_LEN];
 	unsigned int dbg_str_idx = 0;
-	struct ion_heap *heap;
-	int ret;
-
 	dbg_str[0] = '\0';
 
+	pr_debug("%s: len %zu align %zu heap_id_mask %u flags %x\n", __func__,
+		 len, align, heap_id_mask, flags);
 	/*
 	 * traverse the list of heaps available in this system in priority
 	 * order.  If the heap type is supported by the client, and matches the
@@ -448,8 +449,8 @@ struct ion_handle *ion_alloc(struct ion_client *client, size_t len,
 		/* if the client doesn't support this heap type */
 		if (!((1 << heap->type) & client->heap_mask))
 			continue;
-		/* if the caller didn't specify this heap type */
-		if (!((1 << heap->id) & heap_mask))
+		/* if the caller didn't specify this heap id */
+		if (!((1 << heap->id) & heap_id_mask))
 			continue;
 		/* Do not allow un-secure heap if secure is specified */
 		if (secure_allocation &&
@@ -973,7 +974,6 @@ struct ion_client *ion_client_create(struct ion_device *dev,
 	client->dev = dev;
 	client->handles = RB_ROOT;
 	mutex_init(&client->lock);
-
 	client->task = task;
 	client->pid = pid;
 	client->name = kstrdup(name, GFP_KERNEL);
