@@ -589,7 +589,7 @@ void __init early_init_dt_check_htc_board(unsigned long node)
 	prop = of_get_flat_dt_prop(node, "linux,engineerid", &len);
 	if (prop)
 		early_init_dt_setup_engineerid(of_read_ulong(prop, len/4));
-	return;
+
 	prop = of_get_flat_dt_prop(node, "linux,smi", &len);
 	if (prop)
 		early_init_dt_setup_smi(of_read_ulong(prop, len/4));
@@ -756,7 +756,7 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 
 	early_init_dt_check_for_initrd(node);
 	early_init_dt_check_htc_board(node);
-	return 0;
+
 	/* Retrieve command line */
 	p = of_get_flat_dt_prop(node, "bootargs", &l);
 	if (p != NULL && l > 0)
