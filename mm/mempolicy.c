@@ -1366,7 +1366,7 @@ static int copy_nodes_to_user(unsigned long __user *mask, unsigned long maxnode,
 }
 
 SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
-		unsigned long, mode, unsigned long __user *, nmask,
+		unsigned long, mode, const unsigned long __user *, nmask,
 		unsigned long, maxnode, unsigned, flags)
 {
 	nodemask_t nodes;
@@ -1387,7 +1387,7 @@ SYSCALL_DEFINE6(mbind, unsigned long, start, unsigned long, len,
 }
 
 /* Set the process memory policy */
-SYSCALL_DEFINE3(set_mempolicy, int, mode, unsigned long __user *, nmask,
+SYSCALL_DEFINE3(set_mempolicy, int, mode, const unsigned long __user *, nmask,
 		unsigned long, maxnode)
 {
 	int err;
