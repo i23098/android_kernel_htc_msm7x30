@@ -25,7 +25,6 @@ config ARCH_MSM7X30
 	select MSM_SMD
 	select CLKSRC_QCOM
 	select MSM_VIC
-	select RESERVE_FIRST_PAGE
 	select MSM_DALRPC
 	select MSM_SPM_V1
 	select ARM_HAS_SG_CHAIN
