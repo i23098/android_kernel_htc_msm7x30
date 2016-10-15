@@ -26,21 +26,6 @@
 #include <linux/pm_qos.h>
 
 /**
- * Supported USB modes
- *
- * USB_PERIPHERAL       Only peripheral mode is supported.
- * USB_HOST             Only host mode is supported.
- * USB_OTG              OTG mode is supported.
- *
- */
-enum usb_mode_type {
-	USB_NONE = 0,
-	USB_PERIPHERAL,
-	USB_HOST,
-	USB_OTG,
-};
-
-/**
  * OTG control
  *
  * OTG_NO_CONTROL	Id/VBUS notifications not required. Useful in host
@@ -121,6 +106,7 @@ enum usb_chg_state {
  *			or more downstream ports. Capable of supplying
  *			IDEV_CHG_MAX irrespective of devices connected on
  *			accessory ports.
+ *
  */
 enum usb_chg_type {
 	USB_INVALID_CHARGER = 0,
@@ -136,14 +122,13 @@ enum usb_chg_type {
 /**
  * struct msm_otg_platform_data - platform device data
  *              for msm_otg driver.
- * @phy_init_seq: PHY configuration sequence. val, reg pairs
- *              terminated by -1.
+ * @phy_init_seq: PHY configuration sequence values. Value of -1 is reserved as
+ *              "do not overwrite default vaule at this address".
+ * @phy_init_sz: PHY configuration sequence size.
  * @vbus_power: VBUS power on/off routine.
  * @power_budget: VBUS power budget in mA (0 will be treated as 500mA).
  * @mode: Supported mode (OTG/peripheral/host).
  * @otg_control: OTG switch controlled by user/Id pin
- * @default_mode: Default operational mode. Applicable only if
- *              OTG switch is controller by user.
  * @pmic_id_irq: IRQ number assigned for PMIC USB ID line.
  * @mhl_enable: indicates MHL connector or not.
  * @ido_3v3_name: the regulator provide 3.075(3.3)V to PHY
@@ -156,11 +141,11 @@ enum usb_chg_type {
  */
 struct msm_otg_platform_data {
 	int *phy_init_seq;
+	int phy_init_sz;
 	void (*vbus_power)(bool on);
 	unsigned power_budget;
-	enum usb_mode_type mode;
+	enum usb_dr_mode mode;
 	enum otg_control_type otg_control;
-	enum usb_mode_type default_mode;
 	enum msm_usb_phy_type phy_type;
 	void (*setup_gpio)(enum usb_otg_state state);
 	int pmic_id_irq;
@@ -184,11 +169,11 @@ struct msm_otg_platform_data {
  * @otg: USB OTG Transceiver structure.
  * @pdata: otg device platform data.
  * @irq: IRQ number assigned for HSUSB controller.
- * @clk: clock struct of alt_core_clk.
- * @pclk: clock struct of iface_clk.
- * @phy_reset_clk: clock struct of phy_clk.
- * @core_clk: clock struct of core_bus_clk.
-* @regs: ioremapped register base address.
+ * @clk: clock struct of usb_hs_clk.
+ * @pclk: clock struct of usb_hs_pclk.
+ * @phy_reset_clk: clock struct of usb_phy_clk.
+ * @core_clk: clock struct of usb_hs_core_clk.
+ * @regs: ioremapped register base address.
  * @inputs: OTG state machine inputs(Id, SessValid etc).
  * @sm_work: OTG state machine work.
  * @in_lpm: indicates low power mode (LPM) state.
@@ -228,10 +213,18 @@ struct msm_otg {
 	atomic_t in_lpm;
 	int async_int;
 	unsigned cur_power;
+	int phy_number;
 	struct delayed_work chg_work;
 	enum usb_chg_state chg_state;
 	enum usb_chg_type chg_type;
 	u8 dcd_retries;
+	struct regulator *v3p3;
+	struct regulator *v1p8;
+	struct regulator *vddcx;
+
+	struct reset_control *phy_rst;
+	struct reset_control *link_rst;
+	int vdd_levels[3];
 	struct wake_lock usb_otg_wlock;
 	struct wake_lock cable_detect_wlock;
 	struct notifier_block usbdev_nb;
