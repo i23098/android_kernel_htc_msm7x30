@@ -2417,7 +2417,7 @@ static int msm72k_probe(struct platform_device *pdev)
 	if (!ui->buf)
 		return usb_free(ui, -ENOMEM);
 
-	ui->pool = dma_pool_create("msm72k_udc", NULL, 32, 32, 0);
+	ui->pool = dma_pool_create("msm72k_udc", &pdev->dev, 32, 32, 0);
 	if (!ui->pool)
 		return usb_free(ui, -ENOMEM);
 
