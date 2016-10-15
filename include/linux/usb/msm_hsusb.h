@@ -2,7 +2,7 @@
  *
  * Copyright (C) 2008 Google, Inc.
  * Author: Brian Swetland <swetland@google.com>
- * Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -21,9 +21,6 @@
 #include <linux/types.h>
 #include <linux/usb/otg.h>
 #include <linux/clk.h>
-#include <linux/wakelock.h>
-#include <mach/board.h>
-#include <linux/pm_qos.h>
 
 /**
  * OTG control
@@ -57,11 +54,7 @@ enum msm_usb_phy_type {
 };
 
 #define IDEV_CHG_MAX	1500
-#define IDEV_CHG_MIN	500
 #define IUNIT		100
-
-#define IDEV_ACA_CHG_MAX	1500
-#define IDEV_ACA_CHG_LIMIT	500
 
 /**
  * Different states involved in USB charger detection.
@@ -95,17 +88,6 @@ enum usb_chg_state {
  * USB_DCP_CHARGER	Dedicated charger port (AC charger/ Wall charger).
  * USB_CDP_CHARGER	Charging downstream port. Enumeration can happen and
  *                      IDEV_CHG_MAX can be drawn irrespective of USB state.
- * USB_ACA_A_CHARGER	B-device is connected on accessory port with charger
- *                      connected on charging port. This configuration allows
- *                      charging in host mode.
- * USB_ACA_B_CHARGER	No device (or A-device without VBUS) is connected on
- *                      accessory port with charger connected on charging port.
- * USB_ACA_C_CHARGER	A-device (with VBUS) is connected on
- *                      accessory port with charger connected on charging port.
- * USB_ACA_DOCK_CHARGER	A docking station that has one upstream port and one
- *			or more downstream ports. Capable of supplying
- *			IDEV_CHG_MAX irrespective of devices connected on
- *			accessory ports.
  *
  */
 enum usb_chg_type {
@@ -113,10 +95,6 @@ enum usb_chg_type {
 	USB_SDP_CHARGER,
 	USB_DCP_CHARGER,
 	USB_CDP_CHARGER,
-	USB_ACA_A_CHARGER,
-	USB_ACA_B_CHARGER,
-	USB_ACA_C_CHARGER,
-	USB_ACA_DOCK_CHARGER,
 };
 
 /**
@@ -129,15 +107,6 @@ enum usb_chg_type {
  * @power_budget: VBUS power budget in mA (0 will be treated as 500mA).
  * @mode: Supported mode (OTG/peripheral/host).
  * @otg_control: OTG switch controlled by user/Id pin
- * @pmic_id_irq: IRQ number assigned for PMIC USB ID line.
- * @mhl_enable: indicates MHL connector or not.
- * @ido_3v3_name: the regulator provide 3.075(3.3)V to PHY
- * @ldo_1v8_name: the regulator provide 1.8V to PHY
- * @vddcx_name: digital core voltage, provide reference voltage in charger
- *		detection block in 28nm/45nm PHY
- * @phy_notify_enabled: even in OTG_PMIC_CONTROL, still force enabled phy
- *		interrupt and deliver the notification
- * @swfi_latency: miminum latency to allow swfi.
  */
 struct msm_otg_platform_data {
 	int *phy_init_seq;
@@ -148,18 +117,6 @@ struct msm_otg_platform_data {
 	enum otg_control_type otg_control;
 	enum msm_usb_phy_type phy_type;
 	void (*setup_gpio)(enum usb_otg_state state);
-	int pmic_id_irq;
-	bool mhl_enable;
-	char *ldo_3v3_name;
-	char *ldo_1v8_name;
-	char *vddcx_name;
-	u32 swfi_latency;
-	/* This flag is against the condition that PHY fail into lpm when DCP is attached. */
-	int reset_phy_before_lpm;
-	bool phy_notify_enabled;
-	void (*usb_uart_switch)(int uart);
-	int (*rpc_connect)(int connect);
-	int (*phy_reset)(void);
 	int (*link_clk_reset)(struct clk *link_clk, bool assert);
 	int (*phy_clk_reset)(struct clk *phy_clk);
 };
@@ -184,15 +141,6 @@ struct msm_otg_platform_data {
  * @chg_type: The type of charger attached.
  * @dcd_retires: The retry count used to track Data contact
  *               detection process.
- * @wlock: Wake lock struct to prevent system suspend when
- *               USB is active.
- * @usbdev_nb: The notifier block used to know about the B-device
- *             connected. Useful only when ACA_A charger is
- *             connected.
- * @mA_port: The amount of current drawn by the attached B-device.
- * @pm_qos_req_dma: miminum DMA latency to vote against idle power
-	collapse when cable is connected.
- * @id_timer: The timer used for polling ID line to detect ACA states.
  */
 struct msm_otg {
 	struct usb_phy phy;
@@ -205,9 +153,6 @@ struct msm_otg {
 	void __iomem *regs;
 #define ID		0
 #define B_SESS_VLD	1
-#define ID_A		2
-#define ID_B		3
-#define ID_C		4
 	unsigned long inputs;
 	struct work_struct sm_work;
 	atomic_t in_lpm;
@@ -225,51 +170,6 @@ struct msm_otg {
 	struct reset_control *phy_rst;
 	struct reset_control *link_rst;
 	int vdd_levels[3];
-	struct wake_lock usb_otg_wlock;
-	struct wake_lock cable_detect_wlock;
-	struct notifier_block usbdev_nb;
-	unsigned mA_port;
-	struct timer_list id_timer;
-	unsigned long caps;
-	/*
-	 * Allowing PHY power collpase turns off the HSUSB 3.3v and 1.8v
-	 * analog regulators while going to low power mode.
-	 * Currently only 8960(28nm PHY) has the support to allowing PHY
-	 * power collapse since it doesn't have leakage currents while
-	 * turning off the power rails.
-	 */
-#define ALLOW_PHY_POWER_COLLAPSE	BIT(0)
-	/*
-	 * Allow PHY RETENTION mode before turning off the digital
-	 * voltage regulator(VDDCX).
-	 */
-#define ALLOW_PHY_RETENTION		BIT(1)
-	  /*
-	   * Disable the OTG comparators to save more power
-	   * if depends on PMIC for VBUS and ID interrupts.
-	   */
-#define ALLOW_PHY_COMP_DISABLE		BIT(2)
-	unsigned long lpm_flags;
-#define PHY_PWR_COLLAPSED		BIT(0)
-#define PHY_RETENTIONED			BIT(1)
-#define PHY_OTG_COMP_DISABLED		BIT(2)
-	struct work_struct notifier_work;
-	enum usb_connect_type connect_type;
-	int connect_type_ready;
-	struct workqueue_struct *usb_wq;
-	struct timer_list ac_detect_timer;
-	int ac_detect_count;
-
-	struct pm_qos_request pm_qos_req_dma;
-	int reset_phy_before_lpm;
-
-	void (*vbus_notification_cb)(int online);
-};
-
-struct msm_hsic_host_platform_data {
-	unsigned strobe;
-	unsigned data;
-	unsigned hub_reset;
 };
 
 #endif
