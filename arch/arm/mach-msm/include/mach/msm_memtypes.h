@@ -20,17 +20,6 @@
 #include <mach/msm_mem.h>
 #include <linux/init.h>
 
-int __init meminfo_init(unsigned int, unsigned int);
-/* Redundant check to prevent this from being included outside of 7x30 */
-#if defined(CONFIG_ARCH_MSM7X30)
-unsigned int get_num_populated_chipselects(void);
-#endif
-
-unsigned int get_num_memory_banks(void);
-unsigned int get_memory_bank_size(unsigned int);
-unsigned int get_memory_bank_start(unsigned int);
-int soc_change_memory_power(u64, u64, int);
-
 enum {
 	MEMTYPE_NONE = -1,
 	MEMTYPE_SMI_KERNEL = 0,
@@ -65,6 +54,4 @@ struct reserve_info {
 };
 
 extern struct reserve_info *reserve_info;
-
-unsigned long __init reserve_memory_for_fmem(unsigned long, unsigned long);
 #endif

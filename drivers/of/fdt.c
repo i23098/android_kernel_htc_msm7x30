@@ -758,8 +758,8 @@ early_param("earlycon", setup_of_earlycon);
  */
 void __init early_init_dt_check_htc_board(unsigned long node)
 {
-	unsigned long len;
-	__be32 *prop;
+	int len;
+	const __be32 *prop;
 	prop = of_get_flat_dt_prop(node, "linux,engineerid", &len);
 	if (prop)
 		early_init_dt_setup_engineerid(of_read_ulong(prop, len/4));

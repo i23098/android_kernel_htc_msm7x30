@@ -28,11 +28,6 @@
 #include <asm/mach-types.h>
 #include <mach/msm_memtypes.h>
 #include <linux/hardirq.h>
-#if defined(CONFIG_MSM_NPA_REMOTE)
-#include "npa_remote.h"
-#include <linux/completion.h>
-#include <linux/err.h>
-#endif
 #include <linux/android_pmem.h>
 #include <mach/msm_iomap.h>
 #include <mach/socinfo.h>
@@ -69,33 +64,6 @@ void invalidate_caches(unsigned long vstart,
 {
 	dmac_inv_range((void *)vstart, (void *) (vstart + length));
 	outer_inv_range(pstart, pstart + length);
-}
-
-/* these correspond to values known by the modem */
-#define MEMORY_DEEP_POWERDOWN	0
-#define MEMORY_SELF_REFRESH	1
-#define MEMORY_ACTIVE		2
-int (*change_memory_power)(u64, u64, int);
-
-int platform_physical_remove_pages(u64 start, u64 size)
-{
-	if (!change_memory_power)
-		return 0;
-	return change_memory_power(start, size, MEMORY_DEEP_POWERDOWN);
-}
-
-int platform_physical_active_pages(u64 start, u64 size)
-{
-	if (!change_memory_power)
-		return 0;
-	return change_memory_power(start, size, MEMORY_ACTIVE);
-}
-
-int platform_physical_low_power_pages(u64 start, u64 size)
-{
-	if (!change_memory_power)
-		return 0;
-	return change_memory_power(start, size, MEMORY_SELF_REFRESH);
 }
 
 char *memtype_name[] = {
@@ -361,11 +329,3 @@ int msm_get_memory_type_from_name(const char *memtype_name)
 	return -EINVAL;
 }
 
-unsigned int msm_ttbr0;
-
-void store_ttbr0(void)
-{
-	/* Store TTBR0 for post-mortem debugging purposes. */
-	asm("mrc p15, 0, %0, c2, c0, 0\n"
-		: "=r" (msm_ttbr0));
-}

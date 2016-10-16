@@ -2938,7 +2938,6 @@ static void __init reserve_pmem_memory(void)
 	msm7x30_reserve_table[MEMTYPE_EBI0].size += PMEM_KERNEL_EBI0_SIZE;
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 	reserve_memory_for(&android_pmem_pdata);
-
 #endif
 #endif
 }

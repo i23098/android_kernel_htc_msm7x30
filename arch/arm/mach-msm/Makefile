@@ -77,7 +77,7 @@ obj-$(CONFIG_SURF_FFA_GPIO_KEYPAD) += keypad-surf-ffa.o
 
 obj-$(CONFIG_HTC_BATTCHG) += htc_battery.o
 
-obj-$(CONFIG_ARCH_MSM7X30) += memory_topology.o devices_htc.o emmc_partitions.o msm_vibrator.o
+obj-$(CONFIG_ARCH_MSM7X30) += devices_htc.o emmc_partitions.o msm_vibrator.o
 obj-$(CONFIG_ARCH_MSM7X30) += clock-local.o clock-7x30.o acpuclock-7x30.o htc_awb_cal.o
 
 # MSM7x30 boards
