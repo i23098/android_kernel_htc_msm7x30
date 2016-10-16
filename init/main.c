@@ -756,8 +756,8 @@ int __init_or_module do_one_initcall(initcall_t fn)
 	int ret;
 	char msgbuf[64];
 
-	if (initcall_blacklisted(fn))
-		return -EPERM;
+	//if (initcall_blacklisted(fn))
+	//	return -EPERM;
 
 	if (initcall_debug)
 		ret = do_one_initcall_debug(fn);
