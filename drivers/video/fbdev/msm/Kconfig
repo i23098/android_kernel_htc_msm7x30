@@ -113,16 +113,6 @@ config FB_MSM_EXTMDDI
 	bool
 	default n
 
-config FB_MSM_MDDI_TOSHIBA_COMMON
-	bool
-	select FB_MSM_MDDI
-	default n
-
-config FB_MSM_MDDI_TOSHIBA_COMMON_VGA
-	bool
-	select FB_MSM_MDDI_TOSHIBA_COMMON
-	default n
-
 config FB_MSM_MDDI_ORISE
 	bool
 	select FB_MSM_MDDI
@@ -402,24 +392,6 @@ config FB_MSM_MDDI_PRISM_WVGA
 	select FB_MSM_MDDI
 	---help---
 	  Support for MDDI Prism WVGA (800x480) panel
-
-config FB_MSM_MDDI_TOSHIBA_WVGA_PORTRAIT
-	bool "MDDI Toshiba WVGA Portrait Panel"
-	select FB_MSM_MDDI_TOSHIBA_COMMON
-	---help---
-	  Support for MDDI Toshiba WVGA (480x800) panel
-
-config FB_MSM_MDDI_TOSHIBA_VGA
-	bool "MDDI Toshiba VGA Panel"
-	select FB_MSM_MDDI_TOSHIBA_COMMON_VGA
-	---help---
-	  Support for MDDI Toshiba VGA (480x640) and QCIF (176x220) panel
-
-config FB_MSM_MDDI_TOSHIBA_WVGA
-	bool "MDDI Toshiba WVGA panel"
-	select FB_MSM_MDDI_TOSHIBA_COMMON
-	---help---
-	  Support for MDDI Toshiba (800x480) WVGA panel
 
 config FB_MSM_MDDI_SHARP_QVGA_128x128
 	bool "MDDI Sharp QVGA Dual Panel"
